@@ -1,0 +1,16 @@
+[paths]
+source =
+   src/hexrec
+   */site-packages/hexrec
+
+[run]
+branch = true
+source =
+    hexrec
+    tests
+parallel = true
+
+[report]
+show_missing = true
+precision = 2
+omit = *migrations*
