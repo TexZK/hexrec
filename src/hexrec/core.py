@@ -60,7 +60,7 @@ def merge_records(sorted_data_records, input_types=None, output_type=None,
     output_records = []
     for start, _, chunk in merged_blocks:
         records = output_type.split(chunk, *args, start=start, **kwargs)
-        output_records += records
+        output_records.extend(records)
 
     return output_records
 
