@@ -28,7 +28,6 @@
 import binascii
 import re
 
-
 BIN8_TO_STR = tuple('{:08b}'.format(i) for i in range(256))
 STR_TO_BIN8 = {s: i for i, s in enumerate(BIN8_TO_STR)}
 
@@ -228,4 +227,3 @@ def merge_blocks(sorted_blocks, invalid_start=-1):
                 last_block = split_block
 
     return merged_blocks
-

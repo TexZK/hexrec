@@ -30,7 +30,11 @@ import os
 import re
 import struct
 
-from .utils import do_overlap, chop, hexlify, unhexlify, merge_blocks
+from .utils import chop
+from .utils import do_overlap
+from .utils import hexlify
+from .utils import merge_blocks
+from .utils import unhexlify
 
 
 def merge_records(sorted_data_records, input_types=None, output_type=None,
@@ -175,7 +179,7 @@ class Record(object):
                'data={1.data!r}, '
                'checksum=0x{2:02X}'
                ')')
-        checksum  = self._get_checksum() or 0
+        checksum = self._get_checksum() or 0
         return fmt.format(type(self).__name__, self, checksum)
 
     def __str__(self):
@@ -251,9 +255,9 @@ class Record(object):
             return False
         else:
             return do_overlap(self.address,
-                                 self.address + len(self.data),
-                                 other.address,
-                                 other.address + len(other.data))
+                              self.address + len(self.data),
+                              other.address,
+                              other.address + len(other.data))
 
     @classmethod
     def parse(cls, line, *args, **kwargs):
@@ -793,7 +797,8 @@ class IntelRecord(Record):
                 address += length
 
         if standalone:
-            yield from cls.terminate(start)
+            for record in cls.terminate(start):
+                yield record
 
     @classmethod
     def terminate(cls, start):
@@ -955,4 +960,3 @@ def find_record_type(file_path):
             return name
     else:
         raise KeyError('unsupported extension')
-
