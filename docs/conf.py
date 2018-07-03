@@ -26,7 +26,7 @@ project = 'hexrec'
 year = '2018'
 author = 'Andrea Zoppi'
 copyright = '{0}, {1}'.format(year, author)
-version = release = 'version = release = '0.0.1''
+version = release = 'version = release = 'version = release = '0.0.1'''
 
 pygments_style = 'trac'
 templates_path = ['.']
