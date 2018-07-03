@@ -66,23 +66,23 @@ Overview
 
 .. |version| image:: https://img.shields.io/pypi/v/hexrec.svg
     :alt: PyPI Package latest release
-    :target: https://pypi.python.org/pypi/hexrec
+    :target: https://pypi.org/project/hexrec/
 
-.. |commits-since| image:: https://img.shields.io/github/commits-since/TexZK/hexrec/vvv0.0.1...svg
+.. |commits-since| image:: https://img.shields.io/github/commits-since/TexZK/hexrec/v0.0.1...svg
     :alt: Commits since latest release
-    :target: https://github.com/TexZK/hexrec/compare/vvv0.0.1.....master
+    :target: https://github.com/TexZK/hexrec/compare/v0.0.1...master
 
 .. |wheel| image:: https://img.shields.io/pypi/wheel/hexrec.svg
     :alt: PyPI Wheel
-    :target: https://pypi.python.org/pypi/hexrec
+    :target: https://pypi.org/project/hexrec/
 
 .. |supported-versions| image:: https://img.shields.io/pypi/pyversions/hexrec.svg
     :alt: Supported versions
-    :target: https://pypi.python.org/pypi/hexrec
+    :target: https://pypi.org/project/hexrec/
 
 .. |supported-implementations| image:: https://img.shields.io/pypi/implementation/hexrec.svg
     :alt: Supported implementations
-    :target: https://pypi.python.org/pypi/hexrec
+    :target: https://pypi.org/project/hexrec/
 
 
 .. end-badges
