@@ -68,9 +68,9 @@ Overview
     :alt: PyPI Package latest release
     :target: https://pypi.python.org/pypi/hexrec
 
-.. |commits-since| image:: https://img.shields.io/github/commits-since/TexZK/hexrec/v0.0.1.svg
+.. |commits-since| image:: https://img.shields.io/github/commits-since/TexZK/hexrec/vv0.0.1..svg
     :alt: Commits since latest release
-    :target: https://github.com/TexZK/hexrec/compare/v0.0.1...master
+    :target: https://github.com/TexZK/hexrec/compare/vv0.0.1....master
 
 .. |wheel| image:: https://img.shields.io/pypi/wheel/hexrec.svg
     :alt: PyPI Wheel
