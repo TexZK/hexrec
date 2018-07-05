@@ -189,7 +189,7 @@ def do_overlap(start1, endex1, start2, endex2):
 
 
 def merge_blocks(sorted_blocks, invalid_start=-1):
-    last_block = (invalid_start, None, ())  # (start, level, items)
+    last_block = (invalid_start, None, ())
     merged_blocks = []
 
     for start, level, items in sorted_blocks:

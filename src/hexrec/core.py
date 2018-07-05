@@ -53,11 +53,12 @@ def merge_records(sorted_data_records, input_types=None, output_type=None,
     for level in range(len(input_types)):
         records = sorted_data_records[level]
         input_type = input_types[level]
-        input_blocks.extend((p[0].address, level, input_type.flatten(p))
+        input_blocks.extend((p[0].address, -level, input_type.flatten(p))
                             for p in input_type.partition(records))
 
     input_blocks.sort()
-    merged_blocks = merge_blocks(input_blocks)
+    merged_blocks = merge_blocks((start, -level, items)
+                                 for (start, level, items) in input_blocks)
 
     args = split_args or ()
     kwargs = split_kwargs or {}
