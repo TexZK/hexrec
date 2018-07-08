@@ -947,10 +947,10 @@ class TektronixRecord(Record):
 
 
 RECORD_TYPES = {
-    'motorola'  : MotorolaRecord,
-    'intel'     : IntelRecord,
-    'tektronix' : TektronixRecord,
-    'binary'    : BinaryRecord,
+    'motorola': MotorolaRecord,
+    'intel': IntelRecord,
+    'tektronix': TektronixRecord,
+    'binary': BinaryRecord,
 }
 
 

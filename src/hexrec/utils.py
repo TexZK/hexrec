@@ -31,10 +31,11 @@ import re
 BIN8_TO_STR = tuple('{:08b}'.format(i) for i in range(256))
 STR_TO_BIN8 = {s: i for i, s in enumerate(BIN8_TO_STR)}
 
-INT_REGEX = re.compile('^(?P<sign>[+-]?)'
-                       '(?P<prefix>(0x|0X|0b|0B|0)?)'
-                       '(?P<value>[A-Fa-f0-9]+)'
-                       '(?P<suffix>[hHbBkm]?)$')
+INT_REGEX = re.compile(r'^(?P<sign>[+-]?)'
+                       r'(?P<prefix>(0x|0b|0)?)'
+                       r'(?P<value>[a-f0-9]+)'
+                       r'(?P<suffix>h?)'
+                       r'(?P<scale>[km]?)$')
 
 
 def parse_int(value):
@@ -42,27 +43,31 @@ def parse_int(value):
         return None
 
     elif isinstance(value, str):
+        value = value.lower()
         m = INT_REGEX.match(value)
         if not m:
             raise ValueError('invalid syntax')
-        sign, prefix, suffix, value = m.groups()
+        g = m.groupdict()
+        sign = g['sign']
+        prefix = g['prefix']
+        value = g['value']
+        suffix = g['suffix']
+        scale = g['scale']
+        if prefix == '0b' and suffix == 'h':
+            raise ValueError('invalid syntax')
 
-        if prefix in ('0x', '0X'):
+        if prefix == '0x' or suffix == 'h':
             i = int(value, 16)
-        elif prefix in ('0b', '0B'):
-            i = int(value, 2)
-        elif suffix in ('h', 'H'):
-            i = int(value, 16)
-        elif suffix in ('b', 'B'):
+        elif prefix == '0b':
             i = int(value, 2)
         elif prefix == '0':
             i = int(value, 8)
         else:
             i = int(value, 10)
 
-        if suffix in ('k', 'K'):
+        if scale == 'k':
             i <<= 10
-        elif suffix in ('m', 'M'):
+        elif scale == 'm':
             i <<= 20
 
         if sign == '-':
@@ -109,9 +114,9 @@ def columnize_lists(vector, width, window=1):
     return nested
 
 
-def bitlify(data, width=None, sep='', newline='\n', window=1):
+def bitlify(data, width=None, sep='', newline='\n', window=8):
     if width is None:
-        width = len(data)
+        width = 8 * len(data)
 
     bitstr = ''.join(BIN8_TO_STR[b] for b in data)
 
@@ -119,7 +124,7 @@ def bitlify(data, width=None, sep='', newline='\n', window=1):
 
 
 def unbitlify(binstr):
-    data = bytes(STR_TO_BIN8[b] for b in binstr)
+    data = bytes(STR_TO_BIN8[b] for b in chop(binstr, 8))
     return data
 
 
@@ -161,11 +166,10 @@ def humanize_ebcdic(data, replace='.'):
     return humanize_ascii((ord(c) for c in data.decode('cp500')), replace)
 
 
-def bytes_to_c_array(name_label, data, width=16, window=2, upper=True,
+def bytes_to_c_array(name_label, data, width=16, upper=True,
                      type_label='unsigned char', size_label='',
                      indent='    ', comment=True, offset=0):
-
-    hexstr_lists = hexlify_lists(data, 2 * width, window, upper)
+    hexstr_lists = hexlify_lists(data, 2 * width, 1, upper)
     lines = []
     for tokens in hexstr_lists:
         line = indent + ', '.join('0x' + token for token in tokens) + ','
