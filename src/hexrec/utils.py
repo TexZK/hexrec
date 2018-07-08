@@ -39,6 +39,31 @@ INT_REGEX = re.compile(r'^(?P<sign>[+-]?)'
 
 
 def parse_int(value):
+    """Parses an integer.
+
+    Arguments:
+        value: A generic object to convert to integer.
+            In case ``value`` is a ``str`` (case-insensitive), it can be either
+            prefixed with ``0x`` or postfixed with ``h`` to convert from an
+            hexadecimal representation, or prefixed with ``0b`` from binary;
+            a prefix of only ``0`` converts from octal.
+            A further suffix of ``k`` or ``m`` scales as kibibyte or mebibyte.
+            A ``None`` value evaluates as ``None``.
+            Any other object class will call the standard :func:`int`.
+
+    Returns:
+        int: None if ``value`` is ``None``, its integer conversion otherwise.
+
+    Examples:
+        >>> parse_int('-0xABk')
+        -175104
+
+        >>> parse_int(None)
+        None
+
+        >>> parse_int(123)
+        123
+    """
     if value is None:
         return None
 
@@ -80,6 +105,18 @@ def parse_int(value):
 
 
 def chop(vector, window, align_base=0):
+    """Chops a vector.
+
+    Iterates through the vector grouping its items into windows.
+
+    Arguments:
+        vector (list): Vector to chop.
+        window (int): Window length.
+        align_base (int): Offset of the first window.
+
+    Yields:
+        list: ``vector`` slices of up to ``window`` elements.
+    """
     window = int(window)
     if window <= 0:
         raise ValueError('non-positive window')
@@ -97,6 +134,26 @@ def chop(vector, window, align_base=0):
 
 
 def columnize(line, width, sep='', newline='\n', window=1):
+    """Splits and wraps a line into columns.
+
+    A text line is wrapped up to a width limit, separated by a given newline
+    string. Each wrapped line is then split into columns by some window size,
+    separated by a given separator string.
+
+    Arguments:
+        line (str): Line of text to columnize.
+        width (int): Maximum line width.
+        sep (str): Column separator string.
+        newline (str): Line separator string.
+        window (int): Splitted column length.
+
+    Returns:
+        str: A wrapped and columnized text.
+
+    Examples:
+        >>> columnize('ABCDEFGHIJKLMNOPQRSTUVWXYZ', 6, sep=' ', window=3)
+        'ABC DEF\nGHI JKL\nMNO PQR\nSTU VWX\nYZ'
+    """
     if sep and window:
         flat = newline.join(sep.join(chop(token, window))
                             for token in chop(line, width))
@@ -109,12 +166,50 @@ def columnize(line, width, sep='', newline='\n', window=1):
 
 
 def columnize_lists(vector, width, window=1):
+    """Splits and wraps a line into columns.
+
+    A vector is wrapped up to a width limit; wrapped slices are collected
+    into a :obj:`list`. Each slice is then split into columns by some window
+    size, collected into a nested :obj:`list`.
+
+    Arguments:
+        vector (list): Vector to columnize.
+        width (int): Maximum line width.
+        window (int): Splitted column length.
+
+    Returns:
+        list: The vector wrapped and columnized into *list-of-lists*.
+
+    Examples:
+        >>> columnize_lists('ABCDEFGHIJKLMNOPQRSTUVWXYZ', 6, window=3)
+        [['ABC', 'DEF'], ['GHI', 'JKL'], ['MNO', 'PQR'], ['STU', 'VWX'], ['YZ']]
+    """
     nested = list(list(chop(token, window))
                   for token in chop(vector, width))
     return nested
 
 
 def bitlify(data, width=None, sep='', newline='\n', window=8):
+    """Splits ans wraps byte data into columns.
+
+    A chunk of byte data is converted into a text line, and then
+    columnized as per :func:`columnize`.
+
+    Arguments:
+        data (bytes): Byte data. Sequence generator supported if ``width`` is
+            not ``None``.
+        width (int): Maximum line width, or ``None``.
+        sep (str): Column separator string.
+        newline (str): Line separator string.
+        window (int): Splitted column length.
+
+    Returns:
+        str: A wrapped and columnized binary representation of the data.
+
+    Examples:
+        >>> bitlify(b'ABCDEFG', 8*3, sep=' ')
+        '01000001 01000010 01000011\n01000100 01000101 01000110\n01000111'
+    """
     if width is None:
         width = 8 * len(data)
 
@@ -124,11 +219,45 @@ def bitlify(data, width=None, sep='', newline='\n', window=8):
 
 
 def unbitlify(binstr):
+    """Converts a binary text line into bytes.
+
+    Arguments:
+        binstr (str): A binary text line. Whitespace is removed, and the
+            resulting total length must be a multiple of 8.
+
+    Returns:
+        bytes: Text converted into byte data.
+
+    Examples:
+        >>> unbitlify('010010000110100100100001')
+        b'Hi!'
+    """
+    binstr = ''.join(binstr.split())
     data = bytes(STR_TO_BIN8[b] for b in chop(binstr, 8))
     return data
 
 
 def hexlify(data, width=None, sep='', newline='\n', window=2, upper=True):
+    """Splits ans wraps byte data into hexadecimal columns.
+
+    A chunk of byte data is converted into a hexadecimal text line, and then
+    columnized as per :func:`columnize`.
+
+    Arguments:
+        data (bytes): Byte data.
+        width (int): Maximum line width, or ``None``.
+        sep (str): Column separator string.
+        newline (str): Line separator string.
+        window (int): Splitted column length.
+        upper (bool): Uppercase hexadecimal digits.
+
+    Returns:
+        str: A wrapped and columnized hexadecimal representation of the data.
+
+    Examples:
+        >>> hexlify(b'Hello, World!', sep='.')
+        '48.65.6C.6C.6F.2C.20.57.6F.72.6C.64.21'
+    """
     if width is None:
         width = 2 * len(data)
 
@@ -141,11 +270,39 @@ def hexlify(data, width=None, sep='', newline='\n', window=2, upper=True):
 
 
 def unhexlify(hexstr):
+    """Converts a hexadecimal text line into bytes.
+
+    Arguments:
+        binstr (str): A hexadecimal text line. Whitespace is removed, and the
+            resulting total length must be a multiple of 2.
+
+    Returns:
+        bytes: Text converted into byte data.
+
+    Examples:
+        >>> unhexlify('48656C6C6F2C20576F726C6421')
+        b'Hello, World!'
+    """
     data = binascii.unhexlify(''.join(hexstr.split()))
     return data
 
 
 def hexlify_lists(data, width=None, window=2, upper=True):
+    """Splits and columnize an hexadecimal representation.
+
+    Converts some byte data into text as per :func:`hexlify`, then
+    splits ans columnize as per :func:`columnize_lists`.
+
+    Arguments:
+        data (bytes): Byte data.
+        width (int): Maximum line width, or ``None``.
+        window (int): Splitted column length.
+        upper (bool): Uppercase hexadecimal digits.
+
+    Returns:
+        list: The hexadecimal representation wrapped and columnized into
+            *list-of-lists*.
+    """
     if width is None:
         width = 2 * len(data)
 
@@ -158,17 +315,61 @@ def hexlify_lists(data, width=None, window=2, upper=True):
 
 
 def humanize_ascii(data, replace='.'):
+    """ASCII for human readers.
+
+    Simplifies the ASCII representation replacing all non-human-readable
+    characters with a generic placeholder.
+
+    Arguments:
+        data (bytes): Byte data. Sequence generator supported.
+        replace (str): String replacement of non-human-readable characters.
+
+    Returns:
+        str: ASCII representation with only human-readable characters.
+
+    Examples:
+        >>> humanize_ascii(b'\x89PNG\r\n\x1a\n')
+        '.PNG....'
+    """
     text = ''.join(chr(b) if 0x20 <= b < 0x7F else replace for b in data)
     return text
 
 
 def humanize_ebcdic(data, replace='.'):
+    """EBCDIC for human readers.
+
+    Simplifies the EBCDIC representation replacing all non-human-readable
+    characters with a generic placeholder.
+
+    Arguments:
+        data (bytes): Byte data.
+        replace (str): String replacement of non-human-readable characters.
+
+    Returns:
+        str: EBCDIC representation with only human-readable characters.
+    """
     return humanize_ascii((ord(c) for c in data.decode('cp500')), replace)
 
 
 def bytes_to_c_array(name_label, data, width=16, upper=True,
                      type_label='unsigned char', size_label='',
                      indent='    ', comment=True, offset=0):
+    """Converts bytes into a C array.
+
+    Arguments:
+        name_label (str): Array name.
+        data (bytes): Array byte data.
+        width (int): Number of bytes per line.
+        upper (bool): Uppercase hexadecimal digits.
+        type_label (str): Array type label.
+        size_label (str): Array size label (if needed).
+        indent (str): Line indentation text.
+        comment (bool): Comment with the line offset (8-digit hex).
+        offset (int): Offset of the first byte to represent.
+
+    Returns:
+        str: Some C code with the byte data represented as an array.
+    """
     hexstr_lists = hexlify_lists(data, 2 * width, 1, upper)
     lines = []
     for tokens in hexstr_lists:
@@ -185,6 +386,33 @@ def bytes_to_c_array(name_label, data, width=16, upper=True,
 
 
 def do_overlap(start1, endex1, start2, endex2):
+    """Do ranges overlap?
+
+    Arguments:
+        start1 (int): Inclusive start index of the first range.
+        endex1 (int): Exclusive end index of the first range.
+        start2 (int): Inclusive start index of the second range.
+        endex2 (int): Exclusive end index of the second range.
+
+    Note:
+        Start and end of each range are sorted before the final comparison.
+
+    Returns:
+        bool: Ranges do overlap.
+
+    Examples:
+        >>> do_overlap(0, 4, 4, 8)
+        False
+
+        >>> do_overlap(0, 4, 2, 6)
+        True
+
+        >>> do_overlap(4, 0, 2, 6)
+        True
+
+        >>> do_overlap(8, 4, 4, 0)
+        False
+    """
     if start1 > endex1:
         start1, endex1 = endex1, start1
     if start2 > endex2:
@@ -193,6 +421,25 @@ def do_overlap(start1, endex1, start2, endex2):
 
 
 def merge_blocks(sorted_blocks, invalid_start=-1):
+    """Merges blocks of items.
+
+    Given a sequence of blocks, they are merged so that those with a higher
+    priority level overwrite the overlapping ones with a lower priority level.
+
+    A block is ``(start, level, items)`` where ``start`` is the start address,
+    ``level`` is the priority level, and ``items`` is the container of items
+    (e.g. a :obj:`bytes` object). The length of the block is ``len(items)``.
+
+    Arguments:
+        sorted_blocks (list): A sequence of blocks, sorted by start address
+            and priority level. Sequence generators supported.
+
+        invlid_start (int): An invalid start index, in case the default ``-1``
+            is a valid start address.
+
+    Returns:
+        list: A sequence of merged blocks.
+    """
     last_block = (invalid_start, None, ())
     merged_blocks = []
 
