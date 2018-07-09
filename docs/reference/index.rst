@@ -4,4 +4,6 @@ Reference
 .. toctree::
     :glob:
 
-    hexrec*
+    hexrec.core
+    hexrec.utils
+    hexrec.xxd

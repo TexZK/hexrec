@@ -39,20 +39,21 @@ INT_REGEX = re.compile(r'^(?P<sign>[+-]?)'
 
 
 def parse_int(value):
-    """Parses an integer.
+    r"""Parses an integer.
 
     Arguments:
         value: A generic object to convert to integer.
-            In case ``value`` is a ``str`` (case-insensitive), it can be either
-            prefixed with ``0x`` or postfixed with ``h`` to convert from an
-            hexadecimal representation, or prefixed with ``0b`` from binary;
-            a prefix of only ``0`` converts from octal.
-            A further suffix of ``k`` or ``m`` scales as kibibyte or mebibyte.
+            In case `value` is a :obj:`str` (case-insensitive), it can be
+            either prefixed with ``0x`` or postfixed with ``h`` to convert
+            from an hexadecimal representation, or prefixed with ``0b`` from
+            binary; a prefix of only ``0`` converts from octal.
+            A further suffix of ``k`` or ``m`` scales as *kibibyte* or
+            *mebibyte*.
             A ``None`` value evaluates as ``None``.
             Any other object class will call the standard :func:`int`.
 
     Returns:
-        int: None if ``value`` is ``None``, its integer conversion otherwise.
+        int: None if `value` is ``None``, its integer conversion otherwise.
 
     Examples:
         >>> parse_int('-0xABk')
@@ -63,6 +64,9 @@ def parse_int(value):
 
         >>> parse_int(123)
         123
+
+        >>> parse_int(135.7)
+        135
     """
     if value is None:
         return None
@@ -105,7 +109,7 @@ def parse_int(value):
 
 
 def chop(vector, window, align_base=0):
-    """Chops a vector.
+    r"""Chops a vector.
 
     Iterates through the vector grouping its items into windows.
 
@@ -115,7 +119,14 @@ def chop(vector, window, align_base=0):
         align_base (int): Offset of the first window.
 
     Yields:
-        list: ``vector`` slices of up to ``window`` elements.
+        list: `vector` slices of up to `window` elements.
+
+    Examples:
+        >>> list(chop('ABCDEFG', 2))
+        ['AB', 'CD', 'EF', 'G']
+
+        >>> ':'.join(chop('ABCDEFG', 2))
+        'AB:CD:EF:G'
     """
     window = int(window)
     if window <= 0:
@@ -134,7 +145,7 @@ def chop(vector, window, align_base=0):
 
 
 def columnize(line, width, sep='', newline='\n', window=1):
-    """Splits and wraps a line into columns.
+    r"""Splits and wraps a line into columns.
 
     A text line is wrapped up to a width limit, separated by a given newline
     string. Each wrapped line is then split into columns by some window size,
@@ -150,7 +161,7 @@ def columnize(line, width, sep='', newline='\n', window=1):
     Returns:
         str: A wrapped and columnized text.
 
-    Examples:
+    Example:
         >>> columnize('ABCDEFGHIJKLMNOPQRSTUVWXYZ', 6, sep=' ', window=3)
         'ABC DEF\nGHI JKL\nMNO PQR\nSTU VWX\nYZ'
     """
@@ -166,7 +177,7 @@ def columnize(line, width, sep='', newline='\n', window=1):
 
 
 def columnize_lists(vector, width, window=1):
-    """Splits and wraps a line into columns.
+    r"""Splits and wraps a line into columns.
 
     A vector is wrapped up to a width limit; wrapped slices are collected
     into a :obj:`list`. Each slice is then split into columns by some window
@@ -178,11 +189,11 @@ def columnize_lists(vector, width, window=1):
         window (int): Splitted column length.
 
     Returns:
-        list: The vector wrapped and columnized into *list-of-lists*.
+        list: The vector wrapped and columnized into list-of-lists.
 
-    Examples:
-        >>> columnize_lists('ABCDEFGHIJKLMNOPQRSTUVWXYZ', 6, window=3)
-        [['ABC', 'DEF'], ['GHI', 'JKL'], ['MNO', 'PQR'], ['STU', 'VWX'], ['YZ']]
+    Example:
+        >>> columnize_lists('ABCDEFG', 5, window=2)
+        [['AB', 'CD', 'E'], ['FG']]
     """
     nested = list(list(chop(token, window))
                   for token in chop(vector, width))
@@ -190,13 +201,13 @@ def columnize_lists(vector, width, window=1):
 
 
 def bitlify(data, width=None, sep='', newline='\n', window=8):
-    """Splits ans wraps byte data into columns.
+    r"""Splits ans wraps byte data into columns.
 
     A chunk of byte data is converted into a text line, and then
     columnized as per :func:`columnize`.
 
     Arguments:
-        data (bytes): Byte data. Sequence generator supported if ``width`` is
+        data (bytes): Byte data. Sequence generator supported if `width` is
             not ``None``.
         width (int): Maximum line width, or ``None``.
         sep (str): Column separator string.
@@ -206,7 +217,7 @@ def bitlify(data, width=None, sep='', newline='\n', window=8):
     Returns:
         str: A wrapped and columnized binary representation of the data.
 
-    Examples:
+    Example:
         >>> bitlify(b'ABCDEFG', 8*3, sep=' ')
         '01000001 01000010 01000011\n01000100 01000101 01000110\n01000111'
     """
@@ -219,7 +230,7 @@ def bitlify(data, width=None, sep='', newline='\n', window=8):
 
 
 def unbitlify(binstr):
-    """Converts a binary text line into bytes.
+    r"""Converts a binary text line into bytes.
 
     Arguments:
         binstr (str): A binary text line. Whitespace is removed, and the
@@ -228,7 +239,7 @@ def unbitlify(binstr):
     Returns:
         bytes: Text converted into byte data.
 
-    Examples:
+    Example:
         >>> unbitlify('010010000110100100100001')
         b'Hi!'
     """
@@ -238,7 +249,7 @@ def unbitlify(binstr):
 
 
 def hexlify(data, width=None, sep='', newline='\n', window=2, upper=True):
-    """Splits ans wraps byte data into hexadecimal columns.
+    r"""Splits ans wraps byte data into hexadecimal columns.
 
     A chunk of byte data is converted into a hexadecimal text line, and then
     columnized as per :func:`columnize`.
@@ -254,7 +265,7 @@ def hexlify(data, width=None, sep='', newline='\n', window=2, upper=True):
     Returns:
         str: A wrapped and columnized hexadecimal representation of the data.
 
-    Examples:
+    Example:
         >>> hexlify(b'Hello, World!', sep='.')
         '48.65.6C.6C.6F.2C.20.57.6F.72.6C.64.21'
     """
@@ -270,7 +281,7 @@ def hexlify(data, width=None, sep='', newline='\n', window=2, upper=True):
 
 
 def unhexlify(hexstr):
-    """Converts a hexadecimal text line into bytes.
+    r"""Converts a hexadecimal text line into bytes.
 
     Arguments:
         binstr (str): A hexadecimal text line. Whitespace is removed, and the
@@ -279,8 +290,8 @@ def unhexlify(hexstr):
     Returns:
         bytes: Text converted into byte data.
 
-    Examples:
-        >>> unhexlify('48656C6C6F2C20576F726C6421')
+    Example:
+        >>> unhexlify('48656C6C 6F2C2057 6F726C64 21')
         b'Hello, World!'
     """
     data = binascii.unhexlify(''.join(hexstr.split()))
@@ -288,7 +299,7 @@ def unhexlify(hexstr):
 
 
 def hexlify_lists(data, width=None, window=2, upper=True):
-    """Splits and columnize an hexadecimal representation.
+    r"""Splits and columnizes an hexadecimal representation.
 
     Converts some byte data into text as per :func:`hexlify`, then
     splits ans columnize as per :func:`columnize_lists`.
@@ -300,8 +311,7 @@ def hexlify_lists(data, width=None, window=2, upper=True):
         upper (bool): Uppercase hexadecimal digits.
 
     Returns:
-        list: The hexadecimal representation wrapped and columnized into
-            *list-of-lists*.
+        list: The hexadecimal text wrapped and columnized into list-of-lists.
     """
     if width is None:
         width = 2 * len(data)
@@ -315,7 +325,7 @@ def hexlify_lists(data, width=None, window=2, upper=True):
 
 
 def humanize_ascii(data, replace='.'):
-    """ASCII for human readers.
+    r"""ASCII for human readers.
 
     Simplifies the ASCII representation replacing all non-human-readable
     characters with a generic placeholder.
@@ -327,7 +337,7 @@ def humanize_ascii(data, replace='.'):
     Returns:
         str: ASCII representation with only human-readable characters.
 
-    Examples:
+    Example:
         >>> humanize_ascii(b'\x89PNG\r\n\x1a\n')
         '.PNG....'
     """
@@ -336,7 +346,7 @@ def humanize_ascii(data, replace='.'):
 
 
 def humanize_ebcdic(data, replace='.'):
-    """EBCDIC for human readers.
+    r"""EBCDIC for human readers.
 
     Simplifies the EBCDIC representation replacing all non-human-readable
     characters with a generic placeholder.
@@ -354,7 +364,7 @@ def humanize_ebcdic(data, replace='.'):
 def bytes_to_c_array(name_label, data, width=16, upper=True,
                      type_label='unsigned char', size_label='',
                      indent='    ', comment=True, offset=0):
-    """Converts bytes into a C array.
+    r"""Converts bytes into a C array.
 
     Arguments:
         name_label (str): Array name.
@@ -386,7 +396,7 @@ def bytes_to_c_array(name_label, data, width=16, upper=True,
 
 
 def do_overlap(start1, endex1, start2, endex2):
-    """Do ranges overlap?
+    r"""Do ranges overlap?
 
     Arguments:
         start1 (int): Inclusive start index of the first range.
@@ -420,61 +430,74 @@ def do_overlap(start1, endex1, start2, endex2):
     return (endex1 > start2 and endex2 > start1)
 
 
-def merge_blocks(sorted_blocks, invalid_start=-1):
-    """Merges blocks of items.
+def merge_blocks(blocks):
+    r"""Merges blocks of items.
 
-    Given a sequence of blocks, they are merged so that those with a higher
-    priority level overwrite the overlapping ones with a lower priority level.
+    Given a sequence of blocks, they are modified so that a previous block
+    does not overlap with the following ones.
 
-    A block is ``(start, level, items)`` where ``start`` is the start address,
-    ``level`` is the priority level, and ``items`` is the container of items
-    (e.g. a :obj:`bytes` object). The length of the block is ``len(items)``.
+    A block is ``(start, items)`` where `start` is the start address and
+    `items` is the container of items (e.g. a :obj:`bytes` object).
+    The length of the block is ``len(items)``.
 
     Arguments:
-        sorted_blocks (list): A sequence of blocks, sorted by start address
-            and priority level. Sequence generators supported.
-
-        invlid_start (int): An invalid start index, in case the default ``-1``
-            is a valid start address.
+        blocks (list): A sequence of blocks. Sequence generators supported.
 
     Returns:
-        list: A sequence of merged blocks.
+        list: A sequence of non-overlapping and populated blocks.
+
+    Example:
+        +---+---+---+---+---+---+---+---+---+---+
+        | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+        +===+===+===+===+===+===+===+===+===+===+
+        | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+        +---+---+---+---+---+---+---+---+---+---+
+        | A | B | C | D |   |   |   |   |   |   |
+        +---+---+---+---+---+---+---+---+---+---+
+        |   |   |   | E | F |   |   |   |   |   |
+        +---+---+---+---+---+---+---+---+---+---+
+        | ! |   |   |   |   |   |   |   |   |   |
+        +---+---+---+---+---+---+---+---+---+---+
+        |   |   |   |   |   |   | x | y | z |   |
+        +===+===+===+===+===+===+===+===+===+===+
+        | ! | B | C | E | F | 5 | x | y | z | 9 |
+        +---+---+---+---+---+---+---+---+---+---+
+
+        >>> merge_blocks([
+        ...     (0, '0123456789'),
+        ...     (0, 'ABCD'),
+        ...     (3, 'EF'),
+        ...     (0, '!'),
+        ...     (6, 'xyz'),
+        ... ])
+        [(0, '!'), (1, 'BC'), (3, 'EF'), (5, '5'), (6, 'xyz'), (9, '9')]
     """
-    last_block = (invalid_start, None, ())
-    merged_blocks = []
+    merged = []
 
-    for start, level, items in sorted_blocks:
-        if items:
-            endex = start + len(items)
-            merged_block = None
-            split_block = None
+    for block in blocks:
+        start1, items1 = block
+        if items1:
+            endex1 = start1 + len(items1)
 
-            last_start, last_level, last_items = last_block
-            last_endex = last_start + len(last_items)
+            for i in range(len(merged)):
+                start2, items2 = merged[i]
+                if items2:
+                    endex2 = start2 + len(items2)
 
-            if endex <= last_endex or start < last_endex:
-                if last_level <= level:
-                    merged_blocks.pop()
-                    if start > last_start:
-                        split_items = last_items[:(start - last_start)]
-                        last_block = (last_start, last_level, split_items)
-                        merged_blocks.append(last_block)
+                    if start1 <= start2 <= endex2 <= endex1:
+                        merged[i] = (start2, None)
 
-                    if endex <= last_endex:
-                        split_items = last_items[(endex - last_start):]
-                        if split_items:
-                            split_block = (endex, last_level, split_items)
+                    elif start2 < start1 < endex2 <= endex1:
+                        merged[i] = (start2, items2[:(start1 - start2)])
 
-                    merged_block = (start, level, items)
-            else:
-                merged_block = (start, level, items)
+                    elif start1 <= start2 < endex1 < endex2:
+                        merged[i] = (endex1, items2[(endex1 - start2):])
 
-            if merged_block:
-                merged_blocks.append(merged_block)
-                last_block = merged_block
+                    elif start2 < start1 <= endex1 < endex2:
+                        merged[i] = (start2, items2[:(start1 - start2)])
+                        merged.append((endex1, items2[(endex1 - start2):]))
 
-            if split_block:
-                merged_blocks.append(split_block)
-                last_block = split_block
+            merged.append(block)
 
-    return merged_blocks
+    merged = [block for block in merged if block[1]]
+    return merged
