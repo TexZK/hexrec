@@ -115,8 +115,8 @@ def chop(vector, window, align_base=0):
 
     Arguments:
         vector (list): Vector to chop.
-        window (int): Window length.
-        align_base (int): Offset of the first window.
+        window (:obj:`int`): Window length.
+        align_base (:obj:`int`): Offset of the first window.
 
     Yields:
         list: `vector` slices of up to `window` elements.
@@ -152,11 +152,11 @@ def columnize(line, width, sep='', newline='\n', window=1):
     separated by a given separator string.
 
     Arguments:
-        line (str): Line of text to columnize.
-        width (int): Maximum line width.
-        sep (str): Column separator string.
-        newline (str): Line separator string.
-        window (int): Splitted column length.
+        line (:obj:`str`): Line of text to columnize.
+        width (:obj:`int`): Maximum line width.
+        sep (:obj:`str`): Column separator string.
+        newline (:obj:`str`): Line separator string.
+        window (:obj:`int`): Splitted column length.
 
     Returns:
         str: A wrapped and columnized text.
@@ -185,8 +185,8 @@ def columnize_lists(vector, width, window=1):
 
     Arguments:
         vector (list): Vector to columnize.
-        width (int): Maximum line width.
-        window (int): Splitted column length.
+        width (:obj:`int`): Maximum line width.
+        window (:obj:`int`): Splitted column length.
 
     Returns:
         list: The vector wrapped and columnized into list-of-lists.
@@ -207,12 +207,12 @@ def bitlify(data, width=None, sep='', newline='\n', window=8):
     columnized as per :func:`columnize`.
 
     Arguments:
-        data (bytes): Byte data. Sequence generator supported if `width` is
-            not ``None``.
-        width (int): Maximum line width, or ``None``.
-        sep (str): Column separator string.
-        newline (str): Line separator string.
-        window (int): Splitted column length.
+        data (:obj:`bytes`): Byte data. Sequence generator supported if
+            `width` is not ``None``.
+        width (:obj:`int`): Maximum line width, or ``None``.
+        sep (:obj:`str`): Column separator string.
+        newline (:obj:`str`): Line separator string.
+        window (:obj:`int`): Splitted column length.
 
     Returns:
         str: A wrapped and columnized binary representation of the data.
@@ -233,8 +233,8 @@ def unbitlify(binstr):
     r"""Converts a binary text line into bytes.
 
     Arguments:
-        binstr (str): A binary text line. Whitespace is removed, and the
-            resulting total length must be a multiple of 8.
+        binstr (:obj:`str`): A binary text line. Whitespace is removed, and
+            the resulting total length must be a multiple of 8.
 
     Returns:
         bytes: Text converted into byte data.
@@ -255,12 +255,12 @@ def hexlify(data, width=None, sep='', newline='\n', window=2, upper=True):
     columnized as per :func:`columnize`.
 
     Arguments:
-        data (bytes): Byte data.
-        width (int): Maximum line width, or ``None``.
-        sep (str): Column separator string.
-        newline (str): Line separator string.
-        window (int): Splitted column length.
-        upper (bool): Uppercase hexadecimal digits.
+        data (:obj:`bytes`): Byte data.
+        width (:obj:`int`): Maximum line width, or ``None``.
+        sep (:obj:`str`): Column separator string.
+        newline (:obj:`str`): Line separator string.
+        window (:obj:`int`): Splitted column length.
+        upper (:obj:`bool`): Uppercase hexadecimal digits.
 
     Returns:
         str: A wrapped and columnized hexadecimal representation of the data.
@@ -284,8 +284,8 @@ def unhexlify(hexstr):
     r"""Converts a hexadecimal text line into bytes.
 
     Arguments:
-        binstr (str): A hexadecimal text line. Whitespace is removed, and the
-            resulting total length must be a multiple of 2.
+        binstr (:obj:`str`): A hexadecimal text line. Whitespace is removed,
+            and the resulting total length must be a multiple of 2.
 
     Returns:
         bytes: Text converted into byte data.
@@ -305,10 +305,10 @@ def hexlify_lists(data, width=None, window=2, upper=True):
     splits ans columnize as per :func:`columnize_lists`.
 
     Arguments:
-        data (bytes): Byte data.
-        width (int): Maximum line width, or ``None``.
-        window (int): Splitted column length.
-        upper (bool): Uppercase hexadecimal digits.
+        data (:obj:`bytes`): Byte data.
+        width (:obj:`int`): Maximum line width, or ``None``.
+        window (:obj:`int`): Splitted column length.
+        upper (:obj:`bool`): Uppercase hexadecimal digits.
 
     Returns:
         list: The hexadecimal text wrapped and columnized into list-of-lists.
@@ -331,8 +331,9 @@ def humanize_ascii(data, replace='.'):
     characters with a generic placeholder.
 
     Arguments:
-        data (bytes): Byte data. Sequence generator supported.
-        replace (str): String replacement of non-human-readable characters.
+        data (:obj:`bytes`): Byte data. Sequence generator supported.
+        replace (:obj:`str`): String replacement of non-human-readable
+            characters.
 
     Returns:
         str: ASCII representation with only human-readable characters.
@@ -352,8 +353,9 @@ def humanize_ebcdic(data, replace='.'):
     characters with a generic placeholder.
 
     Arguments:
-        data (bytes): Byte data.
-        replace (str): String replacement of non-human-readable characters.
+        data (:obj:`bytes`): Byte data.
+        replace (:obj:`str`): String replacement of non-human-readable
+            characters.
 
     Returns:
         str: EBCDIC representation with only human-readable characters.
@@ -367,15 +369,15 @@ def bytes_to_c_array(name_label, data, width=16, upper=True,
     r"""Converts bytes into a C array.
 
     Arguments:
-        name_label (str): Array name.
-        data (bytes): Array byte data.
-        width (int): Number of bytes per line.
-        upper (bool): Uppercase hexadecimal digits.
-        type_label (str): Array type label.
-        size_label (str): Array size label (if needed).
-        indent (str): Line indentation text.
-        comment (bool): Comment with the line offset (8-digit hex).
-        offset (int): Offset of the first byte to represent.
+        name_label (:obj:`str`): Array name.
+        data (:obj:`bytes`): Array byte data.
+        width (:obj:`int`): Number of bytes per line.
+        upper (:obj:`bool`): Uppercase hexadecimal digits.
+        type_label (:obj:`str`): Array type label.
+        size_label (:obj:`str`): Array size label (if needed).
+        indent (:obj:`str`): Line indentation text.
+        comment (:obj:`bool`): Comment with the line offset (8-digit hex).
+        offset (:obj:`int`): Offset of the first byte to represent.
 
     Returns:
         str: Some C code with the byte data represented as an array.
@@ -399,10 +401,10 @@ def do_overlap(start1, endex1, start2, endex2):
     r"""Do ranges overlap?
 
     Arguments:
-        start1 (int): Inclusive start index of the first range.
-        endex1 (int): Exclusive end index of the first range.
-        start2 (int): Inclusive start index of the second range.
-        endex2 (int): Exclusive end index of the second range.
+        start1 (:obj:`int`): Inclusive start index of the first range.
+        endex1 (:obj:`int`): Exclusive end index of the first range.
+        start2 (:obj:`int`): Inclusive start index of the second range.
+        endex2 (:obj:`int`): Exclusive end index of the second range.
 
     Note:
         Start and end of each range are sorted before the final comparison.
