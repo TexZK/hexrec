@@ -30,19 +30,38 @@ import os
 import re
 import struct
 
-from .utils import chop
-from .utils import do_overlap
-from .utils import hexlify
-from .utils import merge_blocks
-from .utils import unhexlify
+from hexrec.utils import chop
+from hexrec.utils import do_overlap
+from hexrec.utils import hexlify
+from hexrec.utils import merge_blocks
+from hexrec.utils import unhexlify
 
 
-def merge_records(sorted_data_records, input_types=None, output_type=None,
+def merge_records(data_records, input_types=None, output_type=None,
                   split_args=None, split_kwargs=None):
+    """Merges data records.
 
+    Merges multiple sequences of data records where each sequence overwrites
+    overlapping data of the previous sequences.
+
+    Arguments:
+        data_records: A vector of *data* record sequences. If `input_types` is
+            not ``None``, sequence generators are supported for the vector and
+            its nested sequences.
+        input_types: Selects the record type for each of the sequences
+            in `data_records`. ``None`` will choose that of the first
+            element of the (indexable) sequence.
+        output_type: Selects the output record type. ``None`` will choose that
+            of the first `input_types`.
+        split_args (list): Positional arguments for :meth:`Record.split`.
+        split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
+
+    Returns:
+        list: A sequence of merged records.
+    """
     if input_types is None:
         input_types = [type(records[0]) if records else Record
-                       for records in sorted_data_records]
+                       for records in data_records]
     else:
         input_types = list(input_types)
 
@@ -50,20 +69,19 @@ def merge_records(sorted_data_records, input_types=None, output_type=None,
         output_type = input_types[0]
 
     input_blocks = []
-    for level in range(len(input_types)):
-        records = sorted_data_records[level]
-        input_type = input_types[level]
+    zipped = zip(range(len(input_types)), data_records, input_types)
+    for level, records, input_type in zipped:
         input_blocks.extend((p[0].address, -level, input_type.flatten(p))
                             for p in input_type.partition(records))
 
     input_blocks.sort()
-    merged_blocks = merge_blocks((start, -level, items)
-                                 for (start, level, items) in input_blocks)
+    merged_blocks = merge_blocks((start, chunk)
+                                 for (start, _, chunk) in input_blocks)
 
     args = split_args or ()
     kwargs = split_kwargs or {}
     output_records = []
-    for start, _, chunk in merged_blocks:
+    for (start, chunk) in merged_blocks:
         records = output_type.split(chunk, *args, start=start, **kwargs)
         output_records.extend(records)
 
@@ -72,6 +90,35 @@ def merge_records(sorted_data_records, input_types=None, output_type=None,
 
 def convert_records(records, input_type=None, output_type=None,
                     split_args=None, split_kwargs=None):
+    """Converts records to another type.
+
+    Arguments:
+        records (list): A sequence of :class:`Record` elements.
+            Sequence generators supported if `input_type` is specified.
+        input_type (:class:`Record`): explicit type of `records` elements.
+            If ``None``, it is taken from the first element of the (indexable)
+            `records` sequence.
+        output_type (:class:`Record`): explicit output type. If ``None``, it
+            is reassigned as `input_type`.
+        split_args (list): Positional arguments for :meth:`Record.split`.
+        split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
+
+    Returns:
+        list: A sequence of merged records.
+
+    Examples:
+        >>> motorola = list(MotorolaRecord.split(bytes(range(256))))
+        >>> intel = list(IntelRecord.split(bytes(range(256))))
+        >>> converted = convert_records(motorola, output_type=IntelRecord)
+        >>> converted == intel
+        True
+
+        >>> motorola = list(MotorolaRecord.split(bytes(range(256))))
+        >>> intel = list(IntelRecord.split(bytes(range(256))))
+        >>> converted = convert_records(intel, output_type=MotorolaRecord)
+        >>> converted == motorola
+        True
+    """
     records = list(records)
 
     if input_type is None:
@@ -89,6 +136,27 @@ def convert_records(records, input_type=None, output_type=None,
 
 def merge_files(input_files, output_file, input_types=None, output_type=None,
                 split_args=None, split_kwargs=None):
+    """Merges record files.
+
+    Merges multiple record files where each file overwrites overlapping data
+    of the previous files.
+
+    Arguments:
+        input_files (list): A sequence of file paths to merge.
+        output_file (:obj:`str`): Path of the output file. It can target an
+            input file.
+        input_types: Selects the record type for each of the sequences
+            in `data_records`. ``None`` will guess from file extension.
+        output_type: Selects the output record type. ``None`` will guess from
+            file extension.
+        split_args (list): Positional arguments for :meth:`Record.split`.
+        split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
+
+    Example:
+        >>> merge_files(['original.hex', 'patch.mot'], 'patched.tek')
+        ... # doctest +SKIP
+
+    """
     if input_types is None:
         input_types = [None] * len(input_files)
     else:
@@ -119,11 +187,44 @@ def merge_files(input_files, output_file, input_types=None, output_type=None,
 
 def convert_file(input_file, output_file, input_type=None, output_type=None,
                  split_args=None, split_kwargs=None):
+    """Converts a record file to another record type.
+
+    Arguments:
+        input_file (:obj:`str`): Path of the input file.
+        output_file (:obj:`str`): Path of the output file.
+        input_type (:class:`Record`): Explicit input record type.
+            If ``None``, it is guessed from the file extension.
+        output_type (:class:`Record`): Explicit output record type.
+            If ``None``, it is guessed from the file extension.
+        split_args (list): Positional arguments for :meth:`Record.split`.
+        split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
+
+    Example:
+        >>> motorola = list(MotorolaRecord.split(bytes(range(256))))
+        >>> intel = list(IntelRecord.split(bytes(range(256))))
+        >>> save_file('bytes.mot', motorola)
+        >>> convert_file('bytes.mot', 'bytes.hex')
+        >>> load_file('bytes.hex') == intel
+        True
+    """
     merge_files([input_file], output_file, [input_type], output_type,
                 split_args, split_kwargs)
 
 
 def load_file(path, record_type=None):
+    """Loads records from a file.
+
+    Arguments:
+        path (:obj:`str`): Path of the input file.
+        record_type (:class:`Record`): Explicit record type.
+            If ``None``, it is guessed from the file extension.
+
+    Example:
+        >>> records = list(MotorolaRecord.split(bytes(range(256))))
+        >>> save_file('bytes.mot', records)
+        >>> load_file('bytes.mot') == records
+        True
+    """
     if record_type is None:
         type_name = find_record_type(path)
         record_type = RECORD_TYPES[type_name]
@@ -133,7 +234,22 @@ def load_file(path, record_type=None):
 
 def save_file(path, records, record_type=None,
               split_args=None, split_kwargs=None):
+    """Saves records to a file.
 
+    Arguments:
+        path (:obj:`str`): Path of the output file.
+        records (list): Sequence of records to save.
+        record_type (:class:`Record`): Explicit record type.
+            If ``None``, it is guessed from the file extension.
+        split_args (list): Positional arguments for :meth:`Record.split`.
+        split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
+
+    Example:
+        >>> records = list(MotorolaRecord.split(bytes(range(256))))
+        >>> save_file('bytes.mot', records)
+        >>> load_file('bytes.mot') == records
+        True
+    """
     if record_type is None:
         type_name = find_record_type(path)
         record_type = RECORD_TYPES[type_name]

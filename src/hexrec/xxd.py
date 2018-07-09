@@ -31,13 +31,13 @@ import io
 import re
 import sys
 
-from .utils import BIN8_TO_STR
-from .utils import chop
-from .utils import hexlify
-from .utils import humanize_ascii
-from .utils import humanize_ebcdic
-from .utils import parse_int
-from .utils import unhexlify
+from hexrec.utils import BIN8_TO_STR
+from hexrec.utils import chop
+from hexrec.utils import hexlify
+from hexrec.utils import humanize_ascii
+from hexrec.utils import humanize_ebcdic
+from hexrec.utils import parse_int
+from hexrec.utils import unhexlify
 
 _SEEKING_REGEX = re.compile(r'^(\+?-?)-?(\w+)$')
 
