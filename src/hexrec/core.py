@@ -265,7 +265,8 @@ def save_file(path, records, record_type=None,
     record_type.save(path, records)
 
 
-SIZE_GUARD = 64 << 20  # 64 MiB bound
+SIZE_GUARD = 64 << 20  # 64 MiB
+"""Default :meth:`Record.flatten` size limit"""
 
 
 def _size_guard(start, endex):
@@ -276,8 +277,53 @@ def _size_guard(start, endex):
 
 
 class Record(object):
+    """Abstract record type.
+
+    A record is the basic structure of a record file.
+
+    Attributes:
+        address (obj:`int`): Tells where its `data` starts in the memory
+            addressing space, or an address with a special meaning.
+        tag (:obj:`int`): Defines the logical meaning of the `address` and
+            `data` fields.
+        data (obj:`bytes`): Byte data as required by the `tag`.
+        count (:obj:`int`): Counts its fields as required by the
+            :class:`Record` subclass implementation.
+        checksum (obj:`int`): Computes the checksum as required by most
+            :class:`Record` implementations.
+
+    This is an abstract class, so it provides basic generic methods shared by
+    most of the :class:`Record` implementations.
+    Please refer to the actual subclass for more details.
+    """
 
     def __init__(self, address, tag, data, checksum=Ellipsis):
+        """Constructor.
+
+        Arguments:
+            address (:obj:`int`): Record `address` field.
+            tag (:obj:`int`): Record `tag` field.
+            data (:obj:`bytes`): Record `data` field.
+            checksum (:obj:`int` or ``None`` or ``Ellipsis``): Record
+                `checksum` field. ``Ellipsis`` makes the constructor compute
+                its actual value automatically. ``None`` assigns ``None``.
+
+        Examples:
+            >>> BinaryRecord(0x1234, 0, b'Hello, World!')
+            ... # doctest: +NORMALIZE_WHITESPACE
+            BinaryRecord(address=0x00001234, tag=0, count=13,
+                         data=b'Hello, World!', checksum=0x69)
+
+            >>> MotorolaRecord(0x1234, MotorolaTag.DATA_16, b'Hello, World!')
+            ... # doctest: +NORMALIZE_WHITESPACE
+            MotorolaRecord(address=0x00001234, tag=<MotorolaTag.DATA_16: 1>,
+                           count=16, data=b'Hello, World!', checksum=0x40)
+
+            >>> IntelRecord(0x1234, IntelTag.DATA, b'Hello, World!')
+            ... # doctest: +NORMALIZE_WHITESPACE
+            IntelRecord(address=0x00001234, tag=<IntelTag.DATA: 0>, count=13,
+                        data=b'Hello, World!', checksum=0x44)
+        """
         self.address = address
         self.tag = tag
         self.data = data
@@ -300,14 +346,54 @@ class Record(object):
         return fmt.format(type(self).__name__, self, checksum)
 
     def __str__(self):
+        """Returns:
+            :obj:`str`: A printable text representation of the record, usually
+                the same found in the saved record file as per its
+                :class:`Record` subclass requirements.
+
+        Examples:
+            >>> str(BinaryRecord(0x1234, 0, b'Hello, World!'))
+            '48656C6C6F2C20576F726C6421'
+
+            >>> str(MotorolaRecord(0x1234, MotorolaTag.DATA_16,
+            ...                    b'Hello, World!'))
+            'S110123448656C6C6F2C20576F726C642140'
+
+            >>> str(IntelRecord(0x1234, IntelTag.DATA, b'Hello, World!'))
+            ':0D12340048656C6C6F2C20576F726C642144'
+        """
         return repr(self)
 
     def __eq__(self, other):
+        """Returns:
+            :obj:`bool`: The `address`, `tag`, and `data` fields are equal.
+        """
         return (self.address == other.address and
                 self.tag == other.tag and
                 self.data == other.data)
 
     def __hash__(self):
+        """Returns:
+            :obj:`int`: Hash of the :class:`Record` fields. Useful to make
+                the record hashable although it is a mutable class.
+
+        Warning:
+            Be careful with hashable mutable objects!
+
+        Examples:
+            >>> hash(BinaryRecord(0x1234, 0, b'Hello, World!'))
+            ... # doctest: +SKIP
+            -1396369420761005263
+
+            >>> hash(MotorolaRecord(0x1234, MotorolaTag.DATA_16,
+            ...                     b'Hello, World!'))
+            ... # doctest: +SKIP
+            -1396369420761005308
+
+            >>> hash(IntelRecord(0x1234, IntelTag.DATA, b'Hello, World!'))
+            ... # doctest: +SKIP
+            -1396369420761005284
+        """
         return (hash(self.address or 0) ^
                 hash(self.tag or 0) ^
                 hash(self.data or b'') ^
@@ -315,6 +401,16 @@ class Record(object):
                 hash(self.checksum or 0))
 
     def __lt__(self, other):
+        """Returns:
+            :obj:`bool`: `address` less than `other`'s.
+
+        Examples:
+            >>> BinaryRecord(0x1234, 0, b'') < BinaryRecord(0x4321, 0, b'')
+            True
+
+            >>> BinaryRecord(0x4321, 0, b'') < BinaryRecord(0x1234, 0, b'')
+            False
+        """
         return self.address < other.address
 
     def __copy__(self):
@@ -324,30 +420,111 @@ class Record(object):
         return copied
 
     def is_data(self):
+        """Returns:
+            :obj:`bool`: The record contains plain binary data, *i.e.* it is
+                not a *special* record.
+
+        Note:
+            This method must be overridden.
+
+        Examples:
+            >>> BinaryRecord(0, 0, b'Hello, World!').is_data()
+            True
+
+            >>> MotorolaRecord(0, MotorolaTag.DATA_16,
+            ...                b'Hello, World!').is_data()
+            True
+
+            >>> MotorolaRecord(0, MotorolaTag.HEADER,
+            ...                b'Hello, World!').is_data()
+            False
+
+            >>> IntelRecord(0, IntelTag.DATA, b'Hello, World!').is_data()
+            True
+
+            >>> IntelRecord(0, IntelTag.END_OF_FILE, b'').is_data()
+            False
+        """
         raise NotImplementedError()
-        return False
 
     def compute_count(self):
-        raise NotImplementedError()
-        return 0
+        """Returns:
+            :obj:`bool`: Computed `count` field value based on the current
+                record fields.
+
+        Examples:
+            >>> record = BinaryRecord(0, 0, b'Hello, World!')
+            >>> str(record)
+            '48656C6C6F2C20576F726C6421'
+            >>> record.compute_count()
+            13
+
+            >>> record = MotorolaRecord(0, MotorolaTag.DATA_16,
+            ...                         b'Hello, World!')
+            >>> str(record)
+            'S110000048656C6C6F2C20576F726C642186'
+            >>> record.compute_count()
+            16
+
+            >>> record = IntelRecord(0, IntelTag.DATA, b'Hello, World!')
+            >>> str(record)
+            ':0D00000048656C6C6F2C20576F726C64218A'
+            >>> record.compute_count()
+            13
+        """
+        return len(self.data)
 
     def update_count(self):
+        """Updates the `count` field via :meth:`compute_count`."""
         self.count = self.compute_count()
 
     def compute_checksum(self):
-        raise NotImplementedError()
-        return 0
+        """Returns:
+            :obj:`bool`: Computed `checksum` field value based on the current
+                record fields.
+
+        Examples:
+            >>> record = BinaryRecord(0, 0, b'Hello, World!')
+            >>> str(record)
+            '48656C6C6F2C20576F726C6421'
+            >>> hex(record.compute_checksum())
+            '0x69'
+
+            >>> record = MotorolaRecord(0, MotorolaTag.DATA_16,
+            ...                         b'Hello, World!')
+            >>> str(record)
+            'S110000048656C6C6F2C20576F726C642186'
+            >>> hex(record.compute_checksum())
+            '0x86'
+
+            >>> record = IntelRecord(0, IntelTag.DATA, b'Hello, World!')
+            >>> str(record)
+            ':0D00000048656C6C6F2C20576F726C64218A'
+            >>> hex(record.compute_checksum())
+            '0x8a'
+        """
+        return sum(self.data) & 0xFF
 
     def update_checksum(self):
+        """Updates the `checksum` field via :meth:`compute_count`."""
         self.checksum = self.compute_checksum()
 
     def _get_checksum(self):
+        """Returns:
+            :obj:`int`: The `checksum` field itself if not ``None``, the
+                value computed by :meth:`compute_count` otherwise.
+        """
         if self.checksum is None:
             return self.compute_checksum()
         else:
             return self.checksum
 
     def check(self):
+        """Performs consistency checks.
+
+        Raises:
+            :obj:`ValueError`: a field is inconsistent.
+        """
         if not 0 <= self.address:
             raise ValueError('address overflow')
 
@@ -368,6 +545,21 @@ class Record(object):
                 raise ValueError('checksum error')
 
     def overlaps(self, other):
+        """Returns:
+            :obj:`bool`: This record and another have overlapping `data`,
+                when both `address` fields are not ``None``.
+
+        Examples:
+            >>> record1 = BinaryRecord(0, 0, b'abc')
+            >>> record2 = BinaryRecord(1, 0, b'def')
+            >>> record1.overlaps(record2)
+            True
+
+            >>> record1 = BinaryRecord(0, 0, b'abc')
+            >>> record2 = BinaryRecord(3, 0, b'def')
+            >>> record1.overlaps(record2)
+            False
+        """
         if self.address is None or other.address is None:
             return False
         else:
@@ -378,14 +570,39 @@ class Record(object):
 
     @classmethod
     def parse(cls, line, *args, **kwargs):
+        """Parses a record from a text line.
+
+        Arguments:
+            line (:obj:`str`): Text line to parse.
+            args (:obj:`tuple`): Further positional arguments for overriding.
+            kwargs (:obj:`dict`): Further keyword arguments for overriding.
+
+        Note:
+            This method must be overridden.
+        """
         raise NotImplementedError()
 
     @classmethod
     def split(cls, data, *args, **kwargs):
+        """Splits a chunk of data into records.
+
+        Arguments:
+            data (:obj:`bytes`): Byte data to split.
+            args (:obj:`tuple`): Further positional arguments for overriding.
+            kwargs (:obj:`dict`): Further keyword arguments for overriding.
+
+        Note:
+            This method must be overridden.
+        """
         raise NotImplementedError()
 
     @classmethod
     def check_sequence(cls, records):
+        """Consistency check of a sequence of records.
+
+        Raises:
+            :obj:`ValueError`: a field is inconsistent.
+        """
         last = None
         record_endex = 0
 
@@ -403,20 +620,64 @@ class Record(object):
 
     @classmethod
     def readdress(cls, records):
+        """Converts to flat addressing.
+
+        Some record types, notably the *Intel HEX*, store records by some
+        *segment/offset* addressing flavor.
+        As this library adopts *flat* addressing instead, all the record
+        addresses should be converted to *flat* addressing after loading.
+        This procedure readdresses a sequence of records in-place.
+
+        Warning:
+            Only the `address` field is modified. ALl the other fields hold
+            their previous value.
+
+        Arguments:
+            records (list): Sequence of records to be converted to *flat*
+                addressing, in-place. Sequence generators supported.
+        """
         pass
 
     @classmethod
-    def flatten(cls, sorted_data_records, start=None, endex=None, align=1,
-                fill=b'\xFF', size_guard=Ellipsis):
+    def flatten(cls, data_records, start=None, endex=None, align=1,
+                fill=b'xFF', size_guard=Ellipsis):
+        """Flattens records to a single chunk.
 
-        if not sorted_data_records:
+        Note:
+            In case of overlapping data records, it is best to sort them by
+            address before calling this function, in order to have predictable
+            overwriting of the overlapping regions.
+
+        Arguments:
+            data_records (list): Sequence of data records to flatten.
+                Sequence generators supported if both `start` and `endex`
+                are not ``None``.
+            start (:obj:`int`): Inclusive start address of the memory window
+                to flatten. If ``None``, it is the minimum record `address`.
+            endex (:obj:`int`): Exclusive end address of the memory window to
+                flatten. If ``None``, it is the maximum record exclusive end
+                address (`address` plus `data` length).
+            align (:obj:`int`): Address alignment of the flattened bytes.
+                The flattened range (i.e. `start`:`endex`) is expanded so that
+                the resulting boundaries are aligned to it.
+            fill (:obj:`bytes`): The flattened chunk is filled with this value
+                before writing record data on it.
+            size_guard (callable): An optional function to prevent the
+                creation of a huge flattened chunk. ``None`` ignores such
+                check; ``Ellipsis`` applied the default guard (limited to
+                ``SIZE_GUARD``).
+
+        Returns:
+            :obj:`bytearray`: The flattened data records.
+        """
+        if not data_records:
             return b''
 
         if start is None:
-            start = sorted_data_records[0].address
+            start = min(record.address for record in data_records)
         if endex is None:
-            endex = (sorted_data_records[-1].address +
-                     len(sorted_data_records[-1].data))
+            endex = max(record.address + len(record.data)
+                        for record in data_records)
         if start > endex:
             raise ValueError('address overflow')
         start -= start % align
@@ -429,7 +690,7 @@ class Record(object):
 
         data = bytearray().ljust(endex - start, fill)
 
-        for record in sorted_data_records:
+        for record in data_records:
             address = record.address
             offset = address + len(record.data)
 
@@ -446,6 +707,17 @@ class Record(object):
 
     @classmethod
     def partition(cls, sorted_data_records, invalid_start=-1):
+        """Groups contiguous data records.
+
+        Arguments:
+            sorted_data_records (list): Sequence of sorted data records.
+                Sequence generators supported.
+            invalid_start (:obj:`int`): An address lesser than any other
+                record address in `sorted_data_records`.
+
+        Yields:
+            :obj:`list`: Sequence of contiguous data records.
+        """
         partition = None
         last = BinaryRecord(-1, None, b'', checksum=None)
 
@@ -462,12 +734,33 @@ class Record(object):
 
     @classmethod
     def load(cls, path):
+        """Loads records from a file.
+
+        Each line of the input text file is parsed via :meth:`parse`, and
+        collected into the returned list.
+
+        Arguments:
+            path (:obj:`str`): Path of the record file to load.
+
+        Returns:
+            :obj:`list`: Sequence of parsed records.
+        """
         with open(path, 'rt') as stream:
             records = [cls.parse(line) for line in stream]
         return records
 
     @classmethod
     def save(cls, path, records):
+        """Saves records to a file.
+
+        Each record of the `records` sequence is converted into text via
+        :func:`str`, and stored into the output text file.
+
+        Arguments:
+            path (:obj:`str`): Path of the record file to save.
+            records (list): Sequence of records to store. Sequence generators
+                supported.
+        """
         with open(path, 'wt') as stream:
             for record in records:
                 stream.write(str(record))
@@ -488,14 +781,6 @@ class BinaryRecord(Record):
 
     def is_data(self):
         return True
-
-    def compute_count(self):
-        count = len(self.data)
-        return count
-
-    def compute_checksum(self):
-        checksum = sum(self.data) & 0xFF
-        return checksum
 
     @classmethod
     def build_data(cls, address, data):
@@ -551,6 +836,10 @@ class MotorolaTag(enum.IntEnum):
     START_32 = 7  # 32-bit start address (terminates DATA_32)
     START_24 = 8  # 24-bit start address (terminates DATA_24)
     START_16 = 9  # 16-bit start address (terminates DATA_16)
+
+    @classmethod
+    def is_data(cls, value):
+        return value in (cls.DATA_16, cls.DATA_24, cls.DATA_32)
 
 
 class MotorolaRecord(Record):
@@ -753,6 +1042,10 @@ class IntelTag(enum.IntEnum):
     EXTENDED_LINEAR_ADDRESS = 4
     START_LINEAR_ADDRESS = 5
 
+    @classmethod
+    def is_data(cls, value):
+        return value == cls.DATA
+
 
 class IntelRecord(Record):
 
@@ -925,6 +1218,40 @@ class IntelRecord(Record):
 
     @classmethod
     def readdress(cls, records):
+        """Converts to flat addressing.
+
+        *Intel HEX*, stores records by *segment/offset* addressing.
+        As this library adopts *flat* addressing instead, all the record
+        addresses should be converted to *flat* addressing after loading.
+        This procedure readdresses a sequence of records in-place.
+
+        Warning:
+            Only the `address` field is modified. ALl the other fields hold
+            their previous value.
+
+        Arguments:
+            records (list): Sequence of records to be converted to *flat*
+                addressing, in-place. Sequence generators supported.
+
+        Example:
+            >>> records = [
+            ...     IntelRecord.build_extended_linear_address(0x76540000),
+            ...     IntelRecord.build_data(0x00003210, b'Hello, World!'),
+            ... ]
+            >>> records  # doctest: +NORMALIZE_WHITESPACE
+            [IntelRecord(address=0x00000000,
+                         tag=<IntelTag.EXTENDED_LINEAR_ADDRESS: 4>, count=2,
+                         data=b'vT', checksum=0x30),
+             IntelRecord(address=0x00003210, tag=<IntelTag.DATA: 0>, count=13,
+                         data=b'Hello, World!', checksum=0x48)]
+            >>> IntelRecord.readdress(records)
+            >>> records  # doctest: +NORMALIZE_WHITESPACE
+            [IntelRecord(address=0x76540000,
+                         tag=<IntelTag.EXTENDED_LINEAR_ADDRESS: 4>, count=2,
+                         data=b'vT', checksum=0x30),
+             IntelRecord(address=0x76543210, tag=<IntelTag.DATA: 0>, count=13,
+                         data=b'Hello, World!', checksum=0x48)]
+        """
         ESA = cls.TAG_TYPE.EXTENDED_SEGMENT_ADDRESS
         ELA = cls.TAG_TYPE.EXTENDED_LINEAR_ADDRESS
         base = 0
@@ -947,6 +1274,10 @@ class IntelRecord(Record):
 class TektronixTag(enum.IntEnum):
     DATA = 6
     TERMINATOR = 8
+
+    @classmethod
+    def is_data(cls, value):
+        return value == cls.DATA
 
 
 class TektronixRecord(Record):
