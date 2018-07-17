@@ -189,7 +189,6 @@ def delete(blocks, start, endex):
     return result
 
 
-
 def insert(blocks, inserted):
     r"""Inserts a block into a sequence.
 

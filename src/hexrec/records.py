@@ -31,7 +31,6 @@ import re
 import struct
 
 from hexrec.blocks import merge
-
 from hexrec.utils import chop
 from hexrec.utils import do_overlap
 from hexrec.utils import hexlify

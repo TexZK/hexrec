@@ -1,5 +1,5 @@
-hexrec.core
-===========
+hexrec.blocks
+=============
 
 .. testsetup::
 
