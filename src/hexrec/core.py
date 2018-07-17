@@ -282,14 +282,14 @@ class Record(object):
     A record is the basic structure of a record file.
 
     Attributes:
-        address (obj:`int`): Tells where its `data` starts in the memory
+        address (:obj:`int`): Tells where its `data` starts in the memory
             addressing space, or an address with a special meaning.
         tag (:obj:`int`): Defines the logical meaning of the `address` and
             `data` fields.
-        data (obj:`bytes`): Byte data as required by the `tag`.
+        data (:obj:`bytes`): Byte data as required by the `tag`.
         count (:obj:`int`): Counts its fields as required by the
             :class:`Record` subclass implementation.
-        checksum (obj:`int`): Computes the checksum as required by most
+        checksum (:obj:`int`): Computes the checksum as required by most
             :class:`Record` implementations.
 
     This is an abstract class, so it provides basic generic methods shared by
@@ -346,7 +346,9 @@ class Record(object):
         return fmt.format(type(self).__name__, self, checksum)
 
     def __str__(self):
-        """Returns:
+        """Converts to text string.
+
+        Returns:
             :obj:`str`: A printable text representation of the record, usually
                 the same found in the saved record file as per its
                 :class:`Record` subclass requirements.
@@ -365,7 +367,9 @@ class Record(object):
         return repr(self)
 
     def __eq__(self, other):
-        """Returns:
+        """Equality comparison.
+
+        Returns:
             :obj:`bool`: The `address`, `tag`, and `data` fields are equal.
         """
         return (self.address == other.address and
@@ -373,7 +377,9 @@ class Record(object):
                 self.data == other.data)
 
     def __hash__(self):
-        """Returns:
+        """Computes the hash value.
+
+        Returns:
             :obj:`int`: Hash of the :class:`Record` fields. Useful to make
                 the record hashable although it is a mutable class.
 
@@ -401,7 +407,9 @@ class Record(object):
                 hash(self.checksum or 0))
 
     def __lt__(self, other):
-        """Returns:
+        """Less-than comparison.
+
+        Returns:
             :obj:`bool`: `address` less than `other`'s.
 
         Examples:
@@ -420,7 +428,9 @@ class Record(object):
         return copied
 
     def is_data(self):
-        """Returns:
+        """Tells if it is a data record.
+
+        Returns:
             :obj:`bool`: The record contains plain binary data, *i.e.* it is
                 not a *special* record.
 
@@ -448,7 +458,9 @@ class Record(object):
         raise NotImplementedError()
 
     def compute_count(self):
-        """Returns:
+        """Computes the count.
+
+        Returns:
             :obj:`bool`: Computed `count` field value based on the current
                 record fields.
 
@@ -479,8 +491,10 @@ class Record(object):
         self.count = self.compute_count()
 
     def compute_checksum(self):
-        """Returns:
-            :obj:`bool`: Computed `checksum` field value based on the current
+        """Computes the checksum.
+
+        Returns:
+            :obj:`int`: Computed `checksum` field value based on the current
                 record fields.
 
         Examples:
@@ -510,9 +524,8 @@ class Record(object):
         self.checksum = self.compute_checksum()
 
     def _get_checksum(self):
-        """Returns:
-            :obj:`int`: The `checksum` field itself if not ``None``, the
-                value computed by :meth:`compute_count` otherwise.
+        """:obj:`int`: The `checksum` field itself if not ``None``, the
+            value computed by :meth:`compute_count` otherwise.
         """
         if self.checksum is None:
             return self.compute_checksum()
@@ -545,7 +558,9 @@ class Record(object):
                 raise ValueError('checksum error')
 
     def overlaps(self, other):
-        """Returns:
+        """Checks if overlapping occurs.
+
+        Returns:
             :obj:`bool`: This record and another have overlapping `data`,
                 when both `address` fields are not ``None``.
 
@@ -629,7 +644,7 @@ class Record(object):
         This procedure readdresses a sequence of records in-place.
 
         Warning:
-            Only the `address` field is modified. ALl the other fields hold
+            Only the `address` field is modified. All the other fields hold
             their previous value.
 
         Arguments:
