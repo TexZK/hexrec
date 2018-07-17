@@ -4,6 +4,7 @@ Reference
 .. toctree::
     :glob:
 
-    hexrec.core
+    hexrec.blocks
+    hexrec.records
     hexrec.utils
     hexrec.xxd

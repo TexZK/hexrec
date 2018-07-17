@@ -30,16 +30,17 @@ import os
 import re
 import struct
 
+from hexrec.blocks import merge
+
 from hexrec.utils import chop
 from hexrec.utils import do_overlap
 from hexrec.utils import hexlify
-from hexrec.utils import merge_blocks
 from hexrec.utils import unhexlify
 
 
 def merge_records(data_records, input_types=None, output_type=None,
                   split_args=None, split_kwargs=None):
-    """Merges data records.
+    r"""Merges data records.
 
     Merges multiple sequences of data records where each sequence overwrites
     overlapping data of the previous sequences.
@@ -75,8 +76,8 @@ def merge_records(data_records, input_types=None, output_type=None,
                             for p in input_type.partition(records))
 
     input_blocks.sort()
-    merged_blocks = merge_blocks((start, chunk)
-                                 for (start, _, chunk) in input_blocks)
+    merged_blocks = merge((start, chunk)
+                          for (start, _, chunk) in input_blocks)
 
     args = split_args or ()
     kwargs = split_kwargs or {}
@@ -90,7 +91,7 @@ def merge_records(data_records, input_types=None, output_type=None,
 
 def convert_records(records, input_type=None, output_type=None,
                     split_args=None, split_kwargs=None):
-    """Converts records to another type.
+    r"""Converts records to another type.
 
     Arguments:
         records (list): A sequence of :class:`Record` elements.
@@ -136,7 +137,7 @@ def convert_records(records, input_type=None, output_type=None,
 
 def merge_files(input_files, output_file, input_types=None, output_type=None,
                 split_args=None, split_kwargs=None):
-    """Merges record files.
+    r"""Merges record files.
 
     Merges multiple record files where each file overwrites overlapping data
     of the previous files.
@@ -187,7 +188,7 @@ def merge_files(input_files, output_file, input_types=None, output_type=None,
 
 def convert_file(input_file, output_file, input_type=None, output_type=None,
                  split_args=None, split_kwargs=None):
-    """Converts a record file to another record type.
+    r"""Converts a record file to another record type.
 
     Arguments:
         input_file (:obj:`str`): Path of the input file.
@@ -212,7 +213,7 @@ def convert_file(input_file, output_file, input_type=None, output_type=None,
 
 
 def load_file(path, record_type=None):
-    """Loads records from a file.
+    r"""Loads records from a file.
 
     Arguments:
         path (:obj:`str`): Path of the input file.
@@ -234,7 +235,7 @@ def load_file(path, record_type=None):
 
 def save_file(path, records, record_type=None,
               split_args=None, split_kwargs=None):
-    """Saves records to a file.
+    r"""Saves records to a file.
 
     Arguments:
         path (:obj:`str`): Path of the output file.
@@ -266,7 +267,7 @@ def save_file(path, records, record_type=None,
 
 
 SIZE_GUARD = 64 << 20  # 64 MiB
-"""Default :meth:`Record.flatten` size limit"""
+r"""Default :meth:`Record.flatten` size limit"""
 
 
 def _size_guard(start, endex):
@@ -277,7 +278,7 @@ def _size_guard(start, endex):
 
 
 class Record(object):
-    """Abstract record type.
+    r"""Abstract record type.
 
     A record is the basic structure of a record file.
 
@@ -298,7 +299,7 @@ class Record(object):
     """
 
     def __init__(self, address, tag, data, checksum=Ellipsis):
-        """Constructor.
+        r"""Constructor.
 
         Arguments:
             address (:obj:`int`): Record `address` field.
@@ -346,7 +347,7 @@ class Record(object):
         return fmt.format(type(self).__name__, self, checksum)
 
     def __str__(self):
-        """Converts to text string.
+        r"""Converts to text string.
 
         Returns:
             :obj:`str`: A printable text representation of the record, usually
@@ -367,7 +368,7 @@ class Record(object):
         return repr(self)
 
     def __eq__(self, other):
-        """Equality comparison.
+        r"""Equality comparison.
 
         Returns:
             :obj:`bool`: The `address`, `tag`, and `data` fields are equal.
@@ -377,7 +378,7 @@ class Record(object):
                 self.data == other.data)
 
     def __hash__(self):
-        """Computes the hash value.
+        r"""Computes the hash value.
 
         Returns:
             :obj:`int`: Hash of the :class:`Record` fields. Useful to make
@@ -407,7 +408,7 @@ class Record(object):
                 hash(self.checksum or 0))
 
     def __lt__(self, other):
-        """Less-than comparison.
+        r"""Less-than comparison.
 
         Returns:
             :obj:`bool`: `address` less than `other`'s.
@@ -428,7 +429,7 @@ class Record(object):
         return copied
 
     def is_data(self):
-        """Tells if it is a data record.
+        r"""Tells if it is a data record.
 
         Returns:
             :obj:`bool`: The record contains plain binary data, *i.e.* it is
@@ -458,7 +459,7 @@ class Record(object):
         raise NotImplementedError()
 
     def compute_count(self):
-        """Computes the count.
+        r"""Computes the count.
 
         Returns:
             :obj:`bool`: Computed `count` field value based on the current
@@ -487,11 +488,11 @@ class Record(object):
         return len(self.data)
 
     def update_count(self):
-        """Updates the `count` field via :meth:`compute_count`."""
+        r"""Updates the `count` field via :meth:`compute_count`."""
         self.count = self.compute_count()
 
     def compute_checksum(self):
-        """Computes the checksum.
+        r"""Computes the checksum.
 
         Returns:
             :obj:`int`: Computed `checksum` field value based on the current
@@ -520,11 +521,11 @@ class Record(object):
         return sum(self.data) & 0xFF
 
     def update_checksum(self):
-        """Updates the `checksum` field via :meth:`compute_count`."""
+        r"""Updates the `checksum` field via :meth:`compute_count`."""
         self.checksum = self.compute_checksum()
 
     def _get_checksum(self):
-        """:obj:`int`: The `checksum` field itself if not ``None``, the
+        r""":obj:`int`: The `checksum` field itself if not ``None``, the
             value computed by :meth:`compute_count` otherwise.
         """
         if self.checksum is None:
@@ -533,7 +534,7 @@ class Record(object):
             return self.checksum
 
     def check(self):
-        """Performs consistency checks.
+        r"""Performs consistency checks.
 
         Raises:
             :obj:`ValueError`: a field is inconsistent.
@@ -558,7 +559,7 @@ class Record(object):
                 raise ValueError('checksum error')
 
     def overlaps(self, other):
-        """Checks if overlapping occurs.
+        r"""Checks if overlapping occurs.
 
         Returns:
             :obj:`bool`: This record and another have overlapping `data`,
@@ -585,7 +586,7 @@ class Record(object):
 
     @classmethod
     def parse(cls, line, *args, **kwargs):
-        """Parses a record from a text line.
+        r"""Parses a record from a text line.
 
         Arguments:
             line (:obj:`str`): Text line to parse.
@@ -599,7 +600,7 @@ class Record(object):
 
     @classmethod
     def split(cls, data, *args, **kwargs):
-        """Splits a chunk of data into records.
+        r"""Splits a chunk of data into records.
 
         Arguments:
             data (:obj:`bytes`): Byte data to split.
@@ -613,7 +614,7 @@ class Record(object):
 
     @classmethod
     def check_sequence(cls, records):
-        """Consistency check of a sequence of records.
+        r"""Consistency check of a sequence of records.
 
         Raises:
             :obj:`ValueError`: a field is inconsistent.
@@ -635,7 +636,7 @@ class Record(object):
 
     @classmethod
     def readdress(cls, records):
-        """Converts to flat addressing.
+        r"""Converts to flat addressing.
 
         Some record types, notably the *Intel HEX*, store records by some
         *segment/offset* addressing flavor.
@@ -656,7 +657,7 @@ class Record(object):
     @classmethod
     def flatten(cls, data_records, start=None, endex=None, align=1,
                 fill=b'xFF', size_guard=Ellipsis):
-        """Flattens records to a single chunk.
+        r"""Flattens records to a single chunk.
 
         Note:
             In case of overlapping data records, it is best to sort them by
@@ -679,7 +680,7 @@ class Record(object):
                 before writing record data on it.
             size_guard (callable): An optional function to prevent the
                 creation of a huge flattened chunk. ``None`` ignores such
-                check; ``Ellipsis`` applied the default guard (limited to
+                check; ``Ellipsis`` applies the default guard (limited to
                 ``SIZE_GUARD``).
 
         Returns:
@@ -722,7 +723,7 @@ class Record(object):
 
     @classmethod
     def partition(cls, sorted_data_records, invalid_start=-1):
-        """Groups contiguous data records.
+        r"""Groups contiguous data records.
 
         Arguments:
             sorted_data_records (list): Sequence of sorted data records.
@@ -749,7 +750,7 @@ class Record(object):
 
     @classmethod
     def load(cls, path):
-        """Loads records from a file.
+        r"""Loads records from a file.
 
         Each line of the input text file is parsed via :meth:`parse`, and
         collected into the returned list.
@@ -766,7 +767,7 @@ class Record(object):
 
     @classmethod
     def save(cls, path, records):
-        """Saves records to a file.
+        r"""Saves records to a file.
 
         Each record of the `records` sequence is converted into text via
         :func:`str`, and stored into the output text file.
@@ -1233,7 +1234,7 @@ class IntelRecord(Record):
 
     @classmethod
     def readdress(cls, records):
-        """Converts to flat addressing.
+        r"""Converts to flat addressing.
 
         *Intel HEX*, stores records by *segment/offset* addressing.
         As this library adopts *flat* addressing instead, all the record
