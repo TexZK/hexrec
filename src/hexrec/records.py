@@ -431,7 +431,7 @@ class Record(object):
         r"""Tells if it is a data record.
 
         Returns:
-            :obj:`bool`: The record contains plain binary data, *i.e.* it is
+            :obj:`bool`: The record contains plain binary data, i.e. it is
                 not a *special* record.
 
         Note:

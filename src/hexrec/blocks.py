@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
+"""Utilities for blocks of data.
 
+A `block` is ``(start, items)`` where `start` is the start address and
+`items` is the container of items (e.g. a :obj:`bytes` object).
+The length of the block is ``len(items)``.
+
+"""
 from hexrec.utils import do_overlap
 
 
@@ -76,6 +82,8 @@ def clear(blocks, start, endex):
     Arguments:
         blocks (:obj:`list` of block): A sequence of blocks. Sequence
             generators supported.
+        start (:obj:`int`): Inclusive start of cleared range.
+        endex (:obj:`int`): Exclusive end of cleared range.
 
     Returns:
         :obj:`list` of block: A new list of blocks.
@@ -86,7 +94,7 @@ def clear(blocks, start, endex):
         +===+===+===+===+===+===+===+===+===+===+===+
         |   |[A | B | C | D]|   |[!]|   |[x | y | z]|
         +---+---+---+---+---+---+---+---+---+---+---+
-        |   |[A | B | C]|(  |   |   |   |  )|[y | z]|
+        |   |[A | B | C]|   |   |   |   |   |[y | z]|
         +---+---+---+---+---+---+---+---+---+---+---+
         |   |[A | B | C]|   |   |   |   |   |[y | z]|
         +---+---+---+---+---+---+---+---+---+---+---+
@@ -134,6 +142,8 @@ def delete(blocks, start, endex):
     Arguments:
         blocks (:obj:`list` of block): A sequence of blocks. Sequence
             generators supported.
+        start (:obj:`int`): Inclusive start of deleted range.
+        endex (:obj:`int`): Exclusive end of deleted range.
 
     Returns:
         :obj:`list` of block: A new list of blocks.
@@ -204,21 +214,21 @@ def insert(blocks, inserted):
         :obj:`list` of block: A new list of blocks.
 
     Example:
-        +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-        | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10| 11| 12| 13| 14|
-        +===+===+===+===+===+===+===+===+===+===+===+===+===+===+===+
-        |   |[A | B | C | D]|   |   |   |[x | y | z]|   |   |   |   |
-        +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-        |   |[A | B | C | D]|   |   |   |[x | y | z]|   |[1 | 3]|   |
-        +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-        |   |[A]|[2]|[B | C | D]|   |   |   |[x | y | z]|   |[1 | 3]|
-        +---+---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+        +---+---+---+---+---+---+---+---+---+---+---+---+
+        | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10| 11|
+        +===+===+===+===+===+===+===+===+===+===+===+===+
+        |[A | B | C | D]|   |   |[x | y | z]|   |   |   |
+        +---+---+---+---+---+---+---+---+---+---+---+---+
+        |[A | B | C | D]|   |   |[x | y | z]|   |[!]|   |
+        +---+---+---+---+---+---+---+---+---+---+---+---+
+        |[A]|[1]|[B | C | D]|   |   |[x | y | z]|   |[!]|
+        +---+---+---+---+---+---+---+---+---+---+---+---+
 
-        >>> blocks = [(1, b'ABCD'), (8, b'xyz')]
-        >>> blocks = insert(blocks, (12, b'13'))
-        >>> blocks = insert(blocks, (2, b'2'))
+        >>> blocks = [(1, b'ABCD'), (6, b'xyz')]
+        >>> blocks = insert(blocks, (10, b'!'))
+        >>> blocks = insert(blocks, (1, b'1'))
         >>> blocks
-        [(1, b'A'), (2, b'2'), (3, b'BCD'), (9, b'xyz'), (13, b'13')]
+        [(0, b'A'), (1, b'1'), (2, b'BCD'), (7, b'xyz'), (11, b'!')]
     """
     inserted_start, inserted_items = inserted
     inserted_length = len(inserted_items)
@@ -307,23 +317,23 @@ def merge(blocks, invalid_start=-1, join=b''.join):
             address.
 
     Example:
-        +---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-        | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10| 11| 12| 13|
-        +===+===+===+===+===+===+===+===+===+===+===+===+===+===+
-        |   |[H | e | l | l | o | ,]|   |   |   |   |   |   |   |
-        +---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-        |   |   |   |   |   |   |   |[ ]|   |   |   |   |   |   |
-        +---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-        |   |   |   |   |   |   |   |   |[W | o | r | l | d]|   |
-        +---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-        |   |   |   |   |   |   |   |   |   |   |   |   |   |[!]|
-        +---+---+---+---+---+---+---+---+---+---+---+---+---+---+
-        |   |[H | e | l | l | o | ,]|[ ]|[W | o | r | l | d]|[!]|
-        +---+---+---+---+---+---+---+---+---+---+---+---+---+---+
+        +---+---+---+---+---+---+---+---+---+---+---+---+---+
+        | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10| 11| 12|
+        +===+===+===+===+===+===+===+===+===+===+===+===+===+
+        |[H | e | l | l | o | ,]|   |   |   |   |   |   |   |
+        +---+---+---+---+---+---+---+---+---+---+---+---+---+
+        |   |   |   |   |   |   |[ ]|   |   |   |   |   |   |
+        +---+---+---+---+---+---+---+---+---+---+---+---+---+
+        |   |   |   |   |   |   |   |[W | o | r | l | d]|   |
+        +---+---+---+---+---+---+---+---+---+---+---+---+---+
+        |   |   |   |   |   |   |   |   |   |   |   |   |[!]|
+        +---+---+---+---+---+---+---+---+---+---+---+---+---+
+        |[H | e | l | l | o | , |   | W | o | r | l | d | !]|
+        +---+---+---+---+---+---+---+---+---+---+---+---+---+
 
-        >>> blocks = [(1, b'Hello,'), (7, b' '), (8, b'World'), (13, b'!')]
+        >>> blocks = [(0, b'Hello,'), (6, b' '), (7, b'World'), (12, b'!')]
         >>> merge(blocks)
-        [(1, b'Hello, World!')]
+        [(0, b'Hello, World!')]
     """
     result = []
     contiguous_items = []
@@ -362,10 +372,6 @@ def collapse(blocks):
 
     Given a sequence of blocks, they are modified so that a previous block
     does not overlap with the following ones.
-
-    A block is ``(start, items)`` where `start` is the start address and
-    `items` is the container of items (e.g. a :obj:`bytes` object).
-    The length of the block is ``len(items)``.
 
     Arguments:
         blocks (:obj:`list` of block): A sequence of blocks.
