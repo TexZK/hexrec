@@ -430,3 +430,17 @@ def do_overlap(start1, endex1, start2, endex2):
     if start2 > endex2:
         start2, endex2 = endex2, start2
     return (endex1 > start2 and endex2 > start1)
+
+
+def straighten_slice(start, stop, step, length):  # TODO
+    if start is None:
+        start = 0
+    elif start < 0:
+        start %= length
+
+    if stop is None:
+        stop = length
+    elif stop < 0:
+        stop %= length
+
+    return start, stop, step
