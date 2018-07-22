@@ -55,7 +55,7 @@ def overlap(block1, block2):
         |   |   |   |   |   |[x | y | z]|   |   |
         +---+---+---+---+---+---+---+---+---+---+
 
-        >>> overlap((1, b'ABCD'), (5, b'xyz'))
+        >>> overlap((1, 'ABCD'), (5, 'xyz'))
         False
 
         +---+---+---+---+---+---+---+---+---+---+
@@ -66,7 +66,7 @@ def overlap(block1, block2):
         |   |   |   |[x | y | z]|   |   |   |   |
         +---+---+---+---+---+---+---+---+---+---+
 
-        >>> overlap((1, b'ABCD'), (3, b'xyz'))
+        >>> overlap((1, 'ABCD'), (3, 'xyz'))
         True
     """
     start1, items1 = block1
@@ -126,7 +126,7 @@ def locate_at(blocks, address):
         |   | 0 | 0 | 0 | 0 |   | 1 |   | 2 | 2 | 2 |   |
         +---+---+---+---+---+---+---+---+---+---+---+---+
 
-        >>> blocks = [(1, b'ABCD'), (6, b'!'), (8, b'xyz')]
+        >>> blocks = [(1, 'ABCD'), (6, '!'), (8, 'xyz')]
         >>> [locate_at(blocks, i) for i in range(12)]
         [None, 0, 0, 0, 0, None, 1, None, 2, 2, 2, None]
     """
@@ -180,7 +180,7 @@ def locate_start(blocks, address):
         | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 2 | 2 | 2 | 3 |
         +---+---+---+---+---+---+---+---+---+---+---+---+
 
-        >>> blocks = [(1, b'ABCD'), (6, b'!'), (8, b'xyz')]
+        >>> blocks = [(1, 'ABCD'), (6, '!'), (8, 'xyz')]
         >>> [locate_start(blocks, i) for i in range(12)]
         [0, 0, 0, 0, 0, 1, 1, 2, 2, 2, 2, 3]
     """
@@ -234,7 +234,7 @@ def locate_endex(blocks, address):
         | 0 | 1 | 1 | 1 | 1 | 1 | 2 | 2 | 3 | 3 | 3 | 3 |
         +---+---+---+---+---+---+---+---+---+---+---+---+
 
-        >>> blocks = [(1, b'ABCD'), (6, b'!'), (8, b'xyz')]
+        >>> blocks = [(1, 'ABCD'), (6, '!'), (8, 'xyz')]
         >>> [locate_endex(blocks, i) for i in range(12)]
         [0, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 3]
     """
@@ -286,9 +286,9 @@ def shift(blocks, amount):
         |[A | B | C | D]|   |   |[x | y | z]|   |
         +---+---+---+---+---+---+---+---+---+---+
 
-        >>> blocks = [(1, b'ABCD'), (7, b'xyz')]
+        >>> blocks = [(1, 'ABCD'), (7, 'xyz')]
         >>> shift(blocks, -1)
-        [(0, b'ABCD'), (6, b'xyz')]
+        [(0, 'ABCD'), (6, 'xyz')]
     """
     return [(start + amount, items) for start, items in blocks]
 
@@ -319,9 +319,9 @@ def select(blocks, start, endex):
         |   |   |   |[C | D]|   |[!]|   |[x | y]|   |
         +---+---+---+---+---+---+---+---+---+---+---+
 
-        >>> blocks = [(1, b'ABCD'), (6, b'!'), (8, b'xyz')]
+        >>> blocks = [(1, 'ABCD'), (6, '!'), (8, 'xyz')]
         >>> select(blocks, 3, 10)
-        [(3, b'CD'), (6, b'!'), (8, b'xy')]
+        [(3, 'CD'), (6, '!'), (8, 'xy')]
     """
     if start is None:
         start, _ = blocks[0]
@@ -393,12 +393,12 @@ def clear(blocks, start, endex):
         |   |[A]|   |[C]|   |   |   |   |   |[y | z]|
         +---+---+---+---+---+---+---+---+---+---+---+
 
-        >>> blocks = [(1, b'ABCD'), (6, b'!'), (8, b'xyz')]
+        >>> blocks = [(1, 'ABCD'), (6, '!'), (8, 'xyz')]
         >>> blocks = clear(blocks, 4, 9)
         >>> blocks = clear(blocks, 2, 2)
         >>> blocks = clear(blocks, 2, 3)
         >>> blocks
-        [(1, b'A'), (3, b'C'), (9, b'yz')]
+        [(1, 'A'), (3, 'C'), (9, 'yz')]
     """
     if start is None:
         start, _ = blocks[0]
@@ -471,12 +471,12 @@ def delete(blocks, start, endex):
         |   |[A]|[C]|[y | z]|   |   |   |   |   |   |
         +---+---+---+---+---+---+---+---+---+---+---+
 
-        >>> blocks = [(1, b'ABCD'), (6, b'!'), (8, b'xyz')]
+        >>> blocks = [(1, 'ABCD'), (6, '!'), (8, 'xyz')]
         >>> blocks = delete(blocks, 4, 9)
         >>> blocks = delete(blocks, 2, 2)
         >>> blocks = delete(blocks, 2, 3)
         >>> blocks
-        [(1, b'A'), (2, b'C'), (3, b'yz')]
+        [(1, 'A'), (2, 'C'), (3, 'yz')]
     """
     if start is None:
         start, _ = blocks[0]
@@ -553,11 +553,11 @@ def insert(blocks, inserted):
         |[A]|[1]|[B | C | D]|   |   |[x | y | z]|   |[!]|
         +---+---+---+---+---+---+---+---+---+---+---+---+
 
-        >>> blocks = [(0, b'ABCD'), (6, b'xyz')]
-        >>> blocks = insert(blocks, (10, b'!'))
-        >>> blocks = insert(blocks, (1, b'1'))
+        >>> blocks = [(0, 'ABCD'), (6, 'xyz')]
+        >>> blocks = insert(blocks, (10, '!'))
+        >>> blocks = insert(blocks, (1, '1'))
         >>> blocks
-        [(0, b'A'), (1, b'1'), (2, b'BCD'), (7, b'xyz'), (11, b'!')]
+        [(0, 'A'), (1, '1'), (2, 'BCD'), (7, 'xyz'), (11, '!')]
     """
     inserted_start, inserted_items = inserted
     inserted_length = len(inserted_items)
@@ -612,9 +612,9 @@ def write(blocks, written):
         |   |[A | B]|[1 | 2 | 3 | 4 | 5 | 6]|[y]|
         +---+---+---+---+---+---+---+---+---+---+
 
-        >>> blocks = [(1, b'ABCD'), (6, b'!'), (8, b'xy')]
-        >>> write(blocks, (3, b'123456'))
-        [(1, b'AB'), (3, b'123456'), (9, b'y')]
+        >>> blocks = [(1, 'ABCD'), (6, '!'), (8, 'xy')]
+        >>> write(blocks, (3, '123456'))
+        [(1, 'AB'), (3, '123456'), (9, 'y')]
     """
     start, items = written
     endex = start + len(items)
@@ -625,7 +625,7 @@ def write(blocks, written):
     return result
 
 
-def merge(blocks, join=b''.join):
+def merge(blocks, join=''.join):
     r"""Merges touching blocks.
 
     Arguments:
@@ -652,9 +652,9 @@ def merge(blocks, join=b''.join):
         |[H | e | l | l | o | , |   | W | o | r | l | d | !]|
         +---+---+---+---+---+---+---+---+---+---+---+---+---+
 
-        >>> blocks = [(0, b'Hello,'), (6, b' '), (7, b'World'), (12, b'!')]
+        >>> blocks = [(0, 'Hello,'), (6, ' '), (7, 'World'), (12, '!')]
         >>> merge(blocks)
-        [(0, b'Hello, World!')]
+        [(0, 'Hello, World!')]
     """
     result = []
     contiguous_items = []
@@ -761,10 +761,10 @@ class SparseItems(object):  # TODO
     r"""Sparse item blocks manager.
 
     This is an helper class to emulate a virtual space with sparse blocks of
-    items, for example a virtual memory of :class:`bytes` blocks.
+    items, for example a virtual memory of :class:`str` blocks.
     """
     def __init__(self, items=None, start=0, automerge=True,
-                 items_type=bytes, items_join=b''.join):
+                 items_type=str, items_join=''.join):
 
         if items is not None:
             items = [items_type(it) for it in items]

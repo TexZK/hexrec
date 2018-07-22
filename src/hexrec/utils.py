@@ -27,8 +27,9 @@
 
 import binascii
 import re
+import sys
 
-BIN8_TO_STR = tuple('{:08b}'.format(i) for i in range(256))
+BIN8_TO_STR = tuple(bin(i)[2:].zfill(8) for i in range(256))
 STR_TO_BIN8 = {s: i for i, s in enumerate(BIN8_TO_STR)}
 
 INT_REGEX = re.compile(r'^\s*(?P<sign>[+-]?)\s*'
@@ -224,7 +225,10 @@ def bitlify(data, width=None, sep='', newline='\n', window=8):
     if width is None:
         width = 8 * len(data)
 
-    bitstr = ''.join(BIN8_TO_STR[b] for b in data)
+    if sys.version_info.major == 2:
+        bitstr = ''.join(BIN8_TO_STR[ord(b)] for b in data)
+    else:
+        bitstr = ''.join(BIN8_TO_STR[b] for b in data)
 
     return columnize(bitstr, width, sep, newline, window)
 
@@ -244,7 +248,7 @@ def unbitlify(binstr):
         b'Hi!'
     """
     binstr = ''.join(binstr.split())
-    data = bytes(STR_TO_BIN8[b] for b in chop(binstr, 8))
+    data = bytes(bytearray(STR_TO_BIN8[b] for b in chop(binstr, 8)))
     return data
 
 
@@ -342,7 +346,10 @@ def humanize_ascii(data, replace='.'):
         >>> humanize_ascii(b'\x89PNG\r\n\x1a\n')
         '.PNG....'
     """
-    text = ''.join(chr(b) if 0x20 <= b < 0x7F else replace for b in data)
+    if sys.version_info.major == 2:
+        text = ''.join(b if 0x20 <= ord(b) < 0x7F else replace for b in data)
+    else:
+        text = ''.join(chr(b) if 0x20 <= b < 0x7F else replace for b in data)
     return text
 
 

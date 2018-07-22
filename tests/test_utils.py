@@ -93,15 +93,15 @@ def test_bitlify_doctest():
 
 
 def test_bitlify():
-    bytes_in = bytes(range(16))
+    str_in = bytes(range(16))
 
     sep = ''
-    str_out = sep.join('{:08b}'.format(b) for b in bytes_in)
-    assert bitlify(bytes_in, sep=sep) == str_out
+    str_out = sep.join('{:08b}'.format(ord(b)) for b in str_in)
+    assert bitlify(str_in, sep=sep) == str_out
 
     sep = '.'
-    str_out = sep.join('{:08b}'.format(b) for b in bytes_in)
-    assert bitlify(bytes_in, sep=sep) == str_out
+    str_out = sep.join('{:08b}'.format(ord(b)) for b in str_in)
+    assert bitlify(str_in, sep=sep) == str_out
 
 # ============================================================================
 
@@ -112,10 +112,10 @@ def test_unbitlify_doctest():
 
 
 def test_unbitlify():
-    bytes_out = bytes(range(16))
+    str_out = bytes(range(16))
 
-    str_in = ' '.join('{:08b}'.format(b) for b in bytes_out)
-    assert unbitlify(str_in) == bytes_out
+    str_in = ' '.join('{:08b}'.format(ord(b)) for b in str_out)
+    assert unbitlify(str_in) == str_out
 
 # ============================================================================
 
@@ -126,18 +126,18 @@ def test_hexlify_doctest():
 
 
 def test_hexlify():
-    bytes_in = bytes(range(16))
+    str_in = bytes(range(16))
 
     sep = ''
-    str_out = sep.join('{:02x}'.format(b) for b in bytes_in)
-    assert hexlify(bytes_in, sep=sep, upper=False) == str_out
+    str_out = sep.join('{:02x}'.format(ord(b)) for b in str_in)
+    assert hexlify(str_in, sep=sep, upper=False) == str_out
 
-    str_out = sep.join('{:02X}'.format(b) for b in bytes_in)
-    assert hexlify(bytes_in, sep=sep, upper=True) == str_out
+    str_out = sep.join('{:02X}'.format(ord(b)) for b in str_in)
+    assert hexlify(str_in, sep=sep, upper=True) == str_out
 
     sep = '.'
-    str_out = sep.join('{:02X}'.format(b) for b in bytes_in)
-    assert hexlify(bytes_in, sep=sep, upper=True) == str_out
+    str_out = sep.join('{:02X}'.format(ord(b)) for b in str_in)
+    assert hexlify(str_in, sep=sep, upper=True) == str_out
 
 # ============================================================================
 
@@ -148,13 +148,13 @@ def test_unhexlify_doctest():
 
 
 def test_unhexlify():
-    bytes_out = bytes(range(16))
+    str_out = bytes(range(16))
 
-    str_in = ' '.join('{:02x}'.format(b) for b in bytes_out)
-    assert unhexlify(str_in) == bytes_out
+    str_in = ' '.join('{:02x}'.format(ord(b)) for b in str_out)
+    assert unhexlify(str_in) == str_out
 
-    str_in = ' '.join('{:02X}'.format(b) for b in bytes_out)
-    assert unhexlify(str_in) == bytes_out
+    str_in = ' '.join('{:02X}'.format(ord(b)) for b in str_out)
+    assert unhexlify(str_in) == str_out
 
 # ============================================================================
 
@@ -175,7 +175,7 @@ def test_humanize_ebcdic_doctest():
 
 # ============================================================================
 
-def test_bytes_to_c_array_doctest():
+def test_str_to_c_array_doctest():
     pass  # TODO
 
 # ============================================================================

@@ -54,8 +54,8 @@ def test_build_blocks(blocks):
 # ============================================================================
 
 def test_overlap_doctest():
-    assert overlap((1, b'ABCD'), (5, b'xyz')) == False
-    assert overlap((1, b'ABCD'), (3, b'xyz')) == True
+    assert overlap((1, 'ABCD'), (5, 'xyz')) == False
+    assert overlap((1, 'ABCD'), (3, 'xyz')) == True
 
 # ============================================================================
 
@@ -69,7 +69,7 @@ def test_sorting_doctest():
 # ============================================================================
 
 def test_locate_at_doctest():
-    blocks = [(1, b'ABCD'), (6, b'!'), (8, b'xyz')]
+    blocks = [(1, 'ABCD'), (6, '!'), (8, 'xyz')]
     ans_ref = [None, 0, 0, 0, 0, None, 1, None, 2, 2, 2, None]
     ans_out = [locate_at(blocks, i) for i in range(12)]
     assert ans_out == ans_ref
@@ -77,7 +77,7 @@ def test_locate_at_doctest():
 # ============================================================================
 
 def test_locate_start_doctest():
-    blocks = [(1, b'ABCD'), (6, b'!'), (8, b'xyz')]
+    blocks = [(1, 'ABCD'), (6, '!'), (8, 'xyz')]
     ans_ref = [0, 0, 0, 0, 0, 1, 1, 2, 2, 2, 2, 3]
     ans_out = [locate_start(blocks, i) for i in range(12)]
     assert ans_out == ans_ref
@@ -85,7 +85,7 @@ def test_locate_start_doctest():
 # ============================================================================
 
 def test_locate_endex_doctest():
-    blocks = [(1, b'ABCD'), (6, b'!'), (8, b'xyz')]
+    blocks = [(1, 'ABCD'), (6, '!'), (8, 'xyz')]
     ans_ref = [0, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 3]
     ans_out = [locate_endex(blocks, i) for i in range(12)]
     assert ans_out == ans_ref
@@ -93,24 +93,24 @@ def test_locate_endex_doctest():
 # ============================================================================
 
 def test_shift_doctest():
-    blocks = [(1, b'ABCD'), (7, b'xyz')]
-    ans_ref = [(0, b'ABCD'), (6, b'xyz')]
+    blocks = [(1, 'ABCD'), (7, 'xyz')]
+    ans_ref = [(0, 'ABCD'), (6, 'xyz')]
     ans_out = shift(blocks, -1)
     assert ans_out == ans_ref
 
 # ============================================================================
 
 def test_select_doctest():
-    blocks = [(1, b'ABCD'), (6, b'!'), (8, b'xyz')]
-    ans_ref = [(3, b'CD'), (6, b'!'), (8, b'xy')]
+    blocks = [(1, 'ABCD'), (6, '!'), (8, 'xyz')]
+    ans_ref = [(3, 'CD'), (6, '!'), (8, 'xy')]
     ans_out = select(blocks, 3, 10)
     assert ans_out == ans_ref
 
 # ============================================================================
 
 def test_clear_doctest():
-    blocks = [(1, b'ABCD'), (6, b'!'), (8, b'xyz')]
-    ans_ref = [(1, b'A'), (3, b'C'), (9, b'yz')]
+    blocks = [(1, 'ABCD'), (6, '!'), (8, 'xyz')]
+    ans_ref = [(1, 'A'), (3, 'C'), (9, 'yz')]
     ans_out = list(blocks)
     ans_out = clear(ans_out, 4, 9)
     ans_out = clear(ans_out, 2, 2)
@@ -120,8 +120,8 @@ def test_clear_doctest():
 # ============================================================================
 
 def test_delete_doctest():
-    blocks = [(1, b'ABCD'), (6, b'!'), (8, b'xyz')]
-    ans_ref = [(1, b'A'), (2, b'C'), (3, b'yz')]
+    blocks = [(1, 'ABCD'), (6, '!'), (8, 'xyz')]
+    ans_ref = [(1, 'A'), (2, 'C'), (3, 'yz')]
     ans_out = list(blocks)
     ans_out = delete(ans_out, 4, 9)
     ans_out = delete(ans_out, 2, 2)
@@ -131,26 +131,26 @@ def test_delete_doctest():
 # ============================================================================
 
 def test_insert_doctest():
-    blocks = [(0, b'ABCD'), (6, b'xyz')]
-    ans_ref = [(0, b'A'), (1, b'1'), (2, b'BCD'), (7, b'xyz'), (11, b'!')]
+    blocks = [(0, 'ABCD'), (6, 'xyz')]
+    ans_ref = [(0, 'A'), (1, '1'), (2, 'BCD'), (7, 'xyz'), (11, '!')]
     ans_out = list(blocks)
-    ans_out = insert(ans_out, (10, b'!'))
-    ans_out = insert(ans_out, (1, b'1'))
+    ans_out = insert(ans_out, (10, '!'))
+    ans_out = insert(ans_out, (1, '1'))
     assert ans_out == ans_ref
 
 # ============================================================================
 
 def test_write_doctest():
-    blocks = [(1, b'ABCD'), (6, b'!'), (8, b'xy')]
-    ans_ref = [(1, b'AB'), (3, b'123456'), (9, b'y')]
-    ans_out = write(blocks, (3, b'123456'))
+    blocks = [(1, 'ABCD'), (6, '!'), (8, 'xy')]
+    ans_ref = [(1, 'AB'), (3, '123456'), (9, 'y')]
+    ans_out = write(blocks, (3, '123456'))
     assert ans_out == ans_ref
 
 # ============================================================================
 
 def test_merge_doctest():
-    blocks = [(0, b'Hello,'), (6, b' '), (7, b'World'), (12, b'!')]
-    ans_ref = [(0, b'Hello, World!')]
+    blocks = [(0, 'Hello,'), (6, ' '), (7, 'World'), (12, '!')]
+    ans_ref = [(0, 'Hello, World!')]
     ans_out = merge(blocks)
     assert ans_out == ans_ref
 
@@ -176,67 +176,66 @@ class TestSparseItems(object):  # TODO
         obj = SparseItems()
         assert obj.blocks == []
         assert obj.automerge == True
-        assert obj.items_type == bytes
-        assert obj.items_join == b''.join
+        assert obj.items_type == str
+        assert obj.items_join == ''.join
 
     def test__bool__(self):
         obj = SparseItems()
         assert bool(obj) == False
 
-        obj.blocks = [(1, b'ABC')]
+        obj.blocks = [(1, 'ABC')]
         assert bool(obj) == True
 
     def test__eq__(self):
         obj1 = SparseItems()
-        obj1.blocks = [(1, b'ABC'), (5, b'!')]
+        obj1.blocks = [(1, 'ABC'), (5, '!')]
         obj2 = SparseItems()
-        obj2.blocks = [(1, b'ABC'), (5, b'!')]
+        obj2.blocks = [(1, 'ABC'), (5, '!')]
         assert obj1 == obj2
 
-        blocks2 = [(1, b'ABC'), (5, b'!')]
+        blocks2 = [(1, 'ABC'), (5, '!')]
         assert obj1 == blocks2
 
         obj1 = SparseItems()
-        obj1.blocks = [(0, b'ABC')]
-        assert obj1 == b'ABC'
+        obj1.blocks = [(0, 'ABC')]
+        assert obj1 == 'ABC'
 
     def test__iter__(self):
         obj = SparseItems()
-        obj.blocks = [(1, b'ABC'), (5, b'!')]
+        obj.blocks = [(1, 'ABC'), (5, '!')]
         ans_out = list(obj)
-        ans_ref = list(b'ABC!')
+        ans_ref = list('ABC!')
         assert ans_out == ans_ref
 
     def test__reversed__(self):
         obj = SparseItems()
-        obj.blocks = [(1, b'ABC'), (5, b'!')]
+        obj.blocks = [(1, 'ABC'), (5, '!')]
         ans_out = list(reversed(obj))
-        ans_ref = list(reversed(b'ABC!'))
+        ans_ref = list(reversed('ABC!'))
         assert ans_out == ans_ref
 
     def test__in__(self):
         obj = SparseItems()
-        obj.blocks = [(1, b'ABC'), (5, b'!')]
-        assert ord(b'B') in obj
-        assert b'B' in bytes(obj)
+        obj.blocks = [(1, 'ABC'), (5, '!')]
+        assert 'B' in obj
 
     def test__add__(self):
         obj1 = SparseItems()
-        obj1.blocks = [(1, b'ABC'), (5, b'!')]
+        obj1.blocks = [(1, 'ABC'), (5, '!')]
 
         obj2 = obj1 + obj1
-        assert obj2.blocks == [(1, b'ABC'), (5, b'!ABC'), (10, b'!')]
+        assert obj2.blocks == [(1, 'ABC'), (5, '!ABC'), (10, '!')]
 
-        obj2 = obj1 + b'xyz'
-        assert obj2.blocks == [(1, b'ABC'), (5, b'!xyz')]
+        obj2 = obj1 + 'xyz'
+        assert obj2.blocks == [(1, 'ABC'), (5, '!xyz')]
 
     def test__iadd__(self):
         obj = SparseItems()
-        obj.blocks = [(1, b'ABC'), (5, b'!')]
+        obj.blocks = [(1, 'ABC'), (5, '!')]
         obj += obj
-        assert obj.blocks == [(1, b'ABC'), (5, b'!ABC'), (10, b'!')]
+        assert obj.blocks == [(1, 'ABC'), (5, '!ABC'), (10, '!')]
 
         obj = SparseItems()
-        obj.blocks = [(1, b'ABC'), (5, b'!')]
-        obj += b'xyz'
-        assert obj.blocks == [(1, b'ABC'), (5, b'!xyz')]
+        obj.blocks = [(1, 'ABC'), (5, '!')]
+        obj += 'xyz'
+        assert obj.blocks == [(1, 'ABC'), (5, '!xyz')]
