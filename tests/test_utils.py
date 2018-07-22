@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 import pytest
+import six
 
 from hexrec.utils import *
+
+HEXBYTES = bytes(bytearray(range(16)))
 
 # ============================================================================
 
@@ -55,12 +58,12 @@ def test_parse_int_doctest():
 
 
 def test_parse_int_pass():
-    for value_in, value_out in PARSE_INT_PASS.items():
+    for value_in, value_out in six.iteritems(PARSE_INT_PASS):
         assert parse_int(value_in) == value_out
 
 
 def test_parse_int_fail():
-    for value_in, raised_exception in PARSE_INT_FAIL.items():
+    for value_in, raised_exception in six.iteritems(PARSE_INT_FAIL):
         with pytest.raises(raised_exception):
             parse_int(value_in)
 
@@ -93,15 +96,15 @@ def test_bitlify_doctest():
 
 
 def test_bitlify():
-    str_in = bytes(range(16))
+    bytes_in = HEXBYTES
 
     sep = ''
-    str_out = sep.join('{:08b}'.format(ord(b)) for b in str_in)
-    assert bitlify(str_in, sep=sep) == str_out
+    ans_ref = sep.join('{:08b}'.format(b) for b in six.iterbytes(bytes_in))
+    assert bitlify(bytes_in, sep=sep) == ans_ref
 
     sep = '.'
-    str_out = sep.join('{:08b}'.format(ord(b)) for b in str_in)
-    assert bitlify(str_in, sep=sep) == str_out
+    ans_ref = sep.join('{:08b}'.format(b) for b in six.iterbytes(bytes_in))
+    assert bitlify(bytes_in, sep=sep) == ans_ref
 
 # ============================================================================
 
@@ -112,10 +115,10 @@ def test_unbitlify_doctest():
 
 
 def test_unbitlify():
-    str_out = bytes(range(16))
+    bytes_ref = HEXBYTES
 
-    str_in = ' '.join('{:08b}'.format(ord(b)) for b in str_out)
-    assert unbitlify(str_in) == str_out
+    str_in = ' '.join('{:08b}'.format(b) for b in six.iterbytes(bytes_ref))
+    assert unbitlify(str_in) == bytes_ref
 
 # ============================================================================
 
@@ -126,18 +129,18 @@ def test_hexlify_doctest():
 
 
 def test_hexlify():
-    str_in = bytes(range(16))
+    bytes_in = HEXBYTES
 
     sep = ''
-    str_out = sep.join('{:02x}'.format(ord(b)) for b in str_in)
-    assert hexlify(str_in, sep=sep, upper=False) == str_out
+    ans_ref = sep.join('{:02x}'.format(b) for b in six.iterbytes(bytes_in))
+    assert hexlify(bytes_in, sep=sep, upper=False) == ans_ref
 
-    str_out = sep.join('{:02X}'.format(ord(b)) for b in str_in)
-    assert hexlify(str_in, sep=sep, upper=True) == str_out
+    ans_ref = sep.join('{:02X}'.format(b) for b in six.iterbytes(bytes_in))
+    assert hexlify(bytes_in, sep=sep, upper=True) == ans_ref
 
     sep = '.'
-    str_out = sep.join('{:02X}'.format(ord(b)) for b in str_in)
-    assert hexlify(str_in, sep=sep, upper=True) == str_out
+    ans_ref = sep.join('{:02X}'.format(b) for b in six.iterbytes(bytes_in))
+    assert hexlify(bytes_in, sep=sep, upper=True) == ans_ref
 
 # ============================================================================
 
@@ -148,13 +151,13 @@ def test_unhexlify_doctest():
 
 
 def test_unhexlify():
-    str_out = bytes(range(16))
+    bytes_ref = HEXBYTES
 
-    str_in = ' '.join('{:02x}'.format(ord(b)) for b in str_out)
-    assert unhexlify(str_in) == str_out
+    str_in = ' '.join('{:02x}'.format(b) for b in six.iterbytes(bytes_ref))
+    assert unhexlify(str_in) == bytes_ref
 
-    str_in = ' '.join('{:02X}'.format(ord(b)) for b in str_out)
-    assert unhexlify(str_in) == str_out
+    str_in = ' '.join('{:02X}'.format(b) for b in six.iterbytes(bytes_ref))
+    assert unhexlify(str_in) == bytes_ref
 
 # ============================================================================
 
@@ -164,7 +167,8 @@ def test_hexlify_lists_doctest():
 # ============================================================================
 
 def test_humanize_ascii_doctest():
-    ans_out = humanize_ascii(b'\x89PNG\r\n\x1a\n')
+    bytes_in = b'\x89PNG\r\n\x1a\n'
+    ans_out = humanize_ascii(bytes_in)
     ans_ref = '.PNG....'
     assert ans_out == ans_ref
 
