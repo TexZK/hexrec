@@ -1,4 +1,4 @@
-
+# -*- coding: utf-8 -*-
 from click.testing import CliRunner
 
 from hexrec.cli import main
