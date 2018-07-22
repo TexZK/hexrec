@@ -27,6 +27,7 @@
 
 import binascii
 import re
+
 import six
 
 BIN8_TO_STR = tuple(bin(i)[2:].zfill(8) for i in range(256))
