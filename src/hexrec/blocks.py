@@ -1,4 +1,30 @@
 # -*- coding: utf-8 -*-
+
+# Copyright (c) 2013-2018, Andrea Zoppi
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice,
+#    this list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
 """Utilities for sparse blocks of data.
 
 A `block` is ``(start, items)`` where `start` is the start address and
@@ -6,8 +32,8 @@ A `block` is ``(start, items)`` where `start` is the start address and
 :obj:`tuple`). The length of the block is ``len(items)``.
 
 """
-from hexrec.utils import do_overlap
-from hexrec.utils import straighten_slice
+from .utils import do_overlap
+from .utils import straighten_slice
 
 
 def overlap(block1, block2):
@@ -294,7 +320,7 @@ def select(blocks, start, endex):
         +---+---+---+---+---+---+---+---+---+---+---+
 
         >>> blocks = [(1, b'ABCD'), (6, b'!'), (8, b'xyz')]
-        >>> extract(blocks, 3, 10)
+        >>> select(blocks, 3, 10)
         [(3, b'CD'), (6, b'!'), (8, b'xy')]
     """
     if start is None:
@@ -691,13 +717,14 @@ def collapse(blocks):
         |[!]|[B | C]|[E | F]|[5]|[x | y | z]|[9]|
         +---+---+---+---+---+---+---+---+---+---+
 
-        >>> collapse([
+        >>> blocks = [
         ...     (0, '0123456789'),
         ...     (0, 'ABCD'),
         ...     (3, 'EF'),
         ...     (0, '!'),
         ...     (6, 'xyz'),
-        ... ])
+        ... ]
+        >>> collapse(blocks)
         [(5, '5'), (1, 'BC'), (3, 'EF'), (0, '!'), (9, '9'), (6, 'xyz')]
     """
     result = []
@@ -757,9 +784,12 @@ class SparseItems(object):  # TODO
         r"""Equality comparison.
 
         Arguments:
-            other (:obj:`SparseItems` or items): Data to compare with `self.
+            other (:obj:`SparseItems`, or :obj:`list` of items, or items):
+                Data to compare with `self`.
                 If it is an instance of `SparseItems`, all of its blocks must
                 match.
+                If it is a :obj:`list`, it is expected that it contains the
+                same blocks as `self`.
                 Otherwise, it must match the first stored block, considered
                 equal if also starts at 0.
 
@@ -768,13 +798,16 @@ class SparseItems(object):  # TODO
         """
         if isinstance(other, SparseItems):
             return self.blocks == other.blocks
+
+        elif isinstance(other, list):
+            return self.blocks == other
+
         else:
-            try:
-                start, items = next(iter(self.blocks))
-            except StopIteration:
+            if len(self.blocks) != 1:
                 return False
-            else:
-                return start == 0 and items == other
+
+            start, items = next(iter(self.blocks))
+            return start == 0 and items == other
 
     def __iter__(self):
         r"""Item iterator."""
@@ -787,21 +820,6 @@ class SparseItems(object):  # TODO
         for _, items in reversed(self.blocks):
             for item in reversed(items):
                 yield item
-
-    def __in__(self, value):
-        r"""An item is stored.
-
-        Arguments:
-            value (item): Value to find.
-
-        Returns:
-            :obj:`bool`: The item is stored.
-        """
-        for _, items in self.blocks:
-            for item in items:
-                if item == value:
-                    return True
-        return False
 
     def __add__(self, value):
         r"""Concatenates items.
@@ -831,6 +849,9 @@ class SparseItems(object):  # TODO
         blocks = self.blocks
 
         if isinstance(value, SparseItems):
+            if value is self:
+                value.blocks = list(blocks)  # guard extend() over iter()
+
             offset = self.endex - value.start
             blocks.extend((start + offset, items)
                           for start, items in value.blocks)

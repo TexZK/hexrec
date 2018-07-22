@@ -31,11 +31,11 @@ import re
 BIN8_TO_STR = tuple('{:08b}'.format(i) for i in range(256))
 STR_TO_BIN8 = {s: i for i, s in enumerate(BIN8_TO_STR)}
 
-INT_REGEX = re.compile(r'^(?P<sign>[+-]?)'
-                       r'(?P<prefix>(0x|0b|0)?)'
+INT_REGEX = re.compile(r'^\s*(?P<sign>[+-]?)\s*'
+                       r'(?P<prefix>(0x|0b|0o|0)?)'
                        r'(?P<value>[a-f0-9]+)'
                        r'(?P<suffix>h?)'
-                       r'(?P<scale>[km]?)$')
+                       r'(?P<scale>[km]?)\s*$')
 
 
 def parse_int(value):
@@ -75,21 +75,21 @@ def parse_int(value):
         value = value.lower()
         m = INT_REGEX.match(value)
         if not m:
-            raise ValueError('invalid syntax')
+            raise ValueError('invalid syntax: {!r}'.format(value))
         g = m.groupdict()
         sign = g['sign']
         prefix = g['prefix']
         value = g['value']
         suffix = g['suffix']
         scale = g['scale']
-        if prefix == '0b' and suffix == 'h':
-            raise ValueError('invalid syntax')
+        if prefix in ('0b', '0o') and suffix == 'h':
+            raise ValueError('invalid syntax: {!r}'.format(value))
 
         if prefix == '0x' or suffix == 'h':
             i = int(value, 16)
         elif prefix == '0b':
             i = int(value, 2)
-        elif prefix == '0':
+        elif prefix in ('0o', '0O', '0'):
             i = int(value, 8)
         else:
             i = int(value, 10)
@@ -432,7 +432,28 @@ def do_overlap(start1, endex1, start2, endex2):
     return (endex1 > start2 and endex2 > start1)
 
 
-def straighten_slice(start, stop, step, length):  # TODO
+def straighten_slice(start, stop, step, length):
+    """Wraps negative slice indices.
+
+    Arguments:
+        start (:obj:`int`): :attr:`slice.start` index, or ``None``.
+        stop (:obj:`int`): :attr:`slice.stop` index, or ``None``.
+        step (:obj:`int`): :attr:`slice.step` value, or ``None``.
+        length (:obj:`int`): Exclusive end of the virtual range to wrap.
+
+    Examples:
+        >>> straighten_slice(3, 5, 1, 7)
+        (3, 5, 1)
+
+        >>> straighten_slice(-3, 5, 1, 7)
+        (4, 5, 1)
+
+        >>> straighten_slice(3, -5, 1, 7)
+        (3, 2, 1)
+
+        >>> straighten_slice(-3, -5, 1, 7)
+        (4, 2, 1)
+    """
     if start is None:
         start = 0
     elif start < 0:
