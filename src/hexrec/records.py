@@ -30,11 +30,12 @@ import os
 import re
 import struct
 
-from hexrec.blocks import merge
-from hexrec.utils import chop
-from hexrec.utils import do_overlap
-from hexrec.utils import hexlify
-from hexrec.utils import unhexlify
+from .blocks import collapse
+from .blocks import merge
+from .utils import chop
+from .utils import do_overlap
+from .utils import hexlify
+from .utils import unhexlify
 
 
 def merge_records(data_records, input_types=None, output_type=None,
@@ -71,12 +72,10 @@ def merge_records(data_records, input_types=None, output_type=None,
     input_blocks = []
     zipped = zip(range(len(input_types)), data_records, input_types)
     for level, records, input_type in zipped:
-        input_blocks.extend((p[0].address, -level, input_type.flatten(p))
+        input_blocks.extend((p[0].address, input_type.flatten(p))
                             for p in input_type.partition(records))
 
-    input_blocks.sort()
-    merged_blocks = merge((start, chunk)
-                          for (start, _, chunk) in input_blocks)
+    merged_blocks = merge(collapse(input_blocks))
 
     args = split_args or ()
     kwargs = split_kwargs or {}
@@ -655,7 +654,7 @@ class Record(object):
 
     @classmethod
     def flatten(cls, data_records, start=None, endex=None, align=1,
-                fill=b'xFF', size_guard=Ellipsis):
+                fill=b'\xFF', size_guard=Ellipsis):
         r"""Flattens records to a single chunk.
 
         Note:

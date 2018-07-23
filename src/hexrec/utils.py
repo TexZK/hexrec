@@ -91,7 +91,7 @@ def parse_int(value):
             i = int(value, 16)
         elif prefix == '0b':
             i = int(value, 2)
-        elif prefix in ('0o', '0O', '0'):
+        elif prefix == '0' or prefix == '0o':
             i = int(value, 8)
         else:
             i = int(value, 10)
