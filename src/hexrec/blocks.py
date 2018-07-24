@@ -34,7 +34,6 @@ A `block` is ``(start, items)`` where `start` is the start address and
 """
 from .utils import do_overlap
 from .utils import makefill
-from .utils import straighten_index
 from .utils import straighten_slice
 
 
