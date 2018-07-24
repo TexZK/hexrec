@@ -708,7 +708,7 @@ def fill(blocks, start=None, endex=None, pattern=b'\0',
         last_endex = block_start + len(block_items)
 
     if last_endex < endex:
-        pattern_start = (last_endex + shift) % pattern_length
+        pattern_start = last_endex % pattern_length
         pattern_endex = endex - last_endex + pattern_start
         items = makefill(pattern, pattern_start, pattern_endex, join)
         blocks_inside.append((last_endex, items))
