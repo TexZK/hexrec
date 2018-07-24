@@ -192,8 +192,32 @@ def test_do_overlap_doctest():
 
 # ============================================================================
 
+def test_straighten_index_doctest():
+    assert straighten_index(3, 7) == 3
+    assert straighten_index(-3, 7) == 4
+    assert straighten_index(9, 7) == 2
+    assert straighten_index(-8, 7) == 6
+    assert straighten_index(None, 3) == 0
+    assert straighten_index(3, None) == 0
+
+# ============================================================================
+
 def test_straighten_slice_doctest():
     assert straighten_slice(3, 5, 1, 7) == (3, 5, 1)
     assert straighten_slice(-3, 5, 1, 7) == (4, 5, 1)
     assert straighten_slice(3, -5, 1, 7) == (3, 2, 1)
     assert straighten_slice(-3, -5, 1, 7) == (4, 2, 1)
+    assert straighten_slice(None, 5, 1, 7) == (0, 5, 1)
+    assert straighten_slice(3, None, 1, 7) == (3, 7, 1)
+    assert straighten_slice(3, 5, None, 7) == (3, 5, 1)
+    assert straighten_slice(3, 5, 1, None) == (0, 0, 1)
+
+# ============================================================================
+
+def test_makefill_doctest():
+    assert makefill(b'0123456789ABCDEF', 0, 8) == b'01234567'
+    assert makefill(b'0123456789ABCDEF', 8, 16) == b'89ABCDEF'
+
+    ans_out = makefill(b'0123456789ABCDEF', 4, 44)
+    ans_ref = b'456789ABCDEF0123456789ABCDEF0123456789AB'
+    assert ans_out == ans_ref

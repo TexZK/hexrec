@@ -148,6 +148,27 @@ def test_write_doctest():
 
 # ============================================================================
 
+def test_fill_doctest():
+    blocks = [(1, 'ABC'), (6, 'xyz')]
+
+    ans_ref = [(1, 'ABC'), (4, '23'), (6, 'xyz')]
+    ans_out = fill(blocks, pattern='123', join=''.join)
+    assert ans_out == ans_ref
+
+    ans_ref = [(4, '23')]
+    ans_out = fill(blocks, pattern='123', fill_only=True, join=''.join)
+    assert ans_out == ans_ref
+
+    ans_ref = [(0, '1'), (1, 'ABC'), (4, '2'), (6, 'xyz')]
+    ans_out = fill(blocks, pattern='123', start=0, endex=5, join=''.join)
+    assert ans_out == ans_ref
+
+    ans_ref = [(1, 'ABC'), (5, '3'), (6, 'xyz'), (9, '1')]
+    ans_out = fill(blocks, pattern='123', start=5, endex=10, join=''.join)
+    assert ans_out == ans_ref
+
+# ============================================================================
+
 def test_merge_doctest():
     blocks = [(0, 'Hello,'), (6, ' '), (7, 'World'), (12, '!')]
     ans_ref = [(0, 'Hello, World!')]

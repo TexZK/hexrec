@@ -433,6 +433,42 @@ def do_overlap(start1, endex1, start2, endex2):
     return (endex1 > start2 and endex2 > start1)
 
 
+def straighten_index(index, length):
+    """Wraps negative vector index.
+
+    Arguments:
+        index (:obj:`int`): Vector index, or ``None``.
+        length (:obj:`int`): Vector length.
+
+    Returns:
+        :obj:`int`: Wrapped vector index.
+
+    Examples:
+        >>> straighten_index(3, 7)
+        3
+
+        >>> straighten_index(-3, 7)
+        4
+
+        >>> straighten_index(9, 7)
+        2
+
+        >>> straighten_index(-8, 7)
+        6
+
+        >>> straighten_index(None, 3)
+        0
+
+        >>> straighten_index(3, None)
+        0
+    """
+    if index is None or not length:
+        index = 0
+    elif not 0 <= index < length:
+        index %= length
+    return index
+
+
 def straighten_slice(start, stop, step, length):
     """Wraps negative slice indices.
 
@@ -441,6 +477,9 @@ def straighten_slice(start, stop, step, length):
         stop (:obj:`int`): :attr:`slice.stop` index, or ``None``.
         step (:obj:`int`): :attr:`slice.step` value, or ``None``.
         length (:obj:`int`): Exclusive end of the virtual range to wrap.
+
+    Returns:
+        :obj:`slice`: Wrapped slice.
 
     Examples:
         >>> straighten_slice(3, 5, 1, 7)
@@ -454,15 +493,81 @@ def straighten_slice(start, stop, step, length):
 
         >>> straighten_slice(-3, -5, 1, 7)
         (4, 2, 1)
-    """
-    if start is None:
-        start = 0
-    elif start < 0:
-        start %= length
 
-    if stop is None:
-        stop = length
-    elif stop < 0:
-        stop %= length
+        >>> straighten_slice(None, 5, 1, 7)
+        (0, 5, 1)
+
+        >>> straighten_slice(3, None, 1, 7)
+        (3, 7, 1)
+
+        >>> straighten_slice(3, 5, None, 7)
+        (3, 5, 1)
+
+        >>> straighten_slice(3, 5, 1, None)
+        (0, 0, 1)
+    """
+    if step is None:
+        step = 1
+
+    if length:
+        if start is None:
+            start = 0
+        elif not 0 <= start < length:
+            start %= length
+
+        if stop is None:
+            stop = length
+        elif not 0 <= stop < length:
+            stop %= length
+    else:
+        start = 0
+        stop = 0
 
     return start, stop, step
+
+
+def makefill(pattern, start, endex, join=b''.join):
+    r"""Builds a filling pattern.
+
+    Arguments:
+        pattern (items): A non-null pattern of items to repeat for filling.
+        start (:obj:`int`): Inclusive start offset within the pattern.
+        endex (:obj:`int`): Exclusive end offset within the pattern.
+        join (callable): A function to join a sequence of items.
+
+    Returns:
+        items: Repeated pattern for filling.
+
+    Examples:
+        >>> makefill(b'0123456789ABCDEF', 0, 8)
+        b'01234567'
+
+        >>> makefill(b'0123456789ABCDEF', 8, 16)
+        b'89ABCDEF'
+
+        >>> makefill(b'0123456789ABCDEF', 4, 44)
+        b'456789ABCDEF0123456789ABCDEF0123456789AB'
+    """
+    if not pattern:
+        raise ValueError('invalid pattern')
+    if endex <= start:
+        raise ValueError('non-positive length')
+    if start < 0:
+        raise ValueError('negative start')
+    if endex < 0:
+        raise ValueError('negative endex')
+
+    length = len(pattern)
+    if length < 64:
+        length = (64 - 1 + length) // length
+        pattern = join(pattern for _ in range(length))
+        length = len(pattern)
+
+    offset = start % length
+    pattern = pattern[offset:] + pattern[:offset]
+    offset = endex - start
+    chunks = [pattern] * (offset // length)
+    offset %= length
+    chunks.append(pattern[:offset])
+    filling = join(chunks)
+    return filling

@@ -33,6 +33,8 @@ A `block` is ``(start, items)`` where `start` is the start address and
 
 """
 from .utils import do_overlap
+from .utils import makefill
+from .utils import straighten_index
 from .utils import straighten_slice
 
 
@@ -625,6 +627,99 @@ def write(blocks, written):
     return result
 
 
+def fill(blocks, start=None, endex=None, pattern=b'\0',
+         fill_only=False, join=b''.join):
+    r"""Fills emptiness between non-touching blocks.
+
+    Arguments:
+        blocks (:obj:`list` of block): A fast indexable sequence of
+            non-overlapping blocks, sorted by address.
+        pattern (items): Pattern of items to fill the emptiness.
+        start (:obj:`int`): Inclusive start of the filled range.
+            If ``None``, the global inclusive start address is considered
+            (i.e. that of the first block).
+        endex (:obj:`int`): Exclusive end of the filled range.
+            If ``None``, the global exclusive end address is considered
+            (i.e. that of the last block).
+        fill_only (:obj:`bool`): Returns only the filling blocks.
+        join (callable): A function to join a sequence of items.
+
+    Returns:
+        :obj:`list` of block: List of the filling blocks, including the
+            existing blocks if `fill_only` is ``False``.
+
+    Example:
+        +---+---+---+---+---+---+---+---+---+---+
+        | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+        +===+===+===+===+===+===+===+===+===+===+
+        |   |[A | B | C]|   |   |[x | y | z]|   |
+        +---+---+---+---+---+---+---+---+---+---+
+        |   |[A | B | C]|[# | #]|[x | y | z]|   |
+        +---+---+---+---+---+---+---+---+---+---+
+        |[# |[A | B | C]| #]|   |[x | y | z]|   |
+        +---+---+---+---+---+---+---+---+---+---+
+        |   |[A | B | C]|   |[# |[x | y | z]| #]|
+        +---+---+---+---+---+---+---+---+---+---+
+
+        >>> blocks = [(1, 'ABC'), (6, 'xyz')]
+        >>> fill(blocks, pattern='123', join=''.join)
+        [(1, 'ABC'), (4, '23'), (6, 'xyz')]
+        >>> fill(blocks, pattern='123', fill_only=True, join=''.join)
+        [(4, '23')]
+        >>> fill(blocks, pattern='123', start=0, endex=5, join=''.join)
+        [(0, '1'), (1, 'ABC'), (4, '2'), (6, 'xyz')]
+        >>> fill(blocks, pattern='123', start=5, endex=10, join=''.join)
+        [(1, 'ABC'), (5, '3'), (6, 'xyz'), (9, '1')]
+    """
+    if start is None and endex is None and not blocks:
+        raise ValueError('no blocks')
+    if start is None:
+        start = blocks[0][0]
+    if endex is None:
+        block_start, block_items = blocks[-1]
+        endex = block_start + len(block_items)
+    with_blocks = not fill_only
+
+    pattern_length = len(pattern)
+    if pattern_length < 64:
+        pattern_length = (64 - 1 + pattern_length) // pattern_length
+        pattern = join(pattern for _ in range(pattern_length))
+        pattern_length = len(pattern)
+
+    start_index = locate_start(blocks, start)
+    endex_index = locate_endex(blocks, endex)
+    blocks_before = blocks[:start_index]
+    blocks_after = blocks[endex_index:]
+    blocks_inside = []
+    last_endex = start
+
+    for block in blocks[start_index:endex_index]:
+        block_start, block_items = block
+
+        if last_endex < block_start:
+            pattern_start = last_endex % pattern_length
+            pattern_endex = block_start - last_endex + pattern_start
+            items = makefill(pattern, pattern_start, pattern_endex, join=join)
+            blocks_inside.append((last_endex, items))
+
+        if with_blocks:
+            blocks_inside.append(block)
+
+        last_endex = block_start + len(block_items)
+
+    if last_endex < endex:
+        pattern_start = (last_endex + shift) % pattern_length
+        pattern_endex = endex - last_endex + pattern_start
+        items = makefill(pattern, pattern_start, pattern_endex, join)
+        blocks_inside.append((last_endex, items))
+
+    if with_blocks:
+        result = blocks_before + blocks_inside + blocks_after
+    else:
+        result = blocks_inside
+    return result
+
+
 def merge(blocks, join=''.join):
     r"""Merges touching blocks.
 
@@ -1195,6 +1290,33 @@ class SparseItems(object):  # TODO
         """
         blocks = self.blocks
         blocks = write(blocks, block)
+
+        if self.automerge:
+            blocks = merge(blocks)
+
+        self.blocks = blocks
+
+    def fill(self, start=None, endex=None, pattern=b'\0',
+             fill_only=False, join=b''.join):
+        r"""Fills emptiness between non-touching blocks.
+
+        Arguments:
+            pattern (items): Pattern of items to fill the emptiness.
+            start (:obj:`int`): Inclusive start of the filled range.
+                If ``None``, the global inclusive start address is considered
+                (i.e. that of the first block).
+            endex (:obj:`int`): Exclusive end of the filled range.
+                If ``None``, the global exclusive end address is considered
+                (i.e. that of the last block).
+            fill_only (:obj:`bool`): Returns only the filling blocks.
+            join (callable): A function to join a sequence of items.
+
+        See Also:
+            :func:`fill`
+        """
+
+        blocks = self.blocks
+        blocks = fill(blocks, start, endex, pattern, fill_only, join)
 
         if self.automerge:
             blocks = merge(blocks)
