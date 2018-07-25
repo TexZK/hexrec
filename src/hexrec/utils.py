@@ -129,6 +129,9 @@ def chop(vector, window, align_base=0):
 
         >>> ':'.join(chop('ABCDEFG', 2))
         'AB:CD:EF:G'
+
+        >>> list(chop('ABCDEFG', 4, 3))
+        ['A', 'BCDE', 'FG']
     """
     window = int(window)
     if window <= 0:
@@ -163,7 +166,10 @@ def columnize(line, width, sep='', newline='\n', window=1):
     Returns:
         str: A wrapped and columnized text.
 
-    Example:
+    Examples:
+        >>> columnize('ABCDEFGHIJKLMNOPQRSTUVWXYZ', 6)
+        'ABCDEF\nGHIJKL\nMNOPQR\nSTUVWX\nYZ'
+
         >>> columnize('ABCDEFGHIJKLMNOPQRSTUVWXYZ', 6, sep=' ', window=3)
         'ABC DEF\nGHI JKL\nMNO PQR\nSTU VWX\nYZ'
     """
@@ -268,6 +274,9 @@ def hexlify(data, width=None, sep='', newline='\n', window=2, upper=True):
     Example:
         >>> hexlify(b'Hello, World!', sep='.')
         '48.65.6C.6C.6F.2C.20.57.6F.72.6C.64.21'
+
+        >>> hexlify(b'Hello, World!', 6, ' ')
+        '48 65 6C\n6C 6F 2C\n20 57 6F\n72 6C 64\n21'
     """
     if width is None:
         width = 2 * len(data)
@@ -312,6 +321,20 @@ def hexlify_lists(data, width=None, window=2, upper=True):
 
     Returns:
         list: The hexadecimal text wrapped and columnized into list-of-lists.
+
+    Example:
+        >>> hexlify_lists(b'Hello, World!')
+        ... # doctest +NORMALIZE_WHITESPACE
+        [['48', '65', '6C', '6C', '6F', '2C', '20',
+          '57', '6F', '72', '6C', '64', '21']]
+
+        >>> hexlify_lists(b'Hello, World!', 6)
+        ... # doctest +NORMALIZE_WHITESPACE
+        [['48', '65', '6C'],
+         ['6C', '6F', '2C'],
+         ['20', '57', '6F'],
+         ['72', '6C', '64'],
+         ['21']]
     """
     if width is None:
         width = 2 * len(data)
@@ -360,41 +383,13 @@ def humanize_ebcdic(data, replace='.'):
 
     Returns:
         str: EBCDIC representation with only human-readable characters.
+
+    Example:
+        >>> humanize_ebcdic(bytearray(range(0xC0, 0xD0)))
+        '{ABCDEFGHI......'
     """
-    return humanize_ascii((ord(c) for c in data.decode('cp500')), replace)
-
-
-def bytes_to_c_array(name_label, data, width=16, upper=True,
-                     type_label='unsigned char', size_label='',
-                     indent='    ', comment=True, offset=0):
-    r"""Converts bytes into a C array.
-
-    Arguments:
-        name_label (:obj:`str`): Array name.
-        data (:obj:`bytes`): Array byte data.
-        width (:obj:`int`): Number of bytes per line.
-        upper (:obj:`bool`): Uppercase hexadecimal digits.
-        type_label (:obj:`str`): Array type label.
-        size_label (:obj:`str`): Array size label (if needed).
-        indent (:obj:`str`): Line indentation text.
-        comment (:obj:`bool`): Comment with the line offset (8-digit hex).
-        offset (:obj:`int`): Offset of the first byte to represent.
-
-    Returns:
-        str: Some C code with the byte data represented as an array.
-    """
-    hexstr_lists = hexlify_lists(data, 2 * width, 1, upper)
-    lines = []
-    for tokens in hexstr_lists:
-        line = indent + ', '.join('0x' + token for token in tokens) + ','
-        if comment:
-            line += '  /* 0x{:08X} */'.format(offset)
-        lines.append(line)
-        offset += 2 * len(tokens)
-
-    open = '{} {}[{}] ='.format(type_label, name_label, size_label)
-    lines = [open, '{'] + lines + ['};']
-    text = '\n'.join(lines)
+    data = data.decode('cp500')
+    text = ''.join(c if 0x20 <= ord(c) < 0x7F else replace for c in data)
     return text
 
 
@@ -550,12 +545,12 @@ def makefill(pattern, start, endex, join=b''.join):
     """
     if not pattern:
         raise ValueError('invalid pattern')
-    if endex <= start:
-        raise ValueError('non-positive length')
     if start < 0:
         raise ValueError('negative start')
     if endex < 0:
         raise ValueError('negative endex')
+    if endex <= start:
+        raise ValueError('non-positive length')
 
     length = len(pattern)
     if length < 64:

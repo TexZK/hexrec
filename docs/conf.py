@@ -48,6 +48,11 @@ html_sidebars = {
 }
 html_short_title = '%s-%s' % (project, version)
 
+autoclass_content = 'both'
+autodoc_inherit_docstrings = False
+
 napoleon_use_ivar = True
 napoleon_use_rtype = False
 napoleon_use_param = False
+napoleon_include_private_with_doc = True
+napoleon_include_special_with_doc = True

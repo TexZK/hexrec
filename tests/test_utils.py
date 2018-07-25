@@ -72,6 +72,12 @@ def test_parse_int_fail():
 def test_chop_doctest():
     assert list(chop('ABCDEFG', 2)) == ['AB', 'CD', 'EF', 'G']
     assert ':'.join(chop('ABCDEFG', 2)) == 'AB:CD:EF:G'
+    assert list(chop('ABCDEFG', 4, 3)) == ['A', 'BCDE', 'FG']
+
+
+def test_chop():
+    with pytest.raises(ValueError):
+        next(chop('ABDEFG', -1))
 
 # ============================================================================
 
@@ -127,20 +133,31 @@ def test_hexlify_doctest():
     ans_ref = '48.65.6C.6C.6F.2C.20.57.6F.72.6C.64.21'
     assert ans_out == ans_ref
 
+    ans_out = hexlify(b'Hello, World!', 6, ' ')
+    ans_ref = '48 65 6C\n6C 6F 2C\n20 57 6F\n72 6C 64\n21'
+    assert ans_out == ans_ref
+
 
 def test_hexlify():
     bytes_in = HEXBYTES
 
     sep = ''
     ans_ref = sep.join('{:02x}'.format(b) for b in six.iterbytes(bytes_in))
-    assert hexlify(bytes_in, sep=sep, upper=False) == ans_ref
+    ans_out = hexlify(bytes_in, sep=sep, upper=False)
+    assert ans_out == ans_ref
+
+    ans_ref = ans_ref[:16] + '\n' + ans_ref[16:]
+    ans_out = hexlify(bytes_in, sep=sep, upper=False, width=16)
+    assert ans_out == ans_ref
 
     ans_ref = sep.join('{:02X}'.format(b) for b in six.iterbytes(bytes_in))
-    assert hexlify(bytes_in, sep=sep, upper=True) == ans_ref
+    ans_out = hexlify(bytes_in, sep=sep, upper=True)
+    assert ans_out == ans_ref
 
     sep = '.'
     ans_ref = sep.join('{:02X}'.format(b) for b in six.iterbytes(bytes_in))
-    assert hexlify(bytes_in, sep=sep, upper=True) == ans_ref
+    ans_out = hexlify(bytes_in, sep=sep, upper=True)
+    assert ans_out == ans_ref
 
 # ============================================================================
 
@@ -161,8 +178,21 @@ def test_unhexlify():
 
 # ============================================================================
 
-def test_hexlify_lists_doctest():
-    pass  # TODO
+def test_hexlify_lists():
+    bytes_in = HEXBYTES
+
+    ans_ref = [['{:02x}'.format(b) for b in six.iterbytes(bytes_in)]]
+    ans_out = hexlify_lists(bytes_in, upper=False)
+    assert ans_out == ans_ref
+
+    ans_ref = ['{:02x}'.format(b) for b in six.iterbytes(bytes_in)]
+    ans_ref = [ans_ref[:8], ans_ref[8:]]
+    ans_out = hexlify_lists(bytes_in, upper=False, width=16)
+    assert ans_out == ans_ref
+
+    ans_ref = [['{:02X}'.format(b) for b in six.iterbytes(bytes_in)]]
+    ans_out = hexlify_lists(bytes_in, upper=True)
+    assert ans_out == ans_ref
 
 # ============================================================================
 
@@ -175,12 +205,10 @@ def test_humanize_ascii_doctest():
 # ============================================================================
 
 def test_humanize_ebcdic_doctest():
-    pass  # TODO
-
-# ============================================================================
-
-def test_str_to_c_array_doctest():
-    pass  # TODO
+    bytes_in = bytearray(range(0xC0, 0xD0))
+    ans_out = humanize_ebcdic(bytes_in)
+    ans_ref = '{ABCDEFGHI......'
+    assert ans_out == ans_ref
 
 # ============================================================================
 
@@ -221,3 +249,17 @@ def test_makefill_doctest():
     ans_out = makefill(b'0123456789ABCDEF', 4, 44)
     ans_ref = b'456789ABCDEF0123456789ABCDEF0123456789AB'
     assert ans_out == ans_ref
+
+
+def test_makefill():
+    with pytest.raises(ValueError):
+        makefill(b'', 0, 8)
+
+    with pytest.raises(ValueError):
+        makefill(b'0123456789ABCDEF', 8, 0)
+
+    with pytest.raises(ValueError):
+        makefill(b'0123456789ABCDEF', -1, 8)
+
+    with pytest.raises(ValueError):
+        makefill(b'0123456789ABCDEF', 0, -8)

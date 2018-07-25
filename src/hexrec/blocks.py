@@ -564,6 +564,9 @@ def insert(blocks, inserted):
     inserted_length = len(inserted_items)
     inserted_endex = inserted_start + inserted_length
 
+    if not inserted_items:
+        return list(blocks)
+
     pivot_index = locate_at(blocks, inserted_start)
 
     if pivot_index is None:
@@ -619,6 +622,9 @@ def write(blocks, written):
     """
     start, items = written
     endex = start + len(items)
+
+    if not items:
+        return list(blocks)
 
     result = clear(blocks, start, endex)
     pivot_index = locate_start(result, start)
@@ -679,6 +685,9 @@ def fill(blocks, start=None, endex=None, pattern=b'\0',
         endex = block_start + len(block_items)
     with_blocks = not fill_only
 
+    if start == endex:
+        return list(blocks)
+
     pattern_length = len(pattern)
     if pattern_length < 64:
         pattern_length = (64 - 1 + pattern_length) // pattern_length
@@ -723,7 +732,7 @@ def merge(blocks, join=''.join):
     r"""Merges touching blocks.
 
     Arguments:
-        blocks (:obj:`list` of block): An sequence of non-overlapping blocks,
+        blocks (:obj:`list` of block): A sequence of non-overlapping blocks,
             sorted by address. Sequence generators supported.
         join (callable): A function to join a sequence of items.
 
@@ -856,6 +865,14 @@ class SparseItems(object):  # TODO
 
     This is an helper class to emulate a virtual space with sparse blocks of
     items, for example a virtual memory of :class:`str` blocks.
+
+    Attributes:
+        blocks (:obj:`list` of block): A sequence of non-overlapping blocks,
+            sorted by address.
+        automerge (:obj:`bool`): Automatically merges touching blocks after
+            operations that can alter :attr:`blocks`.
+        items_type (class): Type of the items stored into blocks.
+        items_join (callable): A function to join a sequence of items.
     """
     def __init__(self, items=None, start=0, automerge=True,
                  items_type=str, items_join=''.join):
@@ -904,13 +921,13 @@ class SparseItems(object):  # TODO
             return start == 0 and items == other
 
     def __iter__(self):
-        r"""Item iterator."""
+        r"""Iterates over all the items."""
         for _, items in self.blocks:
             for item in items:
                 yield item
 
     def __reversed__(self):
-        r"""Reverse iterator."""
+        r"""Iterates over all the items, in reverse"""
         for _, items in reversed(self.blocks):
             for item in reversed(items):
                 yield item
@@ -1058,13 +1075,16 @@ class SparseItems(object):  # TODO
 
         Arguments:
             key (:obj:`slice` or :obj:`int`): Selection range or address.
+                If it is a :obj:`slice` with `step` instance of
+                :attr:`items_type`, then it is interpreted as the fill
+                pattern.
 
         Returns:
             items: Items from the given range.
 
         Note:
-            This method is not optimized for a :class:`slice` with its `step`
-            different from either ``None`` or 1.
+            This method is not optimized for a :class:`slice` where its `step`
+            is an :obj:`int` different from 1.
         """
         if isinstance(key, slice):
             start, stop, step = key.start, key.stop, key.step
@@ -1072,14 +1092,21 @@ class SparseItems(object):  # TODO
             start, stop, step = straighten_slice(start, stop, step, length)
             blocks = self.blocks
 
-            if step is None:
-                for address, items in blocks:
-                    if start <= address <= address + len(items) <= stop:
-                        return items[(start - address):(stop - address)]
-                else:
-                    raise ValueError('contiguous slice not found')
+            if isinstance(step, self.items_type):
+                blocks = select(blocks, start, stop)
+                blocks = fill(blocks, pattern=step, join=self.items_join)
+                items = self.items_join(items for _, items in blocks)
+                return items
+
             else:
-                raise NotImplementedError('TODO')  # TODO
+                if step is None:
+                    for address, items in blocks:
+                        if start <= address <= address + len(items) <= stop:
+                            return items[(start - address):(stop - address)]
+                    else:
+                        raise ValueError('contiguous slice not found')
+                else:
+                    raise NotImplementedError('TODO')  # TODO
 
         else:
             for address, items in blocks:
@@ -1096,8 +1123,8 @@ class SparseItems(object):  # TODO
             value (items): Items to write at the selection address.
 
         Note:
-            This method is not optimized for a :class:`slice` with its `step`
-            different from either ``None`` or 1.
+            This method is not optimized for a :class:`slice` where its `step`
+            is an :obj:`int` different from 1.
         """
         blocks = self.blocks
 
