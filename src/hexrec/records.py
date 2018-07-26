@@ -38,6 +38,55 @@ from .utils import hexlify
 from .utils import unhexlify
 
 
+def records_to_blocks(records):
+    r"""Converts records to blocks.
+
+    Extracts all the data records, collapses them in the order they compare in
+    `records`, and merges the collapsed blocks.
+
+    Arguments:
+        records (:obj:`list` of :obj:`Record`): Sequence of records to
+            convert to blocks. Sequence generators supported.
+
+    Returns:
+        :obj:`list` of block: A sequence of non-contiguous blocks, sorted by
+            start address.
+    """
+    blocks = [(record.address, record.data)
+              for record in records
+              if record.is_data()]
+    blocks = merge(collapse(blocks))
+    return blocks
+
+
+def blocks_to_records(blocks, record_type,
+                      split_args=None, split_kwargs=None):
+    r"""Converts blocks to records
+
+    Arguments:
+        blocks (:obj:`list` of block): A sequence of non-contiguous blocks,
+            sorted by start address.
+        record_type (:class:`Record`): Output record type.
+        split_args (list): Positional arguments for :meth:`Record.split`.
+        split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
+
+    Returns:
+        :obj:`list` of :obj:`Record`: Sequence of blocks split into records.
+    """
+    split_args = split_args or ()
+    split_kwargs = split_kwargs or {}
+    split_kwargs['standalone'] = False
+    data_records = []
+
+    for start, items in blocks:
+        split_kwargs['address'] = start
+        records = record_type.split(items, *split_args, **split_kwargs)
+        data_records.extend(records)
+
+    records = list(record_type.build_standalone(data_records))
+    return records
+
+
 def merge_records(data_records, input_types=None, output_type=None,
                   split_args=None, split_kwargs=None):
     r"""Merges data records.
@@ -611,6 +660,22 @@ class Record(object):
         raise NotImplementedError()
 
     @classmethod
+    def build_standalone(cls, data_records, *args, **kwargs):
+        r"""Makes a sequence of data records standalone.
+
+        Arguments:
+            data_records (:obj:`list` of :class:`Record`): A sequence of data
+                records.
+            args (:obj:`tuple`): Further positional arguments for overriding.
+            kwargs (:obj:`dict`): Further keyword arguments for overriding.
+
+        Yields:
+            :obj:`Record`: Records for a standalone record file.
+        """
+        for record in data_records:
+            yield record
+
+    @classmethod
     def check_sequence(cls, records):
         r"""Consistency check of a sequence of records.
 
@@ -920,10 +985,7 @@ class MotorolaRecord(Record):
         return int(self.tag) in (1, 2, 3)
 
     @classmethod
-    def fit_data_tag(cls, address, data, start=None):
-        if start is None:
-            start = address
-        endex = address + len(data)
+    def fit_data_tag(cls, endex):
         if endex < (1 << 16):
             tag = 1
         elif endex < (1 << 24):
@@ -933,13 +995,23 @@ class MotorolaRecord(Record):
         return tag
 
     @classmethod
+    def fix_count_tag(cls, record_count):
+        if not 0 <= record_count < (1 << 24):
+            raise ValueError('count error')
+        elif record_count < (1 << 16):
+            tag = 5
+        elif record_count < (1 << 24):
+            tag = 6
+        return tag
+
+    @classmethod
     def build_header(cls, data):
         return cls(0, 0, data)
 
     @classmethod
     def build_data(cls, address, data, tag=None):
         if tag is None:
-            tag = cls.fit_data_tag(address, data)
+            tag = cls.fit_data_tag(address + len(data))
 
         if tag not in (1, 2, 3):
             raise ValueError('tag error')
@@ -954,8 +1026,10 @@ class MotorolaRecord(Record):
         return terminator_record
 
     @classmethod
-    def build_count(cls, address, count):
-        count_record = cls(0, 5, struct.pack('>H', count))
+    def build_count(cls, count):
+        if not 0 <= count < (1 << 24):
+            raise ValueError('count error')
+        count_record = cls(0, 6, count.to_bytes(3, 'big'))
         return count_record
 
     @classmethod
@@ -1030,7 +1104,7 @@ class MotorolaRecord(Record):
         if start is None:
             start = address
         if tag is None:
-            tag = cls.fit_data_tag((address + len(data)), data, start)
+            tag = cls.fit_data_tag(address + len(data))
         count = 0
 
         if standalone and header_data is not None:
@@ -1043,8 +1117,54 @@ class MotorolaRecord(Record):
             address += len(chunk)
 
         if standalone:
-            yield cls.build_count(address, count)
+            yield cls.build_count(count)
             yield cls.build_terminator(start, tag)
+
+    @classmethod
+    def fix_tags(cls, records):
+        max_address = max(record.address + len(record.data)
+                          for record in records)
+        tag = cls.TAG_TYPE(cls.fit_data_tag(max_address))
+        count = len(records)
+
+        for record in records:
+            matching_tag = cls.MATCHING_TAG[record.tag]
+
+            if matching_tag is not None:
+                record.tag = cls.TAG_TYPE(matching_tag)
+                record.update_checksum()
+
+            elif record.tag == 5:
+                if count >= (1 << 16):
+                    record.tag = cls.TAG_TYPE.COUNT_24
+                    record.data = count.to_bytes(3, 'big')
+                    record.update_count()
+                    record.update_checksum()
+
+            elif record.is_data():
+                record.tag = tag
+                record.update_checksum()
+
+    @classmethod
+    def build_standalone(cls, data_records, start=None, tag=None,
+                         header_data=None):
+        address = 0
+        count = 0
+        if tag is None:
+            tag = max(record.tag for record in data_records)
+
+        if header_data is not None:
+            yield cls.build_header(header_data)
+            count += 1
+
+        for record in data_records:
+            yield record
+            count += 1
+            address = max(address, record.address + len(record.data))
+            tag = max(tag, record.tag)
+
+        yield cls.build_count(count)
+        yield cls.build_terminator(start, tag)
 
 
 @enum.unique
@@ -1222,6 +1342,15 @@ class IntelRecord(Record):
 
         if standalone:
             for record in cls.terminate(start):
+                yield record
+
+    @classmethod
+    def build_standalone(cls, data_records, start=None, tag=None,
+                         header_data=None):
+        for record in data_records:
+            yield record
+
+        for record in cls.terminate(start):
                 yield record
 
     @classmethod
@@ -1405,6 +1534,13 @@ class TektronixRecord(Record):
 
         if standalone:
             yield cls.build_terminator(address if start is None else start)
+
+    @classmethod
+    def build_standalone(cls, data_records, start=0):
+        for record in data_records:
+            yield record
+
+        yield cls.build_terminator(start)
 
 
 RECORD_TYPES = {

@@ -77,6 +77,32 @@ def overlap(block1, block2):
     return do_overlap(start1, endex1, start2, endex2)
 
 
+def check_sequence(blocks):
+    r"""Checks if a sequence of blocks is valid.
+
+    Returns:
+        :obj:`bool`: The sequence is made of non-overlapping blocks, sorted
+            by start address.
+
+    Examples:
+        >>> check_sequence([(1, 'ABC'), (6, 'xyz')])
+        True
+
+        >>> check_sequence([(1, 'ABC'), (2, 'xyz')])
+        False
+
+        >>> check_sequence([(6, 'ABC'), (1, 'xyz')])
+        False
+    """
+    last_endex = None
+    for start, items in blocks:
+        if last_endex is not None and start < last_endex:
+            return False
+        last_endex = start + len(items)
+    else:
+        return True
+
+
 def sorting(block):
     r"""Block sorting key.
 
@@ -94,6 +120,7 @@ def sorting(block):
 
     Example:
         For reference:
+
         - ``ord('!')`` = 33
         - ``ord('1')`` = 49
         - ``ord('A')`` = 65
@@ -728,7 +755,7 @@ def fill(blocks, start=None, endex=None, pattern=b'\0',
     return result
 
 
-def merge(blocks, join=''.join):
+def merge(blocks, join=b''.join):
     r"""Merges touching blocks.
 
     Arguments:
@@ -870,25 +897,85 @@ class SparseItems(object):  # TODO
         blocks (:obj:`list` of block): A sequence of non-overlapping blocks,
             sorted by address.
         automerge (:obj:`bool`): Automatically merges touching blocks after
-            operations that can alter :attr:`blocks`.
+            operations that can alter attribute :attr:`blocks`.
         items_type (class): Type of the items stored into blocks.
         items_join (callable): A function to join a sequence of items.
-    """
-    def __init__(self, items=None, start=0, automerge=True,
-                 items_type=str, items_join=''.join):
 
-        if items is not None:
-            items = [items_type(it) for it in items]
+    Arguments:
+        items (iterable): An iterable to build the initial items block, by
+            passing it to `items_type` as a constructor.
+        start (:obj:`int`): Start address of the initial block, built if
+            `items` is not ``None``.
+        blocks (:obj:`list` of block): A sequence of non-overlapping blocks,
+            sorted by address. The :attr:`blocks` attribute is assigned a
+            shallow copy.
+        automerge (:obj:`bool`): see attribute :attr:`automerge`.
+        items_type (class): see attribute :attr:`items_type`.
+        items_join (callable): see attribute :attr:`items_join`.
+
+    Raises:
+        ValueError: Both `items` and `blocks` are not ``None``.
+
+    Examples:
+        >>> memory = SparseItems()
+        >>> memory.blocks
+        []
+
+        >>> memory = SparseItems('Hello, World!', 5)
+        >>> memory.blocks
+        [(5, 'Hello, World!')]
+
+    """
+    def __init__(self, items=None, start=0, blocks=None, automerge=True,
+                 items_type=bytes, items_join=b''.join):
+
+        if items is not None and blocks is not None:
+            raise ValueError('cannot construct from both items and blocks')
+
+        if items:
+            items = items_type(items)
             blocks = [(start, items)]
+
+        elif blocks:
+            blocks = list(blocks)
+
         else:
             blocks = []
+
+        if automerge:
+            blocks = merge(blocks, items_join)
 
         self.blocks = blocks
         self.automerge = automerge
         self.items_type = items_type
         self.items_join = items_join
 
+    def __str__(self):
+        r"""String representation.
+
+        Returns:
+            :obj:`str`: The :func:`str` applied to all the items from
+                :attr:`blocks`. Emptiness around blocks is ignored.
+
+        Examples:
+        """
+        return ''.join(str(items) for _, items in self.blocks)
+
     def __bool__(self):
+        r"""Has any items.
+
+        Returns:
+            :obj:`bool`: Has any items.
+
+        Examples:
+            >>> memory = SparseItems()
+            >>> bool(memory)
+            False
+
+            >>> memory = SparseItems('Hello, World!', 5)
+            >>> bool(memory)
+            True
+        """
         return bool(self.blocks)
 
     def __eq__(self, other):
@@ -906,6 +993,26 @@ class SparseItems(object):  # TODO
 
         Returns:
             :obj:`bool`: `self` is equal to `other`.
+
+        Examples:
+            >>> items = 'Hello, World!'
+            >>> memory = SparseItems(items)
+            >>> memory == items
+            True
+            >>> memory.shift(1)
+            >>> memory == items
+            False
+
+            >>> items = 'Hello, World!'
+            >>> memory = SparseItems(items)
+            >>> blocks = [(0, items)]
+            >>> memory == blocks
+            True
+            >>> memory == list(items)
+            False
+            >>> memory.shift(1)
+            >>> memory == blocks
+            False
         """
         if isinstance(other, SparseItems):
             return self.blocks == other.blocks
@@ -921,13 +1028,35 @@ class SparseItems(object):  # TODO
             return start == 0 and items == other
 
     def __iter__(self):
-        r"""Iterates over all the items."""
+        r"""Iterates over all the items.
+
+        Yields:
+            item: All the single items collected from all the :attr:`blocks`.
+                Emptiness around blocks is ignored.
+
+        Example:
+            >>> memory = SparseItems()
+            >>> memory.blocks = [(1, 'ABC'), (7, 'xyz')]
+            >>> list(memory)
+            ['A', 'B', 'C', 'x', 'y', 'z']
+        """
         for _, items in self.blocks:
             for item in items:
                 yield item
 
     def __reversed__(self):
-        r"""Iterates over all the items, in reverse"""
+        r"""Iterates over all the items, in reverse.
+
+        Yields:
+            item: All the single items collected from all the :attr:`blocks`,
+                in reverse order. Emptiness around blocks is ignored.
+
+        Example:
+            >>> memory = SparseItems()
+            >>> memory.blocks = [(1, 'ABC'), (7, 'xyz')]
+            >>> list(reversed(memory))
+            ['z', 'y', 'x', 'C', 'B', 'A']
+        """
         for _, items in reversed(self.blocks):
             for item in reversed(items):
                 yield item
@@ -936,8 +1065,10 @@ class SparseItems(object):  # TODO
         r"""Concatenates items.
 
         Arguments:
-            value (:obj:`SparseItems` or items): Items to append at the
-                current virtual space end (i.e. at :attr:`endex`).
+            value (:obj:`SparseItems` or items or :obj:`list` of block):
+                Items to append at the end of the current virtual space.
+                If instance of :class:`list`, it is interpreted as a sequence
+                of non-overlapping blocks, sorted by start address.
 
         Returns:
             :obj:`SparseItems`: A new space with the items concatenated.
@@ -951,8 +1082,10 @@ class SparseItems(object):  # TODO
         r"""Concatenates items.
 
         Arguments:
-            value (:obj:`SparseItems` or items): Items to append at the
-                current virtual space end (i.e. at :attr:`endex`).
+            value (:obj:`SparseItems` or items or :obj:`list` of block):
+                Items to append at the end of the current virtual space.
+                If instance of :class:`list`, it is interpreted as a sequence
+                of non-overlapping blocks, sorted by start address.
 
         Returns:
             :obj:`SparseItems`: `self`.
@@ -963,9 +1096,16 @@ class SparseItems(object):  # TODO
             if value is self:
                 value.blocks = list(blocks)  # guard extend() over iter()
 
-            offset = self.endex - value.start
+            offset = value.start
             blocks.extend((start + offset, items)
                           for start, items in value.blocks)
+
+        elif isinstance(value, list):
+            if value:
+                offset = value[0][0]
+                blocks.extend((start + offset, items)
+                              for start, items in value)
+
         else:
             if blocks:
                 start, items = blocks[-1]
@@ -974,7 +1114,7 @@ class SparseItems(object):  # TODO
                 blocks.append((0, value))
 
         if self.automerge:
-            blocks = merge(blocks)
+            blocks = merge(blocks, join=self.items_join)
 
         self.blocks = blocks
         return self
@@ -1019,7 +1159,7 @@ class SparseItems(object):  # TODO
             offset += length
 
         if self.automerge:
-            repeated = merge(repeated)
+            repeated = merge(repeated, join=self.items_join)
 
         self.blocks = repeated
         return self
@@ -1067,8 +1207,14 @@ class SparseItems(object):  # TODO
 
         Returns:
             :obj:`int`: The number of items equal to `value`.
+
+        Example:
+            >>> blocks = [(1, 'ABC'), (7, 'Bat'), (12, 'tab')]
+            >>> memory = SparseItems(blocks=blocks)
+            >>> memory.count('a')
+            2
         """
-        return sum(1 for item in self if item == value)
+        return sum(items.count(value) for _, items in self.blocks)
 
     def __getitem__(self, key):
         r"""Extracts contiguous data.
@@ -1133,14 +1279,18 @@ class SparseItems(object):  # TODO
             length = self.endex
             start, stop, step = straighten_slice(start, stop, step, length)
 
-            if start + len(value) < stop:
-                blocks = delete(blocks, start + len(value), stop)
+            if value is None:
+                blocks = clear(blocks, start, stop)
 
-            if step is None or step == 1:
-                blocks = write(blocks, (start, value))
             else:
-                for address, item in zip(range(start, stop, step), value):
-                    blocks = write(blocks, (address, item))
+                if start + len(value) < stop:
+                    blocks = delete(blocks, start + len(value), stop)
+
+                if step is None or step == 1:
+                    blocks = write(blocks, (start, value))
+                else:
+                    for address, item in zip(range(start, stop, step), value):
+                        blocks = write(blocks, (address, item))
 
         else:
             key = key.__index__()
@@ -1149,7 +1299,7 @@ class SparseItems(object):  # TODO
             blocks = write(blocks, value)
 
         if self.automerge:
-            blocks = merge(blocks)
+            blocks = merge(blocks, join=self.items_join)
         self.blocks = blocks
 
     def __delitem__(self, key):
@@ -1157,6 +1307,9 @@ class SparseItems(object):  # TODO
 
         Arguments:
             key (:obj:`slice` or :obj:`int`): Deletion range or address.
+
+        Returns:
+            :obj:`SparseItems`: `self`.
 
         Note:
             This method is not optimized for a :class:`slice` with its `step`
@@ -1182,8 +1335,9 @@ class SparseItems(object):  # TODO
             blocks = delete(blocks, key, key + 1)
 
         if self.automerge:
-            blocks = merge(blocks)
+            blocks = merge(blocks, join=self.items_join)
         self.blocks = blocks
+        return self
 
     @property
     def start(self):
@@ -1191,6 +1345,13 @@ class SparseItems(object):  # TODO
 
         Returns:
             :obj:`int`: The inclusive start address, or 0.
+
+        Examples:
+            >>> SparseItems().start
+            0
+
+            >>> SparseItems(blocks=[(5, 'ABC'), (9, 'xyz')]).start
+            5
         """
         blocks = self.blocks
 
@@ -1206,6 +1367,13 @@ class SparseItems(object):  # TODO
 
         Returns:
             :obj:`int`: The eclusive end address, or 0.
+
+        Examples:
+            >>> SparseItems().endex
+            0
+
+            >>> SparseItems(blocks=[(5, 'ABC'), (9, 'xyz')]).endex
+            12
         """
         blocks = self.blocks
 
@@ -1221,12 +1389,23 @@ class SparseItems(object):  # TODO
         Arguments:
             amount (:obj:`int`): Signed amount of address shifting.
 
+        Returns:
+            :obj:`SparseItems`: `self`.
+
         See Also:
             :func:`shift`
+
+        Example:
+            >>> memory = SparseItems(blocks=[(5, 'ABC'), (9, 'xyz')])
+            >>> memory.shift(-2)  #doctest: +ELLIPSIS
+            <...>
+            >>> memory.blocks
+            [(3, 'ABC'), (7, 'xyz')]
         """
         blocks = self.blocks
         blocks = shift(blocks, amount)
         self.blocks = blocks
+        return self
 
     def select(self, start, endex):
         r"""Selects items from a range.
@@ -1258,16 +1437,29 @@ class SparseItems(object):  # TODO
                 If ``None``, the global exclusive end address is considered
                 (i.e. :attr:`endex`).
 
+        Returns:
+            :obj:`SparseItems`: `self`.
+
         See Also:
             :func:`clear`
+
+        Example:
+            >>> blocks = [(5, 'ABC'), (9, 'xyz')]
+            >>> memory = SparseItems(blocks=blocks, items_join=''.join)
+            >>> memory.clear(memory.index('B'), memory.index('y'))
+            ... #doctest: +ELLIPSIS
+            <...>
+            >>> memory.blocks
+            [(5, 'A'), (10, 'yz')]
         """
         blocks = self.blocks
         blocks = clear(blocks, start, endex)
 
         if self.automerge:
-            blocks = merge(blocks)
+            blocks = merge(blocks, join=self.items_join)
 
         self.blocks = blocks
+        return self
 
     def delete(self, start, endex):
         r"""Deletes a range.
@@ -1280,10 +1472,23 @@ class SparseItems(object):  # TODO
                 If ``None``, the global exclusive end address is considered
                 (i.e. :attr:`endex`).
 
+        Returns:
+            :obj:`SparseItems`: `self`.
+
         See Also:
             :func:`delete`
+
+        Example:
+            >>> blocks = [(5, 'ABC'), (9, 'xyz')]
+            >>> memory = SparseItems(blocks=blocks, items_join=''.join)
+            >>> memory.delete(memory.index('B'), memory.index('y'))
+            ... #doctest: +ELLIPSIS
+            <...>
+            >>> memory.blocks
+            [(5, 'Ayz')]
         """
         del self[start:endex]
+        return self
 
     def insert(self, block):
         r"""Inserts a block.
@@ -1294,16 +1499,29 @@ class SparseItems(object):  # TODO
         Arguments:
             block (block): Block to insert.
 
+        Returns:
+            :obj:`SparseItems`: `self`.
+
         See Also:
             :func:`insert`
+
+        Example:
+            >>> blocks = [(1, 'ABC'), (6, 'xyz')]
+            >>> memory = SparseItems(blocks=blocks, items_join=''.join)
+            >>> memory.insert((5, '123'))
+            ... #doctest: +ELLIPSIS
+            <...>
+            >>> memory.blocks
+            [(1, 'ABC'), (5, '123'), (9, 'xyz')]
         """
         blocks = self.blocks
         blocks = insert(blocks, block)
 
         if self.automerge:
-            blocks = merge(blocks)
+            blocks = merge(blocks, join=self.items_join)
 
         self.blocks = blocks
+        return self
 
     def write(self, block):
         r"""Writes a block.
@@ -1311,19 +1529,31 @@ class SparseItems(object):  # TODO
         Arguments:
             block (block): Block to write.
 
+        Returns:
+            :obj:`SparseItems`: `self`.
+
         See Also:
             :func:`write`
+
+        Example:
+            >>> blocks = [(1, 'ABC'), (6, 'xyz')]
+            >>> memory = SparseItems(blocks=blocks, items_join=''.join)
+            >>> memory.write((5, '123'))
+            ... #doctest: +ELLIPSIS
+            <...>
+            >>> memory.blocks
+            [(1, 'ABC'), (5, '123z')]
         """
         blocks = self.blocks
         blocks = write(blocks, block)
 
         if self.automerge:
-            blocks = merge(blocks)
+            blocks = merge(blocks, join=self.items_join)
 
         self.blocks = blocks
+        return self
 
-    def fill(self, start=None, endex=None, pattern=b'\0',
-             fill_only=False, join=b''.join):
+    def fill(self, start=None, endex=None, pattern=b'\0'):
         r"""Fills emptiness between non-touching blocks.
 
         Arguments:
@@ -1337,24 +1567,50 @@ class SparseItems(object):  # TODO
             fill_only (:obj:`bool`): Returns only the filling blocks.
             join (callable): A function to join a sequence of items.
 
+        Returns:
+            :obj:`SparseItems`: `self`.
+
         See Also:
             :func:`fill`
+
+        Example:
+            >>> blocks = [(1, 'ABC'), (6, 'xyz')]
+            >>> memory = SparseItems(blocks=blocks, items_join=''.join)
+            >>> memory.fill(pattern='123')
+            ... #doctest: +ELLIPSIS
+            <...>
+            >>> memory.blocks
+            [(1, 'ABC23xyz')]
         """
 
         blocks = self.blocks
-        blocks = fill(blocks, start, endex, pattern, fill_only, join)
+        blocks = fill(blocks, start, endex, pattern, join=self.items_join)
 
         if self.automerge:
-            blocks = merge(blocks)
+            blocks = merge(blocks, join=self.items_join)
 
         self.blocks = blocks
+        return self
 
     def merge(self):
         r"""Merges touching blocks.
 
+        Returns:
+            :obj:`SparseItems`: `self`.
+
         See Also:
             :func:`merge`
+
+        Example:
+            >>> blocks = [(1, 'ABC'), (4, 'xyz')]
+            >>> memory = SparseItems(blocks=blocks, items_join=''.join,
+            ...                      automerge=False)
+            >>> memory.merge()  #doctest: +ELLIPSIS
+            <...>
+            >>> memory.blocks
+            [(1, 'ABCxyz')]
         """
         blocks = self.blocks
-        blocks = merge(blocks)
+        blocks = merge(blocks, join=self.items_join)
         self.blocks = blocks
+        return self

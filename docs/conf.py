@@ -50,6 +50,7 @@ html_short_title = '%s-%s' % (project, version)
 
 autoclass_content = 'both'
 autodoc_inherit_docstrings = False
+autosummary_generate = True
 
 napoleon_use_ivar = True
 napoleon_use_rtype = False

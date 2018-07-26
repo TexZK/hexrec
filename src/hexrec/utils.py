@@ -324,12 +324,12 @@ def hexlify_lists(data, width=None, window=2, upper=True):
 
     Example:
         >>> hexlify_lists(b'Hello, World!')
-        ... # doctest +NORMALIZE_WHITESPACE
+        ... #doctest: +NORMALIZE_WHITESPACE
         [['48', '65', '6C', '6C', '6F', '2C', '20',
           '57', '6F', '72', '6C', '64', '21']]
 
         >>> hexlify_lists(b'Hello, World!', 6)
-        ... # doctest +NORMALIZE_WHITESPACE
+        ... #doctest: +NORMALIZE_WHITESPACE
         [['48', '65', '6C'],
          ['6C', '6F', '2C'],
          ['20', '57', '6F'],
