@@ -172,7 +172,7 @@ def test_fill_doctest():
 def test_merge_doctest():
     blocks = [(0, 'Hello,'), (6, ' '), (7, 'World'), (12, '!')]
     ans_ref = [(0, 'Hello, World!')]
-    ans_out = merge(blocks)
+    ans_out = merge(blocks, join=''.join)
     assert ans_out == ans_ref
 
 # ============================================================================
@@ -194,21 +194,21 @@ def test_collapse():
 class TestSparseItems(object):  # TODO
 
     def test__init__(self):
-        obj = SparseItems()
+        obj = SparseItems(items_type=str, items_join=''.join)
         assert obj.blocks == []
         assert obj.automerge == True
         assert obj.items_type == str
         assert obj.items_join == ''.join
 
     def test__bool__(self):
-        obj = SparseItems()
+        obj = SparseItems(items_type=str, items_join=''.join)
         assert bool(obj) == False
 
         obj.blocks = [(1, 'ABC')]
         assert bool(obj) == True
 
     def test__eq__(self):
-        obj1 = SparseItems()
+        obj1 = SparseItems(items_type=str, items_join=''.join)
         obj1.blocks = [(1, 'ABC'), (5, '!')]
         obj2 = SparseItems()
         obj2.blocks = [(1, 'ABC'), (5, '!')]
@@ -217,46 +217,48 @@ class TestSparseItems(object):  # TODO
         blocks2 = [(1, 'ABC'), (5, '!')]
         assert obj1 == blocks2
 
-        obj1 = SparseItems()
+        obj1 = SparseItems(items_type=str, items_join=''.join)
         obj1.blocks = [(0, 'ABC')]
         assert obj1 == 'ABC'
 
     def test__iter__(self):
-        obj = SparseItems()
+        obj = SparseItems(items_type=str, items_join=''.join)
         obj.blocks = [(1, 'ABC'), (5, '!')]
         ans_out = list(obj)
         ans_ref = list('ABC!')
         assert ans_out == ans_ref
 
     def test__reversed__(self):
-        obj = SparseItems()
+        obj = SparseItems(items_type=str, items_join=''.join)
         obj.blocks = [(1, 'ABC'), (5, '!')]
         ans_out = list(reversed(obj))
         ans_ref = list(reversed('ABC!'))
         assert ans_out == ans_ref
 
     def test__in__(self):
-        obj = SparseItems()
+        obj = SparseItems(items_type=str, items_join=''.join)
         obj.blocks = [(1, 'ABC'), (5, '!')]
         assert 'B' in obj
 
     def test__add__(self):
-        obj1 = SparseItems()
+        obj1 = SparseItems(items_type=str, items_join=''.join)
         obj1.blocks = [(1, 'ABC'), (5, '!')]
 
         obj2 = obj1 + obj1
-        assert obj2.blocks == [(1, 'ABC'), (5, '!ABC'), (10, '!')]
+        assert obj2.blocks == [(1, 'ABC'), (5, '!'), (7, 'ABC'), (11, '!')]
 
         obj2 = obj1 + 'xyz'
         assert obj2.blocks == [(1, 'ABC'), (5, '!xyz')]
 
     def test__iadd__(self):
-        obj = SparseItems()
+        obj = SparseItems(items_type=str, items_join=''.join)
         obj.blocks = [(1, 'ABC'), (5, '!')]
         obj += obj
-        assert obj.blocks == [(1, 'ABC'), (5, '!ABC'), (10, '!')]
+        assert obj.blocks == [(1, 'ABC'), (5, '!'), (7, 'ABC'), (11, '!')]
 
-        obj = SparseItems()
+        obj = SparseItems(items_type=str, items_join=''.join)
         obj.blocks = [(1, 'ABC'), (5, '!')]
         obj += 'xyz'
         assert obj.blocks == [(1, 'ABC'), (5, '!xyz')]
+
+    # TODO

@@ -1073,7 +1073,10 @@ class SparseItems(object):  # TODO
         Returns:
             :obj:`SparseItems`: A new space with the items concatenated.
         """
-        result = type(self)()
+        cls = type(self)
+        result = cls(automerge=self.automerge,
+                     items_type=self.items_type,
+                     items_join=self.items_join)
         result.blocks = list(self.blocks)
         result += value
         return result
@@ -1096,13 +1099,13 @@ class SparseItems(object):  # TODO
             if value is self:
                 value.blocks = list(blocks)  # guard extend() over iter()
 
-            offset = value.start
+            offset = self.endex
             blocks.extend((start + offset, items)
                           for start, items in value.blocks)
 
         elif isinstance(value, list):
             if value:
-                offset = value[0][0]
+                offset = self.endex
                 blocks.extend((start + offset, items)
                               for start, items in value)
 
@@ -1131,7 +1134,10 @@ class SparseItems(object):  # TODO
         Returns:
             :obj:`SparseItems`: A new space with the items repeated.
         """
-        result = type(self)()
+        cls = type(self)
+        result = cls(automerge=self.automerge,
+                     items_type=self.items_type,
+                     items_join=self.items_join)
         result.blocks = list(self.blocks)
         result *= times
         return result
