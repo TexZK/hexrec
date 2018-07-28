@@ -350,6 +350,10 @@ def select(blocks, start, endex):
         >>> blocks = [(1, 'ABCD'), (6, '!'), (8, 'xyz')]
         >>> select(blocks, 3, 10)
         [(3, 'CD'), (6, '!'), (8, 'xy')]
+        >>> select(blocks, None, 10)
+        [(1, 'ABCD'), (6, '!'), (8, 'xy')]
+        >>> select(blocks, 3, None)
+        [(3, 'CD'), (6, '!'), (8, 'xyz')]
     """
     if start is None:
         start, _ = blocks[0]
