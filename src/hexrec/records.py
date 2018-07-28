@@ -321,7 +321,7 @@ def _size_guard(start, endex):
     fill_length = endex - start
     if not 0 <= fill_length <= SIZE_GUARD:
         fmt = 'Trying to fill {} bytes, which is likely too much'
-        raise ResourceWarning(fmt.format(fill_length))
+        raise RuntimeWarning(fmt.format(fill_length))
 
 
 class Record(object):

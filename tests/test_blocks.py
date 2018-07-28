@@ -119,35 +119,35 @@ def test_shift_doctest():
 
 # ============================================================================
 
-def test_select_doctest():
+def test_read_doctest():
     blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
 
     ans_ref = [(3, 'CD'), (6, '$'), (8, 'xy')]
-    ans_out = select(blocks, 3, 10, None)
+    ans_out = read(blocks, 3, 10, None)
     assert ans_out == ans_ref
 
     ans_ref = [(3, 'CD'), (5, '#'), (6, '$'), (7, '#'), (8, 'xy')]
-    ans_out = select(blocks, 3, 10, '#', ''.join)
+    ans_out = read(blocks, 3, 10, '#', ''.join)
     assert ans_out == ans_ref
 
     ans_ref = [(1, 'ABCD'), (6, '$'), (8, 'xy')]
-    ans_out = select(blocks, None, 10, None)
+    ans_out = read(blocks, None, 10, None)
     assert ans_out == ans_ref
 
     ans_ref = [(3, 'CD'), (6, '$'), (8, 'xyz')]
-    ans_out = select(blocks, 3, None, None)
+    ans_out = read(blocks, 3, None, None)
     assert ans_out == ans_ref
 
 
-def test_select():
+def test_read():
     blocks = [(1, 'ABCD')]
     ans_ref = [(2, 'BC')]
-    ans_out = select(blocks, 2, 4)
+    ans_out = read(blocks, 2, 4)
     assert ans_out == ans_ref
 
     blocks = [(2, 'BC')]
     ans_ref = blocks
-    ans_out = select(blocks, None, None)
+    ans_out = read(blocks, None, None)
     assert ans_out == ans_ref
 
 # ============================================================================
@@ -438,6 +438,11 @@ class TestSparseItems(object):  # TODO
         with pytest.raises(ValueError):
             obj.index('$')
 
+    def test_count_doctest(self):
+        memory = SparseItems(items_type=str, items_join=''.join)
+        memory.blocks = [(1, 'ABC'), (7, 'Bat'), (12, 'tab')]
+        assert memory.count('a') == 2
+
     def test_count(self):
         obj = SparseItems(items_type=str, items_join=''.join)
         obj.blocks = [(1, 'ABC'), (7, 'xyz'), (11, 'ABC')]
@@ -449,6 +454,7 @@ class TestSparseItems(object):  # TODO
         memory = SparseItems(items_type=str, items_join=''.join)
         memory.blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
         assert memory[9] == 'y'
+        assert memory[-2] == 'y'
         assert memory[:3] == 'AB'
         assert memory[-2:] == 'yz'
 
@@ -457,28 +463,25 @@ class TestSparseItems(object):  # TODO
 
         assert memory[3:10:'.'] == 'CD.$.xy'
 
-        with pytest.raises(IndexError):
-            memory[memory.endex]
+        assert memory[memory.endex] is None
 
     def test___getitem__(self):
-        memory = SparseItems(items_type=str, items_join=''.join,
-                             autofill='.')
+        memory = SparseItems(items_type=str, items_join=''.join, autofill='.')
         memory.blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
         assert memory[3:10] == 'CD.$.xy'
 
-    def test___setitem___(self):
-        blocks = [(5, 'ABC'), (9, 'xyz')]
-        memory = SparseItems(blocks=blocks,
-                             items_type=str, items_join=''.join)
+    def test___setitem___doctest(self):
+        memory = SparseItems(items_type=str, items_join=''.join)
+        memory.blocks = [(5, 'ABC'), (9, 'xyz')]
         memory[7:10] = None
         assert memory.blocks == [(5, 'AB'), (10, 'yz')]
         memory[7] = 'C'
         memory[-3] = 'x'
-        assert memory.blocks == blocks
+        assert memory.blocks == [(5, 'ABC'), (9, 'xyz')]
 
-        blocks = [(5, 'ABC'), (9, 'xyz')]
-        memory = SparseItems(blocks=blocks, automerge=False,
-                             items_type=str, items_join=''.join)
+        memory = SparseItems(items_type=str, items_join=''.join,
+                             automerge=False)
+        memory.blocks = [(5, 'ABC'), (9, 'xyz')]
         memory[0:4] = '$'
         ans_out = memory.blocks
         ans_ref = [(0, '$'), (2, 'ABC'), (6, 'xyz')]
@@ -495,7 +498,12 @@ class TestSparseItems(object):  # TODO
                    (9, 'yz')]
         assert ans_out == ans_ref
 
-    def test___delitem___(self):
+    def test___setitem__(self):
+        memory = SparseItems(items='ABC', items_type=str, items_join=''.join)
+        memory[1] = None
+        assert memory.blocks == [(0, 'A'), (2, 'C')]
+
+    def test___delitem___doctest(self):
         memory = SparseItems(items_type=str, items_join=''.join)
         memory.blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
         del memory[4:9]
@@ -520,14 +528,14 @@ class TestSparseItems(object):  # TODO
         obj.shift(3)
         assert obj.blocks == [(4, 'ABC'), (10, 'xyz')]
 
-    def test__select(self):
+    def test__read(self):
         obj = SparseItems(items_type=str, items_join=''.join)
         obj.blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
-        assert obj.select(3, 10, '.') == 'CD.$.xy'
+        assert obj.read(3, 10, '.') == 'CD.$.xy'
 
     def test_clear_doctest(self):
-        blocks = [(5, 'ABC'), (9, 'xyz')]
-        memory = SparseItems(blocks=blocks, items_join=''.join)
+        memory = SparseItems(items_type=str, items_join=''.join)
+        memory.blocks = [(5, 'ABC'), (9, 'xyz')]
         memory.clear(memory.index('B'), memory.index('y'))
         assert memory.blocks == [(5, 'A'), (10, 'yz')]
 
@@ -538,8 +546,8 @@ class TestSparseItems(object):  # TODO
         assert obj.blocks == [(1, 'AB'), (10, 'z')]
 
     def test_delete_doctest(self):
-        blocks = [(5, 'ABC'), (9, 'xyz')]
-        memory = SparseItems(blocks=blocks, items_join=''.join)
+        memory = SparseItems(items_type=str, items_join=''.join)
+        memory.blocks = [(5, 'ABC'), (9, 'xyz')]
         memory.delete(memory.index('B'), memory.index('y'))
         assert memory.blocks == [(5, 'Ayz')]
 
@@ -550,8 +558,8 @@ class TestSparseItems(object):  # TODO
         assert obj.blocks == [(1, 'ABz')]
 
     def test_insert_doctest(self):
-        blocks = [(1, 'ABC'), (6, 'xyz')]
-        memory = SparseItems(blocks=blocks, items_join=''.join)
+        memory = SparseItems(items_type=str, items_join=''.join)
+        memory.blocks = [(1, 'ABC'), (6, 'xyz')]
         memory.insert((5, '123'))
         assert memory.blocks == [(1, 'ABC'), (5, '123'), (9, 'xyz')]
 
@@ -567,8 +575,8 @@ class TestSparseItems(object):  # TODO
         assert obj.blocks == [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
 
     def test_write_doctest(self):
-        blocks = [(1, 'ABC'), (6, 'xyz')]
-        memory = SparseItems(blocks=blocks, items_join=''.join)
+        memory = SparseItems(items_type=str, items_join=''.join)
+        memory.blocks = [(1, 'ABC'), (6, 'xyz')]
         memory.write((5, '123'))
         assert memory.blocks == [(1, 'ABC'), (5, '123z')]
 
@@ -586,9 +594,15 @@ class TestSparseItems(object):  # TODO
         assert ans_out == ans_ref
 
     def test_fill_doctest(self):
-        blocks = [(1, 'ABC'), (6, 'xyz')]
-        memory = SparseItems(blocks=blocks, items_join=''.join)
+        memory = SparseItems(items_type=str, items_join=''.join)
+        memory.blocks = [(1, 'ABC'), (6, 'xyz')]
         memory.fill(pattern='123')
+        assert memory.blocks == [(1, 'ABC23xyz')]
+
+        memory = SparseItems(items_type=str, items_join=''.join,
+                             autofill='123')
+        memory.blocks = [(1, 'ABC'), (6, 'xyz')]
+        memory.fill()
         assert memory.blocks == [(1, 'ABC23xyz')]
 
     def test_fill(self):
@@ -604,4 +618,11 @@ class TestSparseItems(object):  # TODO
         obj.fill(pattern='123')
         ans_out = obj.blocks
         ans_ref = [(1, 'ABC'), (4, '23'), (6, 'xyz')]
+        assert ans_out == ans_ref
+
+    def test_merge_doctest(self):
+        memory = SparseItems(items_type=str, items_join=''.join)
+        memory.blocks = [(1, 'ABC'), (4, 'xyz')]
+        ans_out = memory.merge().blocks
+        ans_ref = [(1, 'ABCxyz')]
         assert ans_out == ans_ref
