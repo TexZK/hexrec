@@ -223,9 +223,9 @@ def test_do_overlap_doctest():
 def test_straighten_index_doctest():
     assert straighten_index(3, 7) == 3
     assert straighten_index(-3, 7) == 4
-    assert straighten_index(9, 7) == 2
+    assert straighten_index(9, 7) == 9
     assert straighten_index(-8, 7) == 6
-    assert straighten_index(None, 3) == 0
+    assert straighten_index(None, 3) is None
     assert straighten_index(3, None) == 0
 
 # ============================================================================
@@ -237,8 +237,30 @@ def test_straighten_slice_doctest():
     assert straighten_slice(-3, -5, 1, 7) == (4, 2, 1)
     assert straighten_slice(None, 5, 1, 7) == (0, 5, 1)
     assert straighten_slice(3, None, 1, 7) == (3, 7, 1)
-    assert straighten_slice(3, 5, None, 7) == (3, 5, 1)
+    assert straighten_slice(3, 5, None, 7) == (3, 5, None)
     assert straighten_slice(3, 5, 1, None) == (0, 0, 1)
+
+# ============================================================================
+
+def test_wrap_index_doctest():
+    assert wrap_index(3, 7) == 3
+    assert wrap_index(-3, 7) == 4
+    assert wrap_index(9, 7) == 2
+    assert wrap_index(-8, 7) == 6
+    assert wrap_index(None, 3) == 0
+    assert wrap_index(3, None) == 0
+
+# ============================================================================
+
+def test_wrap_slice_doctest():
+    assert wrap_slice(3, 5, 1, 7) == (3, 5, 1)
+    assert wrap_slice(-3, 5, 1, 7) == (4, 5, 1)
+    assert wrap_slice(3, -5, 1, 7) == (3, 2, 1)
+    assert wrap_slice(-3, -5, 1, 7) == (4, 2, 1)
+    assert wrap_slice(None, 5, 1, 7) == (0, 5, 1)
+    assert wrap_slice(3, None, 1, 7) == (3, 7, 1)
+    assert wrap_slice(3, 5, None, 7) == (3, 5, 1)
+    assert wrap_slice(3, 5, 1, None) == (0, 0, 1)
 
 # ============================================================================
 

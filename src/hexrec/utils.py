@@ -452,14 +452,16 @@ def straighten_index(index, length):
         6
 
         >>> straighten_index(None, 3)
-        0
+        None
 
         >>> straighten_index(3, None)
         0
     """
-    if index is None or not length:
+    if index is None:
+        return None
+    elif not length:
         index = 0
-    elif not 0 <= index < length:
+    elif index < 0:
         index %= length
     return index
 
@@ -496,9 +498,99 @@ def straighten_slice(start, stop, step, length):
         (3, 7, 1)
 
         >>> straighten_slice(3, 5, None, 7)
-        (3, 5, 1)
+        (3, 5, None)
 
         >>> straighten_slice(3, 5, 1, None)
+        (0, 0, 1)
+    """
+    if length:
+        if start is None:
+            start = 0
+        elif start < 0:
+            start %= length
+
+        if stop is None:
+            stop = length
+        elif stop < 0:
+            stop %= length
+    else:
+        start = 0
+        stop = 0
+
+    return start, stop, step
+
+
+def wrap_index(index, length):
+    """Wraps vector index into a window.
+
+    Arguments:
+        index (:obj:`int`): Vector index, or ``None``.
+        length (:obj:`int`): Vector length.
+
+    Returns:
+        :obj:`int`: Wrapped vector index.
+
+    Examples:
+        >>> straighten_index(3, 7)
+        3
+
+        >>> straighten_index(-3, 7)
+        4
+
+        >>> straighten_index(9, 7)
+        2
+
+        >>> straighten_index(-8, 7)
+        6
+
+        >>> straighten_index(None, 3)
+        0
+
+        >>> straighten_index(3, None)
+        0
+    """
+    if not index or not length:
+        index = 0
+    elif not 0 <= index < length:
+        index %= length
+    return index
+
+
+def wrap_slice(start, stop, step, length):
+    """Wraps slice indices into a window.
+
+    Arguments:
+        start (:obj:`int`): :attr:`slice.start` index, or ``None``.
+        stop (:obj:`int`): :attr:`slice.stop` index, or ``None``.
+        step (:obj:`int`): :attr:`slice.step` value, or ``None``.
+        length (:obj:`int`): Exclusive end of the virtual range to wrap.
+
+    Returns:
+        :obj:`slice`: Wrapped slice.
+
+    Examples:
+        >>> wrap_slice(3, 5, 1, 7)
+        (3, 5, 1)
+
+        >>> wrap_slice(-3, 5, 1, 7)
+        (4, 5, 1)
+
+        >>> wrap_slice(3, -5, 1, 7)
+        (3, 2, 1)
+
+        >>> wrap_slice(-3, -5, 1, 7)
+        (4, 2, 1)
+
+        >>> wrap_slice(None, 5, 1, 7)
+        (0, 5, 1)
+
+        >>> wrap_slice(3, None, 1, 7)
+        (3, 7, 1)
+
+        >>> wrap_slice(3, 5, None, 7)
+        (3, 5, 1)
+
+        >>> wrap_slice(3, 5, 1, None)
         (0, 0, 1)
     """
     if step is None:

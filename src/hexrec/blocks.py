@@ -149,12 +149,12 @@ def locate_at(blocks, address):
         +---+---+---+---+---+---+---+---+---+---+---+---+
         | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10| 11|
         +===+===+===+===+===+===+===+===+===+===+===+===+
-        |   |[A | B | C | D]|   |[!]|   |[x | y | z]|   |
+        |   |[A | B | C | D]|   |[$]|   |[x | y | z]|   |
         +---+---+---+---+---+---+---+---+---+---+---+---+
         |   | 0 | 0 | 0 | 0 |   | 1 |   | 2 | 2 | 2 |   |
         +---+---+---+---+---+---+---+---+---+---+---+---+
 
-        >>> blocks = [(1, 'ABCD'), (6, '!'), (8, 'xyz')]
+        >>> blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
         >>> [locate_at(blocks, i) for i in range(12)]
         [None, 0, 0, 0, 0, None, 1, None, 2, 2, 2, None]
     """
@@ -203,12 +203,12 @@ def locate_start(blocks, address):
         +---+---+---+---+---+---+---+---+---+---+---+---+
         | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10| 11|
         +===+===+===+===+===+===+===+===+===+===+===+===+
-        |   |[A | B | C | D]|   |[!]|   |[x | y | z]|   |
+        |   |[A | B | C | D]|   |[$]|   |[x | y | z]|   |
         +---+---+---+---+---+---+---+---+---+---+---+---+
         | 0 | 0 | 0 | 0 | 0 | 1 | 1 | 2 | 2 | 2 | 2 | 3 |
         +---+---+---+---+---+---+---+---+---+---+---+---+
 
-        >>> blocks = [(1, 'ABCD'), (6, '!'), (8, 'xyz')]
+        >>> blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
         >>> [locate_start(blocks, i) for i in range(12)]
         [0, 0, 0, 0, 0, 1, 1, 2, 2, 2, 2, 3]
     """
@@ -257,12 +257,12 @@ def locate_endex(blocks, address):
         +---+---+---+---+---+---+---+---+---+---+---+---+
         | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10| 11|
         +===+===+===+===+===+===+===+===+===+===+===+===+
-        |   |[A | B | C | D]|   |[!]|   |[x | y | z]|   |
+        |   |[A | B | C | D]|   |[$]|   |[x | y | z]|   |
         +---+---+---+---+---+---+---+---+---+---+---+---+
         | 0 | 1 | 1 | 1 | 1 | 1 | 2 | 2 | 3 | 3 | 3 | 3 |
         +---+---+---+---+---+---+---+---+---+---+---+---+
 
-        >>> blocks = [(1, 'ABCD'), (6, '!'), (8, 'xyz')]
+        >>> blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
         >>> [locate_endex(blocks, i) for i in range(12)]
         [0, 1, 1, 1, 1, 1, 2, 2, 3, 3, 3, 3]
     """
@@ -321,7 +321,7 @@ def shift(blocks, amount):
     return [(start + amount, items) for start, items in blocks]
 
 
-def select(blocks, start, endex):
+def select(blocks, start, endex, pattern=b'\0', join=b''.join):
     r"""Selects blocks from a range.
 
     Arguments:
@@ -333,6 +333,9 @@ def select(blocks, start, endex):
         endex (:obj:`int`): Exclusive end of the extracted range.
             If ``None``, the global exclusive end address is considered
             (i.e. that of the last block).
+        pattern (items): Pattern of items to fill the emptiness, if not null.
+        join (callable): A function to join a sequence of items, if `pattern`
+            is not null.
 
     Returns:
         :obj:`list` of block: A new list of blocks, with the same order of
@@ -342,18 +345,20 @@ def select(blocks, start, endex):
         +---+---+---+---+---+---+---+---+---+---+---+
         | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10|
         +===+===+===+===+===+===+===+===+===+===+===+
-        |   |[A | B | C | D]|   |[!]|   |[x | y | z]|
+        |   |[A | B | C | D]|   |[$]|   |[x | y | z]|
         +---+---+---+---+---+---+---+---+---+---+---+
-        |   |   |   |[C | D]|   |[!]|   |[x | y]|   |
+        |   |   |   |[C | D]|   |[$]|   |[x | y]|   |
         +---+---+---+---+---+---+---+---+---+---+---+
 
-        >>> blocks = [(1, 'ABCD'), (6, '!'), (8, 'xyz')]
-        >>> select(blocks, 3, 10)
-        [(3, 'CD'), (6, '!'), (8, 'xy')]
-        >>> select(blocks, None, 10)
-        [(1, 'ABCD'), (6, '!'), (8, 'xy')]
-        >>> select(blocks, 3, None)
-        [(3, 'CD'), (6, '!'), (8, 'xyz')]
+        >>> blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
+        >>> select(blocks, 3, 10, None)
+        [(3, 'CD'), (6, '$'), (8, 'xy')]
+        >>> select(blocks, 3, 10, '#', ''.join)
+        [(3, 'CD'), (5, '#'), (6, '$'), (7, '#'), (8, 'xy')]
+        >>> select(blocks, None, 10, None)
+        [(1, 'ABCD'), (6, '$'), (8, 'xy')]
+        >>> select(blocks, 3, None, None)
+        [(3, 'CD'), (6, '$'), (8, 'xyz')]
     """
     if start is None:
         start, _ = blocks[0]
@@ -366,6 +371,11 @@ def select(blocks, start, endex):
 
     index_start = locate_start(blocks, range_start)
     index_endex = locate_endex(blocks, range_endex)
+
+    if pattern and index_start + 1 < index_endex:
+        blocks = fill(blocks, start, endex, pattern, False, join)
+        index_start = locate_start(blocks, range_start)
+        index_endex = locate_endex(blocks, range_endex)
 
     blocks_inside = []
     append = blocks_inside.append
@@ -416,7 +426,7 @@ def clear(blocks, start, endex):
         +---+---+---+---+---+---+---+---+---+---+---+
         | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10|
         +===+===+===+===+===+===+===+===+===+===+===+
-        |   |[A | B | C | D]|   |[!]|   |[x | y | z]|
+        |   |[A | B | C | D]|   |[$]|   |[x | y | z]|
         +---+---+---+---+---+---+---+---+---+---+---+
         |   |[A | B | C]|   |   |   |   |   |[y | z]|
         +---+---+---+---+---+---+---+---+---+---+---+
@@ -425,7 +435,7 @@ def clear(blocks, start, endex):
         |   |[A]|   |[C]|   |   |   |   |   |[y | z]|
         +---+---+---+---+---+---+---+---+---+---+---+
 
-        >>> blocks = [(1, 'ABCD'), (6, '!'), (8, 'xyz')]
+        >>> blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
         >>> blocks = clear(blocks, 4, 9)
         >>> blocks = clear(blocks, 2, 2)
         >>> blocks = clear(blocks, 2, 3)
@@ -494,7 +504,7 @@ def delete(blocks, start, endex):
         +---+---+---+---+---+---+---+---+---+---+---+
         | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10|
         +===+===+===+===+===+===+===+===+===+===+===+
-        |   |[A | B | C | D]|   |[!]|   |[x | y | z]|
+        |   |[A | B | C | D]|   |[$]|   |[x | y | z]|
         +---+---+---+---+---+---+---+---+---+---+---+
         |   |[A | B | C]|[y | z]|   |   |   |   |   |
         +---+---+---+---+---+---+---+---+---+---+---+
@@ -503,7 +513,7 @@ def delete(blocks, start, endex):
         |   |[A]|[C]|[y | z]|   |   |   |   |   |   |
         +---+---+---+---+---+---+---+---+---+---+---+
 
-        >>> blocks = [(1, 'ABCD'), (6, '!'), (8, 'xyz')]
+        >>> blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
         >>> blocks = delete(blocks, 4, 9)
         >>> blocks = delete(blocks, 2, 2)
         >>> blocks = delete(blocks, 2, 3)
@@ -580,16 +590,16 @@ def insert(blocks, inserted):
         +===+===+===+===+===+===+===+===+===+===+===+===+
         |[A | B | C | D]|   |   |[x | y | z]|   |   |   |
         +---+---+---+---+---+---+---+---+---+---+---+---+
-        |[A | B | C | D]|   |   |[x | y | z]|   |[!]|   |
+        |[A | B | C | D]|   |   |[x | y | z]|   |[$]|   |
         +---+---+---+---+---+---+---+---+---+---+---+---+
-        |[A]|[1]|[B | C | D]|   |   |[x | y | z]|   |[!]|
+        |[A]|[1]|[B | C | D]|   |   |[x | y | z]|   |[$]|
         +---+---+---+---+---+---+---+---+---+---+---+---+
 
         >>> blocks = [(0, 'ABCD'), (6, 'xyz')]
-        >>> blocks = insert(blocks, (10, '!'))
+        >>> blocks = insert(blocks, (10, '$'))
         >>> blocks = insert(blocks, (1, '1'))
         >>> blocks
-        [(0, 'A'), (1, '1'), (2, 'BCD'), (7, 'xyz'), (11, '!')]
+        [(0, 'A'), (1, '1'), (2, 'BCD'), (7, 'xyz'), (11, '$')]
     """
     inserted_start, inserted_items = inserted
     inserted_length = len(inserted_items)
@@ -640,14 +650,14 @@ def write(blocks, written):
         +---+---+---+---+---+---+---+---+---+---+
         | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
         +===+===+===+===+===+===+===+===+===+===+
-        |   |[A | B | C | D]|   |[!]|   |[x | y]|
+        |   |[A | B | C | D]|   |[$]|   |[x | y]|
         +---+---+---+---+---+---+---+---+---+---+
         |   |   |   |[1 | 2 | 3 | 4 | 5 | 6]|   |
         +---+---+---+---+---+---+---+---+---+---+
         |   |[A | B]|[1 | 2 | 3 | 4 | 5 | 6]|[y]|
         +---+---+---+---+---+---+---+---+---+---+
 
-        >>> blocks = [(1, 'ABCD'), (6, '!'), (8, 'xy')]
+        >>> blocks = [(1, 'ABCD'), (6, '$'), (8, 'xy')]
         >>> write(blocks, (3, '123456'))
         [(1, 'AB'), (3, '123456'), (9, 'y')]
     """
@@ -844,22 +854,22 @@ def collapse(blocks):
         +---+---+---+---+---+---+---+---+---+---+
         |   |   |   |[E | F]|   |   |   |   |   |
         +---+---+---+---+---+---+---+---+---+---+
-        |[!]|   |   |   |   |   |   |   |   |   |
+        |[$]|   |   |   |   |   |   |   |   |   |
         +---+---+---+---+---+---+---+---+---+---+
         |   |   |   |   |   |   |[x | y | z]|   |
         +---+---+---+---+---+---+---+---+---+---+
-        |[!]|[B | C]|[E | F]|[5]|[x | y | z]|[9]|
+        |[$]|[B | C]|[E | F]|[5]|[x | y | z]|[9]|
         +---+---+---+---+---+---+---+---+---+---+
 
         >>> blocks = [
         ...     (0, '0123456789'),
         ...     (0, 'ABCD'),
         ...     (3, 'EF'),
-        ...     (0, '!'),
+        ...     (0, '$'),
         ...     (6, 'xyz'),
         ... ]
         >>> collapse(blocks)
-        [(5, '5'), (1, 'BC'), (3, 'EF'), (0, '!'), (9, '9'), (6, 'xyz')]
+        [(5, '5'), (1, 'BC'), (3, 'EF'), (0, '$'), (9, '9'), (6, 'xyz')]
     """
     result = []
 
@@ -891,7 +901,7 @@ def collapse(blocks):
     return result
 
 
-class SparseItems(object):  # TODO
+class SparseItems(object):
     r"""Sparse item blocks manager.
 
     This is an helper class to emulate a virtual space with sparse blocks of
@@ -900,10 +910,11 @@ class SparseItems(object):  # TODO
     Attributes:
         blocks (:obj:`list` of block): A sequence of non-overlapping blocks,
             sorted by address.
-        automerge (:obj:`bool`): Automatically merges touching blocks after
-            operations that can alter attribute :attr:`blocks`.
         items_type (class): Type of the items stored into blocks.
         items_join (callable): A function to join a sequence of items.
+        autofill (items): Pattern for automatic fill, or ``None``.
+        automerge (:obj:`bool`): Automatically merges touching blocks after
+            operations that can alter attribute :attr:`blocks`.
 
     Arguments:
         items (iterable): An iterable to build the initial items block, by
@@ -913,9 +924,10 @@ class SparseItems(object):  # TODO
         blocks (:obj:`list` of block): A sequence of non-overlapping blocks,
             sorted by address. The :attr:`blocks` attribute is assigned a
             shallow copy.
-        automerge (:obj:`bool`): see attribute :attr:`automerge`.
         items_type (class): see attribute :attr:`items_type`.
         items_join (callable): see attribute :attr:`items_join`.
+        autofill (items): Pattern for automatic fill, or ``None``.
+        automerge (:obj:`bool`): see attribute :attr:`automerge`.
 
     Raises:
         ValueError: Both `items` and `blocks` are not ``None``.
@@ -930,8 +942,9 @@ class SparseItems(object):  # TODO
         [(5, 'Hello, World!')]
 
     """
-    def __init__(self, items=None, start=0, blocks=None, automerge=True,
-                 items_type=bytes, items_join=b''.join):
+    def __init__(self, items=None, start=0, blocks=None,
+                 items_type=bytes, items_join=b''.join,
+                 autofill=None, automerge=True):
 
         if items is not None and blocks is not None:
             raise ValueError('cannot construct from both items and blocks')
@@ -950,9 +963,10 @@ class SparseItems(object):  # TODO
             blocks = merge(blocks, items_join)
 
         self.blocks = blocks
-        self.automerge = automerge
         self.items_type = items_type
         self.items_join = items_join
+        self.autofill = autofill
+        self.automerge = automerge
 
     def __str__(self):
         r"""String representation.
@@ -1241,15 +1255,42 @@ class SparseItems(object):  # TODO
         Note:
             This method is not optimized for a :class:`slice` where its `step`
             is an :obj:`int` different from 1.
+
+        Example:
+            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory.blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
+            >>> memory[9]
+            'y'
+            >>> memory[:3]
+            'AB'
+            >>> memory[-2:]
+            'yz'
+            >>> memory[3:10]
+            Traceback (most recent call last):
+                ...
+            ValueError: contiguous slice not found
+            >>> memory[3:10:'.']
+            'CD.$.xy'
+            >>> memory[memory.endex]
+            Traceback (most recent call last):
+                ...
+            IndexError: item index out of range
         """
         if isinstance(key, slice):
-            start, stop, step = key.start, key.stop, key.step
+            start, endex, step = key.start, key.stop, key.step
             length = self.endex
-            start, stop, step = straighten_slice(start, stop, step, length)
+            if start is None:
+                start = self.start
+            if endex is None:
+                endex = self.endex
+            start, endex, step = straighten_slice(start, endex, step, length)
             blocks = self.blocks
 
+            if not step and self.autofill:
+                step = self.autofill
+
             if isinstance(step, self.items_type):
-                blocks = select(blocks, start, stop)
+                blocks = select(blocks, start, endex, step, self.items_join)
                 blocks = fill(blocks, pattern=step, join=self.items_join)
                 items = self.items_join(items for _, items in blocks)
                 return items
@@ -1257,15 +1298,18 @@ class SparseItems(object):  # TODO
             else:
                 if step is None:
                     for address, items in blocks:
-                        if start <= address <= address + len(items) <= stop:
-                            return items[(start - address):(stop - address)]
+                        if address <= start <= endex <= address + len(items):
+                            return items[(start - address):(endex - address)]
                     else:
                         raise ValueError('contiguous slice not found')
                 else:
-                    raise NotImplementedError('TODO')  # TODO
-
+                    raise NotImplementedError((start, endex, step))  # TODO
         else:
-            for address, items in blocks:
+            key = key.__index__()
+            if key < 0:
+                key %= self.endex
+
+            for address, items in self.blocks:
                 if address <= key <= address + len(items):
                     return items[key - address]
             else:
@@ -1277,39 +1321,79 @@ class SparseItems(object):  # TODO
         Arguments:
             key (:obj:`slice` or :obj:`int`): Selection range or address.
             value (items): Items to write at the selection address.
+                If `value` is ``None``, the range is cleared.
 
         Note:
             This method is not optimized for a :class:`slice` where its `step`
             is an :obj:`int` different from 1.
+
+        Examples:
+            >>> blocks = [(5, 'ABC'), (9, 'xyz')]
+            >>> memory = SparseItems(blocks=blocks,
+            ...                      items_type=str, items_join=''.join)
+            >>> memory[7:10] = None
+            >>> memory.blocks
+            [(5, 'A'), (10, 'yz')]
+            >>> memory[7] = 'C'
+            >>> memory[-3] = 'x'
+            >>> memory.blocks == blocks
+            True
+
+            >>> blocks = [(5, 'ABC'), (9, 'xyz')]
+            >>> memory = SparseItems(blocks=blocks, automerge=False,
+            ...                      items_type=str, items_join=''.join)
+            >>> memory[0:4] = '$'
+            >>> memory.blocks
+            [(0, '$'), (2, 'ABC'), (6, 'xyz')]
+            >>> memory[4:7] = '45678'
+            >>> memory.blocks
+            [(0, '$'), (2, 'AB'), (4, '456'), (7, '78'), (9, 'yz')]
+            >>> memory[6:8] = '<>'
+            >>> memory.blocks
+            [(0, '$'), (2, 'AB'), (4, '45'), (6, '<>'), (8, '8'), (9, 'yz')]
         """
         blocks = self.blocks
 
         if isinstance(key, slice):
-            start, stop, step = key.start, key.stop, key.step
+            start, endex, step = key.start, key.stop, key.step
             length = self.endex
-            start, stop, step = straighten_slice(start, stop, step, length)
+            start, endex, step = straighten_slice(start, endex, step, length)
 
             if value is None:
-                blocks = clear(blocks, start, stop)
+                blocks = clear(blocks, start, endex)
 
             else:
-                if start + len(value) < stop:
-                    blocks = delete(blocks, start + len(value), stop)
-
                 if step is None or step == 1:
-                    blocks = write(blocks, (start, value))
-                else:
-                    for address, item in zip(range(start, stop, step), value):
-                        blocks = write(blocks, (address, item))
+                    length = len(value)
 
+                    if length < endex - start:
+                        blocks = delete(blocks, start + length, endex)
+                        blocks = write(blocks, (start, value))
+
+                    elif endex - start < length:
+                        split = endex - start
+                        blocks = write(blocks, (start, value[:split]))
+                        blocks = insert(blocks, (endex, value[split:]))
+
+                    else:
+                        blocks = write(blocks, (start, value))
+                else:
+                    raise NotImplementedError((start, endex, step))  # TODO
         else:
             key = key.__index__()
             if key < 0:
                 key %= self.endex
-            blocks = write(blocks, value)
+
+            if value is None:
+                blocks = clear(blocks, key, key + 1)
+            else:
+                if len(value) != 1:
+                    raise ValueError('not a single item')
+                blocks = write(blocks, (key, value))
 
         if self.automerge:
             blocks = merge(blocks, join=self.items_join)
+
         self.blocks = blocks
 
     def __delitem__(self, key):
@@ -1324,20 +1408,41 @@ class SparseItems(object):  # TODO
         Note:
             This method is not optimized for a :class:`slice` with its `step`
             different from either ``None`` or 1.
+
+        Examples:
+            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory.blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
+            >>> del memory[4:9]
+            >>> memory.blocks
+            [(1, 'ABCyz')]
+
+            >>> memory = SparseItems(items_type=str, items_join=''.join,
+            ...                      automerge=False)
+            >>> memory.blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
+            >>> del memory[4:9]
+            >>> memory.blocks
+            [(1, 'ABC'), (4, 'yz')]
+
+            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory.blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
+            >>> del memory[-2]
+            >>> memory.blocks
+            [(1, 'ABCD'), (6, '$'), (8, 'xz')]
+            >>> del memory[3]
+            >>> memory.blocks
+            [(1, 'ABD'), (5, '$'), (7, 'xz')]
         """
         blocks = self.blocks
 
         if isinstance(key, slice):
-            start, stop, step = key.start, key.stop, key.step
+            start, endex, step = key.start, key.stop, key.step
             length = self.endex
-            start, stop, step = straighten_slice(start, stop, step, length)
+            start, endex, step = straighten_slice(start, endex, step, length)
 
             if step is None or step == 1:
-                blocks = delete(blocks, start, stop)
+                blocks = delete(blocks, start, endex)
             else:
-                for address in range(start, stop, step):
-                    blocks = delete(blocks, address, address + 1)
-
+                raise NotImplementedError((start, endex, step))  # TODO
         else:
             key = key.__index__()
             if key < 0:
@@ -1346,12 +1451,17 @@ class SparseItems(object):  # TODO
 
         if self.automerge:
             blocks = merge(blocks, join=self.items_join)
+
         self.blocks = blocks
         return self
 
     @property
     def start(self):
         r"""Inclusive start address.
+
+        This property holds the inclusive start address of the virtual space.
+        By default, it is the current minimum inclusive start address of
+        :attr:`blocks`.
 
         Returns:
             :obj:`int`: The inclusive start address, or 0.
@@ -1374,6 +1484,10 @@ class SparseItems(object):  # TODO
     @property
     def endex(self):
         r"""Exclusive end address.
+
+        This property holds the exclusive end address of the virtual space.
+        By default, it is the current minimum exclusive end address of
+        :attr:`blocks`.
 
         Returns:
             :obj:`int`: The eclusive end address, or 0.
@@ -1417,7 +1531,7 @@ class SparseItems(object):  # TODO
         self.blocks = blocks
         return self
 
-    def select(self, start, endex):
+    def select(self, start, endex, pattern=None):
         r"""Selects items from a range.
 
         Arguments:
@@ -1427,6 +1541,8 @@ class SparseItems(object):  # TODO
             endex (:obj:`int`): Exclusive end of the extracted range.
                 If ``None``, the global exclusive end address is considered
                 (i.e. :attr:`endex`).
+            pattern (items): Pattern of items to fill the emptiness.
+                If ``None``, the :attr:`autofill` attribute is used.
 
         Returns:
             items: Items from the selected range.
@@ -1434,7 +1550,7 @@ class SparseItems(object):  # TODO
         See Also:
             :func:`select`
         """
-        return self[start:endex]
+        return self[start:endex:pattern]
 
     def clear(self, start, endex):
         r"""Clears a range.
@@ -1456,7 +1572,7 @@ class SparseItems(object):  # TODO
         Example:
             >>> blocks = [(5, 'ABC'), (9, 'xyz')]
             >>> memory = SparseItems(blocks=blocks, items_join=''.join)
-            >>> memory.clear(memory.index('B'), memory.index('y'))
+            >>> memory.clear(6, 10)
             ... #doctest: +ELLIPSIS
             <...>
             >>> memory.blocks
@@ -1491,7 +1607,7 @@ class SparseItems(object):  # TODO
         Example:
             >>> blocks = [(5, 'ABC'), (9, 'xyz')]
             >>> memory = SparseItems(blocks=blocks, items_join=''.join)
-            >>> memory.delete(memory.index('B'), memory.index('y'))
+            >>> memory.delete(6, 10)
             ... #doctest: +ELLIPSIS
             <...>
             >>> memory.blocks
@@ -1563,11 +1679,12 @@ class SparseItems(object):  # TODO
         self.blocks = blocks
         return self
 
-    def fill(self, start=None, endex=None, pattern=b'\0'):
+    def fill(self, start=None, endex=None, pattern=None):
         r"""Fills emptiness between non-touching blocks.
 
         Arguments:
             pattern (items): Pattern of items to fill the emptiness.
+                If ``None``, the :attr:`autofill` attribute is used.
             start (:obj:`int`): Inclusive start of the filled range.
                 If ``None``, the global inclusive start address is considered
                 (i.e. that of the first block).
@@ -1592,8 +1709,9 @@ class SparseItems(object):  # TODO
             >>> memory.blocks
             [(1, 'ABC23xyz')]
         """
-
         blocks = self.blocks
+        if pattern is None:
+            pattern = self.autofill
         blocks = fill(blocks, start, endex, pattern, join=self.items_join)
 
         if self.automerge:
