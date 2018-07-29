@@ -435,6 +435,13 @@ class TestSparseItems(object):  # TODO
         assert obj.index('y') == 8
         with pytest.raises(ValueError): obj.index('$')
 
+    def test___contains___doctest(self):
+        memory = SparseItems(items_type=str, items_join=''.join)
+        memory.blocks = [(1, 'ABC'), (5, '123'), (9, 'xyz')]
+        assert ('23' in memory) == True
+        assert ('y' in memory) == True
+        assert ('$' in memory) == False
+
     def test_count_doctest(self):
         memory = SparseItems(items_type=str, items_join=''.join)
         memory.blocks = [(1, 'ABC'), (7, 'Bat'), (12, 'tab')]
@@ -667,3 +674,9 @@ class TestSparseItems(object):  # TODO
         ans_out = memory.blocks
         ans_ref = [(1, 'ABCxyz')]
         assert ans_out == ans_ref
+
+    def test_reverse_doctest(self):
+        memory = SparseItems(items_type=str, items_join=''.join)
+        memory.blocks = [(1, 'ABC'), (5, '$'), (9, 'xyz')]
+        memory.reverse()
+        assert memory.blocks == [(0, 'zyx'), (6, '$'), (8, 'CBA')]

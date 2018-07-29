@@ -1262,6 +1262,32 @@ class SparseItems(object):
         address = find(self.blocks, value, start, endex)
         return address
 
+    def __contains__(self, value):
+        r"""Checks if some value is contained.
+
+        Arguments:
+            value (item): Value to find.
+
+        Returns:
+            :obj:`bool`: Values is contained.
+
+        Example:
+            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory.blocks = [(1, 'ABC'), (5, '123'), (9, 'xyz')]
+            >>> '23' in memory
+            True
+            >>> 'y' in memory
+            True
+            >>> '$' in memory
+            False
+        """
+        try:
+            find(self.blocks, value)
+        except ValueError:
+            return False
+        else:
+            return True
+
     def count(self, value):
         r"""Counts items.
 
@@ -1747,7 +1773,7 @@ class SparseItems(object):
         self.blocks = blocks
         return value
 
-    def remove(self, value):  # TODO
+    def remove(self, value):
         r"""Removes some data.
 
         Finds the first occurrence of `value` and deletes it.
@@ -1756,7 +1782,7 @@ class SparseItems(object):
             value (items): Sequence of items to remove.
 
         Raises:
-            ValueError: Item not found
+            ValueError: Item not found.
 
         Example:
             >>> memory = SparseItems(items_type=str, items_join=''.join)
@@ -1810,7 +1836,7 @@ class SparseItems(object):
         self.blocks = blocks
 
     def write(self, address, items):
-        r"""Writes a block.
+        r"""Writes data.
 
         Arguments:
             address (:obj:`int`): Address of the block to write.
@@ -1892,3 +1918,29 @@ class SparseItems(object):
         blocks = self.blocks
         blocks = merge(blocks, join=self.items_join)
         self.blocks = blocks
+
+    def reverse(self):
+        r"""Reverses data in-place.
+
+        Example:
+            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory.blocks = [(1, 'ABC'), (5, '$'), (9, 'xyz')]
+            >>> memory.reverse()
+            >>> memory.blocks
+            [(0, 'zyx'), (6, '$'), (8, 'CBA')]
+        """
+        blocks = self.blocks
+        endex = self.endex
+        result = []
+
+        for block in reversed(blocks):
+            block_start, block_items = block
+            block_endex = block_start + len(block_items)
+            reversed_items = block_items[::-1]
+            reversed_start = endex - block_endex
+            result.append((reversed_start, reversed_items))
+
+        if self.automerge:
+            result = merge(result, join=self.items_join)
+
+        self.blocks = result
