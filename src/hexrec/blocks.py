@@ -34,6 +34,7 @@ A `block` is ``(start, items)`` where `start` is the start address and
 """
 from .utils import do_overlap
 from .utils import makefill
+from .utils import straighten_index
 from .utils import straighten_slice
 
 
@@ -319,6 +320,46 @@ def shift(blocks, amount):
         [(0, 'ABCD'), (6, 'xyz')]
     """
     return [(start + amount, items) for start, items in blocks]
+
+
+def find(blocks, value, start=None, endex=None):
+    r"""Finds the address of a substring.
+
+    Arguments:
+        blocks (:obj:`list` of block): A fast indexable sequence of
+            non-overlapping blocks, sorted by address.
+        value (:obj:`list` of items): Substring to find.
+        start (:obj:`int`): Inclusive start of the searched range.
+            If ``None``, the global inclusive start address is considered.
+        endex (:obj:`int`): Exclusive end of the searched range.
+            If ``None``, the global exclusive end address is considered.
+
+    Returns:
+        :obj:`int`: The address of the first substring equal to `value`.
+
+    Raises:
+        ValueError: Item not found
+
+    Example:
+        >>> blocks = [(1, 'ABCD'), (7, 'xyz')]
+        >>> find(blocks, 'yz')
+        8
+        >>> find(blocks, '$', -1, 15)  #doctest: +ELLIPSIS
+        Traceback (most recent call last):
+            ...
+        ValueError: item not found
+    """
+    for address, items in blocks:
+        items_start = None if start is None else start - address
+        items_endex = None if endex is None else endex - address
+        try:
+            offset = items.index(value, items_start, items_endex)
+        except ValueError:
+            pass
+        else:
+            return address + offset
+    else:
+        raise ValueError('item not found')
 
 
 def read(blocks, start, endex, pattern=b'\0', join=b''.join):
@@ -1109,7 +1150,7 @@ class SparseItems(object):
                 of non-overlapping blocks, sorted by start address.
 
         Returns:
-            :obj:`SparseItems`: `self`.
+            :obj:`SpraseItems`: `self`.
         """
         blocks = self.blocks
 
@@ -1170,7 +1211,7 @@ class SparseItems(object):
             times (:obj:`int`): Times to repeat the sequence of items.
 
         Returns:
-            :obj:`SparseItems`: `self`.
+            :obj:`SpraseItems`: `self`.
         """
         blocks = self.blocks
         repeated = []
@@ -1211,17 +1252,15 @@ class SparseItems(object):
 
         Returns:
             :obj:`int`: The index of the first item equal to `value`.
+
+        Raises:
+            ValueError: Item not found
         """
-        for address, items in self.blocks:
-            items_start = None if start is None else start - address
-            items_endex = None if endex is None else endex - address
-            try:
-                offset = items.index(value, items_start, items_endex)
-            except ValueError:
-                continue
-            return address + offset
-        else:
-            raise ValueError('item not found')
+        length = self.endex
+        start = straighten_index(start, length)
+        endex = straighten_index(endex, length)
+        address = find(self.blocks, value, start, endex)
+        return address
 
     def count(self, value):
         r"""Counts items.
@@ -1253,6 +1292,10 @@ class SparseItems(object):
             items: Items from the given range.
 
         Note:
+            Retrieving an absolute address (`key` is :obj:`int`) actually
+            returns an :attr:`items_type` with unitary length.
+
+        Note:
             This method is not optimized for a :class:`slice` where its `step`
             is an :obj:`int` different from 1.
 
@@ -1274,7 +1317,7 @@ class SparseItems(object):
             >>> memory[3:10:'.']
             'CD.$.xy'
             >>> memory[memory.endex]
-            None
+            ''
         """
         blocks = self.blocks
 
@@ -1312,10 +1355,11 @@ class SparseItems(object):
 
             index = locate_at(blocks, key)
             if index is None:
-                return None
+                return self.items_type()
             else:
                 address, items = blocks[index]
-                return items[key - address]
+                key -= address
+                return items[key:(key + 1)]
 
     def __setitem__(self, key, value):
         r"""Writes data.
@@ -1323,7 +1367,11 @@ class SparseItems(object):
         Arguments:
             key (:obj:`slice` or :obj:`int`): Selection range or address.
             value (items): Items to write at the selection address.
-                If `value` is ``None``, the range is cleared.
+                If `value` is null, the range is cleared.
+
+        Note:
+            Setting a single item requires `value` to be of :attr:`items_type`
+            with unitary length.
 
         Note:
             This method is not optimized for a :class:`slice` where its `step`
@@ -1360,10 +1408,7 @@ class SparseItems(object):
             length = self.endex
             start, endex, step = straighten_slice(start, endex, step, length)
 
-            if value is None:
-                blocks = clear(blocks, start, endex)
-
-            else:
+            if value:
                 if step is None or step == 1:
                     length = len(value)
 
@@ -1380,17 +1425,19 @@ class SparseItems(object):
                         blocks = write(blocks, (start, value))
                 else:
                     raise NotImplementedError((start, endex, step))  # TODO
+            else:
+                blocks = clear(blocks, start, endex)
         else:
             key = key.__index__()
             if key < 0:
                 key %= self.endex
 
-            if value is None:
-                blocks = clear(blocks, key, key + 1)
-            else:
+            if value:
                 if len(value) != 1:
                     raise ValueError('not a single item')
                 blocks = write(blocks, (key, value))
+            else:
+                blocks = clear(blocks, key, key + 1)
 
         if self.automerge:
             blocks = merge(blocks, join=self.items_join)
@@ -1402,9 +1449,6 @@ class SparseItems(object):
 
         Arguments:
             key (:obj:`slice` or :obj:`int`): Deletion range or address.
-
-        Returns:
-            :obj:`SparseItems`: `self`.
 
         Note:
             This method is not optimized for a :class:`slice` with its `step`
@@ -1454,7 +1498,49 @@ class SparseItems(object):
             blocks = merge(blocks, join=self.items_join)
 
         self.blocks = blocks
-        return self
+
+    def append(self, value):
+        r"""Appends some items.
+
+        Arguments:
+            value (items): Items to append.
+
+        Note:
+            Appending a single item requires `value` to be of
+            :attr:`items_type` with unitary length.
+
+        Examples:
+            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory.append('$')
+            >>> memory.blocks
+            [(0, '$')]
+
+            >>> memory = SparseItems(items_type=list, items_join=''.join)
+            >>> memory.append(3)
+            >>> memory.blocks
+            [(0, 3)]
+        """
+        blocks = self.blocks
+        if blocks:
+            start, items = blocks[-1]
+            items = items + value
+            blocks[-1] = (start, items)
+        else:
+            blocks = [(0, value)]
+        self.blocks = blocks
+
+    def extend(self, items):
+        r"""Concatenates items.
+
+        Equivalent to ``self += items``.
+
+        Arguments:
+            value (:obj:`SparseItems` or items or :obj:`list` of block):
+                Items to append at the end of the current virtual space.
+                If instance of :class:`list`, it is interpreted as a sequence
+                of non-overlapping blocks, sorted by start address.
+        """
+        self += items
 
     @property
     def start(self):
@@ -1514,23 +1600,18 @@ class SparseItems(object):
         Arguments:
             amount (:obj:`int`): Signed amount of address shifting.
 
-        Returns:
-            :obj:`SparseItems`: `self`.
-
         See Also:
             :func:`shift`
 
         Example:
             >>> memory = SparseItems(blocks=[(5, 'ABC'), (9, 'xyz')])
-            >>> memory.shift(-2)  #doctest: +ELLIPSIS
-            <...>
+            >>> memory.shift(-2)
             >>> memory.blocks
             [(3, 'ABC'), (7, 'xyz')]
         """
         blocks = self.blocks
         blocks = shift(blocks, amount)
         self.blocks = blocks
-        return self
 
     def read(self, start, endex, pattern=None):
         r"""Selects items from a range.
@@ -1553,7 +1634,7 @@ class SparseItems(object):
         """
         return self[start:endex:pattern]
 
-    def clear(self, start, endex):
+    def clear(self, start=None, endex=None):
         r"""Clears a range.
 
         Arguments:
@@ -1564,9 +1645,6 @@ class SparseItems(object):
                 If ``None``, the global exclusive end address is considered
                 (i.e. :attr:`endex`).
 
-        Returns:
-            :obj:`SparseItems`: `self`.
-
         See Also:
             :func:`clear`
 
@@ -1574,8 +1652,6 @@ class SparseItems(object):
             >>> memory = SparseItems(items_type=str, items_join=''.join)
             >>> memory.blocks = [(5, 'ABC'), (9, 'xyz')]
             >>> memory.clear(6, 10)
-            ... #doctest: +ELLIPSIS
-            <...>
             >>> memory.blocks
             [(5, 'A'), (10, 'yz')]
         """
@@ -1586,9 +1662,8 @@ class SparseItems(object):
             blocks = merge(blocks, join=self.items_join)
 
         self.blocks = blocks
-        return self
 
-    def delete(self, start, endex):
+    def delete(self, start=None, endex=None):
         r"""Deletes a range.
 
         Arguments:
@@ -1599,9 +1674,6 @@ class SparseItems(object):
                 If ``None``, the global exclusive end address is considered
                 (i.e. :attr:`endex`).
 
-        Returns:
-            :obj:`SparseItems`: `self`.
-
         See Also:
             :func:`delete`
 
@@ -1609,25 +1681,115 @@ class SparseItems(object):
             >>> memory = SparseItems(items_type=str, items_join=''.join)
             >>> memory.blocks = [(5, 'ABC'), (9, 'xyz')]
             >>> memory.delete(6, 10)
-            ... #doctest: +ELLIPSIS
-            <...>
             >>> memory.blocks
             [(5, 'Ayz')]
         """
         del self[start:endex]
-        return self
 
-    def insert(self, block):
-        r"""Inserts a block.
+    def pop(self, address=None):
+        r"""Retrieves an item and deletes it.
+
+        Arguments:
+            address (:obj:`int`): Address of the item to remove; ``None``
+                means the last one.
+
+        Returns:
+            items: The item at `address` if existing, null otherwise.
+
+        Raises:
+            IndexError: Pop from empty blocks.
+
+        Example:
+            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory.blocks = [(5, 'ABC'), (9, 'xyz')]
+            >>> memory.pop(6)
+            'B'
+            >>> memory.blocks
+            [(5, 'AC'), (8, 'xyz')]
+            >>> memory.pop(-2)
+            'y'
+            >>> memory.blocks
+            [(5, 'AC'), (8, 'xz')]
+            >>> memory.pop()
+            'z'
+            >>> memory.blocks
+            [(5, 'AC'), (8, 'x')]
+            >>> memory.pop(7)
+            ''
+            >>> memory.blocks
+            [(5, 'AC'), (7, 'x')]
+        """
+        blocks = self.blocks
+        if not blocks:
+            raise IndexError('pop from empty blocks')
+
+        endex = self.endex
+        if address is None:
+            address = endex - 1
+        else:
+            address = address.__index__()
+
+        if address < 0:
+            address %= endex
+        index = locate_at(blocks, address)
+
+        if index is None:
+            value = self.items_type()
+        else:
+            start, items = blocks[index]
+            value = items[address - start]
+
+        blocks = delete(blocks, address, address + 1)
+
+        if self.automerge:
+            blocks = merge(blocks, join=self.items_join)
+
+        self.blocks = blocks
+        return value
+
+    def remove(self, value):  # TODO
+        r"""Removes some data.
+
+        Finds the first occurrence of `value` and deletes it.
+
+        Arguments:
+            value (items): Sequence of items to remove.
+
+        Raises:
+            ValueError: Item not found
+
+        Example:
+            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory.blocks = [(1, 'ABC'), (5, '123'), (9, 'xyz')]
+            >>> memory.remove('23')
+            >>> memory.blocks
+            [(1, 'ABC'), (5, '1'), (7, 'xyz')]
+            >>> memory.remove('y')
+            >>> memory.blocks
+            [(1, 'ABC'), (5, '1'), (7, 'xz')]
+            >>> memory.remove('$')  #doctest: +ELLIPSIS
+            Traceback (most recent call last):
+                ...
+            ValueError: item not found
+        """
+        blocks = self.blocks
+        address = find(blocks, value)
+        blocks = delete(blocks, address, address + len(value))
+
+        if self.automerge:
+            blocks = merge(blocks, join=self.items_join)
+
+        self.blocks = blocks
+
+    def insert(self, address, items):
+        r"""Inserts data.
 
         Inserts a block, moving existing items after the insertion address by
         the length of the inserted block.
 
         Arguments:
-            block (block): Block to insert.
-
-        Returns:
-            :obj:`SparseItems`: `self`.
+            address (:obj:`int`): Address of the block to insert.
+            items (items): Items of the block to insert.
 
         See Also:
             :func:`insert`
@@ -1635,29 +1797,24 @@ class SparseItems(object):
         Example:
             >>> memory = SparseItems(items_type=str, items_join=''.join)
             >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
-            >>> memory.insert((5, '123'))
-            ... #doctest: +ELLIPSIS
-            <...>
+            >>> memory.insert(5, '123')
             >>> memory.blocks
             [(1, 'ABC'), (5, '123'), (9, 'xyz')]
         """
         blocks = self.blocks
-        blocks = insert(blocks, block)
+        blocks = insert(blocks, (address, items))
 
         if self.automerge:
             blocks = merge(blocks, join=self.items_join)
 
         self.blocks = blocks
-        return self
 
-    def write(self, block):
+    def write(self, address, items):
         r"""Writes a block.
 
         Arguments:
-            block (block): Block to write.
-
-        Returns:
-            :obj:`SparseItems`: `self`.
+            address (:obj:`int`): Address of the block to write.
+            items (items): Items of the block to write.
 
         See Also:
             :func:`write`
@@ -1665,20 +1822,17 @@ class SparseItems(object):
         Example:
             >>> memory = SparseItems(items_type=str, items_join=''.join)
             >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
-            >>> memory.write((5, '123'))
-            ... #doctest: +ELLIPSIS
-            <...>
+            >>> memory.write(5, '123')
             >>> memory.blocks
             [(1, 'ABC'), (5, '123z')]
         """
         blocks = self.blocks
-        blocks = write(blocks, block)
+        blocks = write(blocks, (address, items))
 
         if self.automerge:
             blocks = merge(blocks, join=self.items_join)
 
         self.blocks = blocks
-        return self
 
     def fill(self, start=None, endex=None, pattern=None):
         r"""Fills emptiness between non-touching blocks.
@@ -1695,22 +1849,21 @@ class SparseItems(object):
             fill_only (:obj:`bool`): Returns only the filling blocks.
             join (callable): A function to join a sequence of items.
 
-        Returns:
-            :obj:`SparseItems`: `self`.
-
         See Also:
             :func:`fill`
 
         Example:
             >>> memory = SparseItems(items_type=str, items_join=''.join)
             >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
-            >>> memory.fill(pattern='123').blocks
+            >>> memory.fill(pattern='123')
+            >>> memory.blocks
             [(1, 'ABC23xyz')]
 
             >>> memory = SparseItems(items_type=str, items_join=''.join,
             ...                      autofill='123')
             >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
-            >>> memory.fill().blocks
+            >>> memory.fill()
+            >>> memory.blocks
             [(1, 'ABC23xyz')]
         """
         blocks = self.blocks
@@ -1722,13 +1875,9 @@ class SparseItems(object):
             blocks = merge(blocks, join=self.items_join)
 
         self.blocks = blocks
-        return self
 
     def merge(self):
         r"""Merges touching blocks.
-
-        Returns:
-            :obj:`SparseItems`: `self`.
 
         See Also:
             :func:`merge`
@@ -1736,10 +1885,10 @@ class SparseItems(object):
         Example:
             >>> memory = SparseItems(items_type=str, items_join=''.join)
             >>> memory.blocks = [(1, 'ABC'), (4, 'xyz')]
-            >>> memory.merge().blocks
+            >>> memory.merge()
+            >>> memory.blocks
             [(1, 'ABCxyz')]
         """
         blocks = self.blocks
         blocks = merge(blocks, join=self.items_join)
         self.blocks = blocks
-        return self
