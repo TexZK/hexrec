@@ -32,10 +32,38 @@ A `block` is ``(start, items)`` where `start` is the start address and
 :obj:`tuple`). The length of the block is ``len(items)``.
 
 """
+from .utils import chop
 from .utils import do_overlap
 from .utils import makefill
 from .utils import straighten_index
 from .utils import straighten_slice
+
+
+def chop_blocks(items, window, align_base=0, start=0):
+    r"""Chops a sequence of items into blocks.
+
+    Iterates through the vector grouping its items into windows.
+
+    Arguments:
+        items (items): Sequence of items to chop.
+        window (:obj:`int`): Window length.
+        align_base (:obj:`int`): Offset of the first window.
+        start (:obj:`int`): Start address.
+
+    Yields:
+        list: `items` slices of up to `window` elements.
+
+    Examples:
+        >>> list(chop_blocks('ABCDEFG', 2, start=10))
+        [(10, 'AB'), (12, 'CD'), (14, 'EF'), (16, 'G')]
+
+        >>> list(chop_blocks('ABCDEFG', 4, 3, 10))
+        [(13, 'A'), (14, 'BCDE'), (18, 'FG')]
+    """
+    offset = start + align_base
+    for chunk in chop(items, window, align_base):
+        yield (offset, chunk)
+        offset += len(chunk)
 
 
 def overlap(block1, block2):

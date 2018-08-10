@@ -28,14 +28,34 @@
 import enum
 import os
 import re
+import six
 import struct
 
 from .blocks import collapse
 from .blocks import merge
+from .blocks import sorting
 from .utils import chop
 from .utils import do_overlap
 from .utils import hexlify
 from .utils import unhexlify
+
+
+def get_data_records(records):
+    r"""Extracts data records.
+
+    Returns:
+        :obj:`list` of :obj:`Record`: Sequence of data records.
+
+    Example:
+        >>> from hexrec.blocks import chop_blocks
+        >>> data = bytearray(range(256))
+        >>> blocks = list(chop_blocks(data, 16))
+        >>> records = blocks_to_records(blocks, MotorolaRecord)
+        >>> all(r.is_data() for r in get_data_records(records))
+        True
+    """
+    data_records = [record for record in records if record.is_data()]
+    return data_records
 
 
 def records_to_blocks(records):
@@ -51,17 +71,25 @@ def records_to_blocks(records):
     Returns:
         :obj:`list` of block: A sequence of non-contiguous blocks, sorted by
             start address.
+
+    Example:
+        >>> from hexrec.blocks import chop_blocks, merge
+        >>> data = bytearray(range(256))
+        >>> blocks = list(chop_blocks(data, 16))
+        >>> records = blocks_to_records(blocks, MotorolaRecord)
+        >>> records_to_blocks(records) == merge(blocks)
+        True
     """
-    blocks = [(record.address, record.data)
-              for record in records
-              if record.is_data()]
-    blocks = merge(collapse(blocks))
+    blocks = [(r.address, r.data) for r in get_data_records(records)]
+    blocks = collapse(blocks)
+    blocks.sort(key=sorting)
+    blocks = merge(blocks)
     return blocks
 
 
 def blocks_to_records(blocks, record_type,
                       split_args=None, split_kwargs=None):
-    r"""Converts blocks to records
+    r"""Converts blocks to records.
 
     Arguments:
         blocks (:obj:`list` of block): A sequence of non-contiguous blocks,
@@ -72,9 +100,17 @@ def blocks_to_records(blocks, record_type,
 
     Returns:
         :obj:`list` of :obj:`Record`: Sequence of blocks split into records.
+
+    Example:
+        >>> from hexrec.blocks import chop_blocks, merge
+        >>> data = bytearray(range(256))
+        >>> blocks = list(chop_blocks(data, 16))
+        >>> records = blocks_to_records(blocks, MotorolaRecord)
+        >>> records_to_blocks(records) == merge(blocks)
+        True
     """
     split_args = split_args or ()
-    split_kwargs = split_kwargs or {}
+    split_kwargs = dict(split_kwargs or ())
     split_kwargs['standalone'] = False
     data_records = []
 
@@ -107,7 +143,23 @@ def merge_records(data_records, input_types=None, output_type=None,
         split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
 
     Returns:
-        list: A sequence of merged records.
+        :obj:`list` of :obj:`Record`: A sequence of merged records.
+
+    Example:
+        >>> from hexrec.blocks import chop_blocks, merge
+        >>> data1 = bytearray(range(0, 32))
+        >>> data2 = bytearray(range(96, 128))
+        >>> blocks1 = list(chop_blocks(data1, 16, start=0))
+        >>> blocks2 = list(chop_blocks(data2, 16, start=96))
+        >>> records1 = blocks_to_records(blocks1, MotorolaRecord)
+        >>> records2 = blocks_to_records(blocks2, IntelRecord)
+        >>> IntelRecord.readdress(records2)
+        >>> data_records1 = get_data_records(records1)
+        >>> data_records2 = get_data_records(records2)
+        >>> merged_records = merge_records([data_records1, data_records2])
+        >>> merged_blocks = records_to_blocks(merged_records)
+        >>> merged_blocks == merge(blocks1 + blocks2)
+        True
     """
     if input_types is None:
         input_types = [type(records[0]) if records else Record
@@ -118,21 +170,16 @@ def merge_records(data_records, input_types=None, output_type=None,
     if output_type is None:
         output_type = input_types[0]
 
-    input_blocks = []
-    zipped = zip(range(len(input_types)), data_records, input_types)
-    for level, records, input_type in zipped:
-        input_blocks.extend((p[0].address, input_type.flatten(p))
-                            for p in input_type.partition(records))
+    blocks = []
+    for records in data_records:
+        blocks.extend((r.address, r.data) for r in records)
 
-    merged_blocks = merge(collapse(input_blocks))
+    blocks = collapse(blocks)
+    blocks.sort(key=sorting)
+    blocks = merge(blocks)
 
-    args = split_args or ()
-    kwargs = split_kwargs or {}
-    output_records = []
-    for (start, chunk) in merged_blocks:
-        records = output_type.split(chunk, *args, start=start, **kwargs)
-        output_records.extend(records)
-
+    output_records = blocks_to_records(blocks, output_type,
+                                       split_args, split_kwargs)
     return output_records
 
 
@@ -152,7 +199,7 @@ def convert_records(records, input_type=None, output_type=None,
         split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
 
     Returns:
-        list: A sequence of merged records.
+        :obj:`list` of :obj:`Record`: A sequence of merged records.
 
     Examples:
         >>> motorola = list(MotorolaRecord.split(bytes(range(256))))
@@ -174,9 +221,7 @@ def convert_records(records, input_type=None, output_type=None,
     if output_type is None:
         output_type = input_type
 
-    records = [record for record in records if record.is_data()]
-    records.sort()
-
+    records = [r for r in records if r.is_data()]
     output_records = merge_records([records], [input_type], output_type,
                                    split_args, split_kwargs)
     return output_records
@@ -202,7 +247,7 @@ def merge_files(input_files, output_file, input_types=None, output_type=None,
 
     Example:
         >>> merge_files(['original.hex', 'patch.mot'], 'patched.tek')
-        ... # doctest +SKIP
+        ... #doctest +SKIP
 
     """
     if input_types is None:
@@ -224,9 +269,8 @@ def merge_files(input_files, output_file, input_types=None, output_type=None,
         input_type = input_types[level]
         records = input_type.load(input_files[level])
         input_type.readdress(records)
-        records = [record for record in records if record.is_data()]
-        records.sort()
-        input_records.append(records)
+        records = [r for r in records if r.is_data()]
+        input_records.extend(records)
 
     output_records = merge_records(input_records, input_types, output_type,
                                    split_args, split_kwargs)
@@ -259,7 +303,7 @@ def convert_file(input_file, output_file, input_type=None, output_type=None,
                 split_args, split_kwargs)
 
 
-def load_file(path, record_type=None):
+def load_records(path, record_type=None):
     r"""Loads records from a file.
 
     Arguments:
@@ -269,8 +313,8 @@ def load_file(path, record_type=None):
 
     Example:
         >>> records = list(MotorolaRecord.split(bytes(range(256))))
-        >>> save_file('bytes.mot', records)
-        >>> load_file('bytes.mot') == records
+        >>> save_records('bytes.mot', records)
+        >>> load_records('bytes.mot') == records
         True
     """
     if record_type is None:
@@ -280,8 +324,8 @@ def load_file(path, record_type=None):
     return records
 
 
-def save_file(path, records, record_type=None,
-              split_args=None, split_kwargs=None):
+def save_records(path, records, record_type=None,
+                 split_args=None, split_kwargs=None):
     r"""Saves records to a file.
 
     Arguments:
@@ -294,8 +338,8 @@ def save_file(path, records, record_type=None,
 
     Example:
         >>> records = list(MotorolaRecord.split(bytes(range(256))))
-        >>> save_file('bytes.mot', records)
-        >>> load_file('bytes.mot') == records
+        >>> save_records('bytes.mot', records)
+        >>> load_records('bytes.mot') == records
         True
     """
     if record_type is None:
@@ -303,7 +347,7 @@ def save_file(path, records, record_type=None,
         record_type = RECORD_TYPES[type_name]
 
     if records:
-        if not all(isinstance(record, record_type) for record in records):
+        if not all(isinstance(r, record_type) for r in records):
             records = convert_records(records, output_type=record_type,
                                       split_args=split_args,
                                       split_kwargs=split_kwargs)
@@ -313,21 +357,65 @@ def save_file(path, records, record_type=None,
     record_type.save(path, records)
 
 
-SIZE_GUARD = 64 << 20  # 64 MiB
-r"""Default :meth:`Record.flatten` size limit"""
+def load_blocks(path, record_type=None):
+    r"""Loads blocks from a file.
+
+    Arguments:
+        path (:obj:`str`): Path of the input file.
+        record_type (:class:`Record`): Explicit record type.
+            If ``None``, it is guessed from the file extension.
+
+    Example:
+        >>> blocks = [(offset, bytearray(range(offset, offset + 16)))
+        ...           for offset in range(0, 256, 16)]
+        >>> save_blocks('bytes.mot', blocks)
+        >>> load_blocks('bytes.mot') == blocks
+        True
+    """
+    if record_type is None:
+        type_name = find_record_type(path)
+        record_type = RECORD_TYPES[type_name]
+
+    records = record_type.load(path)
+    return records
 
 
-def _size_guard(start, endex):
-    fill_length = endex - start
-    if not 0 <= fill_length <= SIZE_GUARD:
-        fmt = 'Trying to fill {} bytes, which is likely too much'
-        raise RuntimeWarning(fmt.format(fill_length))
+def save_blocks(path, blocks, record_type=None,
+                split_args=None, split_kwargs=None):
+    r"""Saves blocks to a file.
+
+    Arguments:
+        path (:obj:`str`): Path of the output file.
+        records (:obj:`list` of block): Sequence of non-overlapping blocks,
+            sorted by start address.
+        record_type (:class:`Record`): Explicit record type.
+            If ``None``, it is guessed from the file extension.
+        split_args (list): Positional arguments for :meth:`Record.split`.
+        split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
+
+    Example:
+        >>> blocks = [(offset, bytearray(range(offset, offset + 16)))
+        ...           for offset in range(0, 256, 16)]
+        >>> save_blocks('bytes.mot', blocks)
+        >>> load_blocks('bytes.mot') == blocks
+        True
+    """
+    if record_type is None:
+        type_name = find_record_type(path)
+        record_type = RECORD_TYPES[type_name]
+
+    records = blocks_to_records(blocks, record_type, split_args, split_kwargs)
+    record_type.save(path, records)
 
 
 class Record(object):
     r"""Abstract record type.
 
     A record is the basic structure of a record file.
+
+    This is an abstract class, so it provides basic generic methods shared by
+    most of the :class:`Record` implementations.
+    Please refer to the actual subclass for more details.
 
     Attributes:
         address (:obj:`int`): Tells where its `data` starts in the memory
@@ -340,38 +428,31 @@ class Record(object):
         checksum (:obj:`int`): Computes the checksum as required by most
             :class:`Record` implementations.
 
-    This is an abstract class, so it provides basic generic methods shared by
-    most of the :class:`Record` implementations.
-    Please refer to the actual subclass for more details.
+    Arguments:
+        address (:obj:`int`): Record `address` field.
+        tag (:obj:`int`): Record `tag` field.
+        data (:obj:`bytes`): Record `data` field.
+        checksum (:obj:`int` or ``None`` or ``Ellipsis``): Record
+            `checksum` field. ``Ellipsis`` makes the constructor compute
+            its actual value automatically. ``None`` assigns ``None``.
+
+    Examples:
+        >>> BinaryRecord(0x1234, 0, b'Hello, World!')
+        ... #doctest: +NORMALIZE_WHITESPACE
+        BinaryRecord(address=0x00001234, tag=0, count=13,
+                     data=b'Hello, World!', checksum=0x69)
+
+        >>> MotorolaRecord(0x1234, MotorolaTag.DATA_16, b'Hello, World!')
+        ... #doctest: +NORMALIZE_WHITESPACE
+        MotorolaRecord(address=0x00001234, tag=<MotorolaTag.DATA_16: 1>,
+                       count=16, data=b'Hello, World!', checksum=0x40)
+
+        >>> IntelRecord(0x1234, IntelTag.DATA, b'Hello, World!')
+        ... #doctest: +NORMALIZE_WHITESPACE
+        IntelRecord(address=0x00001234, tag=<IntelTag.DATA: 0>, count=13,
+                    data=b'Hello, World!', checksum=0x44)
     """
-
     def __init__(self, address, tag, data, checksum=Ellipsis):
-        r"""Constructor.
-
-        Arguments:
-            address (:obj:`int`): Record `address` field.
-            tag (:obj:`int`): Record `tag` field.
-            data (:obj:`bytes`): Record `data` field.
-            checksum (:obj:`int` or ``None`` or ``Ellipsis``): Record
-                `checksum` field. ``Ellipsis`` makes the constructor compute
-                its actual value automatically. ``None`` assigns ``None``.
-
-        Examples:
-            >>> BinaryRecord(0x1234, 0, b'Hello, World!')
-            ... # doctest: +NORMALIZE_WHITESPACE
-            BinaryRecord(address=0x00001234, tag=0, count=13,
-                         data=b'Hello, World!', checksum=0x69)
-
-            >>> MotorolaRecord(0x1234, MotorolaTag.DATA_16, b'Hello, World!')
-            ... # doctest: +NORMALIZE_WHITESPACE
-            MotorolaRecord(address=0x00001234, tag=<MotorolaTag.DATA_16: 1>,
-                           count=16, data=b'Hello, World!', checksum=0x40)
-
-            >>> IntelRecord(0x1234, IntelTag.DATA, b'Hello, World!')
-            ... # doctest: +NORMALIZE_WHITESPACE
-            IntelRecord(address=0x00001234, tag=<IntelTag.DATA: 0>, count=13,
-                        data=b'Hello, World!', checksum=0x44)
-        """
         self.address = address
         self.tag = tag
         self.data = data
@@ -436,23 +517,24 @@ class Record(object):
 
         Examples:
             >>> hash(BinaryRecord(0x1234, 0, b'Hello, World!'))
-            ... # doctest: +SKIP
-            -1396369420761005263
+            ... #doctest: +SKIP
+            7668968047460943252
 
             >>> hash(MotorolaRecord(0x1234, MotorolaTag.DATA_16,
-            ...                     b'Hello, World!'))
-            ... # doctest: +SKIP
-            -1396369420761005308
+            ...                             b'Hello, World!'))
+            ... #doctest: +SKIP
+            7668968047460943265
 
-            >>> hash(IntelRecord(0x1234, IntelTag.DATA, b'Hello, World!'))
-            ... # doctest: +SKIP
-            -1396369420761005284
+            >>> hash(IntelRecord(0x1234, IntelTag.DATA,
+            ...                          b'Hello, World!'))
+            ... #doctest: +SKIP
+            7668968047460943289
         """
-        return (hash(self.address or 0) ^
-                hash(self.tag or 0) ^
-                hash(self.data or b'') ^
-                hash(self.count or 0) ^
-                hash(self.checksum or 0))
+        return (hash(int(self.address) or 0) ^
+                hash(int(self.tag) or 0) ^
+                hash(bytes(self.data) or b'') ^
+                hash(int(self.count) or 0) ^
+                hash(int(self.checksum) or 0))
 
     def __lt__(self, other):
         r"""Less-than comparison.
@@ -461,10 +543,14 @@ class Record(object):
             :obj:`bool`: `address` less than `other`'s.
 
         Examples:
-            >>> BinaryRecord(0x1234, 0, b'') < BinaryRecord(0x4321, 0, b'')
+            >>> record1 = BinaryRecord(0x1234, 0, b'')
+            >>> record2 = BinaryRecord(0x4321, 0, b'')
+            >>> record1 < record2
             True
 
-            >>> BinaryRecord(0x4321, 0, b'') < BinaryRecord(0x1234, 0, b'')
+            >>> record1 = BinaryRecord(0x4321, 0, b'')
+            >>> record2 = BinaryRecord(0x1234, 0, b'')
+            >>> record1 < record2
             False
         """
         return self.address < other.address
@@ -503,7 +589,7 @@ class Record(object):
             >>> IntelRecord(0, IntelTag.END_OF_FILE, b'').is_data()
             False
         """
-        raise NotImplementedError()
+        return self.TAG_TYPE.is_data(self.tag)
 
     def compute_count(self):
         r"""Computes the count.
@@ -643,7 +729,7 @@ class Record(object):
         Note:
             This method must be overridden.
         """
-        raise NotImplementedError()
+        raise NotImplementedError('method must be overriden')
 
     @classmethod
     def split(cls, data, *args, **kwargs):
@@ -657,7 +743,7 @@ class Record(object):
         Note:
             This method must be overridden.
         """
-        raise NotImplementedError()
+        raise NotImplementedError('method must be overriden')
 
     @classmethod
     def build_standalone(cls, data_records, *args, **kwargs):
@@ -718,100 +804,6 @@ class Record(object):
         pass
 
     @classmethod
-    def flatten(cls, data_records, start=None, endex=None, align=1,
-                fill=b'\xFF', size_guard=Ellipsis):
-        r"""Flattens records to a single chunk.
-
-        Note:
-            In case of overlapping data records, it is best to sort them by
-            address before calling this function, in order to have predictable
-            overwriting of the overlapping regions.
-
-        Arguments:
-            data_records (list): Sequence of data records to flatten.
-                Sequence generators supported if both `start` and `endex`
-                are not ``None``.
-            start (:obj:`int`): Inclusive start address of the memory window
-                to flatten. If ``None``, it is the minimum record `address`.
-            endex (:obj:`int`): Exclusive end address of the memory window to
-                flatten. If ``None``, it is the maximum record exclusive end
-                address (`address` plus `data` length).
-            align (:obj:`int`): Address alignment of the flattened bytes.
-                The flattened range (i.e. `start`:`endex`) is expanded so that
-                the resulting boundaries are aligned to it.
-            fill (:obj:`bytes`): The flattened chunk is filled with this value
-                before writing record data on it.
-            size_guard (callable): An optional function to prevent the
-                creation of a huge flattened chunk. ``None`` ignores such
-                check; ``Ellipsis`` applies the default guard (limited to
-                ``SIZE_GUARD``).
-
-        Returns:
-            :obj:`bytearray`: The flattened data records.
-        """
-        if not data_records:
-            return b''
-
-        if start is None:
-            start = min(record.address for record in data_records)
-        if endex is None:
-            endex = max(record.address + len(record.data)
-                        for record in data_records)
-        if start > endex:
-            raise ValueError('address overflow')
-        start -= start % align
-        endex += -endex % align
-
-        if size_guard is Ellipsis:
-            size_guard = _size_guard
-        if size_guard is not None:
-            size_guard(start, endex)
-
-        data = bytearray().ljust(endex - start, fill)
-
-        for record in data_records:
-            address = record.address
-            offset = address + len(record.data)
-
-            if address < endex and offset > start:
-                if address >= start and offset <= endex:
-                    data[(address - start):(offset - start)] = record.data
-                else:
-                    os = max(address, start)
-                    oex = min(offset, endex)
-                    chunk = record.data[(os - address):(oex - address)]
-                    data[(os - start):(oex - start)] = chunk
-
-        return data
-
-    @classmethod
-    def partition(cls, sorted_data_records, invalid_start=-1):
-        r"""Groups contiguous data records.
-
-        Arguments:
-            sorted_data_records (list): Sequence of sorted data records.
-                Sequence generators supported.
-            invalid_start (:obj:`int`): An address lesser than any other
-                record address in `sorted_data_records`.
-
-        Yields:
-            :obj:`list`: Sequence of contiguous data records.
-        """
-        partition = None
-        last = BinaryRecord(-1, None, b'', checksum=None)
-
-        for record in sorted_data_records:
-            if record.address > last.address + len(last.data):
-                if partition:
-                    yield partition
-                partition = [record]
-            else:
-                partition.append(record)
-            last = record
-        if partition:
-            yield partition
-
-    @classmethod
     def load(cls, path):
         r"""Loads records from a file.
 
@@ -863,18 +855,41 @@ class BinaryRecord(Record):
 
     @classmethod
     def build_data(cls, address, data):
+        r"""Builds a data record.
+
+        Example:
+            >>> BinaryRecord.build_data(0x1234, b'Hello, World!')
+            ... #doctest: +NORMALIZE_WHITESPACE
+            BinaryRecord(address=0x00001234, tag=0, count=13,
+                         data=b'Hello, World!', checksum=0x69)
+        """
         record = cls(address, 0, data)
         return record
 
     @classmethod
     def parse(cls, line):
+        r"""Parses a binary record line.
+
+        Warning:
+            Since it parses raw hex data, it is not possible to set address
+            to a value different than ``0``.
+
+        Example:
+            >>> line = '48656C6C 6F2C2057 6F726C64 21'
+            >>> BinaryRecord.parse(line)
+            ... #doctest: +NORMALIZE_WHITESPACE
+            BinaryRecord(address=0x00000000, tag=0, count=13,
+                         data=b'Hello, World!', checksum=0x69)
+        """
         line = str(line).strip()
         data = unhexlify(line)
         record = cls.build_data(0, data)
         return record
 
     @classmethod
-    def split(cls, data, address=0, columns=None, align=True):
+    def split(cls, data, address=0, columns=None, align=True,
+              standalone=True):
+
         if not 0 <= address < (1 << 32):
             raise ValueError('address overflow')
         if not 0 <= address + len(data) <= (1 << 32):
@@ -883,7 +898,7 @@ class BinaryRecord(Record):
         if columns is None:
             yield cls.build_data(address, data)
         else:
-            align_base = address if align else None
+            align_base = (address % columns) if align else 0
             for chunk in chop(data, columns, align_base):
                 yield cls.build_data(address, chunk)
                 address += len(chunk)
@@ -981,9 +996,6 @@ class MotorolaRecord(Record):
         if self.count != self.compute_count():
             raise RuntimeError('count error')
 
-    def is_data(self):
-        return int(self.tag) in (1, 2, 3)
-
     @classmethod
     def fit_data_tag(cls, endex):
         if endex < (1 << 16):
@@ -1051,6 +1063,30 @@ class MotorolaRecord(Record):
         return record
 
     @classmethod
+    def build_standalone(cls, data_records, start=None, tag=None,
+                         header_data=None):
+        address = 0
+        count = 0
+        if tag is None:
+            tag = max(record.tag for record in data_records)
+
+        if header_data is not None:
+            yield cls.build_header(header_data)
+            count += 1
+
+        for record in data_records:
+            yield record
+            count += 1
+            address = max(address, record.address + len(record.data))
+            tag = max(tag, record.tag)
+
+        yield cls.build_count(count)
+
+        if start is None:
+            start = min(record.address for record in data_records)
+        yield cls.build_terminator(start, tag)
+
+    @classmethod
     def check_sequence(cls, records):
         Record.check_sequence(records)
 
@@ -1110,7 +1146,7 @@ class MotorolaRecord(Record):
         if standalone and header_data is not None:
             yield cls.build_header(header_data)
 
-        skip = address if align else None
+        skip = (address % columns) if align else 0
         for chunk in chop(data, columns, skip):
             yield cls.build_data(address, chunk, tag)
             count += 1
@@ -1144,27 +1180,6 @@ class MotorolaRecord(Record):
             elif record.is_data():
                 record.tag = tag
                 record.update_checksum()
-
-    @classmethod
-    def build_standalone(cls, data_records, start=None, tag=None,
-                         header_data=None):
-        address = 0
-        count = 0
-        if tag is None:
-            tag = max(record.tag for record in data_records)
-
-        if header_data is not None:
-            yield cls.build_header(header_data)
-            count += 1
-
-        for record in data_records:
-            yield record
-            count += 1
-            address = max(address, record.address + len(record.data))
-            tag = max(tag, record.tag)
-
-        yield cls.build_count(count)
-        yield cls.build_terminator(start, tag)
 
 
 @enum.unique
@@ -1232,9 +1247,6 @@ class IntelRecord(Record):
 
         self.TAG_TYPE(self.tag)
         # TODO: check values
-
-    def is_data(self):
-        return self.tag == self.TAG_TYPE.DATA
 
     @classmethod
     def build_data(cls, address, data):
@@ -1312,7 +1324,7 @@ class IntelRecord(Record):
 
         if start is None:
             start = address
-        align_base = address if align else None
+        align_base = (address % columns) if align else 0
         address_old = 0
 
         for chunk in chop(data, columns, align_base):
@@ -1350,6 +1362,8 @@ class IntelRecord(Record):
         for record in data_records:
             yield record
 
+        if start is None:
+            start = min(record.address for record in data_records)
         for record in cls.terminate(start):
                 yield record
 
@@ -1381,14 +1395,14 @@ class IntelRecord(Record):
             ...     IntelRecord.build_extended_linear_address(0x76540000),
             ...     IntelRecord.build_data(0x00003210, b'Hello, World!'),
             ... ]
-            >>> records  # doctest: +NORMALIZE_WHITESPACE
+            >>> records  #doctest: +NORMALIZE_WHITESPACE
             [IntelRecord(address=0x00000000,
                          tag=<IntelTag.EXTENDED_LINEAR_ADDRESS: 4>, count=2,
                          data=b'vT', checksum=0x30),
              IntelRecord(address=0x00003210, tag=<IntelTag.DATA: 0>, count=13,
                          data=b'Hello, World!', checksum=0x48)]
             >>> IntelRecord.readdress(records)
-            >>> records  # doctest: +NORMALIZE_WHITESPACE
+            >>> records  #doctest: +NORMALIZE_WHITESPACE
             [IntelRecord(address=0x76540000,
                          tag=<IntelTag.EXTENDED_LINEAR_ADDRESS: 4>, count=2,
                          data=b'vT', checksum=0x30),
@@ -1465,9 +1479,6 @@ class TektronixRecord(Record):
         if self.count != self.compute_count():
             raise RuntimeError('count error')
 
-    def is_data(self):
-        return self.tag == self.TAG_TYPE.DATA
-
     @classmethod
     def parse(cls, line):
         line = str(line).strip()
@@ -1485,26 +1496,6 @@ class TektronixRecord(Record):
         assert count == 9 + (len(data) * 2)
         record = cls(address, tag, data, checksum)
         return record
-
-    @classmethod
-    def check_sequence(cls, records):
-        Record.check_sequence(records)
-
-        if len(records) < 1:
-            raise ValueError('missing terminator')
-
-        for i in range(len(records) - 1):
-            record = records[i]
-            record.check()
-            if record.tag != cls.TAG_TYPE.DATA:
-                raise ValueError('tag error')
-
-        record = records[-1]
-        record.check()
-        if record.tag != cls.TAG_TYPE.TERMINATOR:
-            raise ValueError('missing terminator')
-        if record.data:
-            raise ValueError('data error')
 
     @classmethod
     def build_data(cls, address, data):
@@ -1527,7 +1518,7 @@ class TektronixRecord(Record):
         if columns > 128:
             raise ValueError('too many columns')
 
-        align_base = address if align else None
+        align_base = (address % columns) if align else 0
         for chunk in chop(data, columns, align_base):
             yield cls.build_data(address, chunk)
             address += len(chunk)
@@ -1542,6 +1533,26 @@ class TektronixRecord(Record):
 
         yield cls.build_terminator(start)
 
+    @classmethod
+    def check_sequence(cls, records):
+        Record.check_sequence(records)
+
+        if len(records) < 1:
+            raise ValueError('missing terminator')
+
+        for i in range(len(records) - 1):
+            record = records[i]
+            record.check()
+            if record.tag != cls.TAG_TYPE.DATA:
+                raise ValueError('tag error')
+
+        record = records[-1]
+        record.check()
+        if record.tag != cls.TAG_TYPE.TERMINATOR:
+            raise ValueError('missing terminator')
+        if record.data:
+            raise ValueError('data error')
+
 
 RECORD_TYPES = {
     'motorola': MotorolaRecord,
@@ -1553,8 +1564,8 @@ RECORD_TYPES = {
 
 def find_record_type(file_path):
     ext = os.path.splitext(file_path)[1].lower()
-    for name, record_type in RECORD_TYPES.items():
+    for name, record_type in six.iteritems(RECORD_TYPES):
         if ext in record_type.EXTENSIONS:
             return name
     else:
-        raise KeyError('unsupported extension')
+        raise KeyError('unsupported extension: ' + ext)

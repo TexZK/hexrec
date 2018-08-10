@@ -53,6 +53,17 @@ def test_build_blocks(blocks):
 
 # ============================================================================
 
+def test_chop_blocks_doctest():
+    ans_out = list(chop_blocks('ABCDEFG', 2, start=10))
+    ans_ref = [(10, 'AB'), (12, 'CD'), (14, 'EF'), (16, 'G')]
+    assert ans_out == ans_ref
+
+    ans_out = list(chop_blocks('ABCDEFG', 4, 3, 10))
+    ans_ref= [(13, 'A'), (14, 'BCDE'), (18, 'FG')]
+    assert ans_out == ans_ref
+
+# ============================================================================
+
 def test_overlap_doctest():
     assert overlap((1, 'ABCD'), (5, 'xyz')) == False
     assert overlap((1, 'ABCD'), (3, 'xyz')) == True
