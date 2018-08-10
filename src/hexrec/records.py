@@ -28,8 +28,9 @@
 import enum
 import os
 import re
-import six
 import struct
+
+import six
 
 from .blocks import collapse
 from .blocks import merge
@@ -40,6 +41,23 @@ from .utils import hexlify
 from .utils import unhexlify
 
 
+def sum_bytes(data):
+    r"""Sums bytes.
+
+    Supports both Python 2.7 and Python 3.
+
+    Arguments:
+        data (:obj:`bytes`): Data bytes.
+
+    Returns:
+        :obj:`int`: The sum of all bytes in `data`.
+    """
+    if isinstance(data, str):
+        return sum(ord(c) for c in data)
+    else:
+        return sum(data)
+
+
 def get_data_records(records):
     r"""Extracts data records.
 
@@ -48,7 +66,7 @@ def get_data_records(records):
 
     Example:
         >>> from hexrec.blocks import chop_blocks
-        >>> data = bytearray(range(256))
+        >>> data = bytes(bytearray(range(256)))
         >>> blocks = list(chop_blocks(data, 16))
         >>> records = blocks_to_records(blocks, MotorolaRecord)
         >>> all(r.is_data() for r in get_data_records(records))
@@ -74,7 +92,7 @@ def records_to_blocks(records):
 
     Example:
         >>> from hexrec.blocks import chop_blocks, merge
-        >>> data = bytearray(range(256))
+        >>> data = bytes(bytearray(range(256)))
         >>> blocks = list(chop_blocks(data, 16))
         >>> records = blocks_to_records(blocks, MotorolaRecord)
         >>> records_to_blocks(records) == merge(blocks)
@@ -103,7 +121,7 @@ def blocks_to_records(blocks, record_type,
 
     Example:
         >>> from hexrec.blocks import chop_blocks, merge
-        >>> data = bytearray(range(256))
+        >>> data = bytes(bytearray(range(256)))
         >>> blocks = list(chop_blocks(data, 16))
         >>> records = blocks_to_records(blocks, MotorolaRecord)
         >>> records_to_blocks(records) == merge(blocks)
@@ -147,8 +165,8 @@ def merge_records(data_records, input_types=None, output_type=None,
 
     Example:
         >>> from hexrec.blocks import chop_blocks, merge
-        >>> data1 = bytearray(range(0, 32))
-        >>> data2 = bytearray(range(96, 128))
+        >>> data1 = bytes(bytearray(range(0, 32)))
+        >>> data2 = bytes(bytearray(range(96, 128)))
         >>> blocks1 = list(chop_blocks(data1, 16, start=0))
         >>> blocks2 = list(chop_blocks(data2, 16, start=96))
         >>> records1 = blocks_to_records(blocks1, MotorolaRecord)
@@ -366,7 +384,7 @@ def load_blocks(path, record_type=None):
             If ``None``, it is guessed from the file extension.
 
     Example:
-        >>> blocks = [(offset, bytearray(range(offset, offset + 16)))
+        >>> blocks = [(offset, bytes(bytearray(range(offset, offset + 16))))
         ...           for offset in range(0, 256, 16)]
         >>> save_blocks('bytes.mot', blocks)
         >>> load_blocks('bytes.mot') == blocks
@@ -394,7 +412,7 @@ def save_blocks(path, blocks, record_type=None,
         split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
 
     Example:
-        >>> blocks = [(offset, bytearray(range(offset, offset + 16)))
+        >>> blocks = [(offset, bytes(bytearray(range(offset, offset + 16))))
         ...           for offset in range(0, 256, 16)]
         >>> save_blocks('bytes.mot', blocks)
         >>> load_blocks('bytes.mot') == blocks
@@ -651,7 +669,7 @@ class Record(object):
             >>> hex(record.compute_checksum())
             '0x8a'
         """
-        return sum(self.data) & 0xFF
+        return sum_bytes(self.data) & 0xFF
 
     def update_checksum(self):
         r"""Updates the `checksum` field via :meth:`compute_count`."""
@@ -844,7 +862,7 @@ class BinaryRecord(Record):
     EXTENSIONS = ('.bin', '.dat', '.raw')
 
     def __init__(self, address, tag, data, checksum=Ellipsis):
-        super().__init__(address, 0, data, checksum)
+        super(BinaryRecord, self).__init__(address, 0, data, checksum)
 
     def __str__(self):
         text = hexlify(self.data)
@@ -947,7 +965,8 @@ class MotorolaRecord(Record):
     EXTENSIONS = ('.mot', '.s19', '.s28', '.s37', '.srec', '.exo')
 
     def __init__(self, address, tag, data, checksum=Ellipsis):
-        super().__init__(address, self.TAG_TYPE(tag), data, checksum)
+        super(MotorolaRecord, self).__init__(address, self.TAG_TYPE(tag),
+                                             data, checksum)
 
     def __str__(self):
         self.check()
@@ -959,7 +978,7 @@ class MotorolaRecord(Record):
             count_text = '{:02X}'.format(len(self.data) + 1)
         else:
             count_text = '{:02X}'.format(address_length + len(self.data) + 1)
-            address_text = hexlify(self.address.to_bytes(address_length, 'big'))
+            address_text = '{:08X}'.format(self.address)[2 * (4 - address_length):]
 
         data_text = hexlify(self.data)
 
@@ -978,13 +997,13 @@ class MotorolaRecord(Record):
         return address_length + len(self.data) + 1
 
     def compute_checksum(self):
-        checksum = sum(struct.pack('BL', self.count, self.address))
-        checksum += sum(self.data)
+        checksum = sum_bytes(struct.pack('BL', self.count, self.address))
+        checksum += sum_bytes(self.data)
         checksum = (checksum & 0xFF) ^ 0xFF
         return checksum
 
     def check(self):
-        super().check()
+        super(MotorolaRecord, self).check()
 
         tag = int(self.TAG_TYPE(self.tag))
         if not 0 <= tag <= 9:
@@ -1041,7 +1060,7 @@ class MotorolaRecord(Record):
     def build_count(cls, count):
         if not 0 <= count < (1 << 24):
             raise ValueError('count error')
-        count_record = cls(0, 6, count.to_bytes(3, 'big'))
+        count_record = cls(0, 6, struct.pack('>L', count)[1:])
         return count_record
 
     @classmethod
@@ -1173,7 +1192,7 @@ class MotorolaRecord(Record):
             elif record.tag == 5:
                 if count >= (1 << 16):
                     record.tag = cls.TAG_TYPE.COUNT_24
-                    record.data = count.to_bytes(3, 'big')
+                    record.data = struct.pack('>L', count)[1:]
                     record.update_count()
                     record.update_checksum()
 
@@ -1213,7 +1232,8 @@ class IntelRecord(Record):
             raise ValueError('address overflow')
         if not 0 <= address + len(data) <= (1 << 32):
             raise ValueError('size overflow')
-        super().__init__(address, self.TAG_TYPE(tag), data, checksum)
+        super(IntelRecord, self).__init__(address, self.TAG_TYPE(tag),
+                                          data, checksum)
 
     def __str__(self):
         self.check()
@@ -1232,15 +1252,15 @@ class IntelRecord(Record):
         offset = (self.address or 0) & 0xFFFF
 
         checksum = (self.count +
-                    sum(struct.pack('H', offset)) +
+                    sum_bytes(struct.pack('H', offset)) +
                     self.tag +
-                    sum(self.data))
+                    sum_bytes(self.data))
 
         checksum = (0x100 - int(checksum & 0xFF)) & 0xFF
         return checksum
 
     def check(self):
-        super().check()
+        super(IntelRecord, self).check()
 
         if self.count != self.compute_count():
             raise RuntimeError('count error')
@@ -1450,7 +1470,8 @@ class TektronixRecord(Record):
     EXTENSIONS = ('.tek',)
 
     def __init__(self, address, tag, data, checksum=Ellipsis):
-        super().__init__(address, self.TAG_TYPE(tag), data, checksum)
+        super(TektronixRecord, self).__init__(address, self.TAG_TYPE(tag),
+                                              data, checksum)
 
     def __str__(self):
         self.check()
@@ -1468,11 +1489,11 @@ class TektronixRecord(Record):
         fmt = '{0.count:02X}{0.tag:01X}8{0.address:08X}'
         text = fmt.format(self)
         text += hexlify(self.data)
-        checksum = sum(int(c, 16) for c in text) & 0xFF
+        checksum = sum_bytes(int(c, 16) for c in text) & 0xFF
         return checksum
 
     def check(self):
-        super().check()
+        super(TektronixRecord, self).check()
         tag = self.TAG_TYPE(self.tag)
         if tag == 8 and self.data:
             raise RuntimeError('invalid data')

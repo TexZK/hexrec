@@ -7,9 +7,18 @@ from hexrec.records import *
 
 # ============================================================================
 
+# Quick and dirty fix for string prefixes
+@pytest.mark.skip(reason='depends on the Python version')
+def str_bytes_quickfix(text):
+    if six.PY2:
+        text = text.replace("='", "=b'")
+        text = text.replace("=u'", "='")
+    return text
+
+# ============================================================================
+
 def normalize_whitespace(text):
-    normalized = ' '.join(text.split())
-    return normalized
+    return ' '.join(text.split())
 
 
 def test_normalize_whitespace():
@@ -20,7 +29,7 @@ def test_normalize_whitespace():
 # ============================================================================
 
 def test_get_data_records_doctest():
-    data = bytearray(range(256))
+    data = bytes(bytearray(range(256)))
     blocks = list(chop_blocks(data, 16))
     records = blocks_to_records(blocks, MotorolaRecord)
     assert all(r.is_data() for r in get_data_records(records))
@@ -28,7 +37,7 @@ def test_get_data_records_doctest():
 # ============================================================================
 
 def test_records_to_blocks_doctest():
-    data = bytearray(range(256))
+    data = bytes(bytearray(range(256)))
     blocks = list(chop_blocks(data, 16))
     records = blocks_to_records(blocks, MotorolaRecord)
     ans_ref = merge(blocks)
@@ -38,7 +47,7 @@ def test_records_to_blocks_doctest():
 # ============================================================================
 
 def test_blocks_to_records_doctest():
-    data = bytearray(range(256))
+    data = bytes(bytearray(range(256)))
     blocks = list(chop_blocks(data, 16))
     records = blocks_to_records(blocks, MotorolaRecord)
     ans_ref = merge(blocks)
@@ -48,8 +57,8 @@ def test_blocks_to_records_doctest():
 # ============================================================================
 
 def test_merge_records_doctest():
-    data1 = bytearray(range(0, 32))
-    data2 = bytearray(range(96, 128))
+    data1 = bytes(bytearray(range(0, 32)))
+    data2 = bytes(bytearray(range(96, 128)))
     blocks1 = list(chop_blocks(data1, 16, start=0))
     blocks2 = list(chop_blocks(data2, 16, start=96))
     records1 = blocks_to_records(blocks1, MotorolaRecord)
@@ -112,7 +121,7 @@ class TestRecord(object):
 
     def test___init___doctest(self):
         r = BinaryRecord(0x1234, 0, b'Hello, World!')
-        ans_out = normalize_whitespace(repr(r))
+        ans_out = str_bytes_quickfix(normalize_whitespace(repr(r)))
         ans_ref = normalize_whitespace('''
         BinaryRecord(address=0x00001234, tag=0, count=13,
                      data=b'Hello, World!', checksum=0x69)
@@ -120,7 +129,7 @@ class TestRecord(object):
         assert ans_out == ans_ref
 
         r = MotorolaRecord(0x1234, MotorolaTag.DATA_16, b'Hello, World!')
-        ans_out = normalize_whitespace(repr(r))
+        ans_out = str_bytes_quickfix(normalize_whitespace(repr(r)))
         ans_ref = normalize_whitespace('''
         MotorolaRecord(address=0x00001234, tag=<MotorolaTag.DATA_16: 1>,
                        count=16, data=b'Hello, World!', checksum=0x40)
@@ -128,7 +137,7 @@ class TestRecord(object):
         assert ans_out == ans_ref
 
         r = IntelRecord(0x1234, IntelTag.DATA, b'Hello, World!')
-        ans_out = normalize_whitespace(repr(r))
+        ans_out = str_bytes_quickfix(normalize_whitespace(repr(r)))
         ans_ref = normalize_whitespace('''
         IntelRecord(address=0x00001234, tag=<IntelTag.DATA: 0>, count=13,
                     data=b'Hello, World!', checksum=0x44)
@@ -295,7 +304,7 @@ class TestRecord(object):
             Record.split(b'')
 
     def test_build_standalone(self):
-        data = bytearray(range(256))
+        data = bytes(bytearray(range(256)))
         blocks = list(chop_blocks(data, 16))
         records = blocks_to_records(blocks, BinaryRecord)
         data_records = get_data_records(records)
@@ -329,7 +338,7 @@ class TestBinaryRecord(object):
 
     def test_build_data_doctest(self):
         record = BinaryRecord.build_data(0x1234, b'Hello, World!')
-        ans_out = normalize_whitespace(repr(record))
+        ans_out = str_bytes_quickfix(normalize_whitespace(repr(record)))
         ans_ref = normalize_whitespace('''
         BinaryRecord(address=0x00001234, tag=0, count=13,
                      data=b'Hello, World!', checksum=0x69)
@@ -339,7 +348,7 @@ class TestBinaryRecord(object):
     def test_parse_doctest(self):
         line = '48656C6C 6F2C2057 6F726C64 21'
         record = BinaryRecord.parse(line)
-        ans_out = normalize_whitespace(repr(record))
+        ans_out = str_bytes_quickfix(normalize_whitespace(repr(record)))
         ans_ref = normalize_whitespace('''
         BinaryRecord(address=0x00000000, tag=0, count=13,
                      data=b'Hello, World!', checksum=0x69)
