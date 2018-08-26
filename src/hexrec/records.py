@@ -906,7 +906,24 @@ class BinaryRecord(Record):
     @classmethod
     def split(cls, data, address=0, columns=None, align=True,
               standalone=True):
+        r"""Splits a chunk of data into records.
 
+        Arguments:
+            data (:obj:`bytes`): Byte data to split.
+            address (:obj:`int`): Start address of the first data record being
+                split.
+            columns (:obj:`int`): Maximum number of columns per data record.
+                If ``None``, the whole `data` is put into a single record.
+            align (:obj:`int`): Byte Alignment of record start addresses.
+            standalone (:obj:`bool`): Generates a sequence of records that can
+                be saved as a standlone record file.
+
+        Yields:
+            :obj:`MotorolaRecord`: Data split into records.
+
+        Raises:
+            ValueError: Address or size overflow.
+        """
         if not 0 <= address < (1 << 32):
             raise ValueError('address overflow')
         if not 0 <= address + len(data) <= (1 << 32):
@@ -979,7 +996,7 @@ class MotorolaRecord(Record):
     r"""Motorola S-record.
 
     See:
-        https://en.wikipedia.org/wiki/SREC_(file_format)
+        `<https://en.wikipedia.org/wiki/SREC_(file_format)>`_
     """
 
     TAG_TYPE = MotorolaTag
@@ -1011,7 +1028,8 @@ class MotorolaRecord(Record):
             count_text = '{:02X}'.format(len(self.data) + 1)
         else:
             count_text = '{:02X}'.format(address_length + len(self.data) + 1)
-            address_text = '{:08X}'.format(self.address)[2 * (4 - address_length):]
+            offset = 2 * (4 - address_length)
+            address_text = '{:08X}'.format(self.address)[offset:]
 
         data_text = hexlify(self.data)
 
@@ -1088,13 +1106,13 @@ class MotorolaRecord(Record):
             raise ValueError('address overflow')
 
         elif endex <= (1 << 16):
-            return MotorolaTag.DATA_16
+            return cls.TAG_TYPE.DATA_16
 
         elif endex <= (1 << 24):
-            return MotorolaTag.DATA_24
+            return cls.TAG_TYPE.DATA_24
 
         else:
-            return MotorolaTag.DATA_32
+            return cls.TAG_TYPE.DATA_32
 
     @classmethod
     def fit_count_tag(cls, record_count):
@@ -1127,10 +1145,10 @@ class MotorolaRecord(Record):
             raise ValueError('count overflow')
 
         elif record_count < (1 << 16):
-            return MotorolaTag.COUNT_16
+            return cls.TAG_TYPE.COUNT_16
 
         elif record_count < (1 << 24):
-            return MotorolaTag.COUNT_24
+            return cls.TAG_TYPE.COUNT_24
 
     @classmethod
     def build_header(cls, data):
@@ -1144,7 +1162,7 @@ class MotorolaRecord(Record):
 
         Example:
             >>> str(MotorolaRecord.build_header(b'Hello, World!'))
-            S010000048656C6C6F2C20576F726C642186
+            'S010000048656C6C6F2C20576F726C642186'
         """
         return cls(0, 0, data)
 
@@ -1153,31 +1171,32 @@ class MotorolaRecord(Record):
         r"""Builds a data record.
 
         Arguments:
-            data (:obj:`bytes`): Header string data.
+            address (:obj:`int`): Record start address.
+            data (:obj:`bytes`): Some program data.
             tag (:obj:`MotorolaTag`): Data tag record.
                 If ``None``, automatically selects the fitting one.
 
         Returns:
-            :obj:`MotorolaRecord`: Header record.
+            :obj:`MotorolaRecord`: Data record.
 
         Raises:
             ValueError: Tag error.
 
         Examples:
             >>> str(MotorolaRecord.build_data(0x1234, b'Hello, World!'))
-            S110123448656C6C6F2C20576F726C642140
+            'S110123448656C6C6F2C20576F726C642140'
 
             >>> str(MotorolaRecord.build_data(0x1234, b'Hello, World!',
             ...                               tag=MotorolaTag.DATA_16))
-            S110123448656C6C6F2C20576F726C642140
+            'S110123448656C6C6F2C20576F726C642140'
 
-            >>> str(MotorolaRecord.build_data(0x1234, b'Hello, World!',
+            >>> str(MotorolaRecord.build_data(0x123456, b'Hello, World!',
             ...                               tag=MotorolaTag.DATA_24))
-            S21100123448656C6C6F2C20576F726C64213F
+            'S21112345648656C6C6F2C20576F726C6421E9'
 
-            >>> str(MotorolaRecord.build_data(0x1234, b'Hello, World!',
+            >>> str(MotorolaRecord.build_data(0x12345678, b'Hello, World!',
             ...                               tag=MotorolaTag.DATA_32))
-            S3120000123448656C6C6F2C20576F726C64213E
+            'S3121234567848656C6C6F2C20576F726C642170'
         """
         if tag is None:
             tag = cls.fit_data_tag(address + len(data))
@@ -1201,19 +1220,19 @@ class MotorolaRecord(Record):
 
         Examples:
             >>> str(MotorolaRecord.build_terminator(0x1234))
-            S9031234B6
+            'S9031234B6'
 
             >>> str(MotorolaRecord.build_terminator(0x1234,
             ...                                     MotorolaTag.DATA_16))
-            S9031234B6
+            'S9031234B6'
 
-            >>> str(MotorolaRecord.build_terminator(0x1234,
+            >>> str(MotorolaRecord.build_terminator(0x123456,
             ...                                     MotorolaTag.DATA_24))
-            S804001234B5
+            'S8041234565F'
 
-            >>> str(MotorolaRecord.build_terminator(0x1234,
+            >>> str(MotorolaRecord.build_terminator(0x12345678,
             ...                                     MotorolaTag.DATA_32))
-            S70500001234B4
+            'S70512345678E6'
         """
         tag_index = cls.MATCHING_TAG.index(int(last_data_tag))
         terminator_record = cls(start, tag_index, b'')
@@ -1234,10 +1253,10 @@ class MotorolaRecord(Record):
 
         Examples:
              >>> str(MotorolaRecord.build_count(0x1234))
-             S5031234B6
+             'S5031234B6'
 
              >>> str(MotorolaRecord.build_count(0x123456))
-             S6041234565F
+             'S6041234565F'
         """
         tag = cls.fit_count_tag(record_count)
         count_data = struct.pack('>L', record_count)
@@ -1265,6 +1284,20 @@ class MotorolaRecord(Record):
     @classmethod
     def build_standalone(cls, data_records, start=None, tag=None,
                          header_data=None):
+        r"""Makes a sequence of data records standalone.
+
+        Arguments:
+            data_records (:obj:`list` of :class:`Record`): A sequence of data
+                records.
+            start (:obj:`int`): Program start address.
+                If ``None``, it is assigned the minimum data record address.
+            tag (:obj:`MotorolaTag`): Data tag record.
+                If ``None``, automatically selects the fitting one.
+            header_data (:obj:`bytes`): Header string data.
+
+        Yields:
+            :obj:`Record`: Records for a standalone record file.
+        """
         address = 0
         count = 0
         if tag is None:
@@ -1329,7 +1362,30 @@ class MotorolaRecord(Record):
     @classmethod
     def split(cls, data, address=0, columns=16, align=True,
               standalone=True, start=None, tag=None, header_data=None):
+        r"""Splits a chunk of data into records.
 
+        Arguments:
+            data (:obj:`bytes`): Byte data to split.
+            address (:obj:`int`): Start address of the first data record being
+                split.
+            columns (:obj:`int`): Maximum number of columns per data record.
+                If ``None``, the whole `data` is put into a single record.
+                Maximum of 128 columns.
+            align (:obj:`bool`): Aligns record addresses to the column length.
+            standalone (:obj:`bool`): Generates a sequence of records that can
+                be saved as a standlone record file.
+            start (:obj:`int`): Program start address.
+                If ``None``, it is assigned the minimum data record address.
+            tag (:obj:`MotorolaTag`): Data tag record.
+                If ``None``, automatically selects the fitting one.
+            header_data (:obj:`bytes`): Header string data.
+
+        Yields:
+            :obj:`MotorolaRecord`: Data split into records.
+
+        Raises:
+            ValueError: Address, size, or column overflow.
+        """
         if not 0 <= address < (1 << 32):
             raise ValueError('address overflow')
         if not 0 <= address + len(data) <= (1 << 32):
@@ -1358,10 +1414,21 @@ class MotorolaRecord(Record):
 
     @classmethod
     def fix_tags(cls, records):
+        r"""Fix record tags.
+
+        Updates record tags to reflect modified size and count.
+        All the checksums are updated too.
+        Operates in-place.
+
+        Arguments:
+            records (:obj:`list` of :obj:`MotorolaRecord`): A sequence of
+                records. Must be in-ine mutable.
+        """
         max_address = max(record.address + len(record.data)
                           for record in records)
         tag = cls.TAG_TYPE(cls.fit_data_tag(max_address))
         count = len(records)
+        COUNT_16 = cls.TAG_TYPE.COUNT_16
 
         for record in records:
             matching_tag = cls.MATCHING_TAG[record.tag]
@@ -1370,7 +1437,7 @@ class MotorolaRecord(Record):
                 record.tag = cls.TAG_TYPE(matching_tag)
                 record.update_checksum()
 
-            elif record.tag == 5:
+            elif record.tag == COUNT_16:
                 if count >= (1 << 16):
                     record.tag = cls.TAG_TYPE.COUNT_24
                     record.data = struct.pack('>L', count)[1:]
@@ -1411,16 +1478,24 @@ class IntelTag(enum.IntEnum):
 
 
 class IntelRecord(Record):
+    r"""Intel HEX record.
+
+    See:
+        `<https://en.wikipedia.org/wiki/Intel_HEX>`_
+    """
 
     TAG_TYPE = IntelTag
+    """Associated Python class for tags."""
 
     REGEX = re.compile(r'^:(?P<count>[0-9A-Fa-f]{2})'
                        r'(?P<offset>[0-9A-Fa-f]{4})'
                        r'(?P<tag>[0-9A-Fa-f]{2})'
                        r'(?P<data>([0-9A-Fa-f]{2}){,255})'
                        r'(?P<checksum>[0-9A-Fa-f]{2})$')
+    """Regular expression for parsing a record text line."""
 
     EXTENSIONS = ('.hex', '.ihex', '.mcs')
+    """Automatically supported file extensions."""
 
     def __init__(self, address, tag, data, checksum=Ellipsis):
         if not 0 <= address < (1 << 32):
@@ -1465,20 +1540,58 @@ class IntelRecord(Record):
 
     @classmethod
     def build_data(cls, address, data):
+        r"""Builds a data record.
+
+        Arguments:
+            address (:obj:`int`): Record start address.
+            data (:obj:`bytes`): Some program data.
+
+        Returns:
+            :obj:`IntelRecord`: Data record.
+
+        Example:
+            >>> str(IntelRecord.build_data(0x1234, b'Hello, World!'))
+            ':0D12340048656C6C6F2C20576F726C642144'
+        """
         record = cls(address, cls.TAG_TYPE.DATA, data)
         return record
 
     @classmethod
     def build_extended_segment_address(cls, address):
+        r"""Builds an extended segment address record.
+
+        Arguments:
+            address (:obj:`int`): Extended segment address.
+                The 20 least significant bits are ignored.
+
+        Returns:
+            :obj:`IntelRecord`: Extended segment address record.
+
+        Example:
+            >>> str(IntelRecord.build_extended_segment_address(0x12345678))
+            ':020000020123D8'
+        """
         if not 0 <= address < (1 << 32):
             raise ValueError('address overflow')
-        segment = address >> 4
+        segment = address >> (16 + 4)
         tag = cls.TAG_TYPE.EXTENDED_SEGMENT_ADDRESS
         record = cls(0, tag, struct.pack('>H', segment))
         return record
 
     @classmethod
     def build_start_segment_address(cls, address):
+        r"""Builds an start segment address record.
+
+        Arguments:
+            address (:obj:`int`): Start segment address.
+
+        Returns:
+            :obj:`IntelRecord`: Start segment address record.
+
+        Example:
+            >>> str(IntelRecord.build_start_segment_address(0x12345678))
+            ':0400000312345678E5'
+        """
         if not 0 <= address < (1 << 32):
             raise ValueError('address overflow')
         tag = cls.TAG_TYPE.START_SEGMENT_ADDRESS
@@ -1487,11 +1600,33 @@ class IntelRecord(Record):
 
     @classmethod
     def build_end_of_file(cls):
+        r"""Builds an end-of-file record.
+
+        Returns:
+            :obj:`IntelRecord`: End-of-file record.
+
+        Example:
+            >>> str(IntelRecord.build_end_of_file())
+            ':00000001FF'
+        """
         tag = cls.TAG_TYPE.END_OF_FILE
         return cls(0, tag, b'')
 
     @classmethod
     def build_extended_linear_address(cls, address):
+        r"""Builds an extended linear address record.
+
+        Arguments:
+            address (:obj:`int`): Extended linear address.
+            The 16 least significant bits are ignored.
+
+        Returns:
+            :obj:`IntelRecord`: Extended linear address record.
+
+        Example:
+            >>> str(IntelRecord.build_extended_linear_address(0x12345678))
+            ':020000041234B4'
+        """
         if not 0 <= address < (1 << 32):
             raise ValueError('address overflow')
         segment = address >> 16
@@ -1501,6 +1636,18 @@ class IntelRecord(Record):
 
     @classmethod
     def build_start_linear_address(cls, address):
+        r"""Builds an start linear address record.
+
+        Arguments:
+            address (:obj:`int`): Start linear address.
+
+        Returns:
+            :obj:`IntelRecord`: Start linear address record.
+
+        Example:
+            >>> str(IntelRecord.build_start_linear_address(0x12345678))
+            ':0400000512345678E3'
+        """
         if not 0 <= address < (1 << 32):
             raise ValueError('address overflow')
         tag = cls.TAG_TYPE.START_LINEAR_ADDRESS
@@ -1529,7 +1676,27 @@ class IntelRecord(Record):
     @classmethod
     def split(cls, data, address=0, columns=16, align=True,
               standalone=True, start=None):
+        r"""Splits a chunk of data into records.
 
+        Arguments:
+            data (:obj:`bytes`): Byte data to split.
+            address (:obj:`int`): Start address of the first data record being
+                split.
+            columns (:obj:`int`): Maximum number of columns per data record.
+                If ``None``, the whole `data` is put into a single record.
+                Maximum of 255 columns.
+            align (:obj:`bool`): Aligns record addresses to the column length.
+            standalone (:obj:`bool`): Generates a sequence of records that can
+                be saved as a standlone record file.
+            start (:obj:`int`): Program start address.
+                If ``None``, it is assigned the minimum data record address.
+
+        Yields:
+            :obj:`IntelRecord`: Data split into records.
+
+        Raises:
+            ValueError: Address, size, or column overflow.
+        """
         if not 0 <= address < (1 << 32):
             raise ValueError('address overflow')
         if not 0 <= address + len(data) <= (1 << 32):
@@ -1572,8 +1739,18 @@ class IntelRecord(Record):
                 yield record
 
     @classmethod
-    def build_standalone(cls, data_records, start=None, tag=None,
-                         header_data=None):
+    def build_standalone(cls, data_records, start=None):
+        r"""Makes a sequence of data records standalone.
+
+        Arguments:
+            data_records (:obj:`list` of :class:`Record`): A sequence of data
+                records.
+            start (:obj:`int`): Program start address.
+                If ``None``, it is assigned the minimum data record address.
+
+        Yields:
+            :obj:`Record`: Records for a standalone record file.
+        """
         for record in data_records:
             yield record
 
@@ -1584,6 +1761,24 @@ class IntelRecord(Record):
 
     @classmethod
     def terminate(cls, start):
+        r"""Builds a record termination sequence.
+
+        The termination sequence is made of:
+
+            # An extended linear address record at zero.
+            # A start linear address record at `start`.
+            # An end-of-file record.
+
+        Arguments:
+            start (:obj:`int`): Program start address.
+
+        Returns:
+            :obj:`list` of :obj:`IntelRecord`: Termination sequence.
+
+        Example:
+            >>> list(map(str, IntelRecord.terminate(0x12345678)))
+            [':020000040000FA', ':0400000512345678E3', ':00000001FF']
+        """
         return [cls.build_extended_linear_address(0),
                 cls.build_start_linear_address(start),
                 cls.build_end_of_file()]
@@ -1654,16 +1849,25 @@ class TektronixTag(enum.IntEnum):
 
 
 class TektronixRecord(Record):
+    r"""Tektronix extended HEX record.
+
+    See:
+        `<https://en.wikipedia.org/wiki/Tektronix_extended_HEX>`_
+
+    """
 
     TAG_TYPE = TektronixTag
+    """Associated Python class for tags."""
 
     REGEX = re.compile(r'^%(?P<count>[0-9A-Fa-f]{2})'
                        r'(?P<tag>[68])'
                        r'(?P<checksum>[0-9A-Fa-f]{2})'
                        r'8(?P<address>[0-9A-Fa-f]{8})'
                        r'(?P<data>([0-9A-Fa-f]{2}){,255})$')
+    """Regular expression for parsing a record text line."""
 
     EXTENSIONS = ('.tek',)
+    """Automatically supported file extensions."""
 
     def __init__(self, address, tag, data, checksum=Ellipsis):
         super(TektronixRecord, self).__init__(address, self.TAG_TYPE(tag),
@@ -1716,18 +1920,63 @@ class TektronixRecord(Record):
 
     @classmethod
     def build_data(cls, address, data):
+        r"""Builds a data record.
+
+        Arguments:
+            address (:obj:`int`): Record start address.
+            data (:obj:`bytes`): Some program data.
+
+        Returns:
+            :obj:`TektronixRecord`: Data record.
+
+        Example:
+            >>> str(TektronixRecord.build_data(0x12345678, b'Hello, World!'))
+            '%236E081234567848656C6C6F2C20576F726C6421'
+        """
         record = cls(address, cls.TAG_TYPE.DATA, data)
         return record
 
     @classmethod
     def build_terminator(cls, start):
+        r"""Builds a terminator record.
+
+        Arguments:
+            start (:obj:`int`): Program start address.
+
+        Returns:
+            :obj:`TektronixRecord`: Terminator record.
+
+        Example:
+            >>> str(TektronixRecord.build_terminator(0x12345678))
+            '%0983D812345678'
+        """
         record = cls(start, cls.TAG_TYPE.TERMINATOR, b'')
         return record
 
     @classmethod
     def split(cls, data, address=0, columns=16, align=True,
               standalone=True, start=None):
+        r"""Splits a chunk of data into records.
 
+        Arguments:
+            data (:obj:`bytes`): Byte data to split.
+            address (:obj:`int`): Start address of the first data record being
+                split.
+            columns (:obj:`int`): Maximum number of columns per data record.
+                If ``None``, the whole `data` is put into a single record.
+                Maximum of 128 columns.
+            align (:obj:`bool`): Aligns record addresses to the column length.
+            standalone (:obj:`bool`): Generates a sequence of records that can
+                be saved as a standlone record file.
+            start (:obj:`int`): Program start address.
+                If ``None``, it is assigned the minimum data record address.
+
+        Yields:
+            :obj:`TektronixRecord`: Data split into records.
+
+        Raises:
+            ValueError: Address, size, or column overflow.
+        """
         if not 0 <= address < (1 << 32):
             raise ValueError('address overflow')
         if not 0 <= address + len(data) <= (1 << 32):
@@ -1744,10 +1993,23 @@ class TektronixRecord(Record):
             yield cls.build_terminator(address if start is None else start)
 
     @classmethod
-    def build_standalone(cls, data_records, start=0):
+    def build_standalone(cls, data_records, start=None):
+        r"""Makes a sequence of data records standalone.
+
+        Arguments:
+            data_records (:obj:`list` of :class:`Record`): A sequence of data
+                records.
+            start (:obj:`int`): Program start address.
+                If ``None``, it is assigned the minimum data record address.
+
+        Yields:
+            :obj:`Record`: Records for a standalone record file.
+        """
         for record in data_records:
             yield record
 
+        if start is None:
+            start = min(record.address for record in data_records)
         yield cls.build_terminator(start)
 
     @classmethod
