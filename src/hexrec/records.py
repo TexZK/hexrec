@@ -248,8 +248,7 @@ def merge_files(input_files, output_file, input_types=None, output_type=None,
         split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
 
     Example:
-        >>> merge_files(['original.hex', 'patch.mot'], 'patched.tek')
-        ... #doctest +SKIP
+        >>> merge_files(['merge1.mot', 'merge2.hex'], 'merged.tek')
 
     """
     if input_types is None:
@@ -503,6 +502,27 @@ class Record(object):
 
         Returns:
             :obj:`bool`: The `address`, `tag`, and `data` fields are equal.
+
+        Examples:
+            >>> record1 = BinaryRecord.build_data(0, b'Hello, World!')
+            >>> record2 = BinaryRecord.build_data(0, b'Hello, World!')
+            >>> record1 == record2
+            True
+
+            >>> record1 = BinaryRecord.build_data(0, b'Hello, World!')
+            >>> record2 = BinaryRecord.build_data(1, b'Hello, World!')
+            >>> record1 == record2
+            False
+
+            >>> record1 = BinaryRecord.build_data(0, b'Hello, World!')
+            >>> record2 = BinaryRecord.build_data(0, b'hello, world!')
+            >>> record1 == record2
+            False
+
+            >>> record1 = MotorolaRecord.build_header(b'Hello, World!')
+            >>> record2 = MotorolaRecord.build_data(0, b'hello, world!')
+            >>> record1 == record2
+            False
         """
         return (self.address == other.address and
                 self.tag == other.tag and
@@ -557,12 +577,6 @@ class Record(object):
             False
         """
         return self.address < other.address
-
-    def __copy__(self):
-        cls = type(self)
-        copied = cls(self.address, self.tag, self.data, self.checksum)
-        copied.__dict__.update(self.__dict__)
-        return copied
 
     def is_data(self):
         r"""Tells if it is a data record.

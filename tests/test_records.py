@@ -25,11 +25,19 @@ def str_bytes_quickfix(text):
 
 # ============================================================================
 
+@pytest.fixture
+def tmppath(tmpdir):
+    return Path(str(tmpdir))
+
 @pytest.fixture(scope='module')
 def datadir(request):
     dir_path, _ = os.path.splitext(request.module.__file__)
     assert os.path.isdir(str(dir_path))
     return dir_path
+
+@pytest.fixture
+def datapath(datadir):
+    return Path(str(datadir))
 
 # ============================================================================
 
@@ -120,14 +128,21 @@ def test_convert_records_doctest():
 
 # ============================================================================
 
-def test_merge_files_doctest():
-    pass  # TODO
+def test_merge_files_doctest(tmppath, datapath):
+    path_merge1 = str(datapath / 'merge1.mot')
+    path_merge2 = str(datapath / 'merge2.hex')
+    path_merged_out = str(tmppath / 'merged.tek')
+    path_merged_ref = str(datapath / 'merged.tek')
+    merge_files([path_merge1, path_merge2], path_merged_out)
+    ans_out = load_records(path_merged_out)
+    ans_ref = load_records(path_merged_ref)
+    assert ans_out == ans_ref
 
 # ============================================================================
 
-def test_convert_file_doctest(tmpdir):
-    path_mot = str(Path(str(tmpdir)) / 'bytes.mot')
-    path_hex = str(Path(str(tmpdir)) / 'bytes.hex')
+def test_convert_file_doctest(tmppath):
+    path_mot = str(tmppath / 'bytes.mot')
+    path_hex = str(tmppath / 'bytes.hex')
     motorola = list(MotorolaRecord.split(bytes(range(256))))
     intel = list(IntelRecord.split(bytes(range(256))))
     save_records(path_mot, motorola)
@@ -138,8 +153,8 @@ def test_convert_file_doctest(tmpdir):
 
 # ============================================================================
 
-def test_load_records_doctest(tmpdir):
-    path = str(Path(str(tmpdir)) / 'bytes.mot')
+def test_load_records_doctest(tmppath):
+    path = str(tmppath / 'bytes.mot')
     records = list(MotorolaRecord.split(bytes(range(256))))
     save_records(path, records)
     ans_out = load_records(path)
@@ -148,8 +163,8 @@ def test_load_records_doctest(tmpdir):
 
 # ============================================================================
 
-def test_save_records_doctest(tmpdir):
-    path = str(Path(str(tmpdir)) / 'bytes.hex')
+def test_save_records_doctest(tmppath):
+    path = str(tmppath / 'bytes.hex')
     records = list(IntelRecord.split(bytes(range(256))))
     save_records(path, records)
     ans_out = load_records(path)
@@ -158,8 +173,8 @@ def test_save_records_doctest(tmpdir):
 
 # ============================================================================
 
-def test_load_blocks_doctest(tmpdir):
-    path = str(Path(str(tmpdir)) / 'bytes.mot')
+def test_load_blocks_doctest(tmppath):
+    path = str(tmppath / 'bytes.mot')
     blocks = [(offset, bytes(bytearray(range(offset, offset + 16))))
               for offset in range(0, 256, 16)]
     save_blocks(path, blocks)
@@ -169,8 +184,8 @@ def test_load_blocks_doctest(tmpdir):
 
 # ============================================================================
 
-def test_save_blocks_doctest(tmpdir):
-    path = str(Path(str(tmpdir)) / 'bytes.hex')
+def test_save_blocks_doctest(tmppath):
+    path = str(tmppath / 'bytes.hex')
     blocks = [(offset, bytes(bytearray(range(offset, offset + 16))))
               for offset in range(0, 256, 16)]
     save_blocks(path, blocks)
@@ -222,10 +237,21 @@ class TestRecord(object):
         assert ans_out == ans_ref
 
     def test___eq___doctest(self):
-        pass  # TODO
+        record1 = BinaryRecord.build_data(0, b'Hello, World!')
+        record2 = BinaryRecord.build_data(0, b'Hello, World!')
+        assert (record1 == record2) == True
 
-    def test___eq__(self):
-        pass  # TODO
+        record1 = BinaryRecord.build_data(0, b'Hello, World!')
+        record2 = BinaryRecord.build_data(1, b'Hello, World!')
+        assert (record1 == record2) == False
+
+        record1 = BinaryRecord.build_data(0, b'Hello, World!')
+        record2 = BinaryRecord.build_data(0, b'hello, world!')
+        assert (record1 == record2) == False
+
+        record1 = MotorolaRecord.build_header(b'Hello, World!')
+        record2 = MotorolaRecord.build_data(0, b'hello, world!')
+        assert (record1 == record2) == False
 
     def test___hash__(self):
         hash(BinaryRecord(0x1234, 0, b'Hello, World!'))
@@ -240,12 +266,6 @@ class TestRecord(object):
         record1 = BinaryRecord(0x4321, 0, b'')
         record2 = BinaryRecord(0x1234, 0, b'')
         assert (record1 < record2) == False
-
-    def test___copy___doctest(self):
-        pass  # TODO
-
-    def test___copy__(self):
-        pass  # TODO
 
     def test_is_data_doctest(self):
         record = BinaryRecord(0, 0, b'Hello, World!')
@@ -425,15 +445,15 @@ class TestBinaryRecord(object):
                    for offset in range(0, 256, 8)]
         assert ans_out == ans_ref
 
-    def test_load(self, datadir):
-        path_ref = Path(str(datadir)) / 'hexbytes.bin'
+    def test_load(self, datapath):
+        path_ref = datapath / 'hexbytes.bin'
         ans_out = list(BinaryRecord.load(str(path_ref)))
         ans_ref = [BinaryRecord.build_data(0, HEXBYTES)]
         assert ans_out == ans_ref
 
-    def test_save(self, tmpdir, datadir):
-        path_out = Path(str(tmpdir)) / 'hexbytes.bin'
-        path_ref = Path(str(datadir)) / 'hexbytes.bin'
+    def test_save(self, tmppath, datapath):
+        path_out = tmppath / 'hexbytes.bin'
+        path_ref = datapath / 'hexbytes.bin'
         records = [BinaryRecord.build_data(0, HEXBYTES)]
         BinaryRecord.save(str(path_out), records)
         ans_out = read_text(path_out)
@@ -556,15 +576,15 @@ class TestMotorolaRecord(object):
     def test_fix_tags(self):
         pass  # TODO
 
-    def test_load(self, datadir):
-        path_ref = Path(str(datadir)) / 'bytes.mot'
+    def test_load(self, datapath):
+        path_ref = datapath / 'bytes.mot'
         ans_out = list(MotorolaRecord.load(str(path_ref)))
         ans_ref = list(MotorolaRecord.split(BYTES))
         assert ans_out == ans_ref
 
-    def test_save(self, tmpdir, datadir):
-        path_out = Path(str(tmpdir)) / 'bytes.mot'
-        path_ref = Path(str(datadir)) / 'bytes.mot'
+    def test_save(self, tmppath, datapath):
+        path_out = tmppath / 'bytes.mot'
+        path_ref = datapath / 'bytes.mot'
         records = list(MotorolaRecord.split(BYTES))
         MotorolaRecord.save(str(path_out), records)
         ans_out = read_text(path_out)
@@ -687,15 +707,15 @@ class TestIntelRecord(object):
     def test_readdress(self):
         pass  # TODO
 
-    def test_load(self, datadir):
-        path_ref = Path(str(datadir)) / 'bytes.hex'
+    def test_load(self, datapath):
+        path_ref = datapath / 'bytes.hex'
         ans_out = list(IntelRecord.load(str(path_ref)))
         ans_ref = list(IntelRecord.split(BYTES))
         assert ans_out == ans_ref
 
-    def test_save(self, tmpdir, datadir):
-        path_out = Path(str(tmpdir)) / 'bytes.hex'
-        path_ref = Path(str(datadir)) / 'bytes.hex'
+    def test_save(self, tmppath, datapath):
+        path_out = tmppath / 'bytes.hex'
+        path_ref = datapath / 'bytes.hex'
         records = list(IntelRecord.split(BYTES))
         IntelRecord.save(str(path_out), records)
         ans_out = read_text(path_out)
@@ -782,15 +802,15 @@ class TestTektronixRecord(object):
     def test_check_sequence(self):
         pass  # TODO
 
-    def test_load(self, datadir):
-        path_ref = Path(str(datadir)) / 'bytes.tek'
+    def test_load(self, datapath):
+        path_ref = datapath / 'bytes.tek'
         ans_out = list(TektronixRecord.load(str(path_ref)))
         ans_ref = list(TektronixRecord.split(BYTES))
         assert ans_out == ans_ref
 
-    def test_save(self, tmpdir, datadir):
-        path_out = Path(str(tmpdir)) / 'bytes.tek'
-        path_ref = Path(str(datadir)) / 'bytes.tek'
+    def test_save(self, tmppath, datapath):
+        path_out = tmppath / 'bytes.tek'
+        path_ref = datapath / 'bytes.tek'
         records = list(TektronixRecord.split(BYTES))
         TektronixRecord.save(str(path_out), records)
         ans_out = read_text(path_out)
