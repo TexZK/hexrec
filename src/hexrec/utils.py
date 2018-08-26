@@ -393,6 +393,31 @@ def humanize_ebcdic(data, replace='.'):
     return text
 
 
+def sum_bytes(data):
+    r"""Sums bytes.
+
+    Supports both Python 2.7 and Python 3.
+
+    Arguments:
+        data (:obj:`bytes`): Data bytes. Actually supports any sequence with
+            integers in it.
+
+    Returns:
+        :obj:`int`: The sum of all items in `data`.
+
+    Examples:
+        >>> sum_bytes(bytes(bytearray(range(16))))
+        120
+
+        >>> sum_bytes(range(16))
+        120
+    """
+    if isinstance(data, str):
+        return sum(ord(c) for c in data)
+    else:
+        return sum(data)
+
+
 def do_overlap(start1, endex1, start2, endex2):
     r"""Do ranges overlap?
 

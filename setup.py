@@ -68,6 +68,7 @@ setup(
         'six',
         'click',
         'enum34',
+        'pathlib',
         # eg: 'aspectlib==1.1.1', 'six>=1.7',
     ],
     extras_require={

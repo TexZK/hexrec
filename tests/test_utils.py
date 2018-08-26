@@ -212,6 +212,12 @@ def test_humanize_ebcdic_doctest():
 
 # ============================================================================
 
+def test_sum_bytes_doctest():
+    assert sum_bytes(bytes(bytearray(range(16)))) == 120
+    assert sum_bytes(range(16)) == 120
+
+# ============================================================================
+
 def test_do_overlap_doctest():
     assert do_overlap(0, 4, 4, 8) == False
     assert do_overlap(0, 4, 2, 6) == True

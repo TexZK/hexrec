@@ -38,24 +38,8 @@ from .blocks import sorting
 from .utils import chop
 from .utils import do_overlap
 from .utils import hexlify
+from .utils import sum_bytes
 from .utils import unhexlify
-
-
-def sum_bytes(data):
-    r"""Sums bytes.
-
-    Supports both Python 2.7 and Python 3.
-
-    Arguments:
-        data (:obj:`bytes`): Data bytes.
-
-    Returns:
-        :obj:`int`: The sum of all bytes in `data`.
-    """
-    if isinstance(data, str):
-        return sum(ord(c) for c in data)
-    else:
-        return sum(data)
 
 
 def get_data_records(records):
@@ -288,7 +272,7 @@ def merge_files(input_files, output_file, input_types=None, output_type=None,
         records = input_type.load(input_files[level])
         input_type.readdress(records)
         records = [r for r in records if r.is_data()]
-        input_records.extend(records)
+        input_records.append(records)
 
     output_records = merge_records(input_records, input_types, output_type,
                                    split_args, split_kwargs)
@@ -312,9 +296,9 @@ def convert_file(input_file, output_file, input_type=None, output_type=None,
     Example:
         >>> motorola = list(MotorolaRecord.split(bytes(range(256))))
         >>> intel = list(IntelRecord.split(bytes(range(256))))
-        >>> save_file('bytes.mot', motorola)
+        >>> save_records('bytes.mot', motorola)
         >>> convert_file('bytes.mot', 'bytes.hex')
-        >>> load_file('bytes.hex') == intel
+        >>> load_records('bytes.hex') == intel
         True
     """
     merge_files([input_file], output_file, [input_type], output_type,
@@ -355,9 +339,9 @@ def save_records(path, records, record_type=None,
         split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
 
     Example:
-        >>> records = list(MotorolaRecord.split(bytes(range(256))))
-        >>> save_records('bytes.mot', records)
-        >>> load_records('bytes.mot') == records
+        >>> records = list(IntelRecord.split(bytes(range(256))))
+        >>> save_records('bytes.hex', records)
+        >>> load_records('bytes.hex') == records
         True
     """
     if record_type is None:
@@ -395,7 +379,8 @@ def load_blocks(path, record_type=None):
         record_type = RECORD_TYPES[type_name]
 
     records = record_type.load(path)
-    return records
+    blocks = records_to_blocks(records)
+    return blocks
 
 
 def save_blocks(path, blocks, record_type=None,
@@ -414,8 +399,8 @@ def save_blocks(path, blocks, record_type=None,
     Example:
         >>> blocks = [(offset, bytes(bytearray(range(offset, offset + 16))))
         ...           for offset in range(0, 256, 16)]
-        >>> save_blocks('bytes.mot', blocks)
-        >>> load_blocks('bytes.mot') == blocks
+        >>> save_blocks('bytes.hex', blocks)
+        >>> load_blocks('bytes.hex') == blocks
         True
     """
     if record_type is None:
@@ -930,9 +915,9 @@ class BinaryRecord(Record):
 
     @classmethod
     def save(cls, path, records, *args, **kwargs):
-        chunk = cls.flatten(records, *args, **kwargs)
         with open(path, 'wb') as stream:
-            stream.write(chunk)
+            for record in records:
+                stream.write(record.data)
             stream.flush()
 
 
