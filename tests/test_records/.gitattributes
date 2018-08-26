@@ -1,0 +1,16 @@
+*.bin binary
+*.dat binary
+*.raw binary
+
+*.hex text eol=crlf
+*.ihex text eol=crlf
+*.mcs text eol=crlf
+
+*.mot text eol=crlf
+*.s19 text eol=crlf
+*.s28 text eol=crlf
+*.s37 text eol=crlf
+*.srec text eol=crlf
+*.exo text eol=crlf
+
+*.tek text eol=crlf

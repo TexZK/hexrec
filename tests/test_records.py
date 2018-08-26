@@ -33,7 +33,6 @@ def datadir(request):
 
 # ============================================================================
 
-@pytest.mark.skip
 def read_bytes(path):
     path = str(path)
     with open(path, 'rb') as file:
@@ -42,11 +41,11 @@ def read_bytes(path):
 
 # ============================================================================
 
-@pytest.mark.skip
 def read_text(path):
     path = str(path)
     with open(path, 'rt') as file:
         data = file.read()
+    data = data.replace('\r\n', '\n').replace('\r', '\n')  # normalize
     return data
 
 # ============================================================================
@@ -437,8 +436,8 @@ class TestBinaryRecord(object):
         path_ref = Path(str(datadir)) / 'hexbytes.bin'
         records = [BinaryRecord.build_data(0, HEXBYTES)]
         BinaryRecord.save(str(path_out), records)
-        ans_out = read_bytes(path_out)
-        ans_ref = read_bytes(path_ref)
+        ans_out = read_text(path_out)
+        ans_ref = read_text(path_ref)
         assert ans_out == ans_ref
 
 # ============================================================================
@@ -568,8 +567,8 @@ class TestMotorolaRecord(object):
         path_ref = Path(str(datadir)) / 'bytes.mot'
         records = list(MotorolaRecord.split(BYTES))
         MotorolaRecord.save(str(path_out), records)
-        ans_out = read_bytes(path_out)
-        ans_ref = read_bytes(path_ref)
+        ans_out = read_text(path_out)
+        ans_ref = read_text(path_ref)
         assert ans_out == ans_ref
 
 # ============================================================================
@@ -699,8 +698,8 @@ class TestIntelRecord(object):
         path_ref = Path(str(datadir)) / 'bytes.hex'
         records = list(IntelRecord.split(BYTES))
         IntelRecord.save(str(path_out), records)
-        ans_out = read_bytes(path_out)
-        ans_ref = read_bytes(path_ref)
+        ans_out = read_text(path_out)
+        ans_ref = read_text(path_ref)
         assert ans_out == ans_ref
 
 # ============================================================================
@@ -794,8 +793,8 @@ class TestTektronixRecord(object):
         path_ref = Path(str(datadir)) / 'bytes.tek'
         records = list(TektronixRecord.split(BYTES))
         TektronixRecord.save(str(path_out), records)
-        ans_out = read_bytes(path_out)
-        ans_ref = read_bytes(path_ref)
+        ans_out = read_text(path_out)
+        ans_ref = read_text(path_ref)
         assert ans_out == ans_ref
 
 # ============================================================================
