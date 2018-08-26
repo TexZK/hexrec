@@ -937,31 +937,65 @@ class BinaryRecord(Record):
 
 @enum.unique
 class MotorolaTag(enum.IntEnum):
-    HEADER = 0  # Header
-    DATA_16 = 1  # 16-bit address data record
-    DATA_24 = 2  # 24-bit address data record
-    DATA_32 = 3  # 32-bit address data record
-    _RESERVED = 4  # (reserved)
-    COUNT_16 = 5  # 16-bit records count (optional)
-    COUNT_24 = 6  # 24-bit records count (optional)
-    START_32 = 7  # 32-bit start address (terminates DATA_32)
-    START_24 = 8  # 24-bit start address (terminates DATA_24)
-    START_16 = 9  # 16-bit start address (terminates DATA_16)
+    """Motorola S-record tag."""
+
+    HEADER = 0
+    """Header string. Optional."""
+
+    DATA_16 = 1
+    """16-bit address data record."""
+
+    DATA_24 = 2
+    """24-bit address data record."""
+
+    DATA_32 = 3
+    """32-bit address data record."""
+
+    _RESERVED = 4
+    """Reserved tag."""
+
+    COUNT_16 = 5
+    """16-bit record count. Optional."""
+
+    COUNT_24 = 6
+    """24-bit record count. Optional."""
+
+    START_32 = 7
+    """32-bit start address. Terminates :attr:`DATA_32`."""
+
+    START_24 = 8
+    """24-bit start address. Terminates :attr:`DATA_24`."""
+
+    START_16 = 9
+    """16-bit start address. Terminates :attr:`DATA_16`."""
 
     @classmethod
     def is_data(cls, value):
+        r""":obj:`bool`: `value` is a data record tag."""
         return value in (cls.DATA_16, cls.DATA_24, cls.DATA_32)
 
 
 class MotorolaRecord(Record):
+    r"""Motorola S-record.
+
+    See:
+        https://en.wikipedia.org/wiki/SREC_(file_format)
+    """
 
     TAG_TYPE = MotorolaTag
+    """Associated Python class for tags."""
+
     TAG_TO_ADDRESS_LENGTH = (2, 2, 3, 4, None, None, None, 4, 3, 2)
+    """Maps a tag to its address byte length, if available."""
+
     MATCHING_TAG = (None, None, None, None, None, None, None, 3, 2, 1)
+    """Maps the terminator tag to its mathing data tag."""
 
     REGEX = re.compile(r'^S[0-9]([0-9A-Fa-f]{2}){4,140}$')
+    """Regular expression for parsing a record text line."""
 
     EXTENSIONS = ('.mot', '.s19', '.s28', '.s37', '.srec', '.exo')
+    """Automatically supported file extensions."""
 
     def __init__(self, address, tag, data, checksum=Ellipsis):
         super(MotorolaRecord, self).__init__(address, self.TAG_TYPE(tag),
@@ -1016,30 +1050,135 @@ class MotorolaRecord(Record):
 
     @classmethod
     def fit_data_tag(cls, endex):
-        if endex < (1 << 16):
-            tag = 1
-        elif endex < (1 << 24):
-            tag = 2
+        r"""Fits a data tag by address.
+
+        Depending on the value of `endex`, get the data tag with the smallest
+        supported address.
+
+        Arguments:
+            endex (:obj:`int`): Exclusive end address of the data.
+
+        Returns:
+            :obj:`MotorolaTag`: Fitting data tag.
+
+        Raises:
+            ValueError: Address overflow.
+
+        Examples:
+            >>> MotorolaRecord.fit_data_tag(0x00000000)
+            <MotorolaTag.DATA_16: 1>
+
+            >>> MotorolaRecord.fit_data_tag(0x0000FFFF)
+            <MotorolaTag.DATA_16: 1>
+
+            >>> MotorolaRecord.fit_data_tag(0x00010000)
+            <MotorolaTag.DATA_16: 1>
+
+            >>> MotorolaRecord.fit_data_tag(0x00FFFFFF)
+            <MotorolaTag.DATA_24: 2>
+
+            >>> MotorolaRecord.fit_data_tag(0x01000000)
+            <MotorolaTag.DATA_24: 2>
+
+            >>> MotorolaRecord.fit_data_tag(0xFFFFFFFF)
+            <MotorolaTag.DATA_32: 3>
+        """
+
+        if not 0 <= endex <= (1 << 32):
+            raise ValueError('address overflow')
+
+        elif endex <= (1 << 16):
+            return MotorolaTag.DATA_16
+
+        elif endex <= (1 << 24):
+            return MotorolaTag.DATA_24
+
         else:
-            tag = 3
-        return tag
+            return MotorolaTag.DATA_32
 
     @classmethod
-    def fix_count_tag(cls, record_count):
+    def fit_count_tag(cls, record_count):
+        r"""Fits the record count tag.
+
+        Arguments:
+            record_count (:obj:`int`): Record count.
+
+        Returns:
+            :obj:`MotorolaTag`: Fitting record count tag.
+
+        Raises:
+            ValueError: Count overflow.
+
+        Examples:
+            >>> MotorolaRecord.fit_count_tag(0x0000000)
+            <MotorolaTag.COUNT_16: 5>
+
+            >>> MotorolaRecord.fit_count_tag(0x00FFFF)
+            <MotorolaTag.COUNT_16: 5>
+
+            >>> MotorolaRecord.fit_count_tag(0x010000)
+            <MotorolaTag.COUNT_24: 6>
+
+            >>> MotorolaRecord.fit_count_tag(0xFFFFFF)
+            <MotorolaTag.COUNT_24: 6>
+        """
+
         if not 0 <= record_count < (1 << 24):
-            raise ValueError('count error')
+            raise ValueError('count overflow')
+
         elif record_count < (1 << 16):
-            tag = 5
+            return MotorolaTag.COUNT_16
+
         elif record_count < (1 << 24):
-            tag = 6
-        return tag
+            return MotorolaTag.COUNT_24
 
     @classmethod
     def build_header(cls, data):
+        r"""Builds a header record.
+
+        Arguments:
+            data (:obj:`bytes`): Header string data.
+
+        Returns:
+            :obj:`MotorolaRecord`: Header record.
+
+        Example:
+            >>> str(MotorolaRecord.build_header(b'Hello, World!'))
+            S010000048656C6C6F2C20576F726C642186
+        """
         return cls(0, 0, data)
 
     @classmethod
     def build_data(cls, address, data, tag=None):
+        r"""Builds a data record.
+
+        Arguments:
+            data (:obj:`bytes`): Header string data.
+            tag (:obj:`MotorolaTag`): Data tag record.
+                If ``None``, automatically selects the fitting one.
+
+        Returns:
+            :obj:`MotorolaRecord`: Header record.
+
+        Raises:
+            ValueError: Tag error.
+
+        Examples:
+            >>> str(MotorolaRecord.build_data(0x1234, b'Hello, World!'))
+            S110123448656C6C6F2C20576F726C642140
+
+            >>> str(MotorolaRecord.build_data(0x1234, b'Hello, World!',
+            ...                               tag=MotorolaTag.DATA_16))
+            S110123448656C6C6F2C20576F726C642140
+
+            >>> str(MotorolaRecord.build_data(0x1234, b'Hello, World!',
+            ...                               tag=MotorolaTag.DATA_24))
+            S21100123448656C6C6F2C20576F726C64213F
+
+            >>> str(MotorolaRecord.build_data(0x1234, b'Hello, World!',
+            ...                               tag=MotorolaTag.DATA_32))
+            S3120000123448656C6C6F2C20576F726C64213E
+        """
         if tag is None:
             tag = cls.fit_data_tag(address + len(data))
 
@@ -1050,16 +1189,59 @@ class MotorolaRecord(Record):
         return record
 
     @classmethod
-    def build_terminator(cls, start, last_tag=1):
-        tag_index = cls.MATCHING_TAG.index(int(last_tag))
+    def build_terminator(cls, start, last_data_tag=MotorolaTag.DATA_16):
+        r"""Builds a terminator record.
+
+        Arguments:
+            start (:obj:`int`): Program start address.
+            last_data_tag (:obj:`MotorolaTag`): Last data record tag to match.
+
+        Returns:
+            :obj:`MotorolaRecord`: Terminator record.
+
+        Examples:
+            >>> str(MotorolaRecord.build_terminator(0x1234))
+            S9031234B6
+
+            >>> str(MotorolaRecord.build_terminator(0x1234,
+            ...                                     MotorolaTag.DATA_16))
+            S9031234B6
+
+            >>> str(MotorolaRecord.build_terminator(0x1234,
+            ...                                     MotorolaTag.DATA_24))
+            S804001234B5
+
+            >>> str(MotorolaRecord.build_terminator(0x1234,
+            ...                                     MotorolaTag.DATA_32))
+            S70500001234B4
+        """
+        tag_index = cls.MATCHING_TAG.index(int(last_data_tag))
         terminator_record = cls(start, tag_index, b'')
         return terminator_record
 
     @classmethod
-    def build_count(cls, count):
-        if not 0 <= count < (1 << 24):
-            raise ValueError('count error')
-        count_record = cls(0, 6, struct.pack('>L', count)[1:])
+    def build_count(cls, record_count):
+        r"""Builds a count record.
+
+        Arguments:
+            count (:obj:`int`): Record count.
+
+        Returns:
+            :obj:`MotorolaRecord`: Count record.
+
+        Raises:
+            ValueError: Count error.
+
+        Examples:
+             >>> str(MotorolaRecord.build_count(0x1234))
+             S5031234B6
+
+             >>> str(MotorolaRecord.build_count(0x123456))
+             S6041234565F
+        """
+        tag = cls.fit_count_tag(record_count)
+        count_data = struct.pack('>L', record_count)
+        count_record = cls(0, tag, count_data[(7 - tag):])
         return count_record
 
     @classmethod
@@ -1202,15 +1384,29 @@ class MotorolaRecord(Record):
 
 @enum.unique
 class IntelTag(enum.IntEnum):
+    """Intel HEX tag."""
+
     DATA = 0
+    """Binary data."""
+
     END_OF_FILE = 1
+    """End of file."""
+
     EXTENDED_SEGMENT_ADDRESS = 2
+    """Extended segment address."""
+
     START_SEGMENT_ADDRESS = 3
+    """Start segment address."""
+
     EXTENDED_LINEAR_ADDRESS = 4
+    """Extended linear address."""
+
     START_LINEAR_ADDRESS = 5
+    """Start linear address."""
 
     @classmethod
     def is_data(cls, value):
+        r""":obj:`bool`: `value` is a data record tag."""
         return value == cls.DATA
 
 
@@ -1402,7 +1598,7 @@ class IntelRecord(Record):
         This procedure readdresses a sequence of records in-place.
 
         Warning:
-            Only the `address` field is modified. ALl the other fields hold
+            Only the `address` field is modified. All the other fields hold
             their previous value.
 
         Arguments:
@@ -1453,6 +1649,7 @@ class TektronixTag(enum.IntEnum):
 
     @classmethod
     def is_data(cls, value):
+        r""":obj:`bool`: `value` is a data record tag."""
         return value == cls.DATA
 
 
@@ -1583,6 +1780,20 @@ RECORD_TYPES = {
 
 
 def find_record_type(file_path):
+    r"""Finds the record type.
+
+    Check if the extension of `file_path` is in a record type mapped by
+    ``RECORD_TYPES``, and returns its mapped name.
+
+    Arguments:
+        file_path (:obj:`str`): File path to get the file extension from.
+
+    Returns:
+        :obj:`str`: Key of ``RECORD_TYPES``.
+
+    Raises:
+        KeyError: Unsupported extension.
+    """
     ext = os.path.splitext(file_path)[1].lower()
     for name, record_type in six.iteritems(RECORD_TYPES):
         if ext in record_type.EXTENSIONS:

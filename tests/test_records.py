@@ -363,12 +363,6 @@ class TestRecord(object):
         record.checksum = None
         assert hex(record._get_checksum()) == '0x8a'
 
-    def test_check_doctest(self):
-        pass  # TODO
-
-    def test_check(self):
-        pass  # TODO
-
     def test_overlaps_doctest(self):
         record1 = BinaryRecord(0, 0, b'abc')
         record2 = BinaryRecord(1, 0, b'def')
@@ -393,12 +387,6 @@ class TestRecord(object):
         data_records = get_data_records(records)
         data_records2 = list(BinaryRecord.build_standalone(records))
         assert data_records == data_records2
-
-    def test_check_sequence_doctest(self):
-        pass  # TODO
-
-    def test_check_sequence(self):
-        pass  # TODO
 
     def test_readdress(self):
         pass
