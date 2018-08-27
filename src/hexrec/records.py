@@ -325,14 +325,14 @@ def load_records(path, record_type=None):
     return records
 
 
-def save_records(path, records, record_type=None,
+def save_records(path, records, output_type=None,
                  split_args=None, split_kwargs=None):
     r"""Saves records to a file.
 
     Arguments:
         path (:obj:`str`): Path of the output file.
         records (list): Sequence of records to save.
-        record_type (:class:`Record`): Explicit record type.
+        output_type (:class:`Record`): Output record type.
             If ``None``, it is guessed from the file extension.
         split_args (list): Positional arguments for :meth:`Record.split`.
         split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
@@ -343,19 +343,19 @@ def save_records(path, records, record_type=None,
         >>> load_records('bytes.hex') == records
         True
     """
-    if record_type is None:
+    if output_type is None:
         type_name = find_record_type(path)
-        record_type = RECORD_TYPES[type_name]
+        output_type = RECORD_TYPES[type_name]
 
     if records:
-        if not all(isinstance(r, record_type) for r in records):
-            records = convert_records(records, output_type=record_type,
+        if not all(isinstance(r, output_type) for r in records):
+            records = convert_records(records, output_type=output_type,
                                       split_args=split_args,
                                       split_kwargs=split_kwargs)
     else:
         records = ()
 
-    record_type.save(path, records)
+    output_type.save(path, records)
 
 
 def load_blocks(path, record_type=None):
@@ -856,6 +856,19 @@ class Record(object):
             stream.flush()
 
 
+@enum.unique
+class BinaryTag(enum.IntEnum):
+    """Binary record tag."""
+
+    DATA = 0
+    """Data record."""
+
+    @classmethod
+    def is_data(cls, value):
+        r""":obj:`bool`: `value` is a data record tag."""
+        return True
+
+
 class BinaryRecord(Record):
 
     EXTENSIONS = ('.bin', '.dat', '.raw')
@@ -1102,7 +1115,7 @@ class MotorolaRecord(Record):
             <MotorolaTag.DATA_32: 3>
         """
 
-        if not 0 <= endex <= (1 << 32):
+        if not 0 <= endex < (1 << 32):
             raise ValueError('address overflow')
 
         elif endex <= (1 << 16):
@@ -1390,8 +1403,8 @@ class MotorolaRecord(Record):
             raise ValueError('address overflow')
         if not 0 <= address + len(data) <= (1 << 32):
             raise ValueError('size overflow')
-        if columns > 128:
-            raise ValueError('too many columns')
+        if not 0 < columns < 128:
+            raise ValueError('column overflow')
 
         if start is None:
             start = address
@@ -1427,17 +1440,15 @@ class MotorolaRecord(Record):
         max_address = max(record.address + len(record.data)
                           for record in records)
         tag = cls.TAG_TYPE(cls.fit_data_tag(max_address))
-        count = len(records)
         COUNT_16 = cls.TAG_TYPE.COUNT_16
+        start_tags = (cls.TAG_TYPE.START_16,
+                      cls.TAG_TYPE.START_24,
+                      cls.TAG_TYPE.START_32)
+        start_ids = []
 
-        for record in records:
-            matching_tag = cls.MATCHING_TAG[record.tag]
-
-            if matching_tag is not None:
-                record.tag = cls.TAG_TYPE(matching_tag)
-                record.update_checksum()
-
-            elif record.tag == COUNT_16:
+        for index, record in enumerate(records):
+            if record.tag == COUNT_16:
+                count = struct.unpack('>L', record.data.rjust(4, b'\0'))[0]
                 if count >= (1 << 16):
                     record.tag = cls.TAG_TYPE.COUNT_24
                     record.data = struct.pack('>L', count)[1:]
@@ -1447,6 +1458,14 @@ class MotorolaRecord(Record):
             elif record.is_data():
                 record.tag = tag
                 record.update_checksum()
+
+            elif record.tag in start_tags:
+                start_ids.append(index)
+
+        max_tag = int(max(record.tag for record in get_data_records(records)))
+        start_tag = cls.TAG_TYPE(cls.MATCHING_TAG.index(max_tag))
+        for index in start_ids:
+            records[index].tag = start_tag
 
 
 @enum.unique
@@ -1701,8 +1720,8 @@ class IntelRecord(Record):
             raise ValueError('address overflow')
         if not 0 <= address + len(data) <= (1 << 32):
             raise ValueError('size overflow')
-        if columns > 255:
-            raise ValueError('too many columns')
+        if not 0 < columns < 255:
+            raise ValueError('column overflow')
 
         if start is None:
             start = address
@@ -1981,8 +2000,8 @@ class TektronixRecord(Record):
             raise ValueError('address overflow')
         if not 0 <= address + len(data) <= (1 << 32):
             raise ValueError('size overflow')
-        if columns > 128:
-            raise ValueError('too many columns')
+        if not 0 < columns < 128:
+            raise ValueError('column overflow')
 
         align_base = (address % columns) if align else 0
         for chunk in chop(data, columns, align_base):

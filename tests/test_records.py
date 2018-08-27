@@ -116,15 +116,27 @@ def test_merge_records_doctest():
 # ============================================================================
 
 def test_convert_records_doctest():
-    motorola = list(MotorolaRecord.split(bytes(range(256))))
-    intel = list(IntelRecord.split(bytes(range(256))))
+    motorola = list(MotorolaRecord.split(BYTES))
+    intel = list(IntelRecord.split(BYTES))
     converted = convert_records(motorola, output_type=IntelRecord)
     assert converted == intel
 
-    motorola = list(MotorolaRecord.split(bytes(range(256))))
-    intel = list(IntelRecord.split(bytes(range(256))))
+    motorola = list(MotorolaRecord.split(BYTES))
+    intel = list(IntelRecord.split(BYTES))
     converted = convert_records(intel, output_type=MotorolaRecord)
     assert converted == motorola
+
+
+def test_convert_records():
+    motorola1 = list(MotorolaRecord.split(BYTES))
+    motorola2 = list(MotorolaRecord.split(BYTES))
+    converted = convert_records(motorola1, input_type=MotorolaRecord)
+    assert converted == motorola2
+
+    intel1 = list(IntelRecord.split(BYTES))
+    intel2 = list(IntelRecord.split(BYTES))
+    converted = convert_records(intel1, output_type=IntelRecord)
+    assert converted == intel2
 
 # ============================================================================
 
@@ -138,13 +150,25 @@ def test_merge_files_doctest(tmppath, datapath):
     ans_ref = load_records(path_merged_ref)
     assert ans_out == ans_ref
 
+
+def test_merge_files(tmppath, datapath):
+    path_merge1 = str(datapath / 'merge1.mot')
+    path_merge2 = str(datapath / 'merge2.hex')
+    path_merged_out = str(tmppath / 'merged.tek')
+    path_merged_ref = str(datapath / 'merged.tek')
+    merge_files([path_merge1, path_merge2], path_merged_out,
+                [MotorolaRecord, IntelRecord], TektronixRecord)
+    ans_out = load_records(path_merged_out)
+    ans_ref = load_records(path_merged_ref)
+    assert ans_out == ans_ref
+
 # ============================================================================
 
 def test_convert_file_doctest(tmppath):
     path_mot = str(tmppath / 'bytes.mot')
     path_hex = str(tmppath / 'bytes.hex')
-    motorola = list(MotorolaRecord.split(bytes(range(256))))
-    intel = list(IntelRecord.split(bytes(range(256))))
+    motorola = list(MotorolaRecord.split(BYTES))
+    intel = list(IntelRecord.split(BYTES))
     save_records(path_mot, motorola)
     convert_file(path_mot, path_hex)
     ans_out = load_records(path_hex)
@@ -155,9 +179,18 @@ def test_convert_file_doctest(tmppath):
 
 def test_load_records_doctest(tmppath):
     path = str(tmppath / 'bytes.mot')
-    records = list(MotorolaRecord.split(bytes(range(256))))
+    records = list(MotorolaRecord.split(BYTES))
     save_records(path, records)
     ans_out = load_records(path)
+    ans_ref = records
+    assert ans_out == ans_ref
+
+
+def test_load_records(tmppath):
+    path = str(tmppath / 'bytes.mot')
+    records = list(MotorolaRecord.split(BYTES))
+    save_records(path, records)
+    ans_out = load_records(path, MotorolaRecord)
     ans_ref = records
     assert ans_out == ans_ref
 
@@ -165,10 +198,33 @@ def test_load_records_doctest(tmppath):
 
 def test_save_records_doctest(tmppath):
     path = str(tmppath / 'bytes.hex')
-    records = list(IntelRecord.split(bytes(range(256))))
+    records = list(IntelRecord.split(BYTES))
     save_records(path, records)
     ans_out = load_records(path)
     ans_ref = records
+    assert ans_out == ans_ref
+
+
+def test_save_records(tmppath):
+    path = str(tmppath / 'bytes.hex')
+    records = list(IntelRecord.split(BYTES))
+    save_records(path, records, IntelRecord)
+    ans_out = load_records(path)
+    ans_ref = records
+    assert ans_out == ans_ref
+
+    records = []
+    save_records(path, records, IntelRecord)
+    ans_out = load_records(path)
+    ans_ref = records
+    assert ans_out == ans_ref
+
+    path = str(tmppath / 'bytes.mot')
+    intel = list(IntelRecord.split(BYTES))
+    motorola = list(MotorolaRecord.split(BYTES))
+    save_records(path, intel, MotorolaRecord)
+    ans_out = load_records(path)
+    ans_ref = motorola
     assert ans_out == ans_ref
 
 # ============================================================================
@@ -182,6 +238,16 @@ def test_load_blocks_doctest(tmppath):
     ans_ref = merge(blocks)
     assert ans_out == ans_ref
 
+
+def test_load_blocks(tmppath):
+    path = str(tmppath / 'bytes.mot')
+    blocks = [(offset, bytes(bytearray(range(offset, offset + 16))))
+              for offset in range(0, 256, 16)]
+    save_blocks(path, blocks)
+    ans_out = load_blocks(path, MotorolaRecord)
+    ans_ref = merge(blocks)
+    assert ans_out == ans_ref
+
 # ============================================================================
 
 def test_save_blocks_doctest(tmppath):
@@ -189,6 +255,16 @@ def test_save_blocks_doctest(tmppath):
     blocks = [(offset, bytes(bytearray(range(offset, offset + 16))))
               for offset in range(0, 256, 16)]
     save_blocks(path, blocks)
+    ans_out = load_blocks(path)
+    ans_ref = merge(blocks)
+    assert ans_out == ans_ref
+
+
+def test_save_blocks(tmppath):
+    path = str(tmppath / 'bytes.hex')
+    blocks = [(offset, bytes(bytearray(range(offset, offset + 16))))
+              for offset in range(0, 256, 16)]
+    save_blocks(path, blocks, IntelRecord)
     ans_out = load_blocks(path)
     ans_ref = merge(blocks)
     assert ans_out == ans_ref
@@ -234,6 +310,14 @@ class TestRecord(object):
 
         ans_out = str(IntelRecord(0x1234, IntelTag.DATA, b'Hello, World!'))
         ans_ref = ':0D12340048656C6C6F2C20576F726C642144'
+        assert ans_out == ans_ref
+
+    def test___str__(self):
+        ans_out = str(Record(0x1234, 0, b'Hello, World!'))
+        ans_out = str_bytes_quickfix(normalize_whitespace(ans_out))
+        ans_ref = ("Record(address=0x00001234, tag=0, count=13, "
+                   "data=b'Hello, World!', checksum=0x69)")
+        ans_ref = normalize_whitespace(ans_ref)
         assert ans_out == ans_ref
 
     def test___eq___doctest(self):
@@ -347,6 +431,35 @@ class TestRecord(object):
         assert str(record) == ':0D00000048656C6C6F2C20576F726C64218A'
         assert hex(record.checksum) == '0x8a'
 
+    def test_check(self):
+        with pytest.raises(ValueError):
+            Record(-1, 0, b'Hello, World!').check()
+
+        with pytest.raises(ValueError):
+            Record(0, -1, b'Hello, World!').check()
+
+        with pytest.raises(ValueError):
+            Record(0, 256, b'Hello, World!').check()
+
+        record = Record(0, 0, b'')
+        record.data = None
+        with pytest.raises(ValueError): record.check()
+
+        record = Record(0, 0, b'#' * 256)
+        with pytest.raises(ValueError): record.check()
+
+        record = Record(0, 0, b'Hello, World!')
+        record.checksum = -1
+        with pytest.raises(ValueError): record.check()
+
+        record = Record(0, 0, b'Hello, World!')
+        record.checksum = 256
+        with pytest.raises(ValueError): record.check()
+
+        record = Record(0, 0, b'')
+        record.checksum ^= 0xFF
+        with pytest.raises(ValueError): record.check()
+
     def test__get_checksum(self):
         record = BinaryRecord(0, 0, b'Hello, World!')
         assert hex(record._get_checksum()) == '0x69'
@@ -372,6 +485,17 @@ class TestRecord(object):
         record2 = BinaryRecord(3, 0, b'def')
         assert record1.overlaps(record2) == False
 
+    def test_overlaps(self):
+        record1 = BinaryRecord(0, 0, b'abc')
+        record1.address = None
+        record2 = BinaryRecord(3, 0, b'def')
+        assert record1.overlaps(record2) == False
+
+        record1 = BinaryRecord(0, 0, b'abc')
+        record2 = BinaryRecord(3, 0, b'def')
+        record2.address = None
+        assert record1.overlaps(record2) == False
+
     def test_parse(self):
         with pytest.raises(NotImplementedError):
             Record.parse('')
@@ -387,6 +511,20 @@ class TestRecord(object):
         data_records = get_data_records(records)
         data_records2 = list(BinaryRecord.build_standalone(records))
         assert data_records == data_records2
+
+    def test_check_sequence(self):
+        record1 = BinaryRecord(0, 0, b'abc')
+        record2 = BinaryRecord(3, 0, b'def')
+        BinaryRecord.check_sequence([record1, record2])
+
+        record2.address = 1
+        with pytest.raises(ValueError):
+            BinaryRecord.check_sequence([record1, record2])
+
+        record1.address = 3
+        record2.address = 0
+        with pytest.raises(ValueError):
+            BinaryRecord.check_sequence([record1, record2])
 
     def test_readdress(self):
         pass
@@ -496,55 +634,161 @@ class TestMotorolaRecord(object):
         pass  # TODO
 
     def test_check(self):
-        pass  # TODO
+        record = MotorolaRecord.build_data(0, b'Hello, World!')
+        record.tag = len(MotorolaTag)
+        with pytest.raises(ValueError): record.check()
+
+        record = MotorolaRecord.build_header(b'')
+        record.address = 1
+        with pytest.raises(ValueError): record.check()
+
+        record = MotorolaRecord.build_count(0x1234)
+        record.address = 1
+        with pytest.raises(ValueError): record.check()
+
+        record = MotorolaRecord.build_count(0x123456)
+        record.address = 1
+        with pytest.raises(ValueError): record.check()
+
+        record = MotorolaRecord.build_data(0, b'Hello, World!')
+        record.count += 1
+        with pytest.raises(ValueError): record.check()
 
     def test_fit_data_tag_doctest(self):
-        pass  # TODO
+        ans_out = repr(MotorolaRecord.fit_data_tag(0x00000000))
+        ans_ref = '<MotorolaTag.DATA_16: 1>'
+        assert ans_out == ans_ref
+
+        ans_out = repr(MotorolaRecord.fit_data_tag(0x0000FFFF))
+        ans_ref = '<MotorolaTag.DATA_16: 1>'
+        assert ans_out == ans_ref
+
+        ans_out = repr(MotorolaRecord.fit_data_tag(0x00010000))
+        ans_ref = '<MotorolaTag.DATA_16: 1>'
+        assert ans_out == ans_ref
+
+        ans_out = repr(MotorolaRecord.fit_data_tag(0x00FFFFFF))
+        ans_ref = '<MotorolaTag.DATA_24: 2>'
+        assert ans_out == ans_ref
+
+        ans_out = repr(MotorolaRecord.fit_data_tag(0x01000000))
+        ans_ref = '<MotorolaTag.DATA_24: 2>'
+        assert ans_out == ans_ref
+
+        ans_out = repr(MotorolaRecord.fit_data_tag(0xFFFFFFFF))
+        ans_ref = '<MotorolaTag.DATA_32: 3>'
+        assert ans_out == ans_ref
 
     def test_fit_data_tag(self):
-        pass  # TODO
+        with pytest.raises(ValueError):
+            MotorolaRecord.fit_data_tag(-1)
+
+        with pytest.raises(ValueError):
+            MotorolaRecord.fit_data_tag(1 << 32)
 
     def test_fit_count_tag_doctest(self):
-        pass  # TODO
+        ans_out = repr(MotorolaRecord.fit_count_tag(0x0000000))
+        ans_ref = '<MotorolaTag.COUNT_16: 5>'
+        assert ans_out == ans_ref
+
+        ans_out = repr(MotorolaRecord.fit_count_tag(0x00FFFF))
+        ans_ref = '<MotorolaTag.COUNT_16: 5>'
+        assert ans_out == ans_ref
+
+        ans_out = repr(MotorolaRecord.fit_count_tag(0x010000))
+        ans_ref = '<MotorolaTag.COUNT_24: 6>'
+        assert ans_out == ans_ref
+
+        ans_out = repr(MotorolaRecord.fit_count_tag(0xFFFFFF))
+        ans_ref = '<MotorolaTag.COUNT_24: 6>'
+        assert ans_out == ans_ref
 
     def test_fit_count_tag(self):
-        pass  # TODO
+        with pytest.raises(ValueError):
+            MotorolaRecord.fit_count_tag(-1)
+
+        with pytest.raises(ValueError):
+            MotorolaRecord.fit_count_tag(1 << 24)
 
     def test_build_header_doctest(self):
-        pass  # TODO
-
-    def test_build_header_tag(self):
-        pass  # TODO
+        ans_out = str(MotorolaRecord.build_header(b'Hello, World!'))
+        ans_ref = 'S010000048656C6C6F2C20576F726C642186'
+        assert ans_out == ans_ref
 
     def test_build_data_doctest(self):
-        pass  # TODO
+        ans_out = str(MotorolaRecord.build_data(0x1234, b'Hello, World!'))
+        ans_ref = 'S110123448656C6C6F2C20576F726C642140'
+        assert ans_out == ans_ref
+
+        ans_out = str(MotorolaRecord.build_data(0x1234, b'Hello, World!',
+                                                tag=MotorolaTag.DATA_16))
+        ans_ref = 'S110123448656C6C6F2C20576F726C642140'
+        assert ans_out == ans_ref
+
+        ans_out = str(MotorolaRecord.build_data(0x123456, b'Hello, World!',
+                                                tag=MotorolaTag.DATA_24))
+        ans_ref = 'S21112345648656C6C6F2C20576F726C6421E9'
+        assert ans_out == ans_ref
+
+        ans_out = str(MotorolaRecord.build_data(0x12345678, b'Hello, World!',
+                                                tag=MotorolaTag.DATA_32))
+        ans_ref = 'S3121234567848656C6C6F2C20576F726C642170'
+        assert ans_out == ans_ref
 
     def test_build_data_tag(self):
-        pass  # TODO
+        for tag in [0] + list(range(4, len(MotorolaTag))):
+            with pytest.raises(ValueError):
+                MotorolaRecord.build_data(0x1234, b'Hello, World!', tag=tag)
 
     def test_build_terminator_doctest(self):
-        pass  # TODO
+        ans_out = str(MotorolaRecord.build_terminator(0x1234))
+        ans_ref = 'S9031234B6'
+        assert ans_out == ans_ref
 
-    def test_build_terminator_tag(self):
-        pass  # TODO
+        ans_out = str(MotorolaRecord.build_terminator(0x1234,
+                                                      MotorolaTag.DATA_16))
+        ans_ref = 'S9031234B6'
+        assert ans_out == ans_ref
+
+        ans_out = str(MotorolaRecord.build_terminator(0x123456,
+                                                      MotorolaTag.DATA_24))
+        ans_ref = 'S8041234565F'
+        assert ans_out == ans_ref
+
+        ans_out = str(MotorolaRecord.build_terminator(0x12345678,
+                                                      MotorolaTag.DATA_32))
+        ans_ref = 'S70512345678E6'
+        assert ans_out == ans_ref
 
     def test_build_count_doctest(self):
-        pass  # TODO
+        ans_out = str(MotorolaRecord.build_count(0x1234))
+        ans_ref = 'S5031234B6'
+        assert ans_out == ans_ref
 
-    def test_build_count_tag(self):
-        pass  # TODO
+        ans_out = str(MotorolaRecord.build_count(0x123456))
+        ans_ref = 'S6041234565F'
+        assert ans_out == ans_ref
 
     def test_parse_doctest(self):
         pass  # TODO
 
     def test_parse(self):
-        pass  # TODO
-
-    def test_build_standalone_doctest(self):
-        pass  # TODO
+        with pytest.raises(ValueError):
+            MotorolaRecord.parse(b'Hello, World!')
 
     def test_build_standalone(self):
-        pass  # TODO
+        ans_out = list(MotorolaRecord.build_standalone(
+            [],
+            tag=MotorolaTag.DATA_32,
+            header_data=b'Hello, World!',
+            start=0
+        ))
+        ans_ref = [
+            MotorolaRecord(0, MotorolaTag.HEADER, b'Hello, World!'),
+            MotorolaRecord(0, MotorolaTag.COUNT_16, b'\x00\x01'),
+            MotorolaRecord(0, MotorolaTag.START_32, b''),
+        ]
+        assert ans_out == ans_ref
 
     def test_check_sequence_doctest(self):
         pass  # TODO
@@ -556,13 +800,46 @@ class TestMotorolaRecord(object):
         pass  # TODO
 
     def test_split(self):
-        pass  # TODO
+        with pytest.raises(ValueError):
+            list(MotorolaRecord.split(BYTES, address=-1))
+
+        with pytest.raises(ValueError):
+            list(MotorolaRecord.split(BYTES, address=(1 << 32)))
+
+        with pytest.raises(ValueError):
+            list(MotorolaRecord.split(BYTES, address=((1 << 32) - 128)))
+
+        with pytest.raises(ValueError):
+            list(MotorolaRecord.split(BYTES, columns=129))
+
+        ans_out = list(MotorolaRecord.split(HEXBYTES,
+                                            header_data=b'Hello, World!'))
+        ans_ref = [
+            MotorolaRecord(0, MotorolaTag.HEADER, b'Hello, World!'),
+            MotorolaRecord(0, MotorolaTag.DATA_16, HEXBYTES),
+            MotorolaRecord(0, MotorolaTag.COUNT_16, b'\x00\x01'),
+            MotorolaRecord(0, MotorolaTag.START_16, b''),
+        ]
+        assert ans_out == ans_ref
 
     def test_fix_tags_doctest(self):
         pass  # TODO
 
     def test_fix_tags(self):
-        pass  # TODO
+        ans_out = [
+            MotorolaRecord(0, MotorolaTag.HEADER, b'Hello, World!'),
+            MotorolaRecord(0x12345678, MotorolaTag.DATA_16, HEXBYTES),
+            MotorolaRecord(0, MotorolaTag.COUNT_16, b'\x12\x34\x56'),
+            MotorolaRecord(0x1234, MotorolaTag.START_16, b''),
+        ]
+        MotorolaRecord.fix_tags(ans_out)
+        ans_ref = [
+            MotorolaRecord(0, MotorolaTag.HEADER, b'Hello, World!'),
+            MotorolaRecord(0x12345678, MotorolaTag.DATA_32, HEXBYTES),
+            MotorolaRecord(0, MotorolaTag.COUNT_24, b'\x12\x34\x56'),
+            MotorolaRecord(0x1234, MotorolaTag.START_32, b''),
+        ]
+        assert ans_out == ans_ref
 
     def test_load(self, datapath):
         path_ref = datapath / 'bytes.mot'
