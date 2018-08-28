@@ -32,6 +32,7 @@ import struct
 
 import six
 
+from .blocks import SparseItems
 from .blocks import collapse
 from .blocks import merge
 from .blocks import sorting
@@ -305,7 +306,7 @@ def convert_file(input_file, output_file, input_type=None, output_type=None,
 
 
 def load_records(path, record_type=None):
-    r"""Loads records from a file.
+    r"""Loads records from a record file.
 
     Arguments:
         path (:obj:`str`): Path of the input file.
@@ -327,7 +328,7 @@ def load_records(path, record_type=None):
 
 def save_records(path, records, output_type=None,
                  split_args=None, split_kwargs=None):
-    r"""Saves records to a file.
+    r"""Saves records to a record file.
 
     Arguments:
         path (:obj:`str`): Path of the output file.
@@ -359,12 +360,16 @@ def save_records(path, records, output_type=None,
 
 
 def load_blocks(path, record_type=None):
-    r"""Loads blocks from a file.
+    r"""Loads blocks from a record file.
 
     Arguments:
         path (:obj:`str`): Path of the input file.
         record_type (:class:`Record`): Explicit record type.
             If ``None``, it is guessed from the file extension.
+
+    Returns:
+        :obj:`list` of block: Sequence of non-overlapping blocks, sorted by
+            start address.
 
     Example:
         >>> blocks = [(offset, bytes(bytearray(range(offset, offset + 16))))
@@ -384,7 +389,7 @@ def load_blocks(path, record_type=None):
 
 def save_blocks(path, blocks, record_type=None,
                 split_args=None, split_kwargs=None):
-    r"""Saves blocks to a file.
+    r"""Saves blocks to a record file.
 
     Arguments:
         path (:obj:`str`): Path of the output file.
@@ -408,6 +413,54 @@ def save_blocks(path, blocks, record_type=None,
 
     records = blocks_to_records(blocks, record_type, split_args, split_kwargs)
     record_type.save(path, records)
+
+
+def load_memory(path, record_type=None):
+    r"""Loads a virtual memory from a file.
+
+    Arguments:
+        path (:obj:`str`): Path of the input file.
+        record_type (:class:`Record`): Explicit record type.
+            If ``None``, it is guessed from the file extension.
+
+    Returns:
+        :obj:`SparseItems`: A virtual memory.
+
+    Example:
+        >>> blocks = [(offset, bytes(bytearray(range(offset, offset + 16))))
+        ...           for offset in range(0, 256, 16)]
+        >>> sparse_items = SparseItems(blocks=blocks)
+        >>> save_memory('bytes.mot', sparse_items)
+        >>> load_memory('bytes.mot') == sparse_items
+        True
+    """
+    blocks = load_blocks(path, record_type)
+    sparse_items = SparseItems(blocks=blocks)
+    return sparse_items
+
+
+def save_memory(path, sparse_items, record_type=None,
+                split_args=None, split_kwargs=None):
+    r"""Saves a virtual memory to a record file.
+
+    Arguments:
+        path (:obj:`str`): Path of the output file.
+        sparse_items (:obj:`SparseItems`): A virtual memory.
+        record_type (:class:`Record`): Explicit record type.
+            If ``None``, it is guessed from the file extension.
+        split_args (list): Positional arguments for :meth:`Record.split`.
+        split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
+
+    Example:
+        >>> blocks = [(offset, bytes(bytearray(range(offset, offset + 16))))
+        ...           for offset in range(0, 256, 16)]
+        >>> sparse_items = SparseItems(blocks=blocks)
+        >>> save_memory('bytes.hex', sparse_items)
+        >>> load_memory('bytes.hex') == sparse_items
+        True
+    """
+    save_blocks(path, sparse_items.blocks, record_type,
+                split_args, split_kwargs)
 
 
 class Record(object):

@@ -271,6 +271,30 @@ def test_save_blocks(tmppath):
 
 # ============================================================================
 
+def test_load_memory_doctest(tmppath):
+    path = str(tmppath / 'bytes.mot')
+    blocks = [(offset, bytes(bytearray(range(offset, offset + 16))))
+              for offset in range(0, 256, 16)]
+    sparse_items = SparseItems(blocks=blocks)
+    save_memory(path, sparse_items)
+    ans_out = load_memory(path)
+    ans_ref = sparse_items
+    assert ans_out == ans_ref
+
+# ============================================================================
+
+def test_save_memory_doctest(tmppath):
+    path = str(tmppath / 'bytes.hex')
+    blocks = [(offset, bytes(bytearray(range(offset, offset + 16))))
+              for offset in range(0, 256, 16)]
+    sparse_items = SparseItems(blocks=blocks)
+    save_memory(path, sparse_items)
+    ans_out = load_memory(path)
+    ans_ref = sparse_items
+    assert ans_out == ans_ref
+
+# ============================================================================
+
 class TestRecord(object):
 
     def test___init___doctest(self):
