@@ -46,6 +46,9 @@ from .utils import unhexlify
 def get_data_records(records):
     r"""Extracts data records.
 
+    Arguments:
+        records(:obj:`list` of :obj:`Record`): Sequence of records.
+
     Returns:
         :obj:`list` of :obj:`Record`: Sequence of data records.
 
@@ -59,6 +62,33 @@ def get_data_records(records):
     """
     data_records = [record for record in records if record.is_data()]
     return data_records
+
+
+def find_corrupted_records(records):
+    r"""Finds corrupted records.
+
+    Arguments:
+        records(:obj:`list` of :obj:`Record`): Sequence of records.
+
+    Returns:
+        :obj:`list` of :obj:`int`: Sequence of corrupted record indices.
+
+    Example:
+        >>> data = bytes(bytearray(range(256)))
+        >>> records = list(MotorolaRecord.split(data))
+        >>> records[3].checksum ^= 0xFF
+        >>> records[5].checksum ^= 0xFF
+        >>> records[7].checksum ^= 0xFF
+        >>> find_corrupted_records(records)
+        [3, 5, 7]
+    """
+    corrupted = []
+    for index, record in enumerate(records):
+        try:
+            record.check()
+        except ValueError:
+            corrupted.append(index)
+    return corrupted
 
 
 def records_to_blocks(records):
@@ -836,7 +866,7 @@ class Record(object):
         r"""Consistency check of a sequence of records.
 
         Raises:
-            :obj:`ValueError`: a field is inconsistent.
+            ValueError: a field is inconsistent.
         """
         last = None
         record_endex = 0
@@ -845,10 +875,12 @@ class Record(object):
             record.check()
 
             if record.is_data():
-                if record.address < record_endex:
-                    raise ValueError('unsorted records')
                 if last is not None and record.overlaps(last):
                     raise ValueError('overlapping records')
+
+                if record.address < record_endex:
+                    raise ValueError('unsorted records')
+
                 last = record
 
             record_endex = record.address + len(record.data)
@@ -1123,14 +1155,12 @@ class MotorolaRecord(Record):
         super(MotorolaRecord, self).check()
 
         tag = int(self.TAG_TYPE(self.tag))
-        if not 0 <= tag <= 9:
-            raise RuntimeError('tag error')
 
         if tag in (0, 4, 5, 6) and self.address:
-            raise RuntimeError('address error')
+            raise ValueError('address error')
 
         if self.count != self.compute_count():
-            raise RuntimeError('count error')
+            raise ValueError('count error')
 
     @classmethod
     def fit_data_tag(cls, endex):
@@ -1605,7 +1635,7 @@ class IntelRecord(Record):
         super(IntelRecord, self).check()
 
         if self.count != self.compute_count():
-            raise RuntimeError('count error')
+            raise ValueError('count error')
 
         self.TAG_TYPE(self.tag)
         # TODO: check values
@@ -1660,12 +1690,16 @@ class IntelRecord(Record):
         Returns:
             :obj:`IntelRecord`: Start segment address record.
 
+        Raises:
+            ValueError: Address overflow.
+
         Example:
             >>> str(IntelRecord.build_start_segment_address(0x12345678))
             ':0400000312345678E5'
         """
         if not 0 <= address < (1 << 32):
             raise ValueError('address overflow')
+
         tag = cls.TAG_TYPE.START_SEGMENT_ADDRESS
         record = cls(0, tag, struct.pack('>L', address))
         return record
@@ -1695,12 +1729,16 @@ class IntelRecord(Record):
         Returns:
             :obj:`IntelRecord`: Extended linear address record.
 
+        Raises:
+            ValueError: Address overflow.
+
         Example:
             >>> str(IntelRecord.build_extended_linear_address(0x12345678))
             ':020000041234B4'
         """
         if not 0 <= address < (1 << 32):
             raise ValueError('address overflow')
+
         segment = address >> 16
         tag = cls.TAG_TYPE.EXTENDED_LINEAR_ADDRESS
         record = cls(0, tag, struct.pack('>H', segment))
@@ -1716,12 +1754,16 @@ class IntelRecord(Record):
         Returns:
             :obj:`IntelRecord`: Start linear address record.
 
+        Raises:
+            ValueError: Address overflow.
+
         Example:
             >>> str(IntelRecord.build_start_linear_address(0x12345678))
             ':0400000512345678E3'
         """
         if not 0 <= address < (1 << 32):
             raise ValueError('address overflow')
+
         tag = cls.TAG_TYPE.START_LINEAR_ADDRESS
         record = cls(0, tag, struct.pack('>L', address))
         return record
@@ -1967,10 +2009,12 @@ class TektronixRecord(Record):
     def check(self):
         super(TektronixRecord, self).check()
         tag = self.TAG_TYPE(self.tag)
-        if tag == 8 and self.data:
-            raise RuntimeError('invalid data')
+
+        if tag == self.TAG_TYPE.TERMINATOR and self.data:
+            raise ValueError('invalid data')
+
         if self.count != self.compute_count():
-            raise RuntimeError('count error')
+            raise ValueError('count error')
 
     @classmethod
     def parse(cls, line):
@@ -2057,9 +2101,10 @@ class TektronixRecord(Record):
             raise ValueError('column overflow')
 
         align_base = (address % columns) if align else 0
+        offset = address
         for chunk in chop(data, columns, align_base):
-            yield cls.build_data(address, chunk)
-            address += len(chunk)
+            yield cls.build_data(offset, chunk)
+            offset += len(chunk)
 
         if standalone:
             yield cls.build_terminator(address if start is None else start)

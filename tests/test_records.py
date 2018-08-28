@@ -77,6 +77,18 @@ def test_get_data_records_doctest():
 
 # ============================================================================
 
+def test_find_corrupted_records_doctest():
+    data = bytes(bytearray(range(256)))
+    records = list(MotorolaRecord.split(data))
+    records[3].checksum ^= 0xFF
+    records[5].checksum ^= 0xFF
+    records[7].checksum ^= 0xFF
+    ans_out = find_corrupted_records(records)
+    ans_ref = [3, 5, 7]
+    assert ans_out == ans_ref
+
+# ============================================================================
+
 def test_records_to_blocks_doctest():
     data = bytes(bytearray(range(256)))
     blocks = list(chop_blocks(data, 16))
@@ -539,19 +551,31 @@ class TestRecord(object):
     def test_check_sequence(self):
         record1 = BinaryRecord(0, 0, b'abc')
         record2 = BinaryRecord(3, 0, b'def')
-        BinaryRecord.check_sequence([record1, record2])
+        records = [record1, record2]
+        BinaryRecord.check_sequence(records)
 
         record2.address = 1
+        record2.update_checksum()
         with pytest.raises(ValueError):
-            BinaryRecord.check_sequence([record1, record2])
+            BinaryRecord.check_sequence(records)
 
         record1.address = 3
         record2.address = 0
+        record1.update_checksum()
+        record2.update_checksum()
         with pytest.raises(ValueError):
-            BinaryRecord.check_sequence([record1, record2])
+            BinaryRecord.check_sequence(records)
 
     def test_readdress(self):
         pass
+
+# ============================================================================
+
+class TestBinaryTag(object):
+
+    def test_is_data(self):
+        for tag in range(256):
+            assert BinaryTag.is_data(tag)
 
 # ============================================================================
 
@@ -658,24 +682,35 @@ class TestMotorolaRecord(object):
         pass  # TODO
 
     def test_check(self):
+        record = MotorolaRecord.build_data(0, b'')
+        for tag in range(len(MotorolaTag), 256):
+            record.tag = tag
+            record.update_checksum()
+            with pytest.raises(ValueError): record.check()
+
         record = MotorolaRecord.build_data(0, b'Hello, World!')
+        record.check()
         record.tag = len(MotorolaTag)
         with pytest.raises(ValueError): record.check()
 
         record = MotorolaRecord.build_header(b'')
         record.address = 1
+        record.update_checksum()
         with pytest.raises(ValueError): record.check()
 
         record = MotorolaRecord.build_count(0x1234)
         record.address = 1
+        record.update_checksum()
         with pytest.raises(ValueError): record.check()
 
         record = MotorolaRecord.build_count(0x123456)
         record.address = 1
+        record.update_checksum()
         with pytest.raises(ValueError): record.check()
 
         record = MotorolaRecord.build_data(0, b'Hello, World!')
         record.count += 1
+        record.update_checksum()
         with pytest.raises(ValueError): record.check()
 
     def test_fit_data_tag_doctest(self):
@@ -798,7 +833,7 @@ class TestMotorolaRecord(object):
 
     def test_parse(self):
         with pytest.raises(ValueError):
-            MotorolaRecord.parse(b'Hello, World!')
+            MotorolaRecord.parse('Hello, World!')
 
     def test_build_standalone(self):
         ans_out = list(MotorolaRecord.build_standalone(
@@ -898,7 +933,14 @@ class TestIntelRecord(object):
         pass  # TODO
 
     def test___init__(self):
-        pass  # TODO
+        with pytest.raises(ValueError):
+            IntelRecord.build_data(-1, BYTES)
+
+        with pytest.raises(ValueError):
+            IntelRecord.build_data(1 << 32, BYTES)
+
+        with pytest.raises(ValueError):
+            IntelRecord.build_data((1 << 32) - 128, BYTES)
 
     def test___str___doctest(self):
         pass  # TODO
@@ -924,77 +966,173 @@ class TestIntelRecord(object):
     def test_compute_checksum(self):
         pass  # TODO
 
-    def test_check_doctest(self):
-        pass  # TODO
-
     def test_check(self):
-        pass  # TODO
+        record = IntelRecord.build_data(0x1234, b'Hello, World!')
+        record.count += 1
+        record.update_checksum()
+        with pytest.raises(ValueError): record.check()
 
     def test_build_data_doctest(self):
-        pass  # TODO
+        ans_out = str(IntelRecord.build_data(0x1234, b'Hello, World!'))
+        ans_ref = ':0D12340048656C6C6F2C20576F726C642144'
+        assert ans_out == ans_ref
 
-    def test_build_data(self):
-        pass  # TODO
+    def test_build_extended_segment_address_doctest(self):
+        ans_out = str(IntelRecord.build_extended_segment_address(0x12345678))
+        ans_ref = ':020000020123D8'
+        assert ans_out == ans_ref
 
-    def test_build_extended_segment_addres_doctest(self):
-        pass  # TODO
+    def test_build_extended_segment_address(self):
+        with pytest.raises(ValueError):
+            IntelRecord.build_extended_segment_address(-1)
 
-    def test_build_extended_segment_addres(self):
-        pass  # TODO
+        with pytest.raises(ValueError):
+            IntelRecord.build_extended_segment_address(1 << 32)
 
     def test_build_start_segment_address_doctest(self):
-        pass  # TODO
+        ans_out = str(IntelRecord.build_start_segment_address(0x12345678))
+        ans_ref = ':0400000312345678E5'
+        assert ans_out == ans_ref
 
     def test_build_start_segment_address(self):
-        pass  # TODO
+        with pytest.raises(ValueError):
+            IntelRecord.build_start_segment_address(-1)
+
+        with pytest.raises(ValueError):
+            IntelRecord.build_start_segment_address(1 << 32)
 
     def test_build_end_of_file_doctest(self):
-        pass  # TODO
-
-    def test_build_end_of_file(self):
-        pass  # TODO
+        ans_out = str(IntelRecord.build_end_of_file())
+        ans_ref = ':00000001FF'
+        assert ans_out == ans_ref
 
     def test_build_extended_linear_address_doctest(self):
-        pass  # TODO
+        ans_out = str(IntelRecord.build_extended_linear_address(0x12345678))
+        ans_ref = ':020000041234B4'
+        assert ans_out == ans_ref
 
     def test_build_extended_linear_address(self):
-        pass  # TODO
+        with pytest.raises(ValueError):
+            IntelRecord.build_extended_linear_address(-1)
+
+        with pytest.raises(ValueError):
+            IntelRecord.build_extended_linear_address(1 << 32)
 
     def test_build_start_linear_address_doctest(self):
-        pass  # TODO
+        ans_out = str(IntelRecord.build_start_linear_address(0x12345678))
+        ans_ref = ':0400000512345678E3'
+        assert ans_out == ans_ref
 
     def test_build_start_linear_address(self):
-        pass  # TODO
+        with pytest.raises(ValueError):
+            IntelRecord.build_start_linear_address(-1)
+
+        with pytest.raises(ValueError):
+            IntelRecord.build_start_linear_address(1 << 32)
 
     def test_parse_doctest(self):
         pass  # TODO
 
     def test_parse(self):
-        pass  # TODO
+        with pytest.raises(ValueError):
+            IntelRecord.parse('Hello, World!')
+
+        with pytest.raises(ValueError):
+            IntelRecord.parse(':01000001FF')
 
     def test_split_doctest(self):
         pass  # TODO
 
     def test_split(self):
-        pass  # TODO
+        with pytest.raises(ValueError):
+            list(IntelRecord.split(BYTES, address=-1))
 
-    def test_build_standalone_doctest(self):
-        pass  # TODO
+        with pytest.raises(ValueError):
+            list(IntelRecord.split(BYTES, address=(1 << 32)))
+
+        with pytest.raises(ValueError):
+            list(IntelRecord.split(BYTES, address=((1 << 32) - 128)))
+
+        with pytest.raises(ValueError):
+            list(IntelRecord.split(BYTES, columns=256))
+
+        ans_out = list(IntelRecord.split(HEXBYTES, address=0x12345678))
+        ans_ref = [
+            IntelRecord(0, IntelTag.EXTENDED_LINEAR_ADDRESS, b'\x124'),
+            IntelRecord(0x12345678, IntelTag.DATA,
+                        b'\x00\x01\x02\x03\x04\x05\x06\x07'),
+            IntelRecord(0x12345680, IntelTag.DATA,
+                        b'\x08\t\n\x0b\x0c\r\x0e\x0f'),
+            IntelRecord(0, IntelTag.EXTENDED_LINEAR_ADDRESS, b'\x00\x00'),
+            IntelRecord(0, IntelTag.START_LINEAR_ADDRESS, b'\x124Vx'),
+            IntelRecord(0, IntelTag.END_OF_FILE, b''),
+        ]
+        assert ans_out == ans_ref
+
+        ans_out = list(IntelRecord.split(HEXBYTES, address=0x0000FFF8))
+        ans_ref = [
+            IntelRecord(0xFFF8, IntelTag.DATA,
+                        b'\x00\x01\x02\x03\x04\x05\x06\x07'),
+            IntelRecord(0, IntelTag.EXTENDED_LINEAR_ADDRESS, b'\x00\x01'),
+            IntelRecord(0x10000, IntelTag.DATA, b'\x08\t\n\x0b\x0c\r\x0e\x0f'),
+            IntelRecord(0, IntelTag.EXTENDED_LINEAR_ADDRESS, b'\x00\x00'),
+            IntelRecord(0, IntelTag.START_LINEAR_ADDRESS, b'\x00\x00\xff\xf8'),
+            IntelRecord(0, IntelTag.END_OF_FILE, b'')
+        ]
+        assert ans_out == ans_ref
+
+        ans_out = list(IntelRecord.split(HEXBYTES, address=0x0000FFF8,
+                                         align=False))
+        assert ans_out == ans_ref
 
     def test_build_standalone(self):
-        pass  # TODO
+        ans_out = list(IntelRecord.build_standalone([], start=0))
+        ans_ref = [
+            IntelRecord(0, IntelTag.EXTENDED_LINEAR_ADDRESS, b'\x00\x00'),
+            IntelRecord(0, IntelTag.START_LINEAR_ADDRESS, b'\x00\x00\x00\x00'),
+            IntelRecord(0, IntelTag.END_OF_FILE, b''),
+        ]
+        assert ans_out == ans_ref
+
+        data_records = [IntelRecord.build_data(0x1234, HEXBYTES)]
+        ans_out = list(IntelRecord.build_standalone(data_records))
+        ans_ref = [
+            IntelRecord(0x1234, IntelTag.DATA, HEXBYTES),
+            IntelRecord(0, IntelTag.EXTENDED_LINEAR_ADDRESS, b'\x00\x00'),
+            IntelRecord(0, IntelTag.START_LINEAR_ADDRESS, b'\x00\x00\x12\x34'),
+            IntelRecord(0, IntelTag.END_OF_FILE, b''),
+        ]
+        assert ans_out == ans_ref
 
     def test_terminate_doctest(self):
-        pass  # TODO
-
-    def test_terminate(self):
-        pass  # TODO
+        ans_out = list(map(str, IntelRecord.terminate(0x12345678)))
+        ans_ref = [':020000040000FA', ':0400000512345678E3', ':00000001FF']
+        assert ans_out == ans_ref
 
     def test_readdress_doctest(self):
-        pass  # TODO
+        ans_out = [
+            IntelRecord.build_extended_linear_address(0x76540000),
+            IntelRecord.build_data(0x00003210, b'Hello, World!'),
+        ]
+        IntelRecord.readdress(ans_out)
+        ans_ref = [
+            IntelRecord(0x76540000, IntelTag.EXTENDED_LINEAR_ADDRESS, b'vT'),
+            IntelRecord(0x76543210, IntelTag.DATA, b'Hello, World!'),
+        ]
+        assert ans_out == ans_ref
 
     def test_readdress(self):
-        pass  # TODO
+        ans_out = [
+            IntelRecord.build_extended_segment_address(0x76540000),
+            IntelRecord.build_data(0x00001000, b'Hello, World!'),
+        ]
+        IntelRecord.readdress(ans_out)
+        ans_ref = [
+            IntelRecord(0x00007650, IntelTag.EXTENDED_SEGMENT_ADDRESS,
+                        b'\x07\x65'),
+            IntelRecord(0x00008650, IntelTag.DATA, b'Hello, World!'),
+        ]
+        assert ans_out == ans_ref
 
     def test_load(self, datapath):
         path_ref = datapath / 'bytes.hex'
@@ -1049,41 +1187,75 @@ class TestTektronixRecord(object):
     def test_compute_checksum(self):
         pass  # TODO
 
-    def test_check_doctest(self):
-        pass  # TODO
-
     def test_check(self):
-        pass  # TODO
+        record = TektronixRecord.build_terminator(0)
+        record.data = b'Hello, World!'
+        record.update_count()
+        record.update_checksum()
+        with pytest.raises(ValueError): record.check()
+
+        record = TektronixRecord.build_data(0, b'Hello, World!')
+        record.count += 1
+        record.update_checksum()
+        with pytest.raises(ValueError): record.check()
+
+        record = TektronixRecord.build_data(0, b'Hello, World!')
+        record.check()
+        for tag in range(256):
+            if tag not in (6, 8):
+                record.tag = tag
+                with pytest.raises(ValueError): record.check()
 
     def test_parse_doctest(self):
         pass  # TODO
 
     def test_parse(self):
-        pass  # TODO
+        with pytest.raises(ValueError):
+            TektronixRecord.parse('Hello, World!')
 
     def test_build_data_doctest(self):
-        pass  # TODO
-
-    def test_build_data(self):
-        pass  # TODO
+        ans_out = str(TektronixRecord.build_data(0x12345678,
+                                                 b'Hello, World!'))
+        ans_ref = '%236E081234567848656C6C6F2C20576F726C6421'
+        assert ans_out == ans_ref
 
     def test_build_terminator_doctest(self):
-        pass  # TODO
-
-    def test_build_terminator(self):
-        pass  # TODO
-
-    def test_split_doctest(self):
-        pass  # TODO
+        ans_out = str(TektronixRecord.build_terminator(0x12345678))
+        ans_ref = '%0983D812345678'
+        assert ans_out == ans_ref
 
     def test_split(self):
-        pass  # TODO
+        with pytest.raises(ValueError):
+            list(TektronixRecord.split(BYTES, address=-1))
 
-    def test_build_standalone_doctest(self):
-        pass  # TODO
+        with pytest.raises(ValueError):
+            list(TektronixRecord.split(BYTES, address=(1 << 32)))
+
+        with pytest.raises(ValueError):
+            list(TektronixRecord.split(BYTES, address=((1 << 32) - 128)))
+
+        with pytest.raises(ValueError):
+            list(TektronixRecord.split(BYTES, columns=129))
+
+        ans_out = list(TektronixRecord.split(HEXBYTES))
+        ans_ref = [
+            TektronixRecord(0, TektronixTag.DATA, HEXBYTES),
+            TektronixRecord(0, TektronixTag.TERMINATOR, b''),
+        ]
+        assert ans_out == ans_ref
 
     def test_build_standalone(self):
-        pass  # TODO
+        ans_out = list(TektronixRecord.build_standalone([], start=0))
+        ans_ref = [TektronixRecord(0, TektronixTag.TERMINATOR, b'')]
+        assert ans_out == ans_ref
+
+        data_records = [TektronixRecord.build_data(0x1234, b'Hello, World!')]
+        ans_out = list(TektronixRecord.build_standalone(data_records))
+        ans_ref = [
+            TektronixRecord(0x1234, TektronixTag.DATA, b'Hello, World!'),
+            TektronixRecord(0x1234, TektronixTag.TERMINATOR, b''),
+        ]
+        assert ans_out == ans_ref
 
     def test_check_sequence_doctest(self):
         pass  # TODO
