@@ -1,8 +1,8 @@
 Reference
 =========
 
-.. toctree::
-    :glob:
+.. autosummary::
+    :toctree: _autosummary
 
     hexrec.blocks
     hexrec.records

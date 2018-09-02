@@ -49,9 +49,17 @@ html_sidebars = {
 html_short_title = '%s-%s' % (project, version)
 
 autoclass_content = 'both'
+autodoc_default_flags = [
+    'members',
+    'inherited-members',
+    'private-members',
+    'show-inheritance',
+]
 autodoc_inherit_docstrings = False
+autodoc_member_order = 'bysource'
 autosummary_generate = True
 
+napoleon_numpy_docstring = False
 napoleon_use_ivar = True
 napoleon_use_rtype = False
 napoleon_use_param = False
