@@ -455,7 +455,7 @@ class TestSparseItems(object):  # TODO
 
     def test_count_doctest(self):
         memory = SparseItems(items_type=str, items_join=''.join)
-        memory.blocks = [(1, 'ABC'), (7, 'Bat'), (12, 'tab')]
+        memory.blocks = [(1, 'ABC'), (5, 'Bat'), (9, 'tab')]
         assert memory.count('a') == 2
 
     def test_count(self):
@@ -549,6 +549,16 @@ class TestSparseItems(object):  # TODO
         obj = SparseItems(items_type=str, items_join=''.join, automerge=False)
         obj.extend('ABC')
         assert obj.blocks == [(0, 'ABC')]
+
+    def test_start_doctest(self):
+        memory = SparseItems(items_type=str, items_join=''.join)
+        memory.blocks = [(1, 'ABC'), (5, 'xyz')]
+        assert memory.start == 1
+
+    def test_endex_doctest(self):
+        memory = SparseItems(items_type=str, items_join=''.join)
+        memory.blocks = [(1, 'ABC'), (5, 'xyz')]
+        assert memory.endex == 8
 
     def test_shift(self):
         obj = SparseItems(items_type=str, items_join=''.join)
@@ -688,6 +698,6 @@ class TestSparseItems(object):  # TODO
 
     def test_reverse_doctest(self):
         memory = SparseItems(items_type=str, items_join=''.join)
-        memory.blocks = [(1, 'ABC'), (5, '$'), (9, 'xyz')]
+        memory.blocks = [(1, 'ABC'), (5, '$'), (7, 'xyz')]
         memory.reverse()
-        assert memory.blocks == [(0, 'zyx'), (6, '$'), (8, 'CBA')]
+        assert memory.blocks == [(0, 'zyx'), (4, '$'), (6, 'CBA')]
