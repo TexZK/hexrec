@@ -467,7 +467,8 @@ def load_memory(path, record_type=None):
         True
     """
     blocks = load_blocks(path, record_type)
-    sparse_items = SparseItems(blocks=blocks)
+    sparse_items = SparseItems()
+    sparse_items.blocks = blocks  # avoid useless constructor operations
     return sparse_items
 
 
@@ -492,6 +493,29 @@ def save_memory(path, sparse_items, record_type=None,
         True
     """
     save_blocks(path, sparse_items.blocks, record_type,
+                split_args, split_kwargs)
+
+
+def save_chunk(path, chunk, address=0, record_type=None,
+               split_args=None, split_kwargs=None):
+    r"""Saves a data chunk to a record file.
+
+    Arguments:
+        path (:obj:`str`): Path of the output file.
+        chunk (:obj:`bytes`): A chunk of data.
+        address (:obj:`int`): Address of the data chunk.
+        record_type (:class:`Record`): Explicit record type.
+            If ``None``, it is guessed from the file extension.
+        split_args (list): Positional arguments for :meth:`Record.split`.
+        split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
+
+    Example:
+        >>> data = bytes(bytearray(range(256)))
+        >>> save_chunk('bytes.mot', data, 0x12345678)
+        >>> load_blocks('bytes.mot') == [(0x12345678, data)]
+        True
+    """
+    save_blocks(path, [(address, chunk)], record_type,
                 split_args, split_kwargs)
 
 

@@ -307,6 +307,16 @@ def test_save_memory_doctest(tmppath):
 
 # ============================================================================
 
+def test_save_chunk_doctest(tmppath):
+    path = str(tmppath / 'bytes.mot')
+    data = bytes(bytearray(range(256)))
+    save_chunk(path, data, 0x12345678)
+    ans_out = load_blocks(path)
+    ans_ref = [(0x12345678, data)]
+    assert ans_out == ans_ref
+
+# ============================================================================
+
 class TestRecord(object):
 
     def test___init___doctest(self):
