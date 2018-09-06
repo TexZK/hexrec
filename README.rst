@@ -1,6 +1,6 @@
-========
+********
 Overview
-========
+********
 
 .. start-badges
 
@@ -107,22 +107,31 @@ for example:
 * extract or update only some parts of the binary data.
 
 
-Installation
-============
-
-From PIP::
-
-    pip install hexrec
-
-From source::
-
-    python setup.py install
-
-
 Documentation
 =============
 
+For the full documentation, please refer to:
+
 https://hexrec.readthedocs.io/
+
+
+Architecture
+============
+
+As the core of this library are record files, the ``hexrec.records`` is the
+first module a user should look up.
+It provides high-level functions to deal with record files, as well as classes
+holding record data.
+
+However, the ``hexrec.records`` module is actually an user-friendly interface
+over ``hrxrec.blocks``, which manages sparse blocks of data.
+It also provides a handy wrapper to work with sparse byte chunks with an API
+akin to ``bytearray``.
+
+The ``hexrec.utils`` module provides some miscellaneous utility stuff.
+
+``hexrec.xxd`` is an emulation of the ``xxd`` command-line utility delivered
+by ``vim``.
 
 
 Examples
@@ -229,8 +238,8 @@ memory, unused memory byte cells default to ``0xFF``.
 
 >>> import hexrec.records as hr
 >>> memory = hr.load_memory('application_original.hex')
->>> blocks = [(0x8000, memory[0x8000:0x20000:b'\xFF'])]
->>> hr.save_blocks('application_trimmed.srec', blocks)
+>>> data = memory[0x8000:0x20000:b'\xFF']
+>>> hr.save_chunk('application_trimmed.srec', data, 0x8000)
 
 By contrast, we need to fill the application range within the bootloader image
 with ``0xFF``, so that no existing application will be available again.
@@ -240,8 +249,20 @@ already contains some important data.
 >>> import hexrec.records as hr
 >>> memory = hr.load_memory('bootloader_original.hex')
 >>> memory.fill(0x8000, 0x20000, b'\xFF')
->>> del memory[0x3F800:0x40000]
+>>> memory.clear(0x3F800, 0x40000)
 >>> hr.save_memory('bootloader_fixed.srec', memory)
+
+
+Installation
+============
+
+From PIP::
+
+    pip install hexrec
+
+From source::
+
+    python setup.py install
 
 
 Development

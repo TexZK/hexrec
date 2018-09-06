@@ -27,9 +27,89 @@
 
 r"""Utilities for sparse blocks of data.
 
-A `block` is ``(start, items)`` where `start` is the start address and
+Blocks are a useful way to describe sparse linear data, for example strings,
+chunks of bytes, lists, and so on.
+In the case of strings, a string itself is a contiguous block of items
+(*i.e.* characters).
+The audience of this module are most importantly those who have to manage
+sparse blocks of bytes, where a very broad addressing space (*e.g.* 4 GiB)
+is used only in some sparse parts (*e.g.* physical memory addressing in a
+microcontroller).
+
+A `block` is a tuple ``(start, items)`` where `start` is the start address and
 `items` is the container of items (e.g. :obj:`bytes`, :obj:`str`,
-:obj:`tuple`). The length of the block is ``len(items)``.
+:obj:`tuple`).  The length of the block is ``len(items)``.
+
+In this module it is common to require *contiguous* blocks, *i.e.* blocks
+in which a block ``b`` starts immediately after block ``a``:
+
++---+---+---+---+---+---+---+---+---+
+| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
++===+===+===+===+===+===+===+===+===+
+|   |[A | B | C]|   |   |   |   |   |
++---+---+---+---+---+---+---+---+---+
+|   |   |   |   |[x | y | z]|   |   |
++---+---+---+---+---+---+---+---+---+
+
+>>> a = (1, 'ABC')
+>>> b = (4, 'xyz')
+
+Instead, *overlapping* blocks have at least an addressed cell occupied by
+more items:
+
++---+---+---+---+---+---+---+---+---+
+| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
++===+===+===+===+===+===+===+===+===+
+|   |[A | B | C]|   |   |   |   |   |
++---+---+---+---+---+---+---+---+---+
+|   |   |   |[x | y | z]|   |   |   |
++---+---+---+---+---+---+---+---+---+
+|[# | #]|   |   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+---+
+|   |   |[!]|   |   |   |   |   |   |
++---+---+---+---+---+---+---+---+---+
+
+>>> a = (1, 'ABC')
+>>> b = (3, 'xyz')
+>>> c = (0, '##')
+>>> d = (2, '!')
+
+Contiguous blocks are *non-overlapping*.
+
+*Spaced* blocks are also non-overlapping:
+
++---+---+---+---+---+---+---+---+---+
+| 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
++===+===+===+===+===+===+===+===+===+
+|   |[A | B | C]|   |   |   |   |   |
++---+---+---+---+---+---+---+---+---+
+|   |   |   |   |   |[x | y | z]|   |
++---+---+---+---+---+---+---+---+---+
+
+>>> a = (1, 'ABC')
+>>> b = (5, 'xyz')
+
+This module often deals with *sequences* of blocks, typically :obj:`list`
+objects containing blocks:
+
+>>> seq = [(1, 'ABC'), (5, 'xyz')]
+
+Sometimes *sequence generators* are allowed, in that blocks of the sequence
+are yielded on-the-fly by a generator, like `seq_gen`:
+
+>>> seq_gen = ((i, chr(i + 0x21) * 3) for i in range(0, 15, 5))
+>>> list(seq_gen)
+[(0, '!!!'), (5, '&&&'), (10, '+++')]
+
+Other times it is required that sequences are ordered, which means that a
+block ``b`` must follow a block ``æ`` which end address is lesser than the
+`start` of ``b``, like in:
+
+>>> a = (1, 'ABC')
+>>> b = (5, 'xyz')
+>>> a[0] + len(a[1]) <= b[0]
+True
+
 """
 from .utils import chop
 from .utils import do_overlap
@@ -53,8 +133,22 @@ def chop_blocks(items, window, align_base=0, start=0):
         list: `items` slices of up to `window` elements.
 
     Examples:
+        +---+---+---+---+---+---+---+---+---+
+        | 9 | 10| 11| 12| 13| 14| 15| 16| 17|
+        +===+===+===+===+===+===+===+===+===+
+        |   |[A | B]|[C | D]|[E | F]|[G]|   |
+        +---+---+---+---+---+---+---+---+---+
+
         >>> list(chop_blocks('ABCDEFG', 2, start=10))
         [(10, 'AB'), (12, 'CD'), (14, 'EF'), (16, 'G')]
+
+        ~~~
+
+        +---+---+---+---+---+---+---+---+---+
+        | 12| 13| 14| 15| 16| 17| 18| 19| 20|
+        +===+===+===+===+===+===+===+===+===+
+        |   |[A]|[B | C | D | E]|[F | G]|   |
+        +---+---+---+---+---+---+---+---+---+
 
         >>> list(chop_blocks('ABCDEFG', 4, 3, 10))
         [(13, 'A'), (14, 'BCDE'), (18, 'FG')]
@@ -87,6 +181,8 @@ def overlap(block1, block2):
         >>> overlap((1, 'ABCD'), (5, 'xyz'))
         False
 
+        ~~~
+
         +---+---+---+---+---+---+---+---+---+---+
         | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
         +===+===+===+===+===+===+===+===+===+===+
@@ -108,9 +204,14 @@ def overlap(block1, block2):
 def check_sequence(blocks):
     r"""Checks if a sequence of blocks is valid.
 
+    Checks that the sequence is ordered and non-overlapping.
+
+    Arguments:
+        blocks (:obj:`list` of block): A sequence of blocks.
+            Sequence generators supported.
+
     Returns:
-        :obj:`bool`: The sequence is made of non-overlapping blocks, sorted
-            by start address.
+        :obj:`bool`: Valid sequence.
 
     Examples:
         +---+---+---+---+---+---+---+---+---+---+
@@ -123,6 +224,8 @@ def check_sequence(blocks):
 
         >>> check_sequence([(1, 'ABC'), (6, 'xyz')])
         True
+
+        ~~~
 
         +---+---+---+---+---+---+---+---+---+---+
         | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
@@ -190,8 +293,15 @@ def sorting(block):
         +---+---+---+---+---+---+---+---+---+---+
         |   |   |[1 | 1]|   |   |   |   |   |   |
         +---+---+---+---+---+---+---+---+---+---+
-        |---|---|---|---|---|---|---|---|---|---|
+
+        >>> blocks = [(2, 'ABC'), (7, '>'), (2, '!'), (0, '<'), (2, '11')]
+        >>> blocks.sort(key=sorting)
+        >>> blocks
+        [(0, '<'), (2, 'ABC'), (2, '!'), (2, '11'), (7, '>')]
+
         +---+---+---+---+---+---+---+---+---+---+
+        | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+        +===+===+===+===+===+===+===+===+===+===+
         |[<]|   |   |   |   |   |   |   |   |   |
         +---+---+---+---+---+---+---+---+---+---+
         |   |   |[A | B | C]|   |   |   |   |   |
@@ -204,11 +314,6 @@ def sorting(block):
         +---+---+---+---+---+---+---+---+---+---+
         |   |   |[1 | 1]|   |   |   |   |   |   |
         +---+---+---+---+---+---+---+---+---+---+
-
-        >>> blocks = [(2, 'ABC'), (7, '>'), (2, '!'), (0, '<'), (2, '11')]
-        >>> blocks.sort(key=sorting)
-        >>> blocks
-        [(0, '<'), (2, 'ABC'), (2, '!'), (2, '11'), (7, '>')]
     """
     return block[0]
 
@@ -216,14 +321,15 @@ def sorting(block):
 def locate_at(blocks, address):
     r"""Locates the block enclosing an address.
 
+    Returns the index of the block enclosing the given address.
+
     Arguments:
         blocks (:obj:`list` of block): A fast indexable sequence of
             non-overlapping blocks, sorted by address.
         address (:obj:`int`): Address of the target item.
 
     Returns:
-        :obj:`int`: Index of the block enclosing the given address, ``None``
-            if not found.
+        :obj:`int`: Block index if found, ``None`` otherwise.
 
     Example:
         +---+---+---+---+---+---+---+---+---+---+---+---+
@@ -270,14 +376,16 @@ def locate_at(blocks, address):
 def locate_start(blocks, address):
     r"""Locates the first block inside of an address range.
 
+    Returns the index of the first block whose start address is greater than
+    or equal to `address`.
+
     Arguments:
         blocks (:obj:`list` of block): A fast indexable sequence of
             non-overlapping blocks, sorted by address.
         address (:obj:`int`): Inclusive start address of the scanned range.
 
     Returns:
-        :obj:`int`: Index of the first block whose start address is greater
-            than or equal to `address`.
+        :obj:`int`: First block index since `address`.
 
     Example:
         +---+---+---+---+---+---+---+---+---+---+---+---+
@@ -324,14 +432,16 @@ def locate_start(blocks, address):
 def locate_endex(blocks, address):
     r"""Locates the first block after an address range.
 
+    Returns the index of the first block whose end address is lesser than or
+    equal to `address`.
+
     Arguments:
         blocks (:obj:`list` of block): A fast indexable sequence of
             non-overlapping blocks, sorted by address.
         address (:obj:`int`): Exclusive end address of the scanned range.
 
     Returns:
-        :obj:`int`: Index of the first block whose end address is lesser
-            than or equal to `address`.
+        :obj:`int`: First block index after `address`.
 
     Example:
         +---+---+---+---+---+---+---+---+---+---+---+---+
@@ -505,7 +615,7 @@ def read(blocks, start, endex, pattern=b'\0', join=b''.join):
     index_endex = locate_endex(blocks, range_endex)
 
     if pattern and index_start + 1 < index_endex:
-        blocks = fill(blocks, start, endex, pattern, False, join)
+        blocks = flood(blocks, start, endex, pattern, False, join)
         index_start = locate_start(blocks, range_start)
         index_endex = locate_endex(blocks, range_endex)
 
@@ -805,8 +915,83 @@ def write(blocks, written):
     return result
 
 
-def fill(blocks, start=None, endex=None, pattern=b'\0',
-         fill_only=False, join=b''.join):
+def fill(blocks, start=None, endex=None, pattern=b'\0', join=b''.join):
+    r"""Overwrites a range with a pattern.
+
+    Arguments:
+        blocks (:obj:`list` of block): A fast indexable sequence of
+            non-overlapping blocks, sorted by address.
+        pattern (items): Pattern of items to fill the emptiness.
+        start (:obj:`int`): Inclusive start of the filled range.
+            If ``None``, the global inclusive start address is considered
+            (i.e. that of the first block).
+        endex (:obj:`int`): Exclusive end of the filled range.
+            If ``None``, the global exclusive end address is considered
+            (i.e. that of the last block).
+        join (callable): A function to join a sequence of items.
+
+    Returns:
+        :obj:`list` of block: Sequence of blocks.
+
+    Examples:
+        +---+---+---+---+---+---+---+---+---+---+
+        | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+        +===+===+===+===+===+===+===+===+===+===+
+        |   |[A | B | C]|   |   |[x | y | z]|   |
+        +---+---+---+---+---+---+---+---+---+---+
+        |   |[2 | 3 | 1 | 2 | 3 | 1 | 2 | 3]|   |
+        +---+---+---+---+---+---+---+---+---+---+
+
+        >>> blocks = [(1, 'ABC'), (6, 'xyz')]
+        >>> flood(blocks, pattern='123', join=''.join)
+        [(1, 'ABC'), (4, '23'), (6, 'xyz')]
+
+        ~~~
+
+        +---+---+---+---+---+---+---+---+---+---+
+        | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+        +===+===+===+===+===+===+===+===+===+===+
+        |   |[A | B | C]|   |   |[x | y | z]|   |
+        +---+---+---+---+---+---+---+---+---+---+
+        |[1 | 2 | 3 | 1 | 2]|   |[x | y | z]|   |
+        +---+---+---+---+---+---+---+---+---+---+
+
+        >>> blocks = [(1, 'ABC'), (6, 'xyz')]
+        >>> flood(blocks, 0, 5, '123', join=''.join)
+        [(0, '12312'), (6, 'xyz')]
+
+        ~~~
+
+        +---+---+---+---+---+---+---+---+---+---+
+        | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+        +===+===+===+===+===+===+===+===+===+===+
+        |   |[A | B | C]|   |   |[x | y | z]|   |
+        +---+---+---+---+---+---+---+---+---+---+
+        |   |[A | B | C]|   |[3 | 1 | 2 | 3 | 1]|
+        +---+---+---+---+---+---+---+---+---+---+
+
+        >>> blocks = [(1, 'ABC'), (6, 'xyz')]
+        >>> flood(blocks, 5, 10, '123', join=''.join)
+        [(1, 'ABC'), (5, '31231')]
+    """
+    if start is None and endex is None and not blocks:
+        raise ValueError('no blocks')
+    if start is None:
+        start = blocks[0][0]
+    if endex is None:
+        block_start, block_items = blocks[-1]
+        endex = block_start + len(block_items)
+
+    if start == endex:
+        return list(blocks)
+
+    items = makefill(pattern, start, endex, join)
+    result = write(blocks, (start, items))
+    return result
+
+
+def flood(blocks, start=None, endex=None, pattern=b'\0',
+          flood_only=False, join=b''.join):
     r"""Fills emptiness between non-touching blocks.
 
     Arguments:
@@ -819,12 +1004,12 @@ def fill(blocks, start=None, endex=None, pattern=b'\0',
         endex (:obj:`int`): Exclusive end of the filled range.
             If ``None``, the global exclusive end address is considered
             (i.e. that of the last block).
-        fill_only (:obj:`bool`): Returns only the filling blocks.
+        flood_only (:obj:`bool`): Returns only the filling blocks.
         join (callable): A function to join a sequence of items.
 
     Returns:
         :obj:`list` of block: List of the filling blocks, including the
-            existing blocks if `fill_only` is ``False``.
+            existing blocks if `flood_only` is ``False``.
 
     Example:
         +---+---+---+---+---+---+---+---+---+---+
@@ -832,21 +1017,21 @@ def fill(blocks, start=None, endex=None, pattern=b'\0',
         +===+===+===+===+===+===+===+===+===+===+
         |   |[A | B | C]|   |   |[x | y | z]|   |
         +---+---+---+---+---+---+---+---+---+---+
-        |   |[A | B | C]|[# | #]|[x | y | z]|   |
+        |   |[A | B | C]|[2 | 3]|[x | y | z]|   |
         +---+---+---+---+---+---+---+---+---+---+
-        |[# |[A | B | C]| #]|   |[x | y | z]|   |
+        |[1]|[A | B | C]|[2]|   |[x | y | z]|   |
         +---+---+---+---+---+---+---+---+---+---+
-        |   |[A | B | C]|   |[# |[x | y | z]| #]|
+        |   |[A | B | C]|   |[3]|[x | y | z]|[1]|
         +---+---+---+---+---+---+---+---+---+---+
 
         >>> blocks = [(1, 'ABC'), (6, 'xyz')]
-        >>> fill(blocks, pattern='123', join=''.join)
+        >>> flood(blocks, pattern='123', join=''.join)
         [(1, 'ABC'), (4, '23'), (6, 'xyz')]
-        >>> fill(blocks, pattern='123', fill_only=True, join=''.join)
+        >>> flood(blocks, pattern='123', fill_only=True, join=''.join)
         [(4, '23')]
-        >>> fill(blocks, pattern='123', start=0, endex=5, join=''.join)
+        >>> flood(blocks, 0, 5, '123', ''.join)
         [(0, '1'), (1, 'ABC'), (4, '2'), (6, 'xyz')]
-        >>> fill(blocks, pattern='123', start=5, endex=10, join=''.join)
+        >>> flood(blocks, 5, 10, '123', ''.join)
         [(1, 'ABC'), (5, '3'), (6, 'xyz'), (9, '1')]
     """
     if start is None and endex is None and not blocks:
@@ -856,7 +1041,7 @@ def fill(blocks, start=None, endex=None, pattern=b'\0',
     if endex is None:
         block_start, block_items = blocks[-1]
         endex = block_start + len(block_items)
-    with_blocks = not fill_only
+    with_blocks = not flood_only
 
     if start == endex:
         return list(blocks)
@@ -1044,7 +1229,7 @@ class SparseItems(object):
             sorted by address.
         items_type (class): Type of the items stored into blocks.
         items_join (callable): A function to join a sequence of items.
-        autofill (items): Pattern for automatic fill, or ``None``.
+        autofill (items): Pattern for automatic flood, or ``None``.
         automerge (:obj:`bool`): Automatically merges touching blocks after
             operations that can alter attribute :attr:`blocks`.
 
@@ -1058,7 +1243,7 @@ class SparseItems(object):
             shallow copy.
         items_type (class): see attribute :attr:`items_type`.
         items_join (callable): see attribute :attr:`items_join`.
-        autofill (items): Pattern for automatic fill, or ``None``.
+        autofill (items): Pattern for automatic flood, or ``None``.
         automerge (:obj:`bool`): see attribute :attr:`automerge`.
 
     Raises:
@@ -1482,7 +1667,7 @@ class SparseItems(object):
 
             if isinstance(step, self.items_type):
                 blocks = read(blocks, start, endex, step, self.items_join)
-                blocks = fill(blocks, pattern=step, join=self.items_join)
+                blocks = flood(blocks, pattern=step, join=self.items_join)
                 items = self.items_join(items for _, items in blocks)
                 return items
 
@@ -1540,6 +1725,8 @@ class SparseItems(object):
             >>> memory[-3] = 'x'
             >>> memory.blocks == blocks
             True
+
+            ~~~
 
             +---+---+---+---+---+---+---+---+---+---+---+---+
             | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10| 11|
@@ -1634,6 +1821,8 @@ class SparseItems(object):
             >>> memory.blocks
             [(1, 'ABCyz')]
 
+            ~~~
+
             +---+---+---+---+---+---+---+---+---+---+---+---+
             | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10| 11|
             +===+===+===+===+===+===+===+===+===+===+===+===+
@@ -1648,6 +1837,8 @@ class SparseItems(object):
             >>> del memory[4:9]
             >>> memory.blocks
             [(1, 'ABC'), (4, 'yz')]
+
+            ~~~
 
             +---+---+---+---+---+---+---+---+---+---+---+---+
             | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10| 11|
@@ -1706,6 +1897,8 @@ class SparseItems(object):
             >>> memory.blocks
             [(0, '$')]
 
+            ~~~
+
             >>> memory = SparseItems(items_type=list, items_join=''.join)
             >>> memory.append(3)
             >>> memory.blocks
@@ -1748,6 +1941,8 @@ class SparseItems(object):
             >>> SparseItems().start
             0
 
+            ~~~
+
             +---+---+---+---+---+---+---+---+---+
             | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
             +===+===+===+===+===+===+===+===+===+
@@ -1782,6 +1977,8 @@ class SparseItems(object):
             >>> SparseItems().endex
             0
 
+            ~~~
+
             +---+---+---+---+---+---+---+---+---+
             | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
             +===+===+===+===+===+===+===+===+===+
@@ -1811,7 +2008,6 @@ class SparseItems(object):
             :func:`shift`
 
         Example:
-
             +---+---+---+---+---+---+---+---+---+---+---+
             | 1 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10| 11| 12|
             +===+===+===+===+===+===+===+===+===+===+===+
@@ -2107,24 +2303,97 @@ class SparseItems(object):
         self.blocks = blocks
 
     def fill(self, start=None, endex=None, pattern=None):
-        r"""Fills emptiness between non-touching blocks.
+        r"""Overwrites a range with a pattern.
 
         Arguments:
-            pattern (items): Pattern of items to fill the emptiness.
-                If ``None``, the :attr:`autofill` attribute is used.
             start (:obj:`int`): Inclusive start of the filled range.
                 If ``None``, the global inclusive start address is considered
                 (i.e. that of the first block).
             endex (:obj:`int`): Exclusive end of the filled range.
                 If ``None``, the global exclusive end address is considered
                 (i.e. that of the last block).
-            fill_only (:obj:`bool`): Returns only the filling blocks.
-            join (callable): A function to join a sequence of items.
+            pattern (items): Pattern of items to fill the range.
+                If ``None``, the :attr:`autofill` attribute is used.
 
         See Also:
             :func:`fill`
 
-        Example:
+        Examples:
+            +---+---+---+---+---+---+---+---+---+---+
+            | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+            +===+===+===+===+===+===+===+===+===+===+
+            |   |[A | B | C]|   |   |[x | y | z]|   |
+            +---+---+---+---+---+---+---+---+---+---+
+            |   |[2 | 3 | 1 | 2 | 3 | 1 | 2 | 3]|   |
+            +---+---+---+---+---+---+---+---+---+---+
+
+            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
+            >>> memory.fill(pattern='123')
+            >>> memory.blocks
+            [(1, '23123123')]
+
+            ~~~
+
+            +---+---+---+---+---+---+---+---+---+---+
+            | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+            +===+===+===+===+===+===+===+===+===+===+
+            |   |[A | B | C]|   |   |[x | y | z]|   |
+            +---+---+---+---+---+---+---+---+---+---+
+            |   |[2 | 3 | 1 | 2 | 3 | 1 | 2 | 3]|   |
+            +---+---+---+---+---+---+---+---+---+---+
+
+            >>> memory = SparseItems(items_type=str, items_join=''.join,
+            ...                      autofill='123')
+            >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
+            >>> memory.fill()
+            >>> memory.blocks
+            [(1, '23123123')]
+
+            ~~~
+
+            +---+---+---+---+---+---+---+---+---+---+
+            | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+            +===+===+===+===+===+===+===+===+===+===+
+            |   |[A | B | C]|   |   |[x | y | z]|   |
+            +---+---+---+---+---+---+---+---+---+---+
+            |   |[A | B | 1 | 2 | 3 | 1 | y | z]|   |
+            +---+---+---+---+---+---+---+---+---+---+
+
+            >>> memory = SparseItems(items_type=str, items_join=''.join,
+            ...                      autofill='123')
+            >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
+            >>> memory.fill(3, 7)
+            >>> memory.blocks
+            [(1, 'AB1231yz')]
+        """
+        blocks = self.blocks
+        if pattern is None:
+            pattern = self.autofill
+        blocks = fill(blocks, start, endex, pattern, self.items_join)
+
+        if self.automerge:
+            blocks = merge(blocks, join=self.items_join)
+
+        self.blocks = blocks
+
+    def flood(self, start=None, endex=None, pattern=None):
+        r"""Fills emptiness between non-touching blocks.
+
+        Arguments:
+            start (:obj:`int`): Inclusive start of the filled range.
+                If ``None``, the global inclusive start address is considered
+                (i.e. that of the first block).
+            endex (:obj:`int`): Exclusive end of the filled range.
+                If ``None``, the global exclusive end address is considered
+                (i.e. that of the last block).
+            pattern (items): Pattern of items to fill the emptiness.
+                If ``None``, the :attr:`autofill` attribute is used.
+
+        See Also:
+            :func:`flood`
+
+        Examples:
             +---+---+---+---+---+---+---+---+---+---+
             | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
             +===+===+===+===+===+===+===+===+===+===+
@@ -2135,9 +2404,11 @@ class SparseItems(object):
 
             >>> memory = SparseItems(items_type=str, items_join=''.join)
             >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
-            >>> memory.fill(pattern='123')
+            >>> memory.flood(pattern='123')
             >>> memory.blocks
             [(1, 'ABC23xyz')]
+
+            ~~~
 
             +---+---+---+---+---+---+---+---+---+---+
             | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
@@ -2150,14 +2421,14 @@ class SparseItems(object):
             >>> memory = SparseItems(items_type=str, items_join=''.join,
             ...                      autofill='123')
             >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
-            >>> memory.fill()
+            >>> memory.flood()
             >>> memory.blocks
             [(1, 'ABC23xyz')]
         """
         blocks = self.blocks
         if pattern is None:
             pattern = self.autofill
-        blocks = fill(blocks, start, endex, pattern, join=self.items_join)
+        blocks = flood(blocks, start, endex, pattern, join=self.items_join)
 
         if self.automerge:
             blocks = merge(blocks, join=self.items_join)

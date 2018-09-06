@@ -239,19 +239,15 @@ def test_write():
 def test_fill_doctest():
     blocks = [(1, 'ABC'), (6, 'xyz')]
 
-    ans_ref = [(1, 'ABC'), (4, '23'), (6, 'xyz')]
+    ans_ref = [(1, '23123123')]
     ans_out = fill(blocks, pattern='123', join=''.join)
     assert ans_out == ans_ref
 
-    ans_ref = [(4, '23')]
-    ans_out = fill(blocks, pattern='123', fill_only=True, join=''.join)
-    assert ans_out == ans_ref
-
-    ans_ref = [(0, '1'), (1, 'ABC'), (4, '2'), (6, 'xyz')]
+    ans_ref = [(0, '12312'), (6, 'xyz')]
     ans_out = fill(blocks, pattern='123', start=0, endex=5, join=''.join)
     assert ans_out == ans_ref
 
-    ans_ref = [(1, 'ABC'), (5, '3'), (6, 'xyz'), (9, '1')]
+    ans_ref = [(1, 'ABC'), (5, '31231')]
     ans_out = fill(blocks, pattern='123', start=5, endex=10, join=''.join)
     assert ans_out == ans_ref
 
@@ -265,8 +261,43 @@ def test_fill():
     ans_out = fill(blocks, start=5, endex=5, join=''.join)
     assert ans_out == ans_ref
 
-    ans_ref = [(1, 'ABC'), (4, '##'), (6, 'xyz')]
+    ans_ref = [(1, '########')]
     ans_out = fill(blocks, pattern=('#' * 64), join=''.join)
+    assert ans_out == ans_ref
+
+# ============================================================================
+
+def test_flood_doctest():
+    blocks = [(1, 'ABC'), (6, 'xyz')]
+
+    ans_ref = [(1, 'ABC'), (4, '23'), (6, 'xyz')]
+    ans_out = flood(blocks, pattern='123', join=''.join)
+    assert ans_out == ans_ref
+
+    ans_ref = [(4, '23')]
+    ans_out = flood(blocks, pattern='123', flood_only=True, join=''.join)
+    assert ans_out == ans_ref
+
+    ans_ref = [(0, '1'), (1, 'ABC'), (4, '2'), (6, 'xyz')]
+    ans_out = flood(blocks, 0, 5, '123', join=''.join)
+    assert ans_out == ans_ref
+
+    ans_ref = [(1, 'ABC'), (5, '3'), (6, 'xyz'), (9, '1')]
+    ans_out = flood(blocks, 5, 10, '123', join=''.join)
+    assert ans_out == ans_ref
+
+
+def test_flood():
+    with pytest.raises(ValueError): flood([])
+
+    blocks = [(1, 'ABC'), (6, 'xyz')]
+
+    ans_ref = blocks
+    ans_out = flood(blocks, start=5, endex=5, join=''.join)
+    assert ans_out == ans_ref
+
+    ans_ref = [(1, 'ABC'), (4, '##'), (6, 'xyz')]
+    ans_out = flood(blocks, pattern=('#' * 64), join=''.join)
     assert ans_out == ans_ref
 
 # ============================================================================
@@ -665,25 +696,43 @@ class TestSparseItems(object):  # TODO
         memory = SparseItems(items_type=str, items_join=''.join)
         memory.blocks = [(1, 'ABC'), (6, 'xyz')]
         memory.fill(pattern='123')
-        assert memory.blocks == [(1, 'ABC23xyz')]
+        assert memory.blocks == [(1, '23123123')]
 
         memory = SparseItems(items_type=str, items_join=''.join,
                              autofill='123')
         memory.blocks = [(1, 'ABC'), (6, 'xyz')]
         memory.fill()
+        assert memory.blocks == [(1, '23123123')]
+
+        memory = SparseItems(items_type=str, items_join=''.join,
+                             autofill='123')
+        memory.blocks = [(1, 'ABC'), (6, 'xyz')]
+        memory.fill(3, 7)
+        assert memory.blocks == [(1, 'AB1231yz')]
+
+    def test_flood_doctest(self):
+        memory = SparseItems(items_type=str, items_join=''.join)
+        memory.blocks = [(1, 'ABC'), (6, 'xyz')]
+        memory.flood(pattern='123')
+        assert memory.blocks == [(1, 'ABC23xyz')]
+
+        memory = SparseItems(items_type=str, items_join=''.join,
+                             autofill='123')
+        memory.blocks = [(1, 'ABC'), (6, 'xyz')]
+        memory.flood()
         assert memory.blocks == [(1, 'ABC23xyz')]
 
     def test_fill(self):
         obj = SparseItems(items_type=str, items_join=''.join)
         obj.blocks = [(1, 'ABC'), (6, 'xyz')]
-        obj.fill(pattern='123')
+        obj.flood(pattern='123')
         ans_out = obj.blocks
         ans_ref = [(1, 'ABC23xyz')]
         assert ans_out == ans_ref
 
         obj = SparseItems(items_type=str, items_join=''.join, automerge=False)
         obj.blocks = [(1, 'ABC'), (6, 'xyz')]
-        obj.fill(pattern='123')
+        obj.flood(pattern='123')
         ans_out = obj.blocks
         ans_ref = [(1, 'ABC'), (4, '23'), (6, 'xyz')]
         assert ans_out == ans_ref
