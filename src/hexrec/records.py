@@ -26,6 +26,37 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 r"""Hexadecimal record management.
+
+The core of this library are *hexadecimal record files*.  Such files are used
+to store binary data in text form, where each byte octet is represented in
+hexadecimal format.  Over the whole byte addressing range of the memory to
+store (typically 32-bit addressing), only the relevant data is kept.
+
+The hexadecimal data text is split into *record lines*, which give the name to
+this family of file formats.  Each line should at least be marked with the
+*address* of its first byte, so that it is possible to load data from sparse
+records.
+
+Usually not only plain data records exist, but also records holding metadata,
+such as: a *terminator* record, the *record count*, the *start address* to set
+the program counter upon loading an executable, a generic *header string*, and
+so on.  Each record line is thus marked with a *tag* to indicate which kind of
+data it holds.
+
+Record lines are commonly protected by a *checksum*, so that each line can be
+checked for (arguably weak) consistency.
+A *count* number is used to measure the record line length some way.
+
+Summarizing, a record line holds the following fields:
+
+* a *tag* to tell which kind of (meta)data is hold;
+* some bytes of actual *data*, or tag-specific;
+* the *address* of its first data byte, or tag-specific;
+* the *count* of record line characters;
+* a *checksum* to protect the record line.
+
+This module provides functions and classes to handle hexadecimal record files,
+from the record line itself, to high-level procedures.
 """
 import enum
 import os
@@ -40,6 +71,7 @@ from .blocks import merge
 from .blocks import sorting
 from .utils import chop
 from .utils import do_overlap
+from .utils import expmsg
 from .utils import hexlify
 from .utils import sum_bytes
 from .utils import unhexlify
@@ -98,14 +130,14 @@ def records_to_blocks(records):
 
     Extracts all the data records, collapses them in the order they compare in
     `records`, and merges the collapsed blocks.
+    Returns sequence of non-contiguous blocks, sorted by start address.
 
     Arguments:
         records (:obj:`list` of :obj:`Record`): Sequence of records to
             convert to blocks. Sequence generators supported.
 
     Returns:
-        :obj:`list` of block: A sequence of non-contiguous blocks, sorted by
-            start address.
+        :obj:`list` of block: Blocks holding data from `records`.
 
     Example:
         >>> from hexrec.blocks import chop_blocks, merge
@@ -134,7 +166,7 @@ def blocks_to_records(blocks, record_type,
         split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
 
     Returns:
-        :obj:`list` of :obj:`Record`: Sequence of blocks split into records.
+        :obj:`list` of :obj:`Record`: Records holding data from `blocks`.
 
     Example:
         >>> from hexrec.blocks import chop_blocks, merge
@@ -178,7 +210,7 @@ def merge_records(data_records, input_types=None, output_type=None,
         split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
 
     Returns:
-        :obj:`list` of :obj:`Record`: A sequence of merged records.
+        :obj:`list` of :obj:`Record`: Merged records.
 
     Example:
         >>> from hexrec.blocks import chop_blocks, merge
@@ -234,7 +266,7 @@ def convert_records(records, input_type=None, output_type=None,
         split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
 
     Returns:
-        :obj:`list` of :obj:`Record`: A sequence of merged records.
+        :obj:`list` of :obj:`Record`: Converted records.
 
     Examples:
         >>> motorola = list(MotorolaRecord.split(bytes(range(256))))
@@ -400,8 +432,7 @@ def load_blocks(path, record_type=None):
             If ``None``, it is guessed from the file extension.
 
     Returns:
-        :obj:`list` of block: Sequence of non-overlapping blocks, sorted by
-            start address.
+        :obj:`list` of block: Blocks loaded from `path`.
 
     Example:
         >>> blocks = [(offset, bytes(bytearray(range(offset, offset + 16))))
@@ -456,7 +487,7 @@ def load_memory(path, record_type=None):
             If ``None``, it is guessed from the file extension.
 
     Returns:
-        :obj:`SparseItems`: A virtual memory.
+        :obj:`SparseItems`: Virtual memory holding data from `path`.
 
     Example:
         >>> blocks = [(offset, bytes(bytearray(range(offset, offset + 16))))
@@ -892,7 +923,7 @@ class Record(object):
         r"""Consistency check of a sequence of records.
 
         Raises:
-            ValueError: a field is inconsistent.
+            :obj:`ValueError` a field is inconsistent.
         """
         last = None
         record_endex = 0
@@ -901,11 +932,12 @@ class Record(object):
             record.check()
 
             if record.is_data():
-                if last is not None and record.overlaps(last):
-                    raise ValueError('overlapping records')
+                if last is not None:
+                    if record.overlaps(last):
+                        raise ValueError('overlapping records')
 
-                if record.address < record_endex:
-                    raise ValueError('unsorted records')
+                    if record.address < record_endex:
+                        raise ValueError('unsorted records')
 
                 last = record
 
@@ -1046,7 +1078,7 @@ class BinaryRecord(Record):
             :obj:`MotorolaRecord`: Data split into records.
 
         Raises:
-            ValueError: Address or size overflow.
+            :obj:`ValueError` Address or size overflow.
         """
         if not 0 <= address < (1 << 32):
             raise ValueError('address overflow')
@@ -1202,7 +1234,7 @@ class MotorolaRecord(Record):
             :obj:`MotorolaTag`: Fitting data tag.
 
         Raises:
-            ValueError: Address overflow.
+            :obj:`ValueError` Address overflow.
 
         Examples:
             >>> MotorolaRecord.fit_data_tag(0x00000000)
@@ -1247,7 +1279,7 @@ class MotorolaRecord(Record):
             :obj:`MotorolaTag`: Fitting record count tag.
 
         Raises:
-            ValueError: Count overflow.
+            :obj:`ValueError` Count overflow.
 
         Examples:
             >>> MotorolaRecord.fit_count_tag(0x0000000)
@@ -1302,7 +1334,7 @@ class MotorolaRecord(Record):
             :obj:`MotorolaRecord`: Data record.
 
         Raises:
-            ValueError: Tag error.
+            :obj:`ValueError` Tag error.
 
         Examples:
             >>> str(MotorolaRecord.build_data(0x1234, b'Hello, World!'))
@@ -1371,7 +1403,7 @@ class MotorolaRecord(Record):
             :obj:`MotorolaRecord`: Count record.
 
         Raises:
-            ValueError: Count error.
+            :obj:`ValueError` Count error.
 
         Examples:
              >>> str(MotorolaRecord.build_count(0x1234))
@@ -1404,8 +1436,7 @@ class MotorolaRecord(Record):
         return record
 
     @classmethod
-    def build_standalone(cls, data_records, start=None, tag=None,
-                         header_data=None):
+    def build_standalone(cls, data_records, start=None, tag=None, header=None):
         r"""Makes a sequence of data records standalone.
 
         Arguments:
@@ -1415,7 +1446,7 @@ class MotorolaRecord(Record):
                 If ``None``, it is assigned the minimum data record address.
             tag (:obj:`MotorolaTag`): Data tag record.
                 If ``None``, automatically selects the fitting one.
-            header_data (:obj:`bytes`): Header string data.
+            header (:obj:`bytes`): Header string data.
 
         Yields:
             :obj:`Record`: Records for a standalone record file.
@@ -1425,8 +1456,8 @@ class MotorolaRecord(Record):
         if tag is None:
             tag = max(record.tag for record in data_records)
 
-        if header_data is not None:
-            yield cls.build_header(header_data)
+        if header is not None:
+            yield cls.build_header(header)
             count += 1
 
         for record in data_records:
@@ -1442,48 +1473,101 @@ class MotorolaRecord(Record):
         yield cls.build_terminator(start, tag)
 
     @classmethod
-    def check_sequence(cls, records):
+    def check_sequence(cls, records, header=False, overlap=True, start=False):
         Record.check_sequence(records)
 
-        record = records[0]
-        last = record
-        if record.tag != 0:
+        unpack = struct.unpack
+        last_data = None
+        data_count = 0
+        it = iter(records)
+        header_found = False
+        count_found = False
+
+        while True:
+            try:
+                record = next(it)
+            except StopIteration:
+                record = None
+                break
+
+            record_tag = int(record.tag)
+
+            if last_data is None:
+                if record_tag == 0:
+                    if header_found:
+                        raise ValueError('header error')
+                    header_found = True
+
+                elif record_tag in (1, 2, 3):
+                    first_tag = record_tag
+                    last_data = record
+                    data_count += 1
+
+            elif record_tag == 0:
+                raise ValueError('misplaced header')
+
+            elif record_tag in (1, 2, 3):
+                if record_tag != first_tag:
+                    raise ValueError(expmsg(record_tag, 'in (1, 2, 3)',
+                                            'tag error'))
+
+                if overlap and record.overlaps(last_data):
+                    raise ValueError('overlapping records')
+
+                last_data = record
+                data_count += 1
+
+            elif record_tag == 5:
+                if count_found:
+                    raise ValueError('misplaced count')
+                count_found = True
+                expected_count = unpack('>H', record.data)[0]
+                if expected_count != data_count:
+                    raise ValueError(expmsg(data_count, expected_count,
+                                            'record count error'))
+                break
+
+            elif record_tag == 6:
+                if count_found:
+                    raise ValueError('misplaced count')
+                count_found = True
+                u, hl = unpack('>BH', record.data)
+                expected_count = (u << 16) | hl
+                if expected_count != data_count:
+                    raise ValueError(expmsg(data_count, expected_count,
+                                            'record count error'))
+                break
+
+            else:
+                break
+
+        if not count_found:
+            raise ValueError('missing count')
+
+        if header and not header_found:
             raise ValueError('missing header')
 
-        record = records[1]
-        tag = record.tag
-        if tag not in (1, 2, 3):
-            raise ValueError('tag error')
+        try:
+            record = next(it)
+        except StopIteration:
+            if start:
+                raise ValueError('missing start')
+        else:
+            matching_tag = cls.MATCHING_TAG[record.tag]
+            if first_tag != matching_tag:
+                raise ValueError(expmsg(repr(record), first_tag,
+                                        'matching tag error',))
 
-        for i in range(2, len(records)):
-            record = records[i]
-            if record.tag == tag:
-                if record.overlaps(last):
-                    raise ValueError('overlapping records')
-                last = record
-            else:
-                if record.tag in (5, 6):
-                    if record.tag == 5:
-                        expected_count = struct.unpack('>H', record.data)[0]
-                    elif record.tag == 6:
-                        u, hl = struct.unpack('>BH', record.data)
-                        expected_count = (u << 16) | hl
-
-                    if expected_count != i:
-                        raise ValueError('record count error')
-                else:
-                    break
-
-        matching_tag = cls.MATCHING_TAG[record.tag]
-        if tag != matching_tag:
-            raise ValueError('matching tag error')
-
-        if i != len(records) - 1:
-            raise ValueError('record count error')
+        try:
+            next(it)
+        except StopIteration:
+            pass
+        else:
+            raise ValueError('sequence length error')
 
     @classmethod
     def split(cls, data, address=0, columns=16, align=True,
-              standalone=True, start=None, tag=None, header_data=None):
+              standalone=True, start=None, tag=None, header=None):
         r"""Splits a chunk of data into records.
 
         Arguments:
@@ -1500,13 +1584,13 @@ class MotorolaRecord(Record):
                 If ``None``, it is assigned the minimum data record address.
             tag (:obj:`MotorolaTag`): Data tag record.
                 If ``None``, automatically selects the fitting one.
-            header_data (:obj:`bytes`): Header string data.
+            header (:obj:`bytes`): Header string data.
 
         Yields:
             :obj:`MotorolaRecord`: Data split into records.
 
         Raises:
-            ValueError: Address, size, or column overflow.
+            :obj:`ValueError` Address, size, or column overflow.
         """
         if not 0 <= address < (1 << 32):
             raise ValueError('address overflow')
@@ -1521,8 +1605,8 @@ class MotorolaRecord(Record):
             tag = cls.fit_data_tag(address + len(data))
         count = 0
 
-        if standalone and header_data is not None:
-            yield cls.build_header(header_data)
+        if standalone and header is not None:
+            yield cls.build_header(header)
 
         skip = (address % columns) if align else 0
         for chunk in chop(data, columns, skip):
@@ -1717,7 +1801,7 @@ class IntelRecord(Record):
             :obj:`IntelRecord`: Start segment address record.
 
         Raises:
-            ValueError: Address overflow.
+            :obj:`ValueError` Address overflow.
 
         Example:
             >>> str(IntelRecord.build_start_segment_address(0x12345678))
@@ -1756,7 +1840,7 @@ class IntelRecord(Record):
             :obj:`IntelRecord`: Extended linear address record.
 
         Raises:
-            ValueError: Address overflow.
+            :obj:`ValueError` Address overflow.
 
         Example:
             >>> str(IntelRecord.build_extended_linear_address(0x12345678))
@@ -1781,7 +1865,7 @@ class IntelRecord(Record):
             :obj:`IntelRecord`: Start linear address record.
 
         Raises:
-            ValueError: Address overflow.
+            :obj:`ValueError` Address overflow.
 
         Example:
             >>> str(IntelRecord.build_start_linear_address(0x12345678))
@@ -1835,7 +1919,7 @@ class IntelRecord(Record):
             :obj:`IntelRecord`: Data split into records.
 
         Raises:
-            ValueError: Address, size, or column overflow.
+            :obj:`ValueError` Address, size, or column overflow.
         """
         if not 0 <= address < (1 << 32):
             raise ValueError('address overflow')
@@ -1905,9 +1989,9 @@ class IntelRecord(Record):
 
         The termination sequence is made of:
 
-            # An extended linear address record at zero.
-            # A start linear address record at `start`.
-            # An end-of-file record.
+        # An extended linear address record at ``0``.
+        # A start linear address record at `start`.
+        # An end-of-file record.
 
         Arguments:
             start (:obj:`int`): Program start address.
@@ -2117,7 +2201,7 @@ class TektronixRecord(Record):
             :obj:`TektronixRecord`: Data split into records.
 
         Raises:
-            ValueError: Address, size, or column overflow.
+            :obj:`ValueError` Address, size, or column overflow.
         """
         if not 0 <= address < (1 << 32):
             raise ValueError('address overflow')
@@ -2177,10 +2261,10 @@ class TektronixRecord(Record):
 
 
 RECORD_TYPES = {
-    'motorola': MotorolaRecord,
-    'intel': IntelRecord,
-    'tektronix': TektronixRecord,
     'binary': BinaryRecord,
+    'intel': IntelRecord,
+    'motorola': MotorolaRecord,
+    'tektronix': TektronixRecord,
 }
 
 

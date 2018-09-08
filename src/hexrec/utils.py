@@ -42,6 +42,28 @@ INT_REGEX = re.compile(r'^\s*(?P<sign>[+-]?)\s*'
                        r'(?P<scale>[km]?)\s*$')
 
 
+def expmsg(actual, expected, msg=None):
+    r"""Builds an expectation messages.
+
+    Arguments:
+        actual: Actual value.
+        expected: Expected value.
+        msg (:obj:`str`): Text message.
+
+    Returns:
+        :obj:`str`: Formatted expectation message.
+
+    Example:
+        >>> expmsg(1, 2, 'different')
+        different
+        actual:   1
+        expected: 2
+    """
+    text = '' if msg is None else '{!s}\n'.format(msg)
+    text += 'actual:   {!s}\nexpected: {!s}'.format(actual, expected)
+    return text
+
+
 def parse_int(value):
     r"""Parses an integer.
 

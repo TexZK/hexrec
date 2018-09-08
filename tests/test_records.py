@@ -495,6 +495,10 @@ class TestRecord(object):
         with pytest.raises(ValueError): record.check()
 
         record = Record(0, 0, b'Hello, World!')
+        record.checksum = None
+        record.check()
+
+        record = Record(0, 0, b'Hello, World!')
         record.checksum = -1
         with pytest.raises(ValueError): record.check()
 
@@ -849,7 +853,7 @@ class TestMotorolaRecord(object):
         ans_out = list(MotorolaRecord.build_standalone(
             [],
             tag=MotorolaTag.DATA_32,
-            header_data=b'Hello, World!',
+            header=b'Hello, World!',
             start=0
         ))
         ans_ref = [
@@ -863,7 +867,39 @@ class TestMotorolaRecord(object):
         pass  # TODO
 
     def test_check_sequence(self):
-        pass  # TODO
+        records = list(MotorolaRecord.split(BYTES, header=b'Hello, World!'))
+        MotorolaRecord.check_sequence(records)
+
+        records = list(MotorolaRecord.split(BYTES))
+        assert records[2].tag == MotorolaTag.DATA_16
+        records[2].address -= 1
+        records[2].update_count()
+        records[2].update_checksum()
+        with pytest.raises(ValueError): MotorolaRecord.check_sequence(records)
+
+        records = list(MotorolaRecord.split(BYTES))
+        assert records[2].tag == MotorolaTag.DATA_16
+        del records[2]
+        with pytest.raises(ValueError): MotorolaRecord.check_sequence(records)
+
+        records = list(MotorolaRecord.split(BYTES))
+        assert records[2].tag == MotorolaTag.DATA_16
+        assert records[-2].tag == MotorolaTag.COUNT_16
+        del records[2]
+        with pytest.raises(ValueError): MotorolaRecord.check_sequence(records)
+
+        records = list(MotorolaRecord.split(BYTES))
+        assert records[-2].tag == MotorolaTag.COUNT_16
+        del records[-2]
+        with pytest.raises(ValueError): MotorolaRecord.check_sequence(records)
+
+        records = list(MotorolaRecord.split(BYTES))
+        assert records[1].tag == MotorolaTag.DATA_16
+        assert records[-1].tag == MotorolaTag.START_16
+        records[-1].tag = MotorolaTag.START_24
+        records[-1].update_count()
+        records[-1].update_checksum()
+        with pytest.raises(ValueError): MotorolaRecord.check_sequence(records)
 
     def test_split_doctest(self):
         pass  # TODO
@@ -881,8 +917,7 @@ class TestMotorolaRecord(object):
         with pytest.raises(ValueError):
             list(MotorolaRecord.split(BYTES, columns=129))
 
-        ans_out = list(MotorolaRecord.split(HEXBYTES,
-                                            header_data=b'Hello, World!'))
+        ans_out = list(MotorolaRecord.split(HEXBYTES, header=b'Hello, World!'))
         ans_ref = [
             MotorolaRecord(0, MotorolaTag.HEADER, b'Hello, World!'),
             MotorolaRecord(0, MotorolaTag.DATA_16, HEXBYTES),

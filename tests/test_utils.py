@@ -49,6 +49,14 @@ PARSE_INT_FAIL = {
     (1,): TypeError,
 }
 
+# ============================================================================
+
+def test_expmsg_doctest():
+    ans_out = expmsg(1, 2, 'different')
+    ans_ref = 'different\nactual:   1\nexpected: 2'
+    assert ans_out == ans_ref
+
+# ============================================================================
 
 def test_parse_int_doctest():
     assert parse_int('-0xABk') == -175104

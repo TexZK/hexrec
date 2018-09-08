@@ -527,7 +527,7 @@ def find(blocks, value, start=None, endex=None):
         :obj:`int`: The address of the first substring equal to `value`.
 
     Raises:
-        ValueError: Item not found
+        :obj:`ValueError` Item not found
 
     Example:
         +---+---+---+---+---+---+---+---+---+---+
@@ -542,7 +542,7 @@ def find(blocks, value, start=None, endex=None):
         >>> find(blocks, '$', -1, 15)  #doctest: +ELLIPSIS
         Traceback (most recent call last):
             ...
-        ValueError: item not found
+        :obj:`ValueError` item not found
     """
     for address, items in blocks:
         items_start = None if start is None else start - address
@@ -1247,7 +1247,7 @@ class SparseItems(object):
         automerge (:obj:`bool`): see attribute :attr:`automerge`.
 
     Raises:
-        ValueError: Both `items` and `blocks` are not ``None``.
+        :obj:`ValueError` Both `items` and `blocks` are not ``None``.
 
     Examples:
         >>> memory = SparseItems()
@@ -1542,7 +1542,7 @@ class SparseItems(object):
             :obj:`int`: The index of the first item equal to `value`.
 
         Raises:
-            ValueError: Item not found
+            :obj:`ValueError` Item not found
         """
         length = self.endex
         start = straighten_index(start, length)
@@ -1645,7 +1645,7 @@ class SparseItems(object):
             >>> memory[3:10]
             Traceback (most recent call last):
                 ...
-            ValueError: contiguous slice not found
+            :obj:`ValueError` contiguous slice not found
             >>> memory[3:10:'.']
             'CD.$.xy'
             >>> memory[memory.endex]
@@ -2198,7 +2198,7 @@ class SparseItems(object):
             value (items): Sequence of items to remove.
 
         Raises:
-            ValueError: Item not found.
+            :obj:`ValueError` Item not found.
 
         Example:
             +---+---+---+---+---+---+---+---+---+---+---+---+---+
@@ -2222,7 +2222,7 @@ class SparseItems(object):
             >>> memory.remove('$')  #doctest: +ELLIPSIS
             Traceback (most recent call last):
                 ...
-            ValueError: item not found
+            :obj:`ValueError` item not found
         """
         blocks = self.blocks
         address = find(blocks, value)

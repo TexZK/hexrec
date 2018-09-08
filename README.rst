@@ -124,7 +124,7 @@ It provides high-level functions to deal with record files, as well as classes
 holding record data.
 
 However, the ``hexrec.records`` module is actually an user-friendly interface
-over ``hrxrec.blocks``, which manages sparse blocks of data.
+over ``hexrec.blocks``, which manages sparse blocks of data.
 It also provides a handy wrapper to work with sparse byte chunks with an API
 akin to ``bytearray``.
 
