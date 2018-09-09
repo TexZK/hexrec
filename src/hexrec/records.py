@@ -1301,7 +1301,7 @@ class MotorolaRecord(Record):
         elif record_count < (1 << 16):
             return cls.TAG_TYPE.COUNT_16
 
-        elif record_count < (1 << 24):
+        else:  # record_count < (1 << 24)
             return cls.TAG_TYPE.COUNT_24
 
     @classmethod
@@ -1473,11 +1473,12 @@ class MotorolaRecord(Record):
         yield cls.build_terminator(start, tag)
 
     @classmethod
-    def check_sequence(cls, records, header=False, overlap=True, start=False):
+    def check_sequence(cls, records, header=False, overlap=True):
         Record.check_sequence(records)
 
         unpack = struct.unpack
         last_data = None
+        first_tag = None
         data_count = 0
         it = iter(records)
         header_found = False
@@ -1492,27 +1493,22 @@ class MotorolaRecord(Record):
 
             record_tag = int(record.tag)
 
-            if last_data is None:
-                if record_tag == 0:
-                    if header_found:
-                        raise ValueError('header error')
-                    header_found = True
+            if record_tag == 0:
+                if header_found:
+                    raise ValueError('header error')
 
-                elif record_tag in (1, 2, 3):
-                    first_tag = record_tag
-                    last_data = record
-                    data_count += 1
-
-            elif record_tag == 0:
-                raise ValueError('misplaced header')
+                header_found = True
 
             elif record_tag in (1, 2, 3):
-                if record_tag != first_tag:
+                if first_tag is None:
+                    first_tag = record_tag
+
+                elif record_tag != first_tag:
                     raise ValueError(expmsg(record_tag, 'in (1, 2, 3)',
                                             'tag error'))
 
-                if overlap and record.overlaps(last_data):
-                    raise ValueError('overlapping records')
+#                if overlap and record.overlaps(last_data):
+#                    raise ValueError('overlapping records')
 
                 last_data = record
                 data_count += 1
@@ -1525,7 +1521,6 @@ class MotorolaRecord(Record):
                 if expected_count != data_count:
                     raise ValueError(expmsg(data_count, expected_count,
                                             'record count error'))
-                break
 
             elif record_tag == 6:
                 if count_found:
@@ -1536,7 +1531,6 @@ class MotorolaRecord(Record):
                 if expected_count != data_count:
                     raise ValueError(expmsg(data_count, expected_count,
                                             'record count error'))
-                break
 
             else:
                 break
@@ -1547,16 +1541,15 @@ class MotorolaRecord(Record):
         if header and not header_found:
             raise ValueError('missing header')
 
-        try:
-            record = next(it)
-        except StopIteration:
-            if start:
-                raise ValueError('missing start')
+        if record is None:
+            raise ValueError('missing start')
+        elif record.tag not in (7, 8, 9):
+            raise ValueError('tag error')
         else:
             matching_tag = cls.MATCHING_TAG[record.tag]
             if first_tag != matching_tag:
-                raise ValueError(expmsg(repr(record), first_tag,
-                                        'matching tag error',))
+                raise ValueError(expmsg(matching_tag, first_tag,
+                                        'matching tag error'))
 
         try:
             next(it)

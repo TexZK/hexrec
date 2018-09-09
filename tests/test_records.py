@@ -41,14 +41,6 @@ def datapath(datadir):
 
 # ============================================================================
 
-def read_bytes(path):
-    path = str(path)
-    with open(path, 'rb') as file:
-        data = file.read()
-    return data
-
-# ============================================================================
-
 def read_text(path):
     path = str(path)
     with open(path, 'rt') as file:
@@ -871,27 +863,84 @@ class TestMotorolaRecord(object):
         MotorolaRecord.check_sequence(records)
 
         records = list(MotorolaRecord.split(BYTES))
+        with pytest.raises(ValueError, match='missing header'):
+            MotorolaRecord.check_sequence(records, header=True)
+
+        records = list(MotorolaRecord.split(BYTES, header=b'Hello, World!'))
+        assert records[0].tag == MotorolaTag.HEADER
+        records.insert(1, records[0])
+        with pytest.raises(ValueError, match='header error'):
+            MotorolaRecord.check_sequence(records)
+
+        records = list(MotorolaRecord.split(BYTES, header=b'Hello, World!'))
+        assert records[0].tag == MotorolaTag.HEADER
+        records.insert(1, MotorolaRecord(0, 4, b''))
+        with pytest.raises(ValueError, match='missing count'):
+            MotorolaRecord.check_sequence(records)
+
+        records = list(MotorolaRecord.split(BYTES, header=b'Hello, World!'))
+        assert records[2].tag == MotorolaTag.DATA_16
+        records[2].tag = MotorolaTag.DATA_24
+        records[2].update_count()
+        records[2].update_checksum()
+        with pytest.raises(ValueError, match='tag error'):
+            MotorolaRecord.check_sequence(records)
+
+        records = list(MotorolaRecord.split(BYTES))
         assert records[2].tag == MotorolaTag.DATA_16
         records[2].address -= 1
         records[2].update_count()
         records[2].update_checksum()
-        with pytest.raises(ValueError): MotorolaRecord.check_sequence(records)
-
-        records = list(MotorolaRecord.split(BYTES))
-        assert records[2].tag == MotorolaTag.DATA_16
-        del records[2]
-        with pytest.raises(ValueError): MotorolaRecord.check_sequence(records)
+        with pytest.raises(ValueError, match='overlapping records'):
+            MotorolaRecord.check_sequence(records)
 
         records = list(MotorolaRecord.split(BYTES))
         assert records[2].tag == MotorolaTag.DATA_16
         assert records[-2].tag == MotorolaTag.COUNT_16
         del records[2]
-        with pytest.raises(ValueError): MotorolaRecord.check_sequence(records)
+        with pytest.raises(ValueError, match='record count error'):
+            MotorolaRecord.check_sequence(records)
 
         records = list(MotorolaRecord.split(BYTES))
         assert records[-2].tag == MotorolaTag.COUNT_16
         del records[-2]
-        with pytest.raises(ValueError): MotorolaRecord.check_sequence(records)
+        with pytest.raises(ValueError, match='missing count'):
+            MotorolaRecord.check_sequence(records)
+
+        records = list(MotorolaRecord.split(BYTES))
+        assert records[-2].tag == MotorolaTag.COUNT_16
+        records.insert(-2, records[-2])
+        with pytest.raises(ValueError, match='misplaced count'):
+            MotorolaRecord.check_sequence(records)
+
+        records = list(MotorolaRecord.split(BYTES))
+        assert records[-2].tag == MotorolaTag.COUNT_16
+        records[-2].tag = MotorolaTag.COUNT_24
+        records[-2].data = b'\x00' + records[-2].data
+        records[-2].update_count()
+        records[-2].update_checksum()
+        MotorolaRecord.check_sequence(records)
+
+        records = list(MotorolaRecord.split(BYTES))
+        assert records[-2].tag == MotorolaTag.COUNT_16
+        records[-2].tag = MotorolaTag.COUNT_24
+        records[-2].data = b'\x00' + records[-2].data
+        records[-2].update_count()
+        records[-2].update_checksum()
+        records.insert(-2, records[-2])
+        with pytest.raises(ValueError, match='misplaced count'):
+            MotorolaRecord.check_sequence(records)
+
+        records = list(MotorolaRecord.split(BYTES))
+        assert records[-2].tag == MotorolaTag.COUNT_16
+        records[-2].tag = MotorolaTag.COUNT_24
+        records[-2].data = b'\x00' + records[-2].data
+        records[-2].update_count()
+        records[-2].update_checksum()
+        assert records[2].tag == MotorolaTag.DATA_16
+        del records[2]
+        with pytest.raises(ValueError, match='record count error'):
+            MotorolaRecord.check_sequence(records)
 
         records = list(MotorolaRecord.split(BYTES))
         assert records[1].tag == MotorolaTag.DATA_16
@@ -899,7 +948,26 @@ class TestMotorolaRecord(object):
         records[-1].tag = MotorolaTag.START_24
         records[-1].update_count()
         records[-1].update_checksum()
-        with pytest.raises(ValueError): MotorolaRecord.check_sequence(records)
+        with pytest.raises(ValueError):
+            MotorolaRecord.check_sequence(records)
+
+        records = list(MotorolaRecord.split(BYTES))
+        assert records[-1].tag == MotorolaTag.START_16
+        del records[-1]
+        with pytest.raises(ValueError, match='missing start'):
+            MotorolaRecord.check_sequence(records)
+
+        records = list(MotorolaRecord.split(BYTES))
+        assert records[-1].tag == MotorolaTag.START_16
+        records.insert(-1, MotorolaRecord(0, 4, b''))
+        with pytest.raises(ValueError, match='tag error'):
+            MotorolaRecord.check_sequence(records)
+
+        records = list(MotorolaRecord.split(BYTES))
+        assert records[-1].tag == MotorolaTag.START_16
+        records.append(MotorolaRecord(0, 4, b''))
+        with pytest.raises(ValueError, match='sequence length error'):
+            MotorolaRecord.check_sequence(records)
 
     def test_split_doctest(self):
         pass  # TODO
@@ -917,7 +985,8 @@ class TestMotorolaRecord(object):
         with pytest.raises(ValueError):
             list(MotorolaRecord.split(BYTES, columns=129))
 
-        ans_out = list(MotorolaRecord.split(HEXBYTES, header=b'Hello, World!'))
+        ans_out = list(MotorolaRecord.split(HEXBYTES, header=b'Hello, World!',
+                                            start=0, tag=1))
         ans_ref = [
             MotorolaRecord(0, MotorolaTag.HEADER, b'Hello, World!'),
             MotorolaRecord(0, MotorolaTag.DATA_16, HEXBYTES),
@@ -1114,7 +1183,8 @@ class TestIntelRecord(object):
         ]
         assert ans_out == ans_ref
 
-        ans_out = list(IntelRecord.split(HEXBYTES, address=0x0000FFF8))
+        ans_out = list(IntelRecord.split(HEXBYTES, address=0x0000FFF8,
+                                         start=0x0000FFF8))
         ans_ref = [
             IntelRecord(0xFFF8, IntelTag.DATA,
                         b'\x00\x01\x02\x03\x04\x05\x06\x07'),

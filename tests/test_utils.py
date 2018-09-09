@@ -224,6 +224,9 @@ def test_sum_bytes_doctest():
     assert sum_bytes(bytes(bytearray(range(16)))) == 120
     assert sum_bytes(range(16)) == 120
 
+def test_sum_bytes():
+    assert sum_bytes(''.join(chr(c) for c in range(16))) == 120
+
 # ============================================================================
 
 def test_do_overlap_doctest():
