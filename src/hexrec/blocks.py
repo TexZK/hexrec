@@ -1672,7 +1672,7 @@ class SparseItems(object):
                 return items
 
             else:
-                if step is None:
+                if step is None or step == 1:
                     for address, items in blocks:
                         if address <= start <= endex <= address + len(items):
                             return items[(start - address):(endex - address)]

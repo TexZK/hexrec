@@ -1477,7 +1477,7 @@ class MotorolaRecord(Record):
         Record.check_sequence(records)
 
         unpack = struct.unpack
-        last_data = None
+#        last_data = None
         first_tag = None
         data_count = 0
         it = iter(records)
@@ -1510,7 +1510,7 @@ class MotorolaRecord(Record):
 #                if overlap and record.overlaps(last_data):
 #                    raise ValueError('overlapping records')
 
-                last_data = record
+#                last_data = record
                 data_count += 1
 
             elif record_tag == 5:
