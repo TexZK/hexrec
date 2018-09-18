@@ -1,0 +1,5 @@
+*.bin binary
+
+*.xxd text eol=crlf
+
+*.c text eol=crlf

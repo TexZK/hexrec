@@ -3,54 +3,6 @@ import pytest
 
 from hexrec.blocks import *
 
-TEST_STRING = ' [] [] [.] | [...]  [.][.]|[.]|| '
-
-# ============================================================================
-
-def build_blocks(string):
-    blocks = []
-    offset = 0
-    start = None
-
-    for c in string:
-        if c in ' ':
-            pass
-
-        elif c == '|':
-            blocks.append((offset, c))
-
-        elif c == '[':
-            start = offset
-
-        elif c == ']':
-            blocks.append((start, string[start:(offset + 1)]))
-
-        offset += 1
-
-    return blocks
-
-
-@pytest.fixture(scope='module')
-def blocks():
-    return build_blocks(TEST_STRING)
-
-
-def test_build_blocks(blocks):
-    ans_ref = [
-        (1, '[]'),
-        (4, '[]'),
-        (7, '[.]'),
-        (11, '|'),
-        (13, '[...]'),
-        (20, '[.]'),
-        (23, '[.]'),
-        (26, '|'),
-        (27, '[.]'),
-        (30, '|'),
-        (31, '|')
-    ]
-    assert blocks == ans_ref
-
 # ============================================================================
 
 def test_chop_blocks_doctest():

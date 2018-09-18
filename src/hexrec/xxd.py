@@ -31,11 +31,11 @@ import io
 import re
 import sys
 
+import six
+
 from .utils import BIN8_TO_STR
 from .utils import chop
 from .utils import hexlify
-from .utils import humanize_ascii
-from .utils import humanize_ebcdic
 from .utils import parse_int
 from .utils import unhexlify
 
@@ -44,6 +44,44 @@ _SEEKING_REGEX = re.compile(r'^(\+?-?)-?(\w+)$')
 _REVERSE_REGEX = re.compile(r'^\s*(?P<address>[A-Fa-f0-9]+)\s*:\s*'
                             r'(?P<data>)([A-Fa-f0-9]{2}\s*)+'
                             r'(?P<garbage>.*)$')
+
+HUMAN_ASCII = (r'................'
+               r'................'
+               r' !"#$%&' r"'()*+,-./"
+               r'0123456789:;<=>?'
+               r'@ABCDEFGHIJKLMNO'
+               r'PQRSTUVWXYZ[\]^_'
+               r'`abcdefghijklmno'
+               r'pqrstuvwxyz{|}~.'
+               r'................'
+               r'................'
+               r'................'
+               r'................'
+               r'................'
+               r'................'
+               r'................'
+               r'................')
+
+HUMAN_EBCDIC = (r'................'
+                r'................'
+                r'................'
+                r'................'
+                r' ...........<(+|'
+                r'&.........!$*);~'
+                r'-/.........,%_>?'
+                r".........`:#@'=" r'"'
+                r'.abcdefghi......'
+                r'.jklmnopqr^.....'
+                r'..stuvwxyz...[..'
+                r'.............]..'
+                r'{ABCDEFGHI......'
+                r'}JKLMNOPQR......'
+                r'\.STUVWXYZ......'
+                r'0123456789......')
+
+
+def humanize(chunk, charset):
+    return ''.join(charset[b] for b in six.iterbytes(chunk))
 
 
 def xxd(infile=None, outfile=None, a=None, b=None, c=None, e=None,
@@ -81,6 +119,8 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, e=None,
                 instream = open(infile, 'rb')
         elif isinstance(infile, (bytes, bytearray, memoryview)):
             instream = io.BytesIO(infile)
+        else:
+            instream = infile
 
         # Output stream binding
         if outfile is None or outfile == '-':
@@ -96,8 +136,12 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, e=None,
                 outstream = open(outfile, 'wt')
         elif outfile is Ellipsis:
             outstream = io.BytesIO()
+        else:
+            outstream = outfile
 
         # Input seeking
+        offset = parse_int(o) if o else 0
+
         if s is not None:
             s = ss + str(s)
             m = _SEEKING_REGEX.match(s)
@@ -114,6 +158,8 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, e=None,
                 instream.seek(-s, io.SEEK_CUR)
             elif ss == '-':
                 instream.seek(-s, io.SEEK_END)
+
+            offset += instream.tell()
 
         # Output seeking
         if r and seek:
@@ -132,11 +178,17 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, e=None,
             if c is None:
                 c = 30
 
+            count = 0
             while True:
-                chunk = instream.read(c)
+                if l is None:
+                    chunk = instream.read(c)
+                else:
+                    chunk = instream.read(min(c, l - count))
+
                 if chunk:
                     outstream.write(hexlify(chunk, upper=u))
                     outstream.write('\n')
+                    count += len(chunk)
                 else:
                     # End of input stream
                     raise StopIteration
@@ -187,11 +239,6 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, e=None,
         if not 0 <= g <= 256:
             raise ValueError('invalid grouping')
 
-        if g and not b:
-            g_fmt = '{{:0{}X}}' if u else '{{:0{}x}}'
-            g_fmt = g_fmt.format(2 * g if g else 2)
-            bo = 'little' if e else 'big'
-
         data_width = c * (8 if b else 2) + ((c - 1) // g if g else 0)
         line_fmt = '{{:0{}{}}}: {{:{}s}}  {{}}\n'
         line_fmt = line_fmt.format(16 if q else 8,
@@ -199,12 +246,12 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, e=None,
                                    data_width)
 
         # Hex dump
-        offset = parse_int(o) if o else 0
         if not 0 <= offset < 0xFFFFFFFF:
             raise ValueError('offset overflow')
 
         last_zero = None
         count = 0
+        iterbytes = six.iterbytes
 
         while True:
             # Input byte columns
@@ -215,7 +262,7 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, e=None,
 
             if chunk:
                 # Null line skipping
-                if a and not any(chunk):
+                if a and not any(iterbytes(chunk)):
                     if last_zero:
                         offset += len(chunk)
                         count += len(chunk)
@@ -230,20 +277,21 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, e=None,
                     tokens = (chunk,)
 
                 if b:
-                    tokens = ' '.join(''.join(BIN8_TO_STR[b] for b in token)
+                    tokens = ' '.join(''.join(BIN8_TO_STR[b]
+                                              for b in iterbytes(token))
                                       for token in tokens)
                 elif g:
-                    tokens = ' '.join(g_fmt.format(int.from_bytes(token, bo))
-                                      [-(2 * len(token)):]
+                    tokens = ' '.join(hexlify(token[::-1] if e else token,
+                                              upper=u)
                                       for token in tokens)
                 else:
                     tokens = hexlify(*tokens, upper=u)
 
                 # Comment text generation
                 if E:
-                    text = humanize_ebcdic(chunk)
+                    text = humanize(chunk, HUMAN_EBCDIC)
                 else:
-                    text = humanize_ascii(chunk)
+                    text = humanize(chunk, HUMAN_ASCII)
 
                 # Line output
                 line = line_fmt.format(offset, tokens, text)
@@ -341,9 +389,9 @@ def build_argparser():
     return parser
 
 
-def _main():
+def main(args=None, namespace=None):
     parser = build_argparser()
-    args = parser.parse_args()
+    args = parser.parse_args(args, namespace)
 
     if args.h:
         parser.print_help()
@@ -357,4 +405,4 @@ def _main():
 
 
 if __name__ == '__main__':
-    _main()
+    main()
