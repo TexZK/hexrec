@@ -446,6 +446,7 @@ def load_blocks(path, record_type=None):
         record_type = RECORD_TYPES[type_name]
 
     records = record_type.load(path)
+    record_type.readdress(records)
     blocks = records_to_blocks(records)
     return blocks
 
