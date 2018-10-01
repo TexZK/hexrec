@@ -1124,22 +1124,23 @@ def merge(blocks, join=b''.join):
 
     for block in blocks:
         start, items = block
-        endex = start + len(items)
+        if items:
+            endex = start + len(items)
 
-        if last_endex is None or last_endex == start:
-            if not contiguous_items:
+            if last_endex is None or last_endex == start:
+                if not contiguous_items:
+                    contiguous_start = start
+                contiguous_items.append(items)
+
+            else:
+                if contiguous_items:
+                    contiguous_items = join(contiguous_items)
+                    result.append((contiguous_start, contiguous_items))
+
+                contiguous_items = [items]
                 contiguous_start = start
-            contiguous_items.append(items)
 
-        else:
-            if contiguous_items:
-                contiguous_items = join(contiguous_items)
-                result.append((contiguous_start, contiguous_items))
-
-            contiguous_items = [items]
-            contiguous_start = start
-
-        last_endex = endex
+            last_endex = endex
 
     if contiguous_items:
         contiguous_items = join(contiguous_items)
