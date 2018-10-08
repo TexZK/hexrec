@@ -1190,31 +1190,40 @@ def collapse(blocks):
         [(5, '5'), (1, 'BC'), (3, 'EF'), (0, '$'), (9, '9'), (6, 'xyz')]
     """
     result = []
+    append = result.append
+    last_endex = None
 
     for block in blocks:
         start1, items1 = block
         if items1:
             endex1 = start1 + len(items1)
 
-            for i in range(len(result)):
-                start2, items2 = result[i]
-                if items2:
-                    endex2 = start2 + len(items2)
+            if last_endex is None or last_endex <= start1:
+                last_endex = endex1
 
-                    if start1 <= start2 <= endex2 <= endex1:
-                        result[i] = (start2, None)
+            else:
+                for i in range(len(result)):
+                    start2, items2 = result[i]
+                    if items2:
+                        endex2 = start2 + len(items2)
 
-                    elif start2 < start1 < endex2 <= endex1:
-                        result[i] = (start2, items2[:(start1 - start2)])
+                        if start1 <= start2 <= endex2 <= endex1:
+                            result[i] = (start2, None)
 
-                    elif start1 <= start2 < endex1 < endex2:
-                        result[i] = (endex1, items2[(endex1 - start2):])
+                        elif start2 < start1 < endex2 <= endex1:
+                            result[i] = (start2, items2[:(start1 - start2)])
 
-                    elif start2 < start1 <= endex1 < endex2:
-                        result[i] = (start2, items2[:(start1 - start2)])
-                        result.append((endex1, items2[(endex1 - start2):]))
+                        elif start1 <= start2 < endex1 < endex2:
+                            result[i] = (endex1, items2[(endex1 - start2):])
 
-            result.append(block)
+                        elif start2 < start1 <= endex1 < endex2:
+                            result[i] = (start2, items2[:(start1 - start2)])
+                            append((endex1, items2[(endex1 - start2):]))
+
+                        if last_endex < endex2:
+                            last_endex = endex2
+
+            append(block)
 
     return result
 

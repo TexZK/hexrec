@@ -148,6 +148,7 @@ def records_to_blocks(records):
         True
     """
     blocks = [(r.address, r.data) for r in get_data_records(records)]
+    blocks = merge(blocks)
     blocks = collapse(blocks)
     blocks.sort(key=sorting)
     blocks = merge(blocks)
@@ -241,6 +242,7 @@ def merge_records(data_records, input_types=None, output_type=None,
     for records in data_records:
         blocks.extend((r.address, r.data) for r in records)
 
+    blocks = merge(blocks)
     blocks = collapse(blocks)
     blocks.sort(key=sorting)
     blocks = merge(blocks)
