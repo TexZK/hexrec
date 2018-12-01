@@ -2281,8 +2281,6 @@ class TektronixRecord(Record):
         record.check()
         if record.tag != cls.TAG_TYPE.TERMINATOR:
             raise ValueError('missing terminator')
-        if record.data:
-            raise ValueError('data error')
 
 
 RECORD_TYPES = {

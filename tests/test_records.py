@@ -1014,6 +1014,7 @@ class TestMotorolaRecord(object):
         ans_out = [
             MotorolaRecord(0, MotorolaTag.HEADER, b'Hello, World!'),
             MotorolaRecord(0x12345678, MotorolaTag.DATA_16, HEXBYTES),
+            MotorolaRecord(0, MotorolaTag.COUNT_16, b'\x12\x34'),
             MotorolaRecord(0, MotorolaTag.COUNT_16, b'\x12\x34\x56'),
             MotorolaRecord(0x1234, MotorolaTag.START_16, b''),
         ]
@@ -1021,6 +1022,7 @@ class TestMotorolaRecord(object):
         ans_ref = [
             MotorolaRecord(0, MotorolaTag.HEADER, b'Hello, World!'),
             MotorolaRecord(0x12345678, MotorolaTag.DATA_32, HEXBYTES),
+            MotorolaRecord(0, MotorolaTag.COUNT_16, b'\x12\x34'),
             MotorolaRecord(0, MotorolaTag.COUNT_24, b'\x12\x34\x56'),
             MotorolaRecord(0x1234, MotorolaTag.START_32, b''),
         ]
@@ -1388,7 +1390,24 @@ class TestTektronixRecord(object):
         pass  # TODO
 
     def test_check_sequence(self):
-        pass  # TODO
+        records = [
+            TektronixRecord(0x1234, TektronixTag.DATA, b'Hello, World!'),
+            TektronixRecord(0x1234, TektronixTag.TERMINATOR, b''),
+        ]
+        TektronixRecord.check_sequence(records)
+
+        with pytest.raises(ValueError, match='missing terminator'):
+            TektronixRecord.check_sequence(records[0:0])
+
+        with pytest.raises(ValueError, match='missing terminator'):
+            TektronixRecord.check_sequence(records[:-1])
+
+        with pytest.raises(ValueError, match='tag error'):
+            TektronixRecord.check_sequence(records[::-1])
+
+        with pytest.raises(ValueError, match='tag error'):
+            record = TektronixRecord(0x4321, TektronixTag.DATA, b'dummy')
+            TektronixRecord.check_sequence(records + [record])
 
     def test_load(self, datapath):
         path_ref = datapath / 'bytes.tek'
