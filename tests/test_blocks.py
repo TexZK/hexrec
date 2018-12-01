@@ -262,7 +262,7 @@ def test_merge_doctest():
 
 
 def test_merge():
-    blocks = [(0, 'Hello,'), (7, 'World'), (12, '!'), (15, '$')]
+    blocks = [(0, 'Hello,'), (6, ''), (7, 'World'), (12, '!'), (15, '$')]
     ans_ref = [(0, 'Hello,'), (7, 'World!'), (15, '$')]
     ans_out = merge(blocks, join=''.join)
     assert ans_out == ans_ref
@@ -526,6 +526,10 @@ class TestSparseItems(object):  # TODO
         del memory[3]
         assert memory.blocks == [(1, 'ABD'), (5, '$'), (7, 'xz')]
 
+    def test___delitem__(self):
+        memory = SparseItems(items='ABC', items_type=str, items_join=''.join)
+        with pytest.raises(NotImplementedError): del memory[::2]
+
     def test_append_doctest(self):
         memory = SparseItems(items_type=str, items_join=''.join)
         memory.append('$')
@@ -551,10 +555,18 @@ class TestSparseItems(object):  # TODO
         memory.blocks = [(1, 'ABC'), (5, 'xyz')]
         assert memory.start == 1
 
+    def test_start(self):
+        memory = SparseItems(items_type=str, items_join=''.join)
+        assert memory.start == 0
+
     def test_endex_doctest(self):
         memory = SparseItems(items_type=str, items_join=''.join)
         memory.blocks = [(1, 'ABC'), (5, 'xyz')]
         assert memory.endex == 8
+
+    def test_endex(self):
+        memory = SparseItems(items_type=str, items_join=''.join)
+        assert memory.endex == 0
 
     def test_shift(self):
         obj = SparseItems(items_type=str, items_join=''.join)
@@ -706,7 +718,7 @@ class TestSparseItems(object):  # TODO
         memory.flood()
         assert memory.blocks == [(1, 'ABC23xyz')]
 
-    def test_fill(self):
+    def test_flood(self):
         obj = SparseItems(items_type=str, items_join=''.join)
         obj.blocks = [(1, 'ABC'), (6, 'xyz')]
         obj.flood(pattern='123')

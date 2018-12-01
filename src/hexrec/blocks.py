@@ -1133,9 +1133,8 @@ def merge(blocks, join=b''.join):
                 contiguous_items.append(items)
 
             else:
-                if contiguous_items:
-                    contiguous_items = join(contiguous_items)
-                    result.append((contiguous_start, contiguous_items))
+                contiguous_items = join(contiguous_items)
+                result.append((contiguous_start, contiguous_items))
 
                 contiguous_items = [items]
                 contiguous_start = start
@@ -1204,24 +1203,23 @@ def collapse(blocks):
             else:
                 for i in range(len(result)):
                     start2, items2 = result[i]
-                    if items2:
-                        endex2 = start2 + len(items2)
+                    endex2 = start2 + len(items2)
 
-                        if start1 <= start2 <= endex2 <= endex1:
-                            result[i] = (start2, None)
+                    if start1 <= start2 <= endex2 <= endex1:
+                        result[i] = (start2, None)
 
-                        elif start2 < start1 < endex2 <= endex1:
-                            result[i] = (start2, items2[:(start1 - start2)])
+                    elif start2 < start1 < endex2 <= endex1:
+                        result[i] = (start2, items2[:(start1 - start2)])
 
-                        elif start1 <= start2 < endex1 < endex2:
-                            result[i] = (endex1, items2[(endex1 - start2):])
+                    elif start1 <= start2 < endex1 < endex2:
+                        result[i] = (endex1, items2[(endex1 - start2):])
 
-                        elif start2 < start1 <= endex1 < endex2:
-                            result[i] = (start2, items2[:(start1 - start2)])
-                            append((endex1, items2[(endex1 - start2):]))
+                    elif start2 < start1 <= endex1 < endex2:
+                        result[i] = (start2, items2[:(start1 - start2)])
+                        append((endex1, items2[(endex1 - start2):]))
 
-                        if last_endex < endex2:
-                            last_endex = endex2
+                    if last_endex < endex2:
+                        last_endex = endex2
 
             append(block)
 
