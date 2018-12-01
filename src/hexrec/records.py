@@ -156,7 +156,8 @@ def records_to_blocks(records):
 
 
 def blocks_to_records(blocks, record_type,
-                      split_args=None, split_kwargs=None):
+                      split_args=None, split_kwargs=None,
+                      build_args=None, build_kwargs=None):
     r"""Converts blocks to records.
 
     Arguments:
@@ -165,6 +166,10 @@ def blocks_to_records(blocks, record_type,
         record_type (:class:`Record`): Output record type.
         split_args (list): Positional arguments for :meth:`Record.split`.
         split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
+        build_args (list): Positional arguments for
+            :meth:`Record.build_standalone`.
+        build_kwargs (dict): Keyword arguments for
+            :meth:`Record.build_standalone`.
 
     Returns:
         :obj:`list` of :obj:`Record`: Records holding data from `blocks`.
@@ -187,12 +192,16 @@ def blocks_to_records(blocks, record_type,
         records = record_type.split(items, *split_args, **split_kwargs)
         data_records.extend(records)
 
-    records = list(record_type.build_standalone(data_records))
+    build_args = build_args or ()
+    build_kwargs = dict(build_kwargs or ())
+    records = list(record_type.build_standalone(data_records,
+                                                *build_args, **build_kwargs))
     return records
 
 
 def merge_records(data_records, input_types=None, output_type=None,
-                  split_args=None, split_kwargs=None):
+                  split_args=None, split_kwargs=None,
+                  build_args=None, build_kwargs=None):
     r"""Merges data records.
 
     Merges multiple sequences of data records where each sequence overwrites
@@ -209,6 +218,10 @@ def merge_records(data_records, input_types=None, output_type=None,
             of the first `input_types`.
         split_args (list): Positional arguments for :meth:`Record.split`.
         split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
+        build_args (list): Positional arguments for
+            :meth:`Record.build_standalone`.
+        build_kwargs (dict): Keyword arguments for
+            :meth:`Record.build_standalone`.
 
     Returns:
         :obj:`list` of :obj:`Record`: Merged records.
@@ -248,7 +261,8 @@ def merge_records(data_records, input_types=None, output_type=None,
     blocks = merge(blocks)
 
     output_records = blocks_to_records(blocks, output_type,
-                                       split_args, split_kwargs)
+                                       split_args, split_kwargs,
+                                       build_args, build_kwargs)
     return output_records
 
 
@@ -454,7 +468,8 @@ def load_blocks(path, record_type=None):
 
 
 def save_blocks(path, blocks, record_type=None,
-                split_args=None, split_kwargs=None):
+                split_args=None, split_kwargs=None,
+                build_args=None, build_kwargs=None):
     r"""Saves blocks to a record file.
 
     Arguments:
@@ -465,6 +480,10 @@ def save_blocks(path, blocks, record_type=None,
             If ``None``, it is guessed from the file extension.
         split_args (list): Positional arguments for :meth:`Record.split`.
         split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
+        build_args (list): Positional arguments for
+            :meth:`Record.build_standalone`.
+        build_kwargs (dict): Keyword arguments for
+            :meth:`Record.build_standalone`.
 
     Example:
         >>> blocks = [(offset, bytes(bytearray(range(offset, offset + 16))))
@@ -477,7 +496,9 @@ def save_blocks(path, blocks, record_type=None,
         type_name = find_record_type(path)
         record_type = RECORD_TYPES[type_name]
 
-    records = blocks_to_records(blocks, record_type, split_args, split_kwargs)
+    records = blocks_to_records(blocks, record_type,
+                                split_args, split_kwargs,
+                                build_args, build_kwargs)
     record_type.save(path, records)
 
 
@@ -918,6 +939,11 @@ class Record(object):
         Yields:
             :obj:`Record`: Records for a standalone record file.
         """
+        if args:
+            raise NotImplementedError('args reserved for overriding')
+        if kwargs:
+            raise NotImplementedError('kwargs reserved for overriding')
+
         for record in data_records:
             yield record
 
@@ -1256,6 +1282,9 @@ class MotorolaRecord(Record):
             <MotorolaTag.DATA_24: 2>
 
             >>> MotorolaRecord.fit_data_tag(0xFFFFFFFF)
+            <MotorolaTag.DATA_32: 3>
+
+            >>> MotorolaRecord.fit_data_tag(0x100000000)
             <MotorolaTag.DATA_32: 3>
         """
 

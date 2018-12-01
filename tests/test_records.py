@@ -554,6 +554,14 @@ class TestRecord(object):
         data_records2 = list(BinaryRecord.build_standalone(records))
         assert data_records == data_records2
 
+        with pytest.raises(NotImplementedError,
+                           match='args reserved for overriding'):
+            next(BinaryRecord.build_standalone((), Ellipsis))
+
+        with pytest.raises(NotImplementedError,
+                           match='kwargs reserved for overriding'):
+            next(BinaryRecord.build_standalone((), _=Ellipsis))
+
     def test_check_sequence(self):
         record1 = BinaryRecord(0, 0, b'abc')
         record2 = BinaryRecord(3, 0, b'def')
@@ -744,12 +752,16 @@ class TestMotorolaRecord(object):
         ans_ref = '<MotorolaTag.DATA_32: 3>'
         assert ans_out == ans_ref
 
+        ans_out = repr(MotorolaRecord.fit_data_tag(0x100000000))
+        ans_ref = '<MotorolaTag.DATA_32: 3>'
+        assert ans_out == ans_ref
+
     def test_fit_data_tag(self):
         with pytest.raises(ValueError):
             MotorolaRecord.fit_data_tag(-1)
 
         with pytest.raises(ValueError):
-            MotorolaRecord.fit_data_tag(1 << 32)
+            MotorolaRecord.fit_data_tag((1 << 32) + 1)
 
     def test_fit_count_tag_doctest(self):
         ans_out = repr(MotorolaRecord.fit_count_tag(0x0000000))
