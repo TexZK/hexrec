@@ -1259,7 +1259,7 @@ class MotorolaRecord(Record):
             <MotorolaTag.DATA_32: 3>
         """
 
-        if not 0 <= endex < (1 << 32):
+        if not 0 <= endex <= (1 << 32):
             raise ValueError('address overflow')
 
         elif endex <= (1 << 16):
