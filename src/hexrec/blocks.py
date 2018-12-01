@@ -102,7 +102,7 @@ are yielded on-the-fly by a generator, like `seq_gen`:
 [(0, '!!!'), (5, '&&&'), (10, '+++')]
 
 Other times it is required that sequences are ordered, which means that a
-block ``b`` must follow a block ``æ`` which end address is lesser than the
+block ``b`` must follow a block ``a`` which end address is lesser than the
 `start` of ``b``, like in:
 
 >>> a = (1, 'ABC')
@@ -306,13 +306,11 @@ def sorting(block):
         +---+---+---+---+---+---+---+---+---+---+
         |   |   |[A | B | C]|   |   |   |   |   |
         +---+---+---+---+---+---+---+---+---+---+
-        |   |   |   |   |   |   |   |[>]|   |   |
-        +---+---+---+---+---+---+---+---+---+---+
         |   |   |[!]|   |   |   |   |   |   |   |
         +---+---+---+---+---+---+---+---+---+---+
-        |[<]|   |   |   |   |   |   |   |   |   |
-        +---+---+---+---+---+---+---+---+---+---+
         |   |   |[1 | 1]|   |   |   |   |   |   |
+        +---+---+---+---+---+---+---+---+---+---+
+        |   |   |   |   |   |   |   |[>]|   |   |
         +---+---+---+---+---+---+---+---+---+---+
     """
     return block[0]
@@ -1086,13 +1084,14 @@ def flood(blocks, start=None, endex=None, pattern=b'\0',
     return result
 
 
-def merge(blocks, join=b''.join):
+def merge(blocks, join=None):
     r"""Merges touching blocks.
 
     Arguments:
         blocks (:obj:`list` of block): A sequence of non-overlapping blocks,
             sorted by address. Sequence generators supported.
         join (callable): A function to join a sequence of items.
+            If ``None``, defaults to ``b''.join``.
 
     Returns:
         :obj:`list` of block: A new list of non-overlapping blocks, sorted by
@@ -1117,6 +1116,8 @@ def merge(blocks, join=b''.join):
         >>> merge(blocks)
         [(0, 'Hello, World!')]
     """
+    if join is None:
+        join = b''.join
     result = []
     contiguous_items = []
     contiguous_start = None
@@ -1222,6 +1223,61 @@ def collapse(blocks):
                         last_endex = endex2
 
             append(block)
+
+    return result
+
+
+def union(*blocks_list, **kwargs):  # kwargs because of Python 2.7
+    r"""Performs the union of multiple block lists.
+
+    Given some sequences of blocks, their blocks are overwritten to the result
+    block list, in the order such sequences are.
+
+    Arguments:
+        blocks_lists (:obj:`list` of :obj:`list` of block): Multiple sequences
+            of blocks. Sequence generators supported.
+        join (callable): A function to join a sequence of items.
+            If ``None``, defaults to ``b''.join``.
+
+    Returns:
+        :obj:`list` of block: A new list of non-overlapping blocks.
+
+    Example:
+        +---+---+---+---+---+---+---+---+---+---+
+        | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+        +===+===+===+===+===+===+===+===+===+===+
+        |[0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9]|
+        +---+---+---+---+---+---+---+---+---+---+
+        |[A | B | C | D]|   |   |   |   |   |   |
+        +---+---+---+---+---+---+---+---+---+---+
+        |   |   |   |[E | F]|   |   |   |   |   |
+        +---+---+---+---+---+---+---+---+---+---+
+        |[$]|   |   |   |   |   |   |   |   |   |
+        +---+---+---+---+---+---+---+---+---+---+
+        |   |   |   |   |   |   |[x | y | z]|   |
+        +---+---+---+---+---+---+---+---+---+---+
+        |[$]|[B | C]|[E | F]|[5]|[x | y | z]|[9]|
+        +---+---+---+---+---+---+---+---+---+---+
+
+        >>> blocks1 = [
+        ...     (0, '0123456789'),
+        ...     (0, 'ABCD'),
+        ... ]
+        >>> blocks2 = [
+        ...     (3, 'EF'),
+        ...     (0, '$'),
+        ...     (6, 'xyz'),
+        ... ]
+        >>> union(blocks1, blocks2, join=''.join)
+        [(0, '$'), (1, 'BC'), (3, 'EF'), (5, '5'), (6, 'xyz'), (9, '9')]
+    """
+    result = []
+
+    for blocks in blocks_list:
+        result.extend(merge(blocks, join=kwargs.get('join')))
+
+    result = collapse(result)
+    result.sort(key=sorting)
 
     return result
 

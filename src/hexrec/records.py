@@ -68,7 +68,7 @@ import six
 from .blocks import SparseItems
 from .blocks import collapse
 from .blocks import merge
-from .blocks import sorting
+from .blocks import union
 from .utils import chop
 from .utils import do_overlap
 from .utils import expmsg
@@ -148,10 +148,7 @@ def records_to_blocks(records):
         True
     """
     blocks = [(r.address, r.data) for r in get_data_records(records)]
-    blocks = merge(blocks)
-    blocks = collapse(blocks)
-    blocks.sort(key=sorting)
-    blocks = merge(blocks)
+    blocks = merge(union(blocks))
     return blocks
 
 
@@ -251,14 +248,8 @@ def merge_records(data_records, input_types=None, output_type=None,
     if output_type is None:
         output_type = input_types[0]
 
-    blocks = []
-    for records in data_records:
-        blocks.extend((r.address, r.data) for r in records)
-
-    blocks = merge(blocks)
-    blocks = collapse(blocks)
-    blocks.sort(key=sorting)
-    blocks = merge(blocks)
+    blocks = merge(union(*[[(r.address, r.data) for r in records]
+                           for records in data_records]))
 
     output_records = blocks_to_records(blocks, output_type,
                                        split_args, split_kwargs,

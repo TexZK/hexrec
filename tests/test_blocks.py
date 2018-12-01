@@ -296,7 +296,23 @@ def test_collapse():
 
 # ============================================================================
 
-class TestSparseItems(object):  # TODO
+def test_union_doctest():
+    blocks1 = [
+        (0, '0123456789'),
+        (0, 'ABCD'),
+    ]
+    blocks2 = [
+        (3, 'EF'),
+        (0, '$'),
+        (6, 'xyz'),
+    ]
+    ans_ref = [(0, '$'), (1, 'BC'), (3, 'EF'), (5, '5'), (6, 'xyz'), (9, '9')]
+    ans_out = union(blocks1, blocks2, join=''.join)
+    assert ans_out == ans_ref
+
+# ============================================================================
+
+class TestSparseItems(object):
 
     def test___init__(self):
         obj = SparseItems(items_type=str, items_join=''.join)
