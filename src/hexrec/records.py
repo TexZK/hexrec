@@ -66,7 +66,6 @@ import struct
 import six
 
 from .blocks import SparseItems
-from .blocks import collapse
 from .blocks import merge
 from .blocks import union
 from .utils import chop
