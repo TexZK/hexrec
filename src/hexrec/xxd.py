@@ -42,7 +42,7 @@ from .utils import unhexlify
 _SEEKING_REGEX = re.compile(r'^(\+?-?)-?(\w+)$')
 
 _REVERSE_REGEX = re.compile(r'^\s*(?P<address>[A-Fa-f0-9]+)\s*:\s*'
-                            r'(?P<data>)([A-Fa-f0-9]{2}\s*)+'
+                            r'(?P<data>([A-Fa-f0-9]{2}\s*)+)'
                             r'(?P<garbage>.*)$')
 
 HUMAN_ASCII = (r'................'
@@ -166,7 +166,7 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, e=None,
 
         # Output seeking
         if r and seek:
-            if outstream.seekable():
+            if hasattr(outstream, 'seekable') and outstream.seekable():
                 outstream.seek(seek, io.SEEK_END)
                 endex = outstream.tell()
                 outstream.write(bytes(seek - endex))
@@ -174,6 +174,8 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, e=None,
             else:
                 outstream.write(bytes(seek))
                 outoffset = seek
+        else:
+            outoffset = 0
 
         # Output mode handling
         if p:
@@ -208,14 +210,15 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, e=None,
                     address = int(groups['address'], 16)
                     data = unhexlify(''.join(groups['data'].split()))
                     data = data[:c]
+                    print(hexlify(data))  # XXX
 
                     # Write line data (fill gaps if needed)
-                    if outstream.seekable():
+                    if hasattr(outstream, 'seekable') and outstream.seekable():
                         outstream.seek(address, io.SEEK_SET)
                     else:
                         if address < outoffset:
                             raise RuntimeError('negative seeking')
-                        outstream.write(bytes(address - outoffset))
+                        outstream.write(bytearray(address - outoffset))
                         outoffset = address + len(data)
                     outstream.write(data)
 
