@@ -257,7 +257,8 @@ def merge_records(data_records, input_types=None, output_type=None,
 
 
 def convert_records(records, input_type=None, output_type=None,
-                    split_args=None, split_kwargs=None):
+                    split_args=None, split_kwargs=None,
+                    build_args=None, build_kwargs=None):
     r"""Converts records to another type.
 
     Arguments:
@@ -270,6 +271,10 @@ def convert_records(records, input_type=None, output_type=None,
             is reassigned as `input_type`.
         split_args (list): Positional arguments for :meth:`Record.split`.
         split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
+        build_args (list): Positional arguments for
+            :meth:`Record.build_standalone`.
+        build_kwargs (dict): Keyword arguments for
+            :meth:`Record.build_standalone`.
 
     Returns:
         :obj:`list` of :obj:`Record`: Converted records.
@@ -296,16 +301,22 @@ def convert_records(records, input_type=None, output_type=None,
 
     records = [r for r in records if r.is_data()]
     output_records = merge_records([records], [input_type], output_type,
-                                   split_args, split_kwargs)
+                                   split_args, split_kwargs,
+                                   build_args, build_kwargs)
     return output_records
 
 
 def merge_files(input_files, output_file, input_types=None, output_type=None,
-                split_args=None, split_kwargs=None):
+                split_args=None, split_kwargs=None,
+                build_args=None, build_kwargs=None):
     r"""Merges record files.
 
     Merges multiple record files where each file overwrites overlapping data
     of the previous files.
+
+    Warning:
+        Only binary data is kept; metadata will be overwritten by the call
+        to :meth:`Record.build_standalone`.
 
     Arguments:
         input_files (list): A sequence of file paths to merge.
@@ -317,6 +328,10 @@ def merge_files(input_files, output_file, input_types=None, output_type=None,
             file extension.
         split_args (list): Positional arguments for :meth:`Record.split`.
         split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
+        build_args (list): Positional arguments for
+            :meth:`Record.build_standalone`.
+        build_kwargs (dict): Keyword arguments for
+            :meth:`Record.build_standalone`.
 
     Example:
         >>> merge_files(['merge1.mot', 'merge2.hex'], 'merged.tek')
@@ -345,13 +360,19 @@ def merge_files(input_files, output_file, input_types=None, output_type=None,
         input_records.append(records)
 
     output_records = merge_records(input_records, input_types, output_type,
-                                   split_args, split_kwargs)
+                                   split_args, split_kwargs,
+                                   build_args, build_kwargs)
     output_type.save(output_file, output_records)
 
 
 def convert_file(input_file, output_file, input_type=None, output_type=None,
-                 split_args=None, split_kwargs=None):
+                 split_args=None, split_kwargs=None,
+                 build_args=None, build_kwargs=None):
     r"""Converts a record file to another record type.
+
+    Warning:
+        Only binary data is kept; metadata will be overwritten by the call
+        to :meth:`Record.build_standalone`.
 
     Arguments:
         input_file (:obj:`str`): Path of the input file.
@@ -362,6 +383,10 @@ def convert_file(input_file, output_file, input_type=None, output_type=None,
             If ``None``, it is guessed from the file extension.
         split_args (list): Positional arguments for :meth:`Record.split`.
         split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
+        build_args (list): Positional arguments for
+            :meth:`Record.build_standalone`.
+        build_kwargs (dict): Keyword arguments for
+            :meth:`Record.build_standalone`.
 
     Example:
         >>> motorola = list(MotorolaRecord.split(bytes(range(256))))
@@ -372,7 +397,7 @@ def convert_file(input_file, output_file, input_type=None, output_type=None,
         True
     """
     merge_files([input_file], output_file, [input_type], output_type,
-                split_args, split_kwargs)
+                split_args, split_kwargs, build_args, build_kwargs)
 
 
 def load_records(path, record_type=None):
@@ -1458,7 +1483,7 @@ class MotorolaRecord(Record):
         return record
 
     @classmethod
-    def build_standalone(cls, data_records, start=None, tag=None, header=None):
+    def build_standalone(cls, data_records, start=None, tag=None, header=b''):
         r"""Makes a sequence of data records standalone.
 
         Arguments:
@@ -1468,7 +1493,7 @@ class MotorolaRecord(Record):
                 If ``None``, it is assigned the minimum data record address.
             tag (:obj:`MotorolaTag`): Data tag record.
                 If ``None``, automatically selects the fitting one.
-            header (:obj:`bytes`): Header string data.
+            header (:obj:`bytes`): Header byte data.
 
         Yields:
             :obj:`Record`: Records for a standalone record file.
@@ -1478,9 +1503,7 @@ class MotorolaRecord(Record):
         if tag is None:
             tag = max(record.tag for record in data_records)
 
-        if header is not None:
-            yield cls.build_header(header)
-            count += 1
+        yield cls.build_header(header)
 
         for record in data_records:
             yield record
@@ -1495,7 +1518,7 @@ class MotorolaRecord(Record):
         yield cls.build_terminator(start, tag)
 
     @classmethod
-    def check_sequence(cls, records, header=False, overlap=True):
+    def check_sequence(cls, records, overlap=True):
         Record.check_sequence(records)
 
         unpack = struct.unpack
@@ -1560,7 +1583,7 @@ class MotorolaRecord(Record):
         if not count_found:
             raise ValueError('missing count')
 
-        if header and not header_found:
+        if not header_found:
             raise ValueError('missing header')
 
         if record is None:
@@ -1582,7 +1605,7 @@ class MotorolaRecord(Record):
 
     @classmethod
     def split(cls, data, address=0, columns=16, align=True,
-              standalone=True, start=None, tag=None, header=None):
+              standalone=True, start=None, tag=None, header=b''):
         r"""Splits a chunk of data into records.
 
         Arguments:
@@ -1599,7 +1622,7 @@ class MotorolaRecord(Record):
                 If ``None``, it is assigned the minimum data record address.
             tag (:obj:`MotorolaTag`): Data tag record.
                 If ``None``, automatically selects the fitting one.
-            header (:obj:`bytes`): Header string data.
+            header (:obj:`bytes`): Header byte data.
 
         Yields:
             :obj:`MotorolaRecord`: Data split into records.
@@ -1620,7 +1643,7 @@ class MotorolaRecord(Record):
             tag = cls.fit_data_tag(address + len(data))
         count = 0
 
-        if standalone and header is not None:
+        if standalone:
             yield cls.build_header(header)
 
         skip = (address % columns) if align else 0

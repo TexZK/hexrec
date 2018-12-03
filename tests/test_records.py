@@ -862,7 +862,7 @@ class TestMotorolaRecord(object):
         ))
         ans_ref = [
             MotorolaRecord(0, MotorolaTag.HEADER, b'Hello, World!'),
-            MotorolaRecord(0, MotorolaTag.COUNT_16, b'\x00\x01'),
+            MotorolaRecord(0, MotorolaTag.COUNT_16, b'\x00\x00'),
             MotorolaRecord(0, MotorolaTag.START_32, b''),
         ]
         assert ans_out == ans_ref
@@ -873,10 +873,6 @@ class TestMotorolaRecord(object):
     def test_check_sequence(self):
         records = list(MotorolaRecord.split(BYTES, header=b'Hello, World!'))
         MotorolaRecord.check_sequence(records)
-
-        records = list(MotorolaRecord.split(BYTES))
-        with pytest.raises(ValueError, match='missing header'):
-            MotorolaRecord.check_sequence(records, header=True)
 
         records = list(MotorolaRecord.split(BYTES, header=b'Hello, World!'))
         assert records[0].tag == MotorolaTag.HEADER

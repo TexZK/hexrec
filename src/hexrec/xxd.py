@@ -135,7 +135,10 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, e=None,
             else:
                 outstream = open(outfile, 'wt')
         elif outfile is Ellipsis:
-            outstream = io.BytesIO()
+            if r:
+                outstream = io.BytesIO()
+            else:
+                outstream = io.StringIO()
         else:
             outstream = outfile
 
@@ -295,6 +298,8 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, e=None,
 
                 # Line output
                 line = line_fmt.format(offset, tokens, text)
+                if six.PY2:
+                    line = line.decode()
                 outstream.write(line)
 
                 offset += len(chunk)
