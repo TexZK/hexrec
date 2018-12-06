@@ -210,7 +210,6 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, e=None,
                     address = int(groups['address'], 16)
                     data = unhexlify(''.join(groups['data'].split()))
                     data = data[:c]
-                    print(hexlify(data))  # XXX
 
                     # Write line data (fill gaps if needed)
                     if hasattr(outstream, 'seekable') and outstream.seekable():

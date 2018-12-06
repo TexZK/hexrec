@@ -92,7 +92,6 @@ def test_by_filename_bin(tmppath, datapath):
         path_in = datapath / os.path.splitext(args[-1])[0]
         args = args[:-1] + [str(path_in), str(path_out)]
 
-        print(args)
         main(args)
 
         ans_out = read_bytes(path_out)
