@@ -6,6 +6,11 @@ import sys
 from distutils import dir_util
 from pathlib import Path
 
+if sys.version_info >= (3, 3):
+    import unittest.mock as mock
+else:
+    import mock
+
 import pytest
 
 from hexrec.xxd import *
@@ -102,6 +107,12 @@ def test_by_filename_bin(tmppath, datapath):
 
 def test_help():
     main(['-h'])
+
+
+def test_init():
+    from hexrec import xxd as module
+    with mock.patch.object(module, "__name__", "__main__"):
+        module._init()
 
 
 def test_xxd(datapath):

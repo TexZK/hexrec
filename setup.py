@@ -65,6 +65,7 @@ setup(
         'six',
         'click',
         'enum34',
+        'mock',
         'pathlib',
         # eg: 'aspectlib==1.1.1', 'six>=1.7',
     ],

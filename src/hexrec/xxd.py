@@ -411,5 +411,8 @@ def main(args=None, namespace=None):
     xxd(**kwargs)
 
 
-if __name__ == '__main__':
-    main()
+def _init():
+    if __name__ == '__main__':
+        main()
+
+_init()
