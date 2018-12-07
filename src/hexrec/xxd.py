@@ -129,7 +129,7 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, e=None,
         elif isinstance(outfile, str):
             if r:
                 if seek:
-                    outstream = open(outfile, 'r+b')
+                    outstream = open(outfile, 'w+b')
                 else:
                     outstream = open(outfile, 'wb')
             else:
@@ -165,17 +165,8 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, e=None,
             offset += instream.tell()
 
         # Output seeking
-        if r and seek:
-            if hasattr(outstream, 'seekable') and outstream.seekable():
-                outstream.seek(seek, io.SEEK_END)
-                endex = outstream.tell()
-                outstream.write(bytes(seek - endex))
-                outstream.seek(seek, io.SEEK_SET)
-            else:
-                outstream.write(bytes(seek))
-                outoffset = seek
-        else:
-            outoffset = 0
+        if r:
+            outstream.write(bytearray(seek or 0))
 
         # Output mode handling
         if p:
@@ -207,18 +198,16 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, e=None,
                 if m:
                     # Interpret line contents
                     groups = m.groupdict()
-                    address = int(groups['address'], 16)
+                    address = (seek or 0) + int(groups['address'], 16)
                     data = unhexlify(''.join(groups['data'].split()))
                     data = data[:c]
 
                     # Write line data (fill gaps if needed)
-                    if hasattr(outstream, 'seekable') and outstream.seekable():
-                        outstream.seek(address, io.SEEK_SET)
-                    else:
-                        if address < outoffset:
-                            raise RuntimeError('negative seeking')
+                    outstream.seek(address, io.SEEK_END)
+                    outoffset = outstream.tell()
+                    if outoffset < address:
                         outstream.write(bytearray(address - outoffset))
-                        outoffset = address + len(data)
+                    outstream.seek(address, io.SEEK_SET)
                     outstream.write(data)
 
             # End of input stream
