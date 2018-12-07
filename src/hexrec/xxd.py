@@ -169,8 +169,39 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, e=None,
             outstream.write(bytearray(seek or 0))
 
         # Output mode handling
-        if p:
-            # Plain output
+        if r:
+            if p:
+                # Plain hexadecimal input
+                for line in instream:
+                    data = unhexlify(line)
+                    outstream.write(data)
+
+            else:
+                if c is None:
+                    c = 16
+
+                for line in instream:
+                    m = _REVERSE_REGEX.match(line)
+                    if m:
+                        # Interpret line contents
+                        groups = m.groupdict()
+                        address = (seek or 0) + int(groups['address'], 16)
+                        data = unhexlify(''.join(groups['data'].split()))
+                        data = data[:c]
+
+                        # Write line data (fill gaps if needed)
+                        outstream.seek(0, io.SEEK_END)
+                        outoffset = outstream.tell()
+                        if outoffset < address:
+                            outstream.write(bytearray(address - outoffset))
+                        outstream.seek(address, io.SEEK_SET)
+                        outstream.write(data)
+
+            # End of input stream
+            raise StopIteration
+
+        elif p:
+            # Plain hexadecimal output
             if c is None:
                 c = 30
 
@@ -188,30 +219,6 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, e=None,
                 else:
                     # End of input stream
                     raise StopIteration
-
-        elif r:
-            if c is None:
-                c = 16
-
-            for line in instream:
-                m = _REVERSE_REGEX.match(line)
-                if m:
-                    # Interpret line contents
-                    groups = m.groupdict()
-                    address = (seek or 0) + int(groups['address'], 16)
-                    data = unhexlify(''.join(groups['data'].split()))
-                    data = data[:c]
-
-                    # Write line data (fill gaps if needed)
-                    outstream.seek(address, io.SEEK_END)
-                    outoffset = outstream.tell()
-                    if outoffset < address:
-                        outstream.write(bytearray(address - outoffset))
-                    outstream.seek(address, io.SEEK_SET)
-                    outstream.write(data)
-
-            # End of input stream
-            raise StopIteration
 
         elif b:
             if c is None:
@@ -307,7 +314,6 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, e=None,
         pass
 
     finally:
-        # Output file cleanup
         if instream is not None and isinstance(infile, str):
             instream.close()
 
