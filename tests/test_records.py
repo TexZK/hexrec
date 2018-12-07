@@ -16,11 +16,9 @@ HEXBYTES = bytes(bytearray(range(16)))
 # ============================================================================
 
 # Quick and dirty fix for string prefixes
-@pytest.mark.skip(reason='depends on the Python version')
 def str_bytes_quickfix(text):
-    if six.PY2:
-        text = text.replace("='", "=b'")
-        text = text.replace("=u'", "='")
+    text = text.replace("='", "=b'") if six.PY2 else text
+    text = text.replace("=u'", "='") if six.PY2 else text
     return text
 
 # ============================================================================
@@ -873,6 +871,12 @@ class TestMotorolaRecord(object):
     def test_check_sequence(self):
         records = list(MotorolaRecord.split(BYTES, header=b'Hello, World!'))
         MotorolaRecord.check_sequence(records)
+
+        records = list(MotorolaRecord.split(BYTES, header=b'Hello, World!'))
+        assert records[0].tag == MotorolaTag.HEADER
+        del records[0]
+        with pytest.raises(ValueError, match='missing header'):
+            MotorolaRecord.check_sequence(records)
 
         records = list(MotorolaRecord.split(BYTES, header=b'Hello, World!'))
         assert records[0].tag == MotorolaTag.HEADER

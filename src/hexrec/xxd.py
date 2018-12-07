@@ -300,8 +300,7 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, e=None,
 
                 # Line output
                 line = line_fmt.format(offset, tokens, text)
-                if six.PY2:
-                    line = line.decode()
+                line = line.decode() if six.PY2 else line
                 outstream.write(line)
 
                 offset += len(chunk)
@@ -411,8 +410,9 @@ def main(args=None, namespace=None):
     xxd(**kwargs)
 
 
-def _init():
-    if __name__ == '__main__':
+def _module_main(module_name):
+    if module_name == '__main__':
         main()
 
-_init()
+
+_module_main(__name__)

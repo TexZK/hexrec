@@ -6,11 +6,6 @@ import sys
 from distutils import dir_util
 from pathlib import Path
 
-if sys.version_info >= (3, 3):
-    import unittest.mock as mock
-else:
-    import mock
-
 import pytest
 
 from hexrec.xxd import *
@@ -79,7 +74,7 @@ def test_by_filename_xxd(tmppath, datapath):
 
         ans_out = read_text(path_out)
         ans_ref = read_text(path_ref)
-        if ans_out != ans_ref: raise AssertionError(str(path_ref))
+        #if ans_out != ans_ref: raise AssertionError(str(path_ref))
         assert ans_out == ans_ref
 
 
@@ -101,7 +96,7 @@ def test_by_filename_bin(tmppath, datapath):
 
         ans_out = read_bytes(path_out)
         ans_ref = read_bytes(path_ref)
-        if ans_out != ans_ref: raise AssertionError(str(path_ref))
+        #if ans_out != ans_ref: raise AssertionError(str(path_ref))
         assert ans_out == ans_ref
 
 
@@ -109,10 +104,15 @@ def test_help():
     main(['-h'])
 
 
-def test_init():
-    from hexrec import xxd as module
-    with mock.patch.object(module, "__name__", "__main__"):
-        module._init()
+def test__module_main():
+    import hexrec.xxd as module
+    argv, stdin, stdout = sys.argv, sys.stdin, sys.stdout
+    sys.argv = ['']
+    sys.stdin, sys.stdout = io.StringIO(), io.StringIO()
+    try:
+        module._module_main('__main__')
+    finally:
+        sys.argv, sys.stdin, sys.stdout = argv, stdin, stdout
 
 
 def test_xxd(datapath):
@@ -217,7 +217,22 @@ def test_xxd_bytes(datapath):
 
 
 def test_xxd_ellipsis(datapath):
-    with open(str(datapath / 'bytes.bin'), 'rb') as stream_in:
-        text_out = Ellipsis
+    with open(str(datapath / 'test_xxd_bytes.bin.xxd'), 'rt') as stream:
+        text_ref = stream.read().replace('\r\n', '\n')
 
-        xxd(stream_in, text_out)
+    with open(str(datapath / 'bytes.bin'), 'rb') as stream_in:
+        stream_out = xxd(stream_in, Ellipsis)
+
+    text_out = stream_out.getvalue()
+    assert text_out == text_ref
+
+
+def test_xxd_ellipsis_reverse(datapath):
+    with open(str(datapath / 'bytes.bin'), 'rb') as stream:
+        data_ref = memoryview(stream.read())
+
+    with open(str(datapath / 'bytes.xxd'), 'rt') as stream_in:
+        stream_out = xxd(stream_in, Ellipsis, r=True)
+
+    data_out = stream_out.getvalue()
+    assert data_out == data_ref
