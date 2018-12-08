@@ -64,6 +64,7 @@ import re
 import struct
 
 import six
+from click import open_file
 
 from .blocks import SparseItems
 from .blocks import merge
@@ -1020,7 +1021,7 @@ class Record(object):
         Returns:
             :obj:`list`: Sequence of parsed records.
         """
-        with open(path, 'rt') as stream:
+        with open_file(path, 'rt') as stream:
             records = [cls.parse(line) for line in stream]
         return records
 
@@ -1036,7 +1037,7 @@ class Record(object):
             records (list): Sequence of records to store. Sequence generators
                 supported.
         """
-        with open(path, 'wt') as stream:
+        with open_file(path, 'wt') as stream:
             for record in records:
                 stream.write(str(record))
                 stream.write('\n')
@@ -1139,14 +1140,14 @@ class BinaryRecord(Record):
 
     @classmethod
     def load(cls, path, *args, **kwargs):
-        with open(path, 'rb') as stream:
+        with open_file(path, 'rb') as stream:
             chunk = stream.read()
         records = cls.split(chunk, *args, **kwargs)
         return records
 
     @classmethod
     def save(cls, path, records, *args, **kwargs):
-        with open(path, 'wb') as stream:
+        with open_file(path, 'wb') as stream:
             for record in records:
                 stream.write(record.data)
             stream.flush()

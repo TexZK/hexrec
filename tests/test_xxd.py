@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import argparse
 import glob
 import io
 import os
@@ -8,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from hexrec.utils import parse_int
 from hexrec.xxd import *
 
 # ============================================================================
@@ -56,6 +58,34 @@ def test_normalize_whitespace():
 
 # ============================================================================
 
+def run_cli(args=None, namespace=None):
+    parser = argparse.ArgumentParser(prog='xxd', add_help=False)
+    parser.add_argument('-a', '-autoskip', action='store_true')
+    parser.add_argument('-b', '-bits', action='store_true')
+    parser.add_argument('-c', '-cols', metavar='cols', type=parse_int)
+    parser.add_argument('-E', '-EBCDIC', action='store_true')
+    parser.add_argument('-e', action='store_true')
+    parser.add_argument('-g', '-groupsize', metavar='bytes', type=parse_int)
+    parser.add_argument('-i', '-include', action='store_true')
+    parser.add_argument('-l', '-len', metavar='len', type=parse_int)
+    parser.add_argument('-o', metavar='offset', type=parse_int)
+    parser.add_argument('-p', '-ps', '-postscript', '-plain', action='store_true')
+    parser.add_argument('-q', action='store_true')
+    parser.add_argument('-r', '-revert', action='store_true')
+    parser.add_argument('-seek', metavar='offset', type=parse_int)
+    parser.add_argument('-s', metavar='seek')
+    parser.add_argument('-u', action='store_true')
+    parser.add_argument('-U', action='store_true')
+    parser.add_argument('infile', nargs='?')
+    parser.add_argument('outfile', nargs='?')
+
+    args = parser.parse_args(args, namespace)
+    kwargs = vars(args)
+
+    xxd(**kwargs)
+
+# ============================================================================
+
 def test_by_filename_xxd(tmppath, datapath):
     prefix = 'test_xxd_'
     test_filenames = glob.glob(str(datapath / (prefix + '*.xxd')))
@@ -70,7 +100,7 @@ def test_by_filename_xxd(tmppath, datapath):
         path_in = datapath / os.path.splitext(args[-1])[0]
         args = args[:-1] + [str(path_in), str(path_out)]
 
-        main(args)
+        run_cli(args)
 
         ans_out = read_text(path_out)
         ans_ref = read_text(path_ref)
@@ -92,27 +122,12 @@ def test_by_filename_bin(tmppath, datapath):
         path_in = datapath / os.path.splitext(args[-1])[0]
         args = args[:-1] + [str(path_in), str(path_out)]
 
-        main(args)
+        run_cli(args)
 
         ans_out = read_bytes(path_out)
         ans_ref = read_bytes(path_ref)
         #if ans_out != ans_ref: raise AssertionError(str(path_ref))
         assert ans_out == ans_ref
-
-
-def test_help():
-    main(['-h'])
-
-
-def test__module_main():
-    import hexrec.xxd as module
-    argv, stdin, stdout = sys.argv, sys.stdin, sys.stdout
-    sys.argv = ['']
-    sys.stdin, sys.stdout = io.StringIO(), io.StringIO()
-    try:
-        module._module_main('__main__')
-    finally:
-        sys.argv, sys.stdin, sys.stdout = argv, stdin, stdout
 
 
 def test_xxd(datapath):
@@ -162,7 +177,7 @@ def test_xxd(datapath):
         xxd(data_in, s='invalid')
 
     with pytest.raises(ValueError, match='invalid seeking'):
-        xxd(data_in, s='', ss='+')
+        xxd(data_in, s='+')
 
     with pytest.raises(ValueError, match='invalid grouping'):
         xxd(data_in, g=-1)

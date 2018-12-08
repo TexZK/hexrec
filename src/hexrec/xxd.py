@@ -26,7 +26,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import argparse
+r"""Emulation of the xxd utility."""
+
 import io
 import re
 import sys
@@ -39,7 +40,7 @@ from .utils import hexlify
 from .utils import parse_int
 from .utils import unhexlify
 
-_SEEKING_REGEX = re.compile(r'^(\+?-?)-?(\w+)$')
+_SEEKING_REGEX = re.compile(r'^(?P<sign>\+?-?)-?(?P<absolute>\w+)$')
 
 _REVERSE_REGEX = re.compile(r'^\s*(?P<address>[A-Fa-f0-9]+)\s*:\s*'
                             r'(?P<data>([A-Fa-f0-9]{2}\s*)+)'
@@ -61,6 +62,7 @@ HUMAN_ASCII = (r'................'
                r'................'
                r'................'
                r'................')
+r"""Mapping from byte to human-readable ASCII characters."""
 
 HUMAN_EBCDIC = (r'................'
                 r'................'
@@ -78,16 +80,133 @@ HUMAN_EBCDIC = (r'................'
                 r'}JKLMNOPQR......'
                 r'\.STUVWXYZ......'
                 r'0123456789......')
+r"""Mapping from byte to human-readable EBCDIC characters."""
 
 
 def humanize(chunk, charset):
+    r"""Translates bytes to a human-readable representation.
+
+    Arguments:
+        chunk (:obj:`bytes`): A chunk of bytes.
+        charset (:obj:`list`): A mapping from byte (index) to character.
+
+    Returns:
+        :obj:`str`: Human-readable byte string.
+    """
     return ''.join(charset[b] for b in six.iterbytes(chunk))
 
 
-def xxd(infile=None, outfile=None, a=None, b=None, c=None, e=None,
-        E=None, g=None, i=None, l=None, o=None, p=False, q=False, r=False,  # noqa: E741
-        seek=None, s=None, ss='', u=False, U=False):
+def parse_seek(value):
+    r"""Parses the seek option string.
 
+    Argument:
+        value (:obj:`str` or ``None``): The value to convert. It is converted
+            to :obj:`str` before processing. ``None`` equals zero.
+
+    Returns:
+        tuple: ``(sign_string, unsigned_value)``.
+    """
+    if value is None:
+        return '', 0
+    else:
+        m = _SEEKING_REGEX.match(str(value))
+        if not m:
+            raise ValueError('invalid seeking')
+        ss, sv = m.groups()
+        sv = parse_int(sv)
+        return ss, sv
+
+
+def xxd(infile=None, outfile=None, a=None, b=None, c=None, E=None,
+        e=None, g=None, i=None, l=None, o=None, p=False, q=False, r=False,  # noqa: E741
+        seek=None, s=None, U=False, u=False):
+    r"""Emulation of the xxd utility core.
+
+    Arguments:
+        infile (:obj:`str` or :obj:`bytes` or ``None``): Input data.
+            If :obj:`str`, it is considered as the input file path.
+            If :obj:`bytes`, it is the input byte chunk.
+            If ``None`` or ``'-'``, it reads from the standard input.
+
+        outfile (:obj:`str` or :obj:`bytes` or ``None``): Output data.
+            If :obj:`str`, it is considered as the output file path.
+            If :obj:`bytes`, it is the output byte chunk.
+            If ``None`` or ``'-'``, it writes to the standard output.
+
+        a (:obj:`bool`): Toggles autoskip. A single ``'*'`` replaces null
+            lines.
+
+        b (:obj:`bool`): Switches to bits (binary digits) dump, rather than
+            hexdump. This option writes octets as eight digits of '1' and '0'
+            instead of a normal hexadecimal dump. Each line is preceded by a
+            line number in hexadecimal and followed by an ASCII (or EBCDIC)
+            representation. The argument switches ``r``, ``p``, ``i`` do not
+            work with this mode.
+
+        c (:obj:`int`): Formats ``c`` octets per line. Max 256.
+            Defaults: normal 16, ``i`` 12, ``p`` 30, ``b`` 6.
+
+        E (:obj:`bool`): Changes the character encoding in the right-hand
+            column from ASCII to EBCDIC.
+            This does not change the hexadecimal representation.
+            The option is meaningless in combinations with ``r``, ``p`` or
+            ``i``.
+
+        e (:obj:`bool`): Switches to little-endian hexdump.
+            This option treats  byte groups as words in little-endian byte
+            order.
+            The default grouping of 4 bytes may be changed using ``g``.
+            This option only applies to hexdump, leaving the ASCII (or EBCDIC)
+            representation unchanged.
+            The switches ``r``, ``p``, ``i`` do not work with this mode.
+
+        g (:obj:`int`): Separates the output of every ``g`` bytes (two hex
+            characters or eight bit-digits each) by a whitespace.
+            Specify ``g`` 0 to suppress grouping.
+            ``g`` defaults to 2 in normal mode, 4 in little-endian mode and 1
+            in bits mode. Grouping does not apply to ``p`` or ``i``.
+
+        i (:obj:`bool`): Output in C include file style.
+            A complete static array definition is written (named after the
+            input file), unless reading from standard input.
+
+        l (:obj:`int`): Stops after writing ``l`` octets.
+
+        o (:obj:`int`): Adds ``o`` to the displayed file position.
+
+        p (:obj:`bool`): Outputs in postscript continuous hexdump style.
+            Also known as plain hexdump style.
+
+        q (:obj:`bool`): Uses 64-bit addressing.
+
+        r (:obj:`bool`): Reverse operation: convert (or patch) hexdump into
+            binary. If not writing to standard output, it writes into its
+            output file without truncating it.
+            Use the combination ``r`` and ``p`` to read plain hexadecimal dumps
+            without line number information and without a particular column
+            layout. Additional Whitespace and line breaks are allowed anywhere.
+
+        seek (:obj:`int`): When used after ``r`` reverts with ``o`` added to
+            file positions found in hexdump.
+
+        s (:obj:`int` or :obj:`str`): Starts at ``s`` bytes absolute (or
+            relative) input offset.
+            Without ``s`` option, it starts at the current file position.
+            The prefix is used to compute the offset.
+            ``+`` indicates that the seek is relative to the current input
+            position.
+            ``-`` indicates that the seek should be that many characters from
+            the end of the input.
+            ``+-`` indicates that the seek should be that many characters
+            before the current stdin file position.
+
+        U (:obj:`bool`): Uses upper case hex letters on address and data.
+
+        u (:obj:`bool`): Uses upper case hex letters on data.
+
+    Returns:
+        stream: The handle to the output stream.
+    """
     if c is not None and not 1 <= c <= 256:
         raise ValueError('invalid column count')
 
@@ -146,21 +265,16 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, e=None,
         offset = parse_int(o) if o else 0
 
         if s is not None:
-            s = ss + str(s)
-            m = _SEEKING_REGEX.match(s)
-            if not m:
-                raise ValueError('invalid seeking')
-            ss, s = m.groups()
-            s = parse_int(s)
+            ss, sv = parse_seek(str(s))
 
             if ss == '':
-                instream.seek(s, io.SEEK_SET)
+                instream.seek(sv, io.SEEK_SET)
             elif ss == '+':
-                instream.seek(s, io.SEEK_CUR)
+                instream.seek(sv, io.SEEK_CUR)
             elif ss == '+-':
-                instream.seek(-s, io.SEEK_CUR)
+                instream.seek(-sv, io.SEEK_CUR)
             elif ss == '-':
-                instream.seek(-s, io.SEEK_END)
+                instream.seek(-sv, io.SEEK_END)
 
             offset += instream.tell()
 
@@ -321,93 +435,3 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, e=None,
             outstream.close()
 
     return outstream
-
-
-def build_argparser():
-    parser = argparse.ArgumentParser(prog='xxd', add_help=False,
-                                     description='Emulates the xxd command distributed by vim.')  # noqa E501
-
-    parser.add_argument('-a', '-autoskip', action='store_true',
-                        help="toggle autoskip: A single '*' replaces nul-lines. Default off.")  # noqa E501
-
-    parser.add_argument('-b', '-bits', action='store_true',
-                        help='Switch to bits (binary digits) dump, rather than hexdump. This option writes octets as eight digits "1"s and "0"s instead of a normal hexadecimal dump. Each line is preceded by a line number in hexadecimal and followed by an ascii (or ebcdic) representation. The command line switches -r, -p, -i do not work with this mode.')  # noqa E501
-
-    parser.add_argument('-c', '-cols', metavar='cols', type=parse_int,
-                        help='format <cols> octets per line. Default 16 (-i: 12, -ps: 30, -b: 6). Max 256.')  # noqa E501
-
-    parser.add_argument('-E', '-EBCDIC', action='store_true',
-                        help='Change the character encoding in the righthand column from ASCII to EBCDIC. This does not change the hexadecimal representation. The option is meaningless in combinations with -r, -p or -i.')  # noqa E501
-
-    parser.add_argument('-e', action='store_true',
-                        help='Switch to little-endian hexdump. This option treats byte groups as words in little-endian byte order. The default grouping of 4 bytes may be changed using -g. This option only applies to hexdump, leaving the ASCII (or EBCDIC) representation unchanged. The command line switches -r, -p, -i do not work with this mode.')  # noqa E501
-
-    parser.add_argument('-g', '-groupsize', metavar='bytes', type=parse_int,
-                        help='separate the output of every <bytes> bytes (two hex characters or eight bit-digits each) by a whitespace. Specify -g 0 to suppress grouping. <Bytes> defaults to 2 in normal mode, 4 in little-endian mode and 1 in bits mode. Grouping does not apply to postscript or include style.')  # noqa E501
-
-    parser.add_argument('-i', '-include', action='store_true',
-                        help='output in C include file style. A complete static array definition is written (named after the input file), unless xxd reads from stdin.')  # noqa E501
-
-    parser.add_argument('-h', '-help', action='store_true',
-                        help='print a summary of available commands and exit. No hex dumping is performed.')  # noqa E501
-
-    parser.add_argument('-l', '-len', metavar='len', type=parse_int,
-                        help='stop after writing <len> octets.')  # noqa E501
-
-    parser.add_argument('-o', metavar='offset', type=parse_int,
-                        help='add <offset> to the displayed file position.')  # noqa E501
-
-    parser.add_argument('-p', '-ps', '-postscript', '-plain', action='store_true',
-                        help='output in postscript continuous hexdump style. Also known as plain hexdump style.')  # noqa E501
-
-    parser.add_argument('-q', action='store_true',
-                        help='use 64-bit addressing')  # noqa E501
-
-    parser.add_argument('-r', '-revert', action='store_true',
-                        help='reverse operation: convert (or patch) hexdump into binary. If not writing to stdout, xxd writes into its output file without truncating it. Use the combination -r -p to read plain hexadecimal dumps without line number information and without a particular column layout. Additional Whitespace and line-breaks are allowed anywhere.')  # noqa E501
-
-    parser.add_argument('-seek', metavar='offset', type=parse_int,
-                        help='When used after -r: revert with <offset> added to file positions found in hexdump.')  # noqa E501
-
-    parser.add_argument('-s', metavar='seek',
-                        help='start at <seek> bytes abs. (or rel.) infile offset. + indicates that the seek is relative to the current stdin file position (meaningless when not reading from stdin). - indicates that the seek should be that many characters from the end of the input (or if combined with +: before the current stdin file position). Without -s option, xxd starts at the current file position.')  # noqa E501
-
-    parser.add_argument('-u', action='store_true',
-                        help='use upper case hex letters. Default is lower case.')  # noqa E501
-
-    parser.add_argument('-U', action='store_true',
-                        help='use upper case hex letters globally. Default is lower case.')  # noqa E501
-
-    parser.add_argument('-v', '-version', action='store_true',
-                        help='show version string.')  # noqa E501
-
-    parser.add_argument('infile', nargs='?',
-                        help="If no infile is given, standard input is read. If infile is specified as a '-' character, then input is taken from standard input.")  # noqa E501
-
-    parser.add_argument('outfile', nargs='?',
-                        help="If no outfile is given (or a '-' character is in its place), results are sent to standard output.")  # noqa E501
-
-    return parser
-
-
-def main(args=None, namespace=None):
-    parser = build_argparser()
-    args = parser.parse_args(args, namespace)
-
-    if args.h:
-        parser.print_help()
-        return
-
-    kwargs = vars(args)
-    del kwargs['h']
-    del kwargs['v']
-
-    xxd(**kwargs)
-
-
-def _module_main(module_name):
-    if module_name == '__main__':
-        main()
-
-
-_module_main(__name__)
