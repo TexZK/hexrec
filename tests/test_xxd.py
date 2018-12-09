@@ -59,30 +59,35 @@ def test_normalize_whitespace():
 # ============================================================================
 
 def run_cli(args=None, namespace=None):
-    parser = argparse.ArgumentParser(prog='xxd', add_help=False)
-    parser.add_argument('-a', '-autoskip', action='store_true')
-    parser.add_argument('-b', '-bits', action='store_true')
-    parser.add_argument('-c', '-cols', metavar='cols', type=parse_int)
-    parser.add_argument('-E', '-EBCDIC', action='store_true')
-    parser.add_argument('-e', action='store_true')
-    parser.add_argument('-g', '-groupsize', metavar='bytes', type=parse_int)
-    parser.add_argument('-i', '-include', action='store_true')
-    parser.add_argument('-l', '-len', metavar='len', type=parse_int)
-    parser.add_argument('-o', metavar='offset', type=parse_int)
-    parser.add_argument('-p', '-ps', '-postscript', '-plain', action='store_true')
-    parser.add_argument('-q', action='store_true')
-    parser.add_argument('-r', '-revert', action='store_true')
-    parser.add_argument('-seek', metavar='offset', type=parse_int)
-    parser.add_argument('-s', metavar='seek')
-    parser.add_argument('-u', action='store_true')
-    parser.add_argument('-U', action='store_true')
-    parser.add_argument('infile', nargs='?')
-    parser.add_argument('outfile', nargs='?')
+    FLAG = 'store_true'
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument('-a', '--autoskip', action=FLAG)
+    parser.add_argument('-b', '--bits', action=FLAG)
+    parser.add_argument('-c', '--cols', type=parse_int)
+    parser.add_argument('-E', '--ebcdic', action=FLAG)
+    parser.add_argument('-e', '--endian', action=FLAG)
+    parser.add_argument('-g', '--groupsize', type=parse_int)
+    parser.add_argument('-i', '--include', action=FLAG)
+    parser.add_argument('-l', '--length', '--len', type=parse_int)
+    parser.add_argument('-o', '--offset', type=parse_int)
+    parser.add_argument('-p', '--postscript', '--ps', '--plain', action=FLAG)
+    parser.add_argument('-q', '--quadword', action=FLAG)
+    parser.add_argument('-r', '--revert', action=FLAG)
+    parser.add_argument('-seek', '--oseek', type=parse_int)
+    parser.add_argument('-s', '--iseek')
+    parser.add_argument('-u', '--upper', action=FLAG)
+    parser.add_argument('-U', '--upper-all', action=FLAG)
+    parser.add_argument('infile', nargs='?', default='-')
+    parser.add_argument('outfile', nargs='?', default='-')
 
     args = parser.parse_args(args, namespace)
     kwargs = vars(args)
 
-    xxd(**kwargs)
+    try:
+        xxd(**kwargs)
+    except:
+        print(kwargs)
+        raise
 
 # ============================================================================
 
@@ -104,7 +109,7 @@ def test_by_filename_xxd(tmppath, datapath):
 
         ans_out = read_text(path_out)
         ans_ref = read_text(path_ref)
-        #if ans_out != ans_ref: raise AssertionError(str(path_ref))
+        if ans_out != ans_ref: raise AssertionError(str(path_ref))
         assert ans_out == ans_ref
 
 
@@ -135,61 +140,61 @@ def test_xxd(datapath):
         data_in = memoryview(stream.read())
 
     with pytest.raises(ValueError, match='invalid column count'):
-        xxd(c=-1)
+        xxd(cols=-1)
 
     with pytest.raises(ValueError, match='invalid column count'):
-        xxd(c=257)
+        xxd(cols=257)
 
     with pytest.raises(ValueError, match='incompatible options'):
-        xxd(b=True, p=True)
+        xxd(bits=True, postscript=True)
 
     with pytest.raises(ValueError, match='incompatible options'):
-        xxd(b=True, i=True)
+        xxd(bits=True, include=True)
 
     with pytest.raises(ValueError, match='incompatible options'):
-        xxd(b=True, r=True)
+        xxd(bits=True, revert=True)
 
     with pytest.raises(ValueError, match='incompatible options'):
-        xxd(e=True, p=True)
+        xxd(endian=True, postscript=True)
 
     with pytest.raises(ValueError, match='incompatible options'):
-        xxd(e=True, i=True)
+        xxd(endian=True, include=True)
 
     with pytest.raises(ValueError, match='incompatible options'):
-        xxd(e=True, r=True)
+        xxd(endian=True, revert=True)
 
     with pytest.raises(ValueError, match='incompatible options'):
-        xxd(p=True, i=True)
+        xxd(postscript=True, include=True)
 
     with pytest.raises(ValueError, match='incompatible options'):
-        xxd(p=True, b=True)
+        xxd(postscript=True, bits=True)
 
     with pytest.raises(ValueError, match='incompatible options'):
-        xxd(i=True, b=True)
+        xxd(include=True, bits=True)
 
     with pytest.raises(ValueError, match='incompatible options'):
-        xxd(r=False, seek=0)
+        xxd(revert=False, oseek=0)
 
     with pytest.raises(ValueError, match='invalid seeking'):
-        xxd(r=True, seek=-1)
+        xxd(revert=True, oseek=-1)
 
     with pytest.raises(ValueError, match='invalid syntax'):
-        xxd(data_in, s='invalid')
+        xxd(data_in, iseek='invalid')
 
     with pytest.raises(ValueError, match='invalid seeking'):
-        xxd(data_in, s='+')
+        xxd(data_in, iseek='+')
 
     with pytest.raises(ValueError, match='invalid grouping'):
-        xxd(data_in, g=-1)
+        xxd(data_in, groupsize=-1)
 
     with pytest.raises(ValueError, match='invalid grouping'):
-        xxd(data_in, g=257)
+        xxd(data_in, groupsize=257)
 
     with pytest.raises(ValueError, match='offset overflow'):
-        xxd(data_in, o=-1)
+        xxd(data_in, offset=-1)
 
     with pytest.raises(ValueError, match='offset overflow'):
-        xxd(data_in, o=(1 << 32))
+        xxd(data_in, offset=(1 << 32))
 
 
 def test_xxd_stdinout(datapath):
@@ -247,7 +252,7 @@ def test_xxd_ellipsis_reverse(datapath):
         data_ref = memoryview(stream.read())
 
     with open(str(datapath / 'bytes.xxd'), 'rt') as stream_in:
-        stream_out = xxd(stream_in, Ellipsis, r=True)
+        stream_out = xxd(stream_in, Ellipsis, revert=True)
 
     data_out = stream_out.getvalue()
     assert data_out == data_ref

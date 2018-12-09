@@ -10,4 +10,10 @@ Why does this file exist, and why __main__? For more info, read:
 """
 from .cli import main
 
-main()
+
+def _init(module_name):
+    if module_name == '__main__':
+        main()
+
+
+_init(__name__)

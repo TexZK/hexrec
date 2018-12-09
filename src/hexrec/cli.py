@@ -21,7 +21,9 @@ from .__init__ import __version__ as _version
 from .records import RECORD_TYPES as _RECORD_TYPES
 from .records import convert_file as _convert_file
 from .records import find_record_type as _find_record_type
+from .records import load_memory as _load_memory
 from .records import merge_files as _merge_files
+from .records import save_memory as _save_memory
 from .utils import parse_int as _parse_int
 from .xxd import xxd as _xxd
 
@@ -67,29 +69,81 @@ def main(): pass
 # ----------------------------------------------------------------------------
 
 @main.command()
+@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE)
 @click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
-def convert(output_format, infile, outfile):
-    if output_format:
-        output_type = _find_record_type(output_format)
-    else:
-        output_type = None
-    _convert_file(infile, outfile, output_type=output_type)
+def convert(input_format, output_format, infile, outfile):
+    input_type = _find_record_type(input_format) if input_format else None
+    output_type = _find_record_type(output_format) if output_format else None
+    _convert_file(infile, outfile,
+                  input_type=input_type, output_type=output_type)
 
 
 # ----------------------------------------------------------------------------
 
 @main.command()
+@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE)
 @click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE)
 @click.argument('infiles', type=FILE_PATH_IN, nargs=-1, required=True)
 @click.argument('outfile', type=FILE_PATH_OUT)
-def merge(output_format, infiles, outfile):
-    if output_format:
-        output_type = _find_record_type(output_format)
-    else:
-        output_type = None
-    _merge_files(infiles, outfile, output_type=output_type)
+def merge(input_format, output_format, infiles, outfile):
+    input_type = _find_record_type(input_format) if input_format else None
+    output_type = _find_record_type(output_format) if output_format else None
+    input_types = [input_type if fn == '-' else None for fn in infiles]
+    _merge_files(infiles, outfile,
+                 input_types=input_types, output_type=output_type)
+
+
+# ----------------------------------------------------------------------------
+
+@main.command()
+@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE)
+@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE)
+@click.argument('start', type=BASED_INT)
+@click.argument('endex', type=BASED_INT)
+@click.argument('infile', type=FILE_PATH_IN)
+@click.argument('outfile', type=FILE_PATH_OUT)
+def select(input_format, output_format, start, endex, infile, outfile):
+    input_type = _find_record_type(input_format) if input_format else None
+    output_type = _find_record_type(output_format) if output_format else None
+    m = _load_memory(infile, record_type=input_type)
+    m = m[start:endex]
+    _save_memory(outfile, m, record_type=output_type)
+
+
+# ----------------------------------------------------------------------------
+
+@main.command()
+@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE)
+@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE)
+@click.argument('value', type=FILE_PATH_IN)
+@click.argument('start', type=BASED_INT)
+@click.argument('endex', type=BASED_INT)
+@click.argument('infile', type=FILE_PATH_IN)
+@click.argument('outfile', type=FILE_PATH_OUT)
+def fill(input_format, output_format, value, start, endex, infile, outfile):
+    input_type = _find_record_type(input_format) if input_format else None
+    output_type = _find_record_type(output_format) if output_format else None
+    m = _load_memory(infile, record_type=input_type)
+    m[start:endex] = bytearray([value])
+    _save_memory(outfile, m, record_type=output_type)
+
+
+# ----------------------------------------------------------------------------
+
+@main.command()
+@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE)
+@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE)
+@click.argument('shift', type=BASED_INT)
+@click.argument('infile', type=FILE_PATH_IN)
+@click.argument('outfile', type=FILE_PATH_OUT)
+def shift(input_format, output_format, shift, infile, outfile):
+    input_type = _find_record_type(input_format) if input_format else None
+    output_type = _find_record_type(output_format) if output_format else None
+    m = _load_memory(infile, record_type=input_type)
+    m.shift(shift)
+    _save_memory(outfile, m, record_type=output_type)
 
 
 # ----------------------------------------------------------------------------
@@ -147,8 +201,8 @@ Output in C include file style.
 A complete static array definition is written (named after the
 input file), unless reading from standard input.
 """)
-@click.option('-l', '--len', type=BASED_INT, help="""
-Stops after writing <len> octets.
+@click.option('-l', '--len', '--length', type=BASED_INT, help="""
+Stops after writing <length> octets.
 """)
 @click.option('-o', '--offset', type=BASED_INT, help="""
 Adds <offset> to the displayed file position.
@@ -203,25 +257,25 @@ Prints the package version number.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
-def xxd(autoskip, bits, cols, ebcdic, endian, groupsize, include, len, offset,
-        postscript, quadword, revert, oseek, iseek, upper_all, upper,
+def xxd(autoskip, bits, cols, ebcdic, endian, groupsize, include, length,
+        offset, postscript, quadword, revert, oseek, iseek, upper_all, upper,
         infile, outfile):
 
     _xxd(infile=infile,
          outfile=outfile,
-         a=autoskip,
-         b=bits,
-         c=cols,
-         E=ebcdic,
-         e=endian,
-         g=groupsize,
-         i=include,
-         l=len,  # noqa: E741
-         o=offset,
-         p=postscript,
-         q=quadword,
-         r=revert,
-         seek=oseek,
-         s=iseek,
-         U=upper_all,
-         u=upper)
+         autoskip=autoskip,
+         bits=bits,
+         cols=cols,
+         ebcdic=ebcdic,
+         endian=endian,
+         groupsize=groupsize,
+         include=include,
+         length=length,
+         offset=offset,
+         postscript=postscript,
+         quadword=quadword,
+         revert=revert,
+         oseek=oseek,
+         iseek=iseek,
+         upper_all=upper_all,
+         upper=upper)

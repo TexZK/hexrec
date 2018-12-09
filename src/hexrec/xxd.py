@@ -117,9 +117,10 @@ def parse_seek(value):
         return ss, sv
 
 
-def xxd(infile=None, outfile=None, a=None, b=None, c=None, E=None,
-        e=None, g=None, i=None, l=None, o=None, p=False, q=False, r=False,  # noqa: E741
-        seek=None, s=None, U=False, u=False):
+def xxd(infile=None, outfile=None, autoskip=None, bits=None, cols=None,
+        ebcdic=None, endian=None, groupsize=None, include=None, length=None,
+        offset=None, postscript=False, quadword=False, revert=False,
+        oseek=None, iseek=None, upper_all=False, upper=False):
     r"""Emulation of the xxd utility core.
 
     Arguments:
@@ -133,65 +134,68 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, E=None,
             If :obj:`bytes`, it is the output byte chunk.
             If ``None`` or ``'-'``, it writes to the standard output.
 
-        a (:obj:`bool`): Toggles autoskip. A single ``'*'`` replaces null
-            lines.
+        autoskip (:obj:`bool`): Toggles autoskip. A single ``'*'`` replaces
+            null lines.
 
-        b (:obj:`bool`): Switches to bits (binary digits) dump, rather than
+        bits (:obj:`bool`): Switches to bits (binary digits) dump, rather than
             hexdump. This option writes octets as eight digits of '1' and '0'
             instead of a normal hexadecimal dump. Each line is preceded by a
             line number in hexadecimal and followed by an ASCII (or EBCDIC)
-            representation. The argument switches ``r``, ``p``, ``i`` do not
-            work with this mode.
+            representation. The argument switches ``revert``, ``postscript``,
+            ``include`` do not work with this mode.
 
-        c (:obj:`int`): Formats ``c`` octets per line. Max 256.
-            Defaults: normal 16, ``i`` 12, ``p`` 30, ``b`` 6.
+        cols (:obj:`int`): Formats ``cols`` octets per line. Max 256.
+            Defaults: normal 16, ``include`` 12, ``postscript`` 30, ``bits`` 6.
 
-        E (:obj:`bool`): Changes the character encoding in the right-hand
+        ebcdic (:obj:`bool`): Changes the character encoding in the right-hand
             column from ASCII to EBCDIC.
             This does not change the hexadecimal representation.
-            The option is meaningless in combinations with ``r``, ``p`` or
-            ``i``.
+            The option is meaningless in combinations with ``revert``,
+            ``postscript`` or ``include``.
 
-        e (:obj:`bool`): Switches to little-endian hexdump.
+        endian (:obj:`bool`): Switches to little-endian hexdump.
             This option treats  byte groups as words in little-endian byte
             order.
-            The default grouping of 4 bytes may be changed using ``g``.
+            The default grouping of 4 bytes may be changed using ``groupsize``.
             This option only applies to hexdump, leaving the ASCII (or EBCDIC)
             representation unchanged.
-            The switches ``r``, ``p``, ``i`` do not work with this mode.
+            The switches ``revert``, ``postscript``, ``include`` do not work
+            with this mode.
 
-        g (:obj:`int`): Separates the output of every ``g`` bytes (two hex
-            characters or eight bit-digits each) by a whitespace.
-            Specify ``g`` 0 to suppress grouping.
-            ``g`` defaults to 2 in normal mode, 4 in little-endian mode and 1
-            in bits mode. Grouping does not apply to ``p`` or ``i``.
+        groupsize (:obj:`int`): Separates the output of every ``groupsize``
+            bytes (two hex characters or eight bit-digits each) by a whitespace.
+            Specify ``groupsize`` 0 to suppress grouping.
+            ``groupsize`` defaults to 2 in normal mode, 4 in little-endian mode
+            and 1 in bits mode. Grouping does not apply to ``postscript`` or
+            ``include``.
 
-        i (:obj:`bool`): Output in C include file style.
+        include (:obj:`bool`): Output in C include file style.
             A complete static array definition is written (named after the
             input file), unless reading from standard input.
 
-        l (:obj:`int`): Stops after writing ``l`` octets.
+        length (:obj:`int`): Stops after writing ``length`` octets.
 
-        o (:obj:`int`): Adds ``o`` to the displayed file position.
+        offset (:obj:`int`): Adds ``offset`` to the displayed file position.
 
-        p (:obj:`bool`): Outputs in postscript continuous hexdump style.
-            Also known as plain hexdump style.
+        postscript (:obj:`bool`): Outputs in postscript continuous hexdump
+            style. Also known as plain hexdump style.
 
-        q (:obj:`bool`): Uses 64-bit addressing.
+        quadword (:obj:`bool`): Uses 64-bit addressing.
 
-        r (:obj:`bool`): Reverse operation: convert (or patch) hexdump into
-            binary. If not writing to standard output, it writes into its
+        revert (:obj:`bool`): Reverse operation: convert (or patch) hexdump
+            into binary. If not writing to standard output, it writes into its
             output file without truncating it.
-            Use the combination ``r`` and ``p`` to read plain hexadecimal dumps
-            without line number information and without a particular column
-            layout. Additional Whitespace and line breaks are allowed anywhere.
+            Use the combination ``revert`` and ``postscript`` to read plain
+            hexadecimal dumps without line number information and without a
+            particular column layout. Additional Whitespace and line breaks are
+            allowed anywhere.
 
-        seek (:obj:`int`): When used after ``r`` reverts with ``o`` added to
-            file positions found in hexdump.
+        oseek (:obj:`int`): When used after ``revert`` reverts with ``offset``
+            added to file positions found in hexdump.
 
-        s (:obj:`int` or :obj:`str`): Starts at ``s`` bytes absolute (or
-            relative) input offset.
-            Without ``s`` option, it starts at the current file position.
+        iseek (:obj:`int` or :obj:`str`): Starts at ``iseej`` bytes absolute
+            (or relative) input offset.
+            Without ``iseek`` option, it starts at the current file position.
             The prefix is used to compute the offset.
             ``+`` indicates that the seek is relative to the current input
             position.
@@ -200,28 +204,29 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, E=None,
             ``+-`` indicates that the seek should be that many characters
             before the current stdin file position.
 
-        U (:obj:`bool`): Uses upper case hex letters on address and data.
+        upper_all (:obj:`bool`): Uses upper case hex letters on address and
+            data.
 
-        u (:obj:`bool`): Uses upper case hex letters on data.
+        upper (:obj:`bool`): Uses upper case hex letters on data.
 
     Returns:
         stream: The handle to the output stream.
     """
-    if c is not None and not 1 <= c <= 256:
+    if cols is not None and not 1 <= cols <= 256:
         raise ValueError('invalid column count')
 
-    if U:
-        u = U
+    if upper_all:
+        upper = upper_all
 
-    if (b or e) and (p or i or r):
+    if (bits or endian) and (postscript or include or revert):
         raise ValueError('incompatible options')
 
-    if sum(bool(_) for _ in [p, i, b]) > 1:
+    if sum(bool(_) for _ in [postscript, include, bits]) > 1:
         raise ValueError('incompatible options')
 
-    if not r and seek is not None:
+    if not revert and oseek is not None:
         raise ValueError('incompatible options')
-    elif seek is not None and seek < 0:
+    elif oseek is not None and oseek < 0:
         raise ValueError('invalid seeking')
 
     instream = None
@@ -232,7 +237,7 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, E=None,
             infile = None
             instream = sys.stdin
         elif isinstance(infile, str):
-            if r:
+            if revert:
                 instream = open(infile, 'rt')
             else:
                 instream = open(infile, 'rb')
@@ -246,15 +251,15 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, E=None,
             outfile = None
             outstream = sys.stdout
         elif isinstance(outfile, str):
-            if r:
-                if seek:
+            if revert:
+                if oseek:
                     outstream = open(outfile, 'w+b')
                 else:
                     outstream = open(outfile, 'wb')
             else:
                 outstream = open(outfile, 'wt')
         elif outfile is Ellipsis:
-            if r:
+            if revert:
                 outstream = io.BytesIO()
             else:
                 outstream = io.StringIO()
@@ -262,10 +267,10 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, E=None,
             outstream = outfile
 
         # Input seeking
-        offset = parse_int(o) if o else 0
+        offset = parse_int(offset) if offset else 0
 
-        if s is not None:
-            ss, sv = parse_seek(str(s))
+        if iseek is not None:
+            ss, sv = parse_seek(str(iseek))
 
             if ss == '':
                 instream.seek(sv, io.SEEK_SET)
@@ -279,29 +284,29 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, E=None,
             offset += instream.tell()
 
         # Output seeking
-        if r:
-            outstream.write(bytearray(seek or 0))
+        if revert:
+            outstream.write(bytearray(oseek or 0))
 
         # Output mode handling
-        if r:
-            if p:
+        if revert:
+            if postscript:
                 # Plain hexadecimal input
                 for line in instream:
                     data = unhexlify(line)
                     outstream.write(data)
 
             else:
-                if c is None:
-                    c = 16
+                if cols is None:
+                    cols = 16
 
                 for line in instream:
                     m = _REVERSE_REGEX.match(line)
                     if m:
                         # Interpret line contents
                         groups = m.groupdict()
-                        address = (seek or 0) + int(groups['address'], 16)
+                        address = (oseek or 0) + int(groups['address'], 16)
                         data = unhexlify(''.join(groups['data'].split()))
-                        data = data[:c]
+                        data = data[:cols]
 
                         # Write line data (fill gaps if needed)
                         outstream.seek(0, io.SEEK_END)
@@ -314,50 +319,51 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, E=None,
             # End of input stream
             raise StopIteration
 
-        elif p:
+        elif postscript:
             # Plain hexadecimal output
-            if c is None:
-                c = 30
+            if cols is None:
+                cols = 30
 
             count = 0
             while True:
-                if l is None:
-                    chunk = instream.read(c)
+                if length is None:
+                    chunk = instream.read(cols)
                 else:
-                    chunk = instream.read(min(c, l - count))
+                    chunk = instream.read(min(cols, length - count))
 
                 if chunk:
-                    outstream.write(hexlify(chunk, upper=u))
+                    outstream.write(hexlify(chunk, upper=upper))
                     outstream.write('\n')
                     count += len(chunk)
                 else:
                     # End of input stream
                     raise StopIteration
 
-        elif b:
-            if c is None:
-                c = 6
-            if g is None:
-                g = 1
+        elif bits:
+            if cols is None:
+                cols = 6
+            if groupsize is None:
+                groupsize = 1
 
-        elif i:
-            if c is None:
-                c = 12
+        elif include:
+            if cols is None:
+                cols = 12
             raise NotImplementedError
 
         else:
-            if c is None:
-                c = 16
+            if cols is None:
+                cols = 16
 
-        if g is None:
-            g = 4 if e else 2
-        if not 0 <= g <= 256:
+        if groupsize is None:
+            groupsize = 4 if endian else 2
+        if not 0 <= groupsize <= 256:
             raise ValueError('invalid grouping')
 
-        data_width = c * (8 if b else 2) + ((c - 1) // g if g else 0)
+        data_width = (cols * (8 if bits else 2) +
+                      ((cols - 1) // groupsize if groupsize else 0))
         line_fmt = '{{:0{}{}}}: {{:{}s}}  {{}}\n'
-        line_fmt = line_fmt.format(16 if q else 8,
-                                   'X' if U else 'x',
+        line_fmt = line_fmt.format(16 if quadword else 8,
+                                   'X' if upper_all else 'x',
                                    data_width)
 
         # Hex dump
@@ -370,14 +376,14 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, E=None,
 
         while True:
             # Input byte columns
-            if l is None:
-                chunk = instream.read(c)
+            if length is None:
+                chunk = instream.read(cols)
             else:
-                chunk = instream.read(min(c, l - count))
+                chunk = instream.read(min(cols, length - count))
 
             if chunk:
                 # Null line skipping
-                if a and not any(iterbytes(chunk)):
+                if autoskip and not any(iterbytes(chunk)):
                     if last_zero:
                         offset += len(chunk)
                         count += len(chunk)
@@ -386,24 +392,24 @@ def xxd(infile=None, outfile=None, a=None, b=None, c=None, E=None,
                         last_zero = Ellipsis
 
                 # Byte grouping
-                if g:
-                    tokens = chop(chunk, g)
+                if groupsize:
+                    tokens = chop(chunk, groupsize)
                 else:
                     tokens = (chunk,)
 
-                if b:
-                    tokens = ' '.join(''.join(BIN8_TO_STR[b]
-                                              for b in iterbytes(token))
+                if bits:
+                    tokens = ' '.join(''.join(BIN8_TO_STR[bits]
+                                              for bits in iterbytes(token))
                                       for token in tokens)
-                elif g:
-                    tokens = ' '.join(hexlify(token[::-1] if e else token,
-                                              upper=u)
+                elif groupsize:
+                    tokens = ' '.join(hexlify(token[::-1] if endian else token,
+                                              upper=upper)
                                       for token in tokens)
                 else:
-                    tokens = hexlify(*tokens, upper=u)
+                    tokens = hexlify(*tokens, upper=upper)
 
                 # Comment text generation
-                if E:
+                if ebcdic:
                     text = humanize(chunk, HUMAN_EBCDIC)
                 else:
                     text = humanize(chunk, HUMAN_ASCII)
