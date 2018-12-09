@@ -117,7 +117,7 @@ def select(input_format, output_format, start, endex, infile, outfile):
 @main.command()
 @click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE)
 @click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE)
-@click.argument('value', type=FILE_PATH_IN)
+@click.argument('value', type=BASED_INT)
 @click.argument('start', type=BASED_INT)
 @click.argument('endex', type=BASED_INT)
 @click.argument('infile', type=FILE_PATH_IN)
