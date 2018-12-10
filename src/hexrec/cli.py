@@ -169,7 +169,7 @@ Formats <cols> octets per line. Max 256.
 
 Defaults: normal 16, -i 12, -p 30, -b 6.
 """)
-@click.option('-E', '--EBCDIC', is_flag=True, help="""
+@click.option('-E', '--ebcdic', '--EBCDIC', is_flag=True, help="""
 Uses EBCDIC charset.
 
 Changes the character encoding in the right-hand
@@ -201,13 +201,13 @@ Output in C include file style.
 A complete static array definition is written (named after the
 input file), unless reading from standard input.
 """)
-@click.option('-l', '--len', '--length', type=BASED_INT, help="""
+@click.option('-l', '--length', '--len', type=BASED_INT, help="""
 Stops after writing <length> octets.
 """)
 @click.option('-o', '--offset', type=BASED_INT, help="""
 Adds <offset> to the displayed file position.
 """)
-@click.option('-p', '--ps', '--plain', '--postscript', is_flag=True, help="""
+@click.option('-p', '--postscript', '--plain', '--ps', is_flag=True, help="""
 Outputs in postscript continuous hexdump style.
 
 Also known as plain hexdump style.
