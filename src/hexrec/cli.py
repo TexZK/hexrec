@@ -48,7 +48,7 @@ FILE_PATH_IN = click.Path(dir_okay=False, allow_dash=True, readable=True,
                           exists=True)
 FILE_PATH_OUT = click.Path(dir_okay=False, allow_dash=True, writable=True)
 
-RECORD_FORMAT_CHOICE = click.Choice(list(six.iterkeys(_RECORD_TYPES)))
+RECORD_FORMAT_CHOICE = click.Choice(list(sorted(six.iterkeys(_RECORD_TYPES))))
 
 # ----------------------------------------------------------------------------
 
@@ -69,13 +69,70 @@ def main(): pass
 # ----------------------------------------------------------------------------
 
 @main.command()
-@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE)
-@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE)
+@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
+Forces the input file format.
+""")
+@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
+Forces the output file format.
+By default it is that of the input file.
+""")
+@click.option('-s', '--start', type=BASED_INT, help="""
+Inclusive start address. Negative values are referred to the end of the data.
+By default it selects from the start of the data contents.
+""")
+@click.option('-e', '--endex', type=BASED_INT, help="""
+Exclusive end address. Negative values are referred to the end of the data.
+By default it selects till the end of the data contents.
+""")
+@click.argument('infile', type=FILE_PATH_IN)
+@click.argument('outfile', type=FILE_PATH_OUT)
+def clear(input_format, output_format, value, start, endex, infile, outfile):
+    r"""Clears an address range.
+
+    <INFILE> is the path of the input file.
+    Set to '-' to read from standard input; input format required.
+
+    <OUTFILE> is the path of the output file.
+    Set to '-' to write to standard output.
+    """
+    input_type = _find_record_type(input_format) if input_format else None
+    output_type = _find_record_type(output_format) if output_format else None
+
+    if infile == '-' and not input_type:
+        click.echo('standard input requires input format', err=True)
+
+    m = _load_memory(infile, record_type=input_type)
+    m.clear(start, endex)
+    _save_memory(outfile, m, record_type=output_type)
+
+
+# ----------------------------------------------------------------------------
+
+@main.command()
+@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
+Forces the input file format.
+""")
+@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
+Forces the output file format.
+By default it is that of the input file.
+""")
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
 def convert(input_format, output_format, infile, outfile):
+    r"""Converts a file to another format.
+
+    <INFILES> is the list of paths of the input files.
+    Set to '-' to read from standard input; input format required.
+
+    <OUTFILE> is the path of the output file.
+    Set to '-' to write to standard output.
+    """
     input_type = _find_record_type(input_format) if input_format else None
     output_type = _find_record_type(output_format) if output_format else None
+
+    if infile == '-' and not input_type:
+        click.echo('standard input requires input format', err=True)
+
     _convert_file(infile, outfile,
                   input_type=input_type, output_type=output_type)
 
@@ -83,30 +140,38 @@ def convert(input_format, output_format, infile, outfile):
 # ----------------------------------------------------------------------------
 
 @main.command()
-@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE)
-@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE)
-@click.argument('infiles', type=FILE_PATH_IN, nargs=-1, required=True)
-@click.argument('outfile', type=FILE_PATH_OUT)
-def merge(input_format, output_format, infiles, outfile):
-    input_type = _find_record_type(input_format) if input_format else None
-    output_type = _find_record_type(output_format) if output_format else None
-    input_types = [input_type if fn == '-' else None for fn in infiles]
-    _merge_files(infiles, outfile,
-                 input_types=input_types, output_type=output_type)
-
-
-# ----------------------------------------------------------------------------
-
-@main.command()
-@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE)
-@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE)
-@click.argument('start', type=BASED_INT)
-@click.argument('endex', type=BASED_INT)
+@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
+Forces the input file format.
+""")
+@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
+Forces the output file format.
+By default it is that of the input file.
+""")
+@click.option('-s', '--start', type=BASED_INT, help="""
+Inclusive start address. Negative values are referred to the end of the data.
+By default it selects from the start of the data contents.
+""")
+@click.option('-e', '--endex', type=BASED_INT, help="""
+Exclusive end address. Negative values are referred to the end of the data.
+By default it selects till the end of the data contents.
+""")
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
-def select(input_format, output_format, start, endex, infile, outfile):
+def cut(input_format, output_format, start, endex, infile, outfile):
+    r"""Selects data from an address range.
+
+    <INFILE> is the path of the input file.
+    Set to '-' to read from standard input; input format required.
+
+    <OUTFILE> is the path of the output file.
+    Set to '-' to write to standard output.
+    """
     input_type = _find_record_type(input_format) if input_format else None
     output_type = _find_record_type(output_format) if output_format else None
+
+    if infile == '-' and not input_type:
+        click.echo('standard input requires input format', err=True)
+
     m = _load_memory(infile, record_type=input_type)
     m = m[start:endex]
     _save_memory(outfile, m, record_type=output_type)
@@ -115,32 +180,232 @@ def select(input_format, output_format, start, endex, infile, outfile):
 # ----------------------------------------------------------------------------
 
 @main.command()
-@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE)
-@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE)
-@click.argument('value', type=BASED_INT)
-@click.argument('start', type=BASED_INT)
-@click.argument('endex', type=BASED_INT)
+@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
+Forces the input file format.
+""")
+@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
+Forces the output file format.
+By default it is that of the input file.
+""")
+@click.option('-s', '--start', type=BASED_INT, help="""
+Inclusive start address. Negative values are referred to the end of the data.
+By default it selects from the start of the data contents.
+""")
+@click.option('-e', '--endex', type=BASED_INT, help="""
+Exclusive end address. Negative values are referred to the end of the data.
+By default it selects till the end of the data contents.
+""")
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
-def fill(input_format, output_format, value, start, endex, infile, outfile):
+def delete(input_format, output_format, value, start, endex, infile, outfile):
+    r"""Deletes an address range.
+
+    <INFILE> is the path of the input file.
+    Set to '-' to read from standard input; input format required.
+
+    <OUTFILE> is the path of the output file.
+    Set to '-' to write to standard output.
+    """
     input_type = _find_record_type(input_format) if input_format else None
     output_type = _find_record_type(output_format) if output_format else None
+
+    if infile == '-' and not input_type:
+        click.echo('standard input requires input format', err=True)
+
     m = _load_memory(infile, record_type=input_type)
-    m[start:endex] = bytearray([value])
+    m.delete(start, endex)
     _save_memory(outfile, m, record_type=output_type)
 
 
 # ----------------------------------------------------------------------------
 
 @main.command()
-@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE)
-@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE)
-@click.argument('shift', type=BASED_INT)
+@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
+Forces the input file format.
+""")
+@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
+Forces the output file format.
+By default it is that of the input file.
+""")
+@click.option('-v', '--value', type=BASED_INT, required=True, help="""
+Byte value used to fill the address range.
+""")
+@click.option('-s', '--start', type=BASED_INT, help="""
+Inclusive start address. Negative values are referred to the end of the data.
+By default it selects from the start of the data contents.
+""")
+@click.option('-e', '--endex', type=BASED_INT, help="""
+Exclusive end address. Negative values are referred to the end of the data.
+By default it selects till the end of the data contents.
+""")
+@click.argument('infile', type=FILE_PATH_IN)
+@click.argument('outfile', type=FILE_PATH_OUT)
+def fill(input_format, output_format, value, start, endex, infile, outfile):
+    r"""Fills an address range with a byte value.
+
+    <INFILE> is the path of the input file.
+    Set to '-' to read from standard input; input format required.
+
+    <OUTFILE> is the path of the output file.
+    Set to '-' to write to standard output.
+    """
+    input_type = _find_record_type(input_format) if input_format else None
+    output_type = _find_record_type(output_format) if output_format else None
+
+    if infile == '-' and not input_type:
+        click.echo('standard input requires input format', err=True)
+
+    if not 0 <= value <= 255:
+        click.echo('invalid byte value', err=True)
+
+    m = _load_memory(infile, record_type=input_type)
+    m.fill(start, endex, bytearray([value]))
+    _save_memory(outfile, m, record_type=output_type)
+
+
+# ----------------------------------------------------------------------------
+
+@main.command()
+@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
+Forces the input file format.
+""")
+@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
+Forces the output file format.
+By default it is that of the input file.
+""")
+@click.option('-v', '--value', type=BASED_INT, required=True, help="""
+Byte value used to flood the address range.
+""")
+@click.option('-s', '--start', type=BASED_INT, help="""
+Inclusive start address. Negative values are referred to the end of the data.
+By default it selects from the start of the data contents.
+""")
+@click.option('-e', '--endex', type=BASED_INT, help="""
+Exclusive end address. Negative values are referred to the end of the data.
+By default it selects till the end of the data contents.
+""")
+@click.argument('infile', type=FILE_PATH_IN)
+@click.argument('outfile', type=FILE_PATH_OUT)
+def flood(input_format, output_format, value, start, endex, infile, outfile):
+    r"""Fills emptiness of an address range with a byte value.
+
+    <INFILE> is the path of the input file.
+    Set to '-' to read from standard input; input format required.
+
+    <OUTFILE> is the path of the output file.
+    Set to '-' to write to standard output.
+    """
+    input_type = _find_record_type(input_format) if input_format else None
+    output_type = _find_record_type(output_format) if output_format else None
+
+    if infile == '-' and not input_type:
+        click.echo('standard input requires input format', err=True)
+
+    if not 0 <= value <= 255:
+        click.echo('invalid byte value', err=True)
+
+    m = _load_memory(infile, record_type=input_type)
+    m.fill(start, endex, bytearray([value]))
+    _save_memory(outfile, m, record_type=output_type)
+
+
+# ----------------------------------------------------------------------------
+
+@main.command()
+@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
+Forces the input file format.
+""")
+@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
+Forces the output file format.
+By default it is that of the input file.
+""")
+@click.argument('infiles', type=FILE_PATH_IN, nargs=-1, required=True)
+@click.argument('outfile', type=FILE_PATH_OUT)
+def merge(input_format, output_format, infiles, outfile):
+    r"""Merges multiple files.
+
+    <INFILES> is the list of paths of the input files.
+    Set to '-' to read from standard input; input format required.
+
+    <OUTFILE> is the path of the output file.
+    Set to '-' to write to standard output.
+
+    Every file of <INFILES> will overwrite data of previous files of the list
+    where addresses overlap.
+    """
+    input_type = _find_record_type(input_format) if input_format else None
+    input_types = [input_type] * len(infiles)
+    output_type = _find_record_type(output_format) if output_format else None
+
+    if '-' in infiles and not input_type:
+        click.echo('standard input requires input format', err=True)
+
+    _merge_files(infiles, outfile,
+                 input_types=input_types, output_type=output_type)
+
+
+# ----------------------------------------------------------------------------
+
+@main.command()
+@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
+Forces the input file format.
+""")
+@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
+Forces the output file format.
+By default it is that of the input file.
+""")
+@click.argument('infile', type=FILE_PATH_IN)
+@click.argument('outfile', type=FILE_PATH_OUT)
+def reverse(input_format, output_format, shift, infile, outfile):
+    r"""Reverses data.
+
+    <INFILE> is the path of the input file.
+    Set to '-' to read from standard input; input format required.
+
+    <OUTFILE> is the path of the output file.
+    Set to '-' to write to standard output.
+    """
+    input_type = _find_record_type(input_format) if input_format else None
+    output_type = _find_record_type(output_format) if output_format else None
+
+    if infile == '-' and not input_type:
+        click.echo('standard input requires input format', err=True)
+
+    m = _load_memory(infile, record_type=input_type)
+    m.reverse()
+    _save_memory(outfile, m, record_type=output_type)
+
+
+# ----------------------------------------------------------------------------
+
+@main.command()
+@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
+Forces the input file format.
+""")
+@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
+Forces the output file format.
+By default it is that of the input file.
+""")
+@click.option('-n', '--shift', type=BASED_INT, required=True, help="""
+Address shift to apply.
+""")
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
 def shift(input_format, output_format, shift, infile, outfile):
+    r"""Shifts data addresses.
+
+    <INFILE> is the path of the input file.
+    Set to '-' to read from standard input; input format required.
+
+    <OUTFILE> is the path of the output file.
+    Set to '-' to write to standard output.
+    """
     input_type = _find_record_type(input_format) if input_format else None
     output_type = _find_record_type(output_format) if output_format else None
+
+    if infile == '-' and not input_type:
+        click.echo('standard input requires input format', err=True)
+
     m = _load_memory(infile, record_type=input_type)
     m.shift(shift)
     _save_memory(outfile, m, record_type=output_type)
@@ -260,7 +525,10 @@ Prints the package version number.
 def xxd(autoskip, bits, cols, ebcdic, endian, groupsize, include, length,
         offset, postscript, quadword, revert, oseek, iseek, upper_all, upper,
         infile, outfile):
+    r"""Emulates the xxd command.
 
+    Please refer to the xxd manual page to know its features and caveats.
+    """
     _xxd(infile=infile,
          outfile=outfile,
          autoskip=autoskip,
