@@ -14,6 +14,7 @@ hexrec.utils
       columnize
       columnize_lists
       do_overlap
+      expmsg
       hexlify
       hexlify_lists
       humanize_ascii

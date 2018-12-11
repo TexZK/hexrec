@@ -22,6 +22,7 @@ hexrec.records
       merge_records
       records_to_blocks
       save_blocks
+      save_chunk
       save_memory
       save_records
    

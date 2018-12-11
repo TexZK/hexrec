@@ -16,6 +16,7 @@ hexrec.blocks
       delete
       fill
       find
+      flood
       insert
       locate_at
       locate_endex
@@ -25,6 +26,7 @@ hexrec.blocks
       read
       shift
       sorting
+      union
       write
    
    

@@ -9,7 +9,8 @@ hexrec.xxd
 
    .. autosummary::
    
-      build_argparser
+      humanize
+      parse_seek
       xxd
    
    
