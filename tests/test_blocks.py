@@ -595,10 +595,22 @@ class TestSparseItems(object):
         assert find(blocks, 'yz', -1, 15) == 8
         with pytest.raises(ValueError): find(blocks, '$')
 
-    def test__read(self):
+    def test_read(self):
         obj = SparseItems(items_type=str, items_join=''.join)
         obj.blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
         assert obj.read(3, 10, '.') == 'CD.$.xy'
+
+    def test_cut_doctest(self):
+        memory = SparseItems(items_type=str, items_join=''.join)
+        memory.blocks = [(5, 'ABC'), (9, 'xyz')]
+        memory.cut(memory.index('B'), memory.index('y'))
+        assert memory.blocks == [(6, 'BC'), (9, 'x')]
+
+    def test_cut(self):
+        obj = SparseItems(items_type=str, items_join=''.join, automerge=False)
+        obj.blocks = [(5, 'ABC'), (9, 'xyz')]
+        obj.cut(6, 10)
+        assert obj.blocks == [(6, 'BC'), (9, 'x')]
 
     def test_clear_doctest(self):
         memory = SparseItems(items_type=str, items_join=''.join)

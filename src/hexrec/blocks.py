@@ -2104,11 +2104,47 @@ class SparseItems(object):
 
         Returns:
             items: Items from the selected range.
-
-        See Also:
-            :func:`select`
         """
         return self[start:endex:pattern]
+
+    def cut(self, start, endex, pattern=None):
+        r"""Keeps data within a range.
+
+        Arguments:
+            start (:obj:`int`): Inclusive start of the selected range.
+                If ``None``, the global inclusive start address is considered
+                (i.e. :attr:`start`).
+            endex (:obj:`int`): Exclusive end of the selected range.
+                If ``None``, the global exclusive end address is considered
+                (i.e. :attr:`endex`).
+            pattern (items): Pattern of items to fill the emptiness.
+                If ``None``, the :attr:`autofill` attribute is used.
+
+        See Also:
+            :func:`read`
+
+        Example:
+            +---+---+---+---+---+---+---+---+---+
+            | 4 | 5 | 6 | 7 | 8 | 9 | 10| 11| 12|
+            +===+===+===+===+===+===+===+===+===+
+            |   |[A | B | C]|   |[x | y | z]|   |
+            +---+---+---+---+---+---+---+---+---+
+            |   |   |[B | C]|   |[x]|   |   |   |
+            +---+---+---+---+---+---+---+---+---+
+
+            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory.blocks = [(5, 'ABC'), (9, 'xyz')]
+            >>> memory.cut(6, 10)
+            >>> memory.blocks
+            [(6, 'BC'), (9, 'x')]
+        """
+        blocks = self.blocks
+        blocks = read(blocks, start, endex, pattern, self.items_join)
+
+        if self.automerge:
+            blocks = merge(blocks, join=self.items_join)
+
+        self.blocks = blocks
 
     def clear(self, start=None, endex=None):
         r"""Clears a range.

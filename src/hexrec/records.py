@@ -1502,6 +1502,8 @@ class MotorolaRecord(Record):
         address = 0
         count = 0
         if tag is None:
+            if not data_records:
+                data_records = [cls.build_data(0, b'')]
             tag = max(record.tag for record in data_records)
 
         yield cls.build_header(header)
@@ -1515,7 +1517,10 @@ class MotorolaRecord(Record):
         yield cls.build_count(count)
 
         if start is None:
+            if not data_records:
+                data_records = [cls.build_data(0, b'')]
             start = min(record.address for record in data_records)
+
         yield cls.build_terminator(start, tag)
 
     @classmethod
@@ -1667,10 +1672,13 @@ class MotorolaRecord(Record):
 
         Arguments:
             records (:obj:`list` of :obj:`MotorolaRecord`): A sequence of
-                records. Must be in-ine mutable.
+                records. Must be in-line mutable.
         """
-        max_address = max(record.address + len(record.data)
-                          for record in records)
+        if records:
+            max_address = max(record.address + len(record.data)
+                              for record in records)
+        else:
+            max_address = 0
         tag = cls.TAG_TYPE(cls.fit_data_tag(max_address))
         COUNT_16 = cls.TAG_TYPE.COUNT_16
         start_tags = (cls.TAG_TYPE.START_16,
@@ -1694,7 +1702,10 @@ class MotorolaRecord(Record):
             elif record.tag in start_tags:
                 start_ids.append(index)
 
-        max_tag = int(max(record.tag for record in get_data_records(records)))
+        data_records = get_data_records(records)
+        if not data_records:
+            data_records = [cls.build_data(0, b'')]
+        max_tag = int(max(record.tag for record in data_records))
         start_tag = cls.TAG_TYPE(cls.MATCHING_TAG.index(max_tag))
         for index in start_ids:
             records[index].tag = start_tag
@@ -2018,7 +2029,10 @@ class IntelRecord(Record):
             yield record
 
         if start is None:
+            if not data_records:
+                data_records = [cls.build_data(0, b'')]
             start = min(record.address for record in data_records)
+
         for record in cls.terminate(start):
                 yield record
 
@@ -2275,7 +2289,10 @@ class TektronixRecord(Record):
             yield record
 
         if start is None:
+            if not data_records:
+                data_records = [cls.build_data(0, b'')]
             start = min(record.address for record in data_records)
+
         yield cls.build_terminator(start)
 
     @classmethod
