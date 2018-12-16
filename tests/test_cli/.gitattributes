@@ -1,0 +1,3 @@
+*.bin binary
+
+*.mot text eol=crlf

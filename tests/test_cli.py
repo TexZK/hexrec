@@ -1,68 +1,137 @@
 # -*- coding: utf-8 -*-
+import glob
+import os
+from pathlib import Path
+
+import pytest
 from click.testing import CliRunner
 
 from hexrec.__init__ import __version__ as _version
-from hexrec.cli import main
+from hexrec.cli import *
+from hexrec.records import IntelRecord
+from hexrec.records import MotorolaRecord
 
 # ============================================================================
 
-def _run_help(command):
+@pytest.fixture
+def tmppath(tmpdir):
+    return Path(str(tmpdir))
+
+@pytest.fixture(scope='module')
+def datadir(request):
+    dir_path, _ = os.path.splitext(request.module.__file__)
+    assert os.path.isdir(str(dir_path))
+    return dir_path
+
+@pytest.fixture
+def datapath(datadir):
+    return Path(str(datadir))
+
+# ============================================================================
+
+def read_text(path):
+    path = str(path)
+    with open(path, 'rt') as file:
+        data = file.read()
+    data = data.replace('\r\n', '\n').replace('\r', '\n')  # normalize
+    return data
+
+# ============================================================================
+
+def test_find_types():
+    input_type, output_type = find_types(None, None, 'x.mot', 'y.hex')
+    assert input_type is MotorolaRecord
+    assert output_type is IntelRecord
+
+    match = match='standard input requires input format'
+    with pytest.raises(ValueError, match=match):
+        find_types(None, None, '-', 'y.hex')
+
+    input_type, output_type = find_types(None, None, 'x.mot', '-')
+    assert input_type is MotorolaRecord
+    assert output_type is MotorolaRecord
+
+    input_type, output_type = find_types('intel', None, '-', '-')
+    assert input_type is IntelRecord
+    assert output_type is IntelRecord
+
+    input_type, output_type = find_types('intel', 'motorola', '-', '-')
+    assert input_type is IntelRecord
+    assert output_type is MotorolaRecord
+
+    input_type, output_type = find_types('intel', 'motorola', 'x.tek', 'y.tek')
+    assert input_type is IntelRecord
+    assert output_type is MotorolaRecord
+
+# ============================================================================
+
+def test_missing_input_format():
+    commands = ('clear', 'convert', 'cut', 'delete', 'fill', 'flood', 'merge',
+                'reverse', 'shift')
+    match = 'standard input requires input format'
     runner = CliRunner()
-    result = runner.invoke(main, [command, '--help'])
+
+    for command in commands:
+        result = runner.invoke(main, [command, '-', '-'])
+        assert result.exit_code != 0
+        assert isinstance(result.exception, ValueError)
+        assert match in str(result.exception)
+
+# ============================================================================
+
+def test_help():
+    commands = ('clear', 'convert', 'cut', 'delete', 'fill', 'flood', 'merge',
+                'reverse', 'shift', 'xxd')
+    runner = CliRunner()
+
+    for command in commands:
+        result = runner.invoke(main, [command, '--help'])
+        assert result.exit_code == 0
+        assert result.output.strip().startswith('Usage:')
+
+# ============================================================================
+
+def test_by_filename(tmppath, datapath):
+    prefix = 'test_hexrec_'
+    test_filenames = glob.glob(str(datapath / (prefix + '*')))
+
+    for filename in test_filenames:
+        filename = os.path.basename(filename)
+        path_out = tmppath / filename
+        path_ref = datapath / filename
+
+        cmdline = filename[len(prefix):].replace('_', ' ')
+        args = cmdline.split()
+        path_in = datapath / args[-1]
+        args = args[:-1] + [str(path_in), str(path_out)]
+
+        runner = CliRunner()
+        result = runner.invoke(main, args)
+
+        ans_out = read_text(path_out)
+        ans_ref = read_text(path_ref)
+        #if ans_out != ans_ref: raise AssertionError(str(path_ref))
+        assert ans_out == ans_ref
+
+# ============================================================================
+
+def test_fill_parse_byte_fail():
+    runner = CliRunner()
+    result = runner.invoke(main, 'fill -v 256 - -'.split())
+
+    assert result.exit_code == 2
+    assert '256 is not a valid byte' in result.output
+
+# ============================================================================
+
+def test_merge_nothing():
+    runner = CliRunner()
+    result = runner.invoke(main, 'merge -i binary - -'.split())
+
     assert result.exit_code == 0
-    assert result.output.strip().startswith('Usage:')
+    assert result.output == ''
 
 # ============================================================================
-
-def test_clear_help():
-    _run_help('clear')
-
-# ============================================================================
-
-def test_convert_help():
-    _run_help('convert')
-
-# ============================================================================
-
-def test_cut_help():
-    _run_help('cut')
-
-# ============================================================================
-
-def test_delete_help():
-    _run_help('delete')
-
-# ============================================================================
-
-def test_fill_help():
-    _run_help('fill')
-
-# ============================================================================
-
-def test_flood_help():
-    _run_help('flood')
-
-# ============================================================================
-
-def test_merge_help():
-    _run_help('merge')
-
-# ============================================================================
-
-def test_reverse_help():
-    _run_help('reverse')
-
-# ============================================================================
-
-def test_shift_help():
-    _run_help('shift')
-
-# ============================================================================
-
-def test_xxd_help():
-    _run_help('xxd')
-
-# ----------------------------------------------------------------------------
 
 def test_xxd_version():
     runner = CliRunner()

@@ -40,9 +40,21 @@ class BasedIntParamType(click.ParamType):
             self.fail('%s is not a valid integer' % value, param, ctx)
 
 
-# ----------------------------------------------------------------------------
+class ByteIntParamType(click.ParamType):
+    name = 'byte'
+
+    def convert(self, value, param, ctx):
+        try:
+            b = _parse_int(value)
+            if not 0 <= b <= 255:
+                raise ValueError()
+            return b
+        except ValueError:
+            self.fail('%s is not a valid byte' % value, param, ctx)
+
 
 BASED_INT = BasedIntParamType()
+BYTE_INT = ByteIntParamType()
 
 FILE_PATH_IN = click.Path(dir_okay=False, allow_dash=True, readable=True,
                           exists=True)
@@ -51,6 +63,24 @@ FILE_PATH_OUT = click.Path(dir_okay=False, allow_dash=True, writable=True)
 RECORD_FORMAT_CHOICE = click.Choice(list(sorted(six.iterkeys(_RECORD_TYPES))))
 
 # ----------------------------------------------------------------------------
+
+
+def find_types(input_format, output_format, infile, outfile):
+    if input_format:
+        input_type = _RECORD_TYPES[input_format]
+    elif infile == '-':
+        raise ValueError('standard input requires input format')
+    else:
+        input_type = _RECORD_TYPES[_find_record_type(infile)]
+
+    if output_format:
+        output_type = _RECORD_TYPES[output_format]
+    elif outfile == '-':
+        output_type = input_type
+    else:
+        output_type = _RECORD_TYPES[_find_record_type(outfile)]
+
+    return input_type, output_type
 
 
 def print_version(ctx, param, value):
@@ -86,7 +116,7 @@ By default it selects till the end of the data contents.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
-def clear(input_format, output_format, value, start, endex, infile, outfile):
+def clear(input_format, output_format, start, endex, infile, outfile):
     r"""Clears an address range.
 
     <INFILE> is the path of the input file.
@@ -95,11 +125,8 @@ def clear(input_format, output_format, value, start, endex, infile, outfile):
     <OUTFILE> is the path of the output file.
     Set to '-' to write to standard output.
     """
-    input_type = _find_record_type(input_format) if input_format else None
-    output_type = _find_record_type(output_format) if output_format else None
-
-    if infile == '-' and not input_type:
-        click.echo('standard input requires input format', err=True)
+    input_type, output_type = find_types(input_format, output_format,
+                                         infile, outfile)
 
     m = _load_memory(infile, record_type=input_type)
     m.clear(start, endex)
@@ -121,17 +148,14 @@ By default it is that of the input file.
 def convert(input_format, output_format, infile, outfile):
     r"""Converts a file to another format.
 
-    <INFILES> is the list of paths of the input files.
+    <INFILE> is the list of paths of the input files.
     Set to '-' to read from standard input; input format required.
 
     <OUTFILE> is the path of the output file.
     Set to '-' to write to standard output.
     """
-    input_type = _find_record_type(input_format) if input_format else None
-    output_type = _find_record_type(output_format) if output_format else None
-
-    if infile == '-' and not input_type:
-        click.echo('standard input requires input format', err=True)
+    input_type, output_type = find_types(input_format, output_format,
+                                         infile, outfile)
 
     _convert_file(infile, outfile,
                   input_type=input_type, output_type=output_type)
@@ -166,14 +190,11 @@ def cut(input_format, output_format, start, endex, infile, outfile):
     <OUTFILE> is the path of the output file.
     Set to '-' to write to standard output.
     """
-    input_type = _find_record_type(input_format) if input_format else None
-    output_type = _find_record_type(output_format) if output_format else None
-
-    if infile == '-' and not input_type:
-        click.echo('standard input requires input format', err=True)
+    input_type, output_type = find_types(input_format, output_format,
+                                         infile, outfile)
 
     m = _load_memory(infile, record_type=input_type)
-    m = m[start:endex]
+    m.cut(start, endex)
     _save_memory(outfile, m, record_type=output_type)
 
 
@@ -197,7 +218,7 @@ By default it selects till the end of the data contents.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
-def delete(input_format, output_format, value, start, endex, infile, outfile):
+def delete(input_format, output_format, start, endex, infile, outfile):
     r"""Deletes an address range.
 
     <INFILE> is the path of the input file.
@@ -206,11 +227,8 @@ def delete(input_format, output_format, value, start, endex, infile, outfile):
     <OUTFILE> is the path of the output file.
     Set to '-' to write to standard output.
     """
-    input_type = _find_record_type(input_format) if input_format else None
-    output_type = _find_record_type(output_format) if output_format else None
-
-    if infile == '-' and not input_type:
-        click.echo('standard input requires input format', err=True)
+    input_type, output_type = find_types(input_format, output_format,
+                                         infile, outfile)
 
     m = _load_memory(infile, record_type=input_type)
     m.delete(start, endex)
@@ -227,7 +245,7 @@ Forces the input file format.
 Forces the output file format.
 By default it is that of the input file.
 """)
-@click.option('-v', '--value', type=BASED_INT, required=True, help="""
+@click.option('-v', '--value', type=BYTE_INT, default=0xFF, help="""
 Byte value used to fill the address range.
 """)
 @click.option('-s', '--start', type=BASED_INT, help="""
@@ -249,17 +267,11 @@ def fill(input_format, output_format, value, start, endex, infile, outfile):
     <OUTFILE> is the path of the output file.
     Set to '-' to write to standard output.
     """
-    input_type = _find_record_type(input_format) if input_format else None
-    output_type = _find_record_type(output_format) if output_format else None
-
-    if infile == '-' and not input_type:
-        click.echo('standard input requires input format', err=True)
-
-    if not 0 <= value <= 255:
-        click.echo('invalid byte value', err=True)
+    input_type, output_type = find_types(input_format, output_format,
+                                         infile, outfile)
 
     m = _load_memory(infile, record_type=input_type)
-    m.fill(start, endex, bytearray([value]))
+    m.fill(start, endex, bytes(bytearray([value])))
     _save_memory(outfile, m, record_type=output_type)
 
 
@@ -273,7 +285,7 @@ Forces the input file format.
 Forces the output file format.
 By default it is that of the input file.
 """)
-@click.option('-v', '--value', type=BASED_INT, required=True, help="""
+@click.option('-v', '--value', type=BYTE_INT, default=0xFF, help="""
 Byte value used to flood the address range.
 """)
 @click.option('-s', '--start', type=BASED_INT, help="""
@@ -295,17 +307,11 @@ def flood(input_format, output_format, value, start, endex, infile, outfile):
     <OUTFILE> is the path of the output file.
     Set to '-' to write to standard output.
     """
-    input_type = _find_record_type(input_format) if input_format else None
-    output_type = _find_record_type(output_format) if output_format else None
-
-    if infile == '-' and not input_type:
-        click.echo('standard input requires input format', err=True)
-
-    if not 0 <= value <= 255:
-        click.echo('invalid byte value', err=True)
+    input_type, output_type = find_types(input_format, output_format,
+                                         infile, outfile)
 
     m = _load_memory(infile, record_type=input_type)
-    m.fill(start, endex, bytearray([value]))
+    m.flood(start, endex, bytes(bytearray([value])))
     _save_memory(outfile, m, record_type=output_type)
 
 
@@ -333,12 +339,14 @@ def merge(input_format, output_format, infiles, outfile):
     Every file of <INFILES> will overwrite data of previous files of the list
     where addresses overlap.
     """
-    input_type = _find_record_type(input_format) if input_format else None
+    for infile in infiles:
+        if infile != '-':
+            break
+    else:
+        infile = '-'
+    input_type, output_type = find_types(input_format, output_format,
+                                         infile, outfile)
     input_types = [input_type] * len(infiles)
-    output_type = _find_record_type(output_format) if output_format else None
-
-    if '-' in infiles and not input_type:
-        click.echo('standard input requires input format', err=True)
 
     _merge_files(infiles, outfile,
                  input_types=input_types, output_type=output_type)
@@ -356,7 +364,7 @@ By default it is that of the input file.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
-def reverse(input_format, output_format, shift, infile, outfile):
+def reverse(input_format, output_format, infile, outfile):
     r"""Reverses data.
 
     <INFILE> is the path of the input file.
@@ -365,11 +373,8 @@ def reverse(input_format, output_format, shift, infile, outfile):
     <OUTFILE> is the path of the output file.
     Set to '-' to write to standard output.
     """
-    input_type = _find_record_type(input_format) if input_format else None
-    output_type = _find_record_type(output_format) if output_format else None
-
-    if infile == '-' and not input_type:
-        click.echo('standard input requires input format', err=True)
+    input_type, output_type = find_types(input_format, output_format,
+                                         infile, outfile)
 
     m = _load_memory(infile, record_type=input_type)
     m.reverse()
@@ -386,7 +391,7 @@ Forces the input file format.
 Forces the output file format.
 By default it is that of the input file.
 """)
-@click.option('-n', '--shift', type=BASED_INT, required=True, help="""
+@click.option('-n', '--shift', type=BASED_INT, default=0, help="""
 Address shift to apply.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
@@ -400,11 +405,8 @@ def shift(input_format, output_format, shift, infile, outfile):
     <OUTFILE> is the path of the output file.
     Set to '-' to write to standard output.
     """
-    input_type = _find_record_type(input_format) if input_format else None
-    output_type = _find_record_type(output_format) if output_format else None
-
-    if infile == '-' and not input_type:
-        click.echo('standard input requires input format', err=True)
+    input_type, output_type = find_types(input_format, output_format,
+                                         infile, outfile)
 
     m = _load_memory(infile, record_type=input_type)
     m.shift(shift)
@@ -414,12 +416,12 @@ def shift(input_format, output_format, shift, infile, outfile):
 # ----------------------------------------------------------------------------
 
 @main.command(context_settings=dict(help_option_names=['-h', '--help']))
-@click.option('-a', '--autoskip', is_flag=True, help="""
+@click.option('-a', '--autoskip', 'autoskip', is_flag=True, help="""
 Toggles autoskip.
 
 A single '*' replaces null lines.
 """)
-@click.option('-b', '--bits', is_flag=True, help="""
+@click.option('-b', '--bits', 'bits', is_flag=True, help="""
 Binary digits.
 
 Switches to bits (binary digits) dump, rather than
@@ -429,12 +431,12 @@ line number in hexadecimal and followed by an ASCII (or EBCDIC)
 representation.
 The argument switches -r, -p, -i do not work with this mode.
 """)
-@click.option('-c', '--cols', type=BASED_INT, help="""
+@click.option('-c', '--cols', 'cols', type=BASED_INT, help="""
 Formats <cols> octets per line. Max 256.
 
 Defaults: normal 16, -i 12, -p 30, -b 6.
 """)
-@click.option('-E', '--ebcdic', '--EBCDIC', is_flag=True, help="""
+@click.option('-E', '--ebcdic', '--EBCDIC', 'ebcdic', is_flag=True, help="""
 Uses EBCDIC charset.
 
 Changes the character encoding in the right-hand
@@ -442,7 +444,7 @@ column from ASCII to EBCDIC.
 This does not change the hexadecimal representation.
 The option is meaningless in combinations with -r, -p or -i.
 """)
-@click.option('-e', '--endian', is_flag=True, help="""
+@click.option('-e', '--endian', 'endian', is_flag=True, help="""
 Switches to little-endian hexdump.
 
 This option treats  byte groups as words in little-endian byte order.
@@ -451,7 +453,7 @@ This option only applies to hexdump, leaving the ASCII (or EBCDIC)
 representation unchanged.
 The switches -r, -p, -i do not work with this mode.
 """)
-@click.option('-g', '--groupsize', type=BASED_INT, help="""
+@click.option('-g', '--groupsize', 'groupsize', type=BASED_INT, help="""
 Byte group size.
 
 Separates the output of every <groupsize> bytes (two hex
@@ -460,27 +462,28 @@ Specify <groupsize> 0 to suppress grouping.
 <groupsize> defaults to 2 in normal mode, 4 in little-endian mode and 1
 in bits mode. Grouping does not apply to -p or -i.
 """)
-@click.option('-i', '--include', is_flag=True, help="""
+@click.option('-i', '--include', 'include', is_flag=True, help="""
 Output in C include file style.
 
 A complete static array definition is written (named after the
 input file), unless reading from standard input.
 """)
-@click.option('-l', '--length', '--len', type=BASED_INT, help="""
+@click.option('-l', '--length', '--len', 'length', type=BASED_INT, help="""
 Stops after writing <length> octets.
 """)
-@click.option('-o', '--offset', type=BASED_INT, help="""
+@click.option('-o', '--offset', 'offset', type=BASED_INT, help="""
 Adds <offset> to the displayed file position.
 """)
-@click.option('-p', '--postscript', '--plain', '--ps', is_flag=True, help="""
+@click.option('-p', '--postscript', '--plain', '--ps', 'postscript',
+              is_flag=True, help="""
 Outputs in postscript continuous hexdump style.
 
 Also known as plain hexdump style.
 """)
-@click.option('-q', '--quadword', is_flag=True, help="""
+@click.option('-q', '--quadword', 'quadword', is_flag=True, help="""
 Uses 64-bit addressing.
 """)
-@click.option('-r', '--revert', is_flag=True, help="""
+@click.option('-r', '--revert', 'revert', is_flag=True, help="""
 Reverse operation.
 
 Convert (or patch) hexdump into binary.
@@ -509,10 +512,10 @@ the end of the input.
 '+-' indicates that the seek should be that many characters
 before the current stdin file position.
 """)
-@click.option('-U', '--upper-all', is_flag=True, help="""
+@click.option('-U', '--upper-all', 'upper_all', is_flag=True, help="""
 Uses upper case hex letters on address and data.
 """)
-@click.option('-u', '--upper', is_flag=True, help="""
+@click.option('-u', '--upper', 'upper', is_flag=True, help="""
 Uses upper case hex letters on data.
 """)
 @click.option('-v', '--version', is_flag=True, is_eager=True,

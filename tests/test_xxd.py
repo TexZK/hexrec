@@ -4,7 +4,6 @@ import glob
 import io
 import os
 import sys
-from distutils import dir_util
 from pathlib import Path
 
 import pytest
@@ -83,11 +82,7 @@ def run_cli(args=None, namespace=None):
     args = parser.parse_args(args, namespace)
     kwargs = vars(args)
 
-    try:
-        xxd(**kwargs)
-    except:
-        print(kwargs)
-        raise
+    xxd(**kwargs)
 
 # ============================================================================
 
@@ -109,7 +104,7 @@ def test_by_filename_xxd(tmppath, datapath):
 
         ans_out = read_text(path_out)
         ans_ref = read_text(path_ref)
-        if ans_out != ans_ref: raise AssertionError(str(path_ref))
+        #if ans_out != ans_ref: raise AssertionError(str(path_ref))
         assert ans_out == ans_ref
 
 
