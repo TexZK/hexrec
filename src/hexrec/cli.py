@@ -6,7 +6,7 @@ Why does this file exist, and why not put this in __main__?
   You might be tempted to import things from __main__ later, but that will cause
   problems: the code will get executed twice:
 
-  - When you run `python -mhexrec` python will execute
+  - When you run `python -m hexrec` python will execute
     ``__main__.py`` as a script. That means there won't be any
     ``hexrec.__main__`` in ``sys.modules``.
   - When you import __main__ it will get executed again (as a module) because
@@ -93,7 +93,15 @@ def print_version(ctx, param, value):
 # ============================================================================
 
 @click.group()
-def main(): pass
+def main():
+    """
+    A set of command line utilities for common operations with record files.
+
+    Being built with `Click <https://click.palletsprojects.com/>`_, all the
+    commands follow POSIX-like syntax rules, as well as reserving the virtual
+    file path ``-`` for command chaining via standard output/input buffering.
+    """
+    pass
 
 
 # ----------------------------------------------------------------------------
@@ -101,6 +109,7 @@ def main(): pass
 @main.command()
 @click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
 Forces the input file format.
+Required for the standard input.
 """)
 @click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
 Forces the output file format.
@@ -108,22 +117,22 @@ By default it is that of the input file.
 """)
 @click.option('-s', '--start', type=BASED_INT, help="""
 Inclusive start address. Negative values are referred to the end of the data.
-By default it selects from the start of the data contents.
+By default it applies from the start of the data contents.
 """)
 @click.option('-e', '--endex', type=BASED_INT, help="""
 Exclusive end address. Negative values are referred to the end of the data.
-By default it selects till the end of the data contents.
+By default it applies till the end of the data contents.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
 def clear(input_format, output_format, start, endex, infile, outfile):
     r"""Clears an address range.
 
-    <INFILE> is the path of the input file.
-    Set to '-' to read from standard input; input format required.
+    ``INFILE`` is the path of the input file.
+    Set to ``-`` to read from standard input; input format required.
 
-    <OUTFILE> is the path of the output file.
-    Set to '-' to write to standard output.
+    ``OUTFILE`` is the path of the output file.
+    Set to ``-`` to write to standard output.
     """
     input_type, output_type = find_types(input_format, output_format,
                                          infile, outfile)
@@ -138,6 +147,7 @@ def clear(input_format, output_format, start, endex, infile, outfile):
 @main.command()
 @click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
 Forces the input file format.
+Required for the standard input.
 """)
 @click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
 Forces the output file format.
@@ -148,11 +158,11 @@ By default it is that of the input file.
 def convert(input_format, output_format, infile, outfile):
     r"""Converts a file to another format.
 
-    <INFILE> is the list of paths of the input files.
-    Set to '-' to read from standard input; input format required.
+    ``INFILE`` is the list of paths of the input files.
+    Set to ``-`` to read from standard input; input format required.
 
-    <OUTFILE> is the path of the output file.
-    Set to '-' to write to standard output.
+    ``OUTFILE`` is the path of the output file.
+    Set to ``-`` to write to standard output.
     """
     input_type, output_type = find_types(input_format, output_format,
                                          infile, outfile)
@@ -166,35 +176,42 @@ def convert(input_format, output_format, infile, outfile):
 @main.command()
 @click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
 Forces the input file format.
+Required for the standard input.
 """)
 @click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
 Forces the output file format.
 By default it is that of the input file.
 """)
+@click.option('-v', '--value', type=BYTE_INT, help="""
+Byte value used to flood the address range.
+By default, no flood is performed.
+""")
 @click.option('-s', '--start', type=BASED_INT, help="""
 Inclusive start address. Negative values are referred to the end of the data.
-By default it selects from the start of the data contents.
+By default it applies from the start of the data contents.
 """)
 @click.option('-e', '--endex', type=BASED_INT, help="""
 Exclusive end address. Negative values are referred to the end of the data.
-By default it selects till the end of the data contents.
+By default it applies till the end of the data contents.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
-def cut(input_format, output_format, start, endex, infile, outfile):
+def cut(input_format, output_format, value, start, endex, infile, outfile):
     r"""Selects data from an address range.
 
-    <INFILE> is the path of the input file.
-    Set to '-' to read from standard input; input format required.
+    ``INFILE`` is the path of the input file.
+    Set to ``-`` to read from standard input; input format required.
 
-    <OUTFILE> is the path of the output file.
-    Set to '-' to write to standard output.
+    ``OUTFILE`` is the path of the output file.
+    Set to ``-`` to write to standard output.
     """
     input_type, output_type = find_types(input_format, output_format,
                                          infile, outfile)
 
     m = _load_memory(infile, record_type=input_type)
     m.cut(start, endex)
+    if value is not None:
+        m.flood(start, endex, value)
     _save_memory(outfile, m, record_type=output_type)
 
 
@@ -203,6 +220,7 @@ def cut(input_format, output_format, start, endex, infile, outfile):
 @main.command()
 @click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
 Forces the input file format.
+Required for the standard input.
 """)
 @click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
 Forces the output file format.
@@ -210,22 +228,22 @@ By default it is that of the input file.
 """)
 @click.option('-s', '--start', type=BASED_INT, help="""
 Inclusive start address. Negative values are referred to the end of the data.
-By default it selects from the start of the data contents.
+By default it applies from the start of the data contents.
 """)
 @click.option('-e', '--endex', type=BASED_INT, help="""
 Exclusive end address. Negative values are referred to the end of the data.
-By default it selects till the end of the data contents.
+By default it applies till the end of the data contents.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
 def delete(input_format, output_format, start, endex, infile, outfile):
     r"""Deletes an address range.
 
-    <INFILE> is the path of the input file.
-    Set to '-' to read from standard input; input format required.
+    ``INFILE`` is the path of the input file.
+    Set to ``-`` to read from standard input; input format required.
 
-    <OUTFILE> is the path of the output file.
-    Set to '-' to write to standard output.
+    ``OUTFILE`` is the path of the output file.
+    Set to ``-`` to write to standard output.
     """
     input_type, output_type = find_types(input_format, output_format,
                                          infile, outfile)
@@ -240,6 +258,7 @@ def delete(input_format, output_format, start, endex, infile, outfile):
 @main.command()
 @click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
 Forces the input file format.
+Required for the standard input.
 """)
 @click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
 Forces the output file format.
@@ -250,22 +269,22 @@ Byte value used to fill the address range.
 """)
 @click.option('-s', '--start', type=BASED_INT, help="""
 Inclusive start address. Negative values are referred to the end of the data.
-By default it selects from the start of the data contents.
+By default it applies from the start of the data contents.
 """)
 @click.option('-e', '--endex', type=BASED_INT, help="""
 Exclusive end address. Negative values are referred to the end of the data.
-By default it selects till the end of the data contents.
+By default it applies till the end of the data contents.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
 def fill(input_format, output_format, value, start, endex, infile, outfile):
     r"""Fills an address range with a byte value.
 
-    <INFILE> is the path of the input file.
-    Set to '-' to read from standard input; input format required.
+    ``INFILE`` is the path of the input file.
+    Set to ``-`` to read from standard input; input format required.
 
-    <OUTFILE> is the path of the output file.
-    Set to '-' to write to standard output.
+    ``OUTFILE`` is the path of the output file.
+    Set to ``-`` to write to standard output.
     """
     input_type, output_type = find_types(input_format, output_format,
                                          infile, outfile)
@@ -280,6 +299,7 @@ def fill(input_format, output_format, value, start, endex, infile, outfile):
 @main.command()
 @click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
 Forces the input file format.
+Required for the standard input.
 """)
 @click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
 Forces the output file format.
@@ -290,22 +310,22 @@ Byte value used to flood the address range.
 """)
 @click.option('-s', '--start', type=BASED_INT, help="""
 Inclusive start address. Negative values are referred to the end of the data.
-By default it selects from the start of the data contents.
+By default it applies from the start of the data contents.
 """)
 @click.option('-e', '--endex', type=BASED_INT, help="""
 Exclusive end address. Negative values are referred to the end of the data.
-By default it selects till the end of the data contents.
+By default it applies till the end of the data contents.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
 def flood(input_format, output_format, value, start, endex, infile, outfile):
     r"""Fills emptiness of an address range with a byte value.
 
-    <INFILE> is the path of the input file.
-    Set to '-' to read from standard input; input format required.
+    ``INFILE`` is the path of the input file.
+    Set to ``-`` to read from standard input; input format required.
 
-    <OUTFILE> is the path of the output file.
-    Set to '-' to write to standard output.
+    ``OUTFILE`` is the path of the output file.
+    Set to ``-`` to write to standard output.
     """
     input_type, output_type = find_types(input_format, output_format,
                                          infile, outfile)
@@ -320,6 +340,7 @@ def flood(input_format, output_format, value, start, endex, infile, outfile):
 @main.command()
 @click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
 Forces the input file format.
+Required for the standard input.
 """)
 @click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
 Forces the output file format.
@@ -330,13 +351,13 @@ By default it is that of the input file.
 def merge(input_format, output_format, infiles, outfile):
     r"""Merges multiple files.
 
-    <INFILES> is the list of paths of the input files.
-    Set to '-' to read from standard input; input format required.
+    ``INFILES`` is the list of paths of the input files.
+    Set any to ``-`` to read from standard input; input format required.
 
-    <OUTFILE> is the path of the output file.
-    Set to '-' to write to standard output.
+    ``OUTFILE`` is the path of the output file.
+    Set to ``-`` to write to standard output.
 
-    Every file of <INFILES> will overwrite data of previous files of the list
+    Every file of ``INFILES`` will overwrite data of previous files of the list
     where addresses overlap.
     """
     for infile in infiles:
@@ -357,6 +378,7 @@ def merge(input_format, output_format, infiles, outfile):
 @main.command()
 @click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
 Forces the input file format.
+Required for the standard input.
 """)
 @click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
 Forces the output file format.
@@ -367,11 +389,11 @@ By default it is that of the input file.
 def reverse(input_format, output_format, infile, outfile):
     r"""Reverses data.
 
-    <INFILE> is the path of the input file.
-    Set to '-' to read from standard input; input format required.
+    ``INFILE`` is the path of the input file.
+    Set to ``-`` to read from standard input; input format required.
 
-    <OUTFILE> is the path of the output file.
-    Set to '-' to write to standard output.
+    ``OUTFILE`` is the path of the output file.
+    Set to ``-`` to write to standard output.
     """
     input_type, output_type = find_types(input_format, output_format,
                                          infile, outfile)
@@ -386,6 +408,7 @@ def reverse(input_format, output_format, infile, outfile):
 @main.command()
 @click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
 Forces the input file format.
+Required for the standard input.
 """)
 @click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
 Forces the output file format.
@@ -399,11 +422,11 @@ Address shift to apply.
 def shift(input_format, output_format, shift, infile, outfile):
     r"""Shifts data addresses.
 
-    <INFILE> is the path of the input file.
-    Set to '-' to read from standard input; input format required.
+    ``INFILE`` is the path of the input file.
+    Set to ``-`` to read from standard input; input format required.
 
-    <OUTFILE> is the path of the output file.
-    Set to '-' to write to standard output.
+    ``OUTFILE`` is the path of the output file.
+    Set to ``-`` to write to standard output.
     """
     input_type, output_type = find_types(input_format, output_format,
                                          infile, outfile)
@@ -493,7 +516,7 @@ Use the combination -r and -p to read plain hexadecimal dumps
 without line number information and without a particular column
 layout. Additional Whitespace and line breaks are allowed anywhere.
 """)
-@click.option('--seek', 'oseek', type=BASED_INT, help="""
+@click.option('-k', '--seek', 'oseek', type=BASED_INT, help="""
 Output seeking.
 
 When used after -r reverts with -o added to
@@ -516,7 +539,7 @@ before the current stdin file position.
 Uses upper case hex letters on address and data.
 """)
 @click.option('-u', '--upper', 'upper', is_flag=True, help="""
-Uses upper case hex letters on data.
+Uses upper case hex letters on data only.
 """)
 @click.option('-v', '--version', is_flag=True, is_eager=True,
               expose_value=False,
@@ -531,6 +554,8 @@ def xxd(autoskip, bits, cols, ebcdic, endian, groupsize, include, length,
     r"""Emulates the xxd command.
 
     Please refer to the xxd manual page to know its features and caveats.
+
+    Some parameters were changed to satisfy the POSIX-like command line parser.
     """
     _xxd(infile=infile,
          outfile=outfile,

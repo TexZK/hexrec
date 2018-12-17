@@ -207,7 +207,7 @@ def xxd(infile=None, outfile=None, autoskip=None, bits=None, cols=None,
         upper_all (:obj:`bool`): Uses upper case hex letters on address and
             data.
 
-        upper (:obj:`bool`): Uses upper case hex letters on data.
+        upper (:obj:`bool`): Uses upper case hex letters on data only.
 
     Returns:
         stream: The handle to the output stream.
