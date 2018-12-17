@@ -7,6 +7,7 @@ Contents
 
    readme
    installation
+   cli
    reference
    contributing
    authors

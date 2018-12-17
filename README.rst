@@ -130,8 +130,14 @@ akin to ``bytearray``.
 
 The ``hexrec.utils`` module provides some miscellaneous utility stuff.
 
-``hexrec.xxd`` is an emulation of the ``xxd`` command-line utility delivered
+``hexrec.xxd`` is an emulation of the ``xxd`` command line utility delivered
 by ``vim``.
+
+The package can also be run as a command line tool, by running the `hexrec`
+package itself (``python -m hexrec``), providing some record file  utilities.
+
+.. image:: _static/architecture.svg
+    :alt: Architecture
 
 
 Examples
@@ -154,6 +160,12 @@ In this example, a HEX file is converted to SREC.
 >>> import hexrec.records as hr
 >>> hr.convert_file('data.hex', 'data.srec')
 
+This can also be done by running the `hexrec` package as a command line tool:
+
+.. code-block:: sh
+
+    $ python -m hexrec convert data.hex data.srec
+
 
 Merge files
 -----------
@@ -169,6 +181,12 @@ configuration data into a single file, in the order they are listed.
 >>> import hexrec.records as hr
 >>> input_files = ['bootloader.hex', 'executable.mot', 'configuration.s19']
 >>> hr.merge_files(input_files, 'merged.srec')
+
+This can also be done by running the `hexrec` package as a command line tool:
+
+.. code-block:: sh
+
+    $ python -m hexrec merge bootloader.hex executable.mot configuration.s19 merged.srec
 
 
 Dataset generator
@@ -237,9 +255,15 @@ allocated address range ``0x8000``-``0x1FFFF``.  Being written to a flash
 memory, unused memory byte cells default to ``0xFF``.
 
 >>> import hexrec.records as hr
->>> memory = hr.load_memory('application_original.hex')
+>>> memory = hr.load_memory('app_original.hex')
 >>> data = memory[0x8000:0x20000:b'\xFF']
->>> hr.save_chunk('application_trimmed.srec', data, 0x8000)
+>>> hr.save_chunk('app_trimmed.srec', data, 0x8000)
+
+This can also be done by running the `hexrec` package as a command line tool:
+
+.. code-block:: sh
+
+    $ python -m hexrec cut -s 0x8000 -e 0x20000 -v 0xFF app_original.hex app_trimmed.srec
 
 By contrast, we need to fill the application range within the bootloader image
 with ``0xFF``, so that no existing application will be available again.
@@ -247,30 +271,48 @@ Also, we need to preserve the address range ``0x3F800``-``0x3FFFF`` because it
 already contains some important data.
 
 >>> import hexrec.records as hr
->>> memory = hr.load_memory('bootloader_original.hex')
+>>> memory = hr.load_memory('boot_original.hex')
 >>> memory.fill(0x8000, 0x20000, b'\xFF')
 >>> memory.clear(0x3F800, 0x40000)
->>> hr.save_memory('bootloader_fixed.srec', memory)
+>>> hr.save_memory('boot_fixed.srec', memory)
+
+With the command line interface, it can be done via a two-pass processing,
+first to fill the application range, then to clear the reserved range.
+Please note that the first command is chained to the second one via standard
+output/input buffering (the virtual ``-`` file path, in ``intel`` format as
+per ``boot_original.hex``).
+
+.. code-block:: sh
+
+    $ python -m hexrec fill -s 0x8000 -e 0x20000 -v 0xFF boot_original.hex - | \
+      python -m hexrec clear -s 0x3F800 -e 0x40000 -i intel - boot_fixed.srec
 
 
 Installation
 ============
 
-From PIP::
+From PIP:
 
-    pip install hexrec
+.. code-block:: sh
 
-From source::
+    $ pip install hexrec
 
-    python setup.py install
+From source:
+
+.. code-block:: sh
+
+    $ python setup.py install
 
 
 Development
 ===========
 
-To run the all tests run::
+To run the all tests run:
 
-    tox
+.. code-block:: sh
+
+    $ tox
+
 
 Note, to combine the coverage data from all the tox environments run:
 
@@ -279,12 +321,12 @@ Note, to combine the coverage data from all the tox environments run:
     :stub-columns: 1
 
     - - Windows
-      - ::
+      - .. code-block:: sh
 
-            set PYTEST_ADDOPTS=--cov-append
-            tox
+            $ set PYTEST_ADDOPTS=--cov-append
+            $ tox
 
     - - Other
-      - ::
+      - .. code-block:: sh
 
-            PYTEST_ADDOPTS=--cov-append tox
+            $ PYTEST_ADDOPTS=--cov-append tox

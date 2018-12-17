@@ -5,14 +5,18 @@ Installation
 From PIP
 --------
 
-At the command line::
+At the command line:
 
-    pip install hexrec
+.. code-block:: sh
+
+    $ pip install hexrec
 
 
 From source
 -----------
 
-At the command line, at the root of the source directory::
+At the command line, at the root of the source directory:
 
-    python setup.py install
+.. code-block:: sh
+
+    $ python setup.py install
