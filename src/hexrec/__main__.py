@@ -1,5 +1,5 @@
 """
-Entrypoint module, in case you use `python -mhexrec`.
+Entry point module, in case you use `python -m hexrec`.
 
 
 Why does this file exist, and why __main__? For more info, read:
@@ -8,12 +8,12 @@ Why does this file exist, and why __main__? For more info, read:
 - https://docs.python.org/2/using/cmdline.html#cmdoption-m
 - https://docs.python.org/3/using/cmdline.html#cmdoption-m
 """
-from .cli import main
+from .cli import main as _main
 
 
-def _init(module_name):
+def main(module_name):
     if module_name == '__main__':
-        main()
+        _main()
 
 
-_init(__name__)
+main(__name__)

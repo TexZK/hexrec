@@ -3,6 +3,7 @@ graft src
 graft ci
 graft tests
 graft _static
+graft pyinstaller
 
 include .bumpversion.cfg
 include .coveragerc
@@ -16,7 +17,5 @@ include LICENSE
 include README.rst
 
 include tox.ini .travis.yml appveyor.yml
-
-include clean.sh
 
 global-exclude *.py[cod] __pycache__ *.so *.dylib
