@@ -2,7 +2,7 @@
 PyInstaller scripts
 *******************
 
-This folder contains a wrapper script to generate self-containd executables
+This folder contains wrapper scripts to generate self-contained executables
 with PyInstaller.
 
 
@@ -32,3 +32,12 @@ Example command line to create a standalone executable for Windows:
     $ pyinstaller -n hexrec --onefile --distpath=win-x86 hexrec_cli.py
 
 This will generate ``hexrec.exe`` in the ``win-x86`` subfolder.
+
+
+Disclaimer
+==========
+
+All the generated executables files found in the subdirectories
+of this repository may be outdated with respect to the actual
+source code, and are only provided as-is for example purposes,
+although they should work properly.

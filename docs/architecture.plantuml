@@ -7,7 +7,7 @@ hide fields
 package "click" <<Frame>> {
 }
 
-package hexrec 
+package hexrec
 {
     package utils {
     }
@@ -15,19 +15,19 @@ package hexrec
     package xxd {
     }
 
-    package blocks 
+    package blocks
     {
         class block <<tuple>> {
             + address: int
             + data: bytes
         }
         show block fields
-        
+
         class SparseItems <<bytearray>> {
             + blocks: block
         }
         show SparseItems fields
-        
+
         SparseItems o-- "*" block
     }
 
@@ -38,24 +38,25 @@ package hexrec
             + address: int
             + tag: enum
             + data: bytes
+            + count: int
             + checksum: int
         }
         show Record fields
-        
+
         class BinaryRecord
         class IntelRecord
         class MotorolaRecord
         class TektronixRecord
-    
+
         Record <|-left- BinaryRecord
         Record <|-down- IntelRecord
         Record <|-down- MotorolaRecord
         Record <|-down- TektronixRecord
-        
+
         enum MotorolaTag
         enum IntelTag
         enum TektronixTag
-        
+
         MotorolaRecord  .down.> MotorolaTag
         IntelRecord     .down.> IntelTag
         TektronixRecord .down.> TektronixTag
