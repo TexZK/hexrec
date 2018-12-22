@@ -24,7 +24,7 @@ def read(*names, **kwargs):
 
 setup(
     name='hexrec',
-    version='0.0.3',
+    version='0.0.4',
     license='BSD 2-Clause License',
     description='Library to handle hexadecimal record files',
     long_description='%s\n%s' % (
