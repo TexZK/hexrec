@@ -7,6 +7,7 @@ import pytest
 from click.testing import CliRunner
 
 from hexrec.__init__ import __version__ as _version
+from hexrec.__main__ import main as _main
 from hexrec.cli import *
 from hexrec.records import IntelRecord
 from hexrec.records import MotorolaRecord
@@ -35,6 +36,16 @@ def read_text(path):
         data = file.read()
     data = data.replace('\r\n', '\n').replace('\r', '\n')  # normalize
     return data
+
+# ============================================================================
+
+def test_main():
+    value = None
+    try:
+        _main('__main__')
+    except SystemExit as e:
+        value = str(e)
+    assert value == '2'
 
 # ============================================================================
 

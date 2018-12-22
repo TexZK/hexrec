@@ -211,7 +211,7 @@ def cut(input_format, output_format, value, start, endex, infile, outfile):
     m = _load_memory(infile, record_type=input_type)
     m.cut(start, endex)
     if value is not None:
-        m.flood(start, endex, value)
+        m.flood(start, endex, bytes(bytearray([value])))
     _save_memory(outfile, m, record_type=output_type)
 
 

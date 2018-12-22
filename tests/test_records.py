@@ -865,6 +865,18 @@ class TestMotorolaRecord(object):
         ]
         assert ans_out == ans_ref
 
+        ans_out = list(MotorolaRecord.build_standalone(
+            [],
+            tag=MotorolaTag.DATA_32,
+            header=b'Hello, World!',
+        ))
+        ans_ref = [
+            MotorolaRecord(0, MotorolaTag.HEADER, b'Hello, World!'),
+            MotorolaRecord(0, MotorolaTag.COUNT_16, b'\x00\x00'),
+            MotorolaRecord(0, MotorolaTag.START_32, b''),
+        ]
+        assert ans_out == ans_ref
+
     def test_check_sequence_doctest(self):
         pass  # TODO
 
@@ -1011,6 +1023,10 @@ class TestMotorolaRecord(object):
         pass  # TODO
 
     def test_fix_tags(self):
+        ans_out = []
+        MotorolaRecord.fix_tags(ans_out)
+        assert ans_out == []
+
         ans_out = [
             MotorolaRecord(0, MotorolaTag.HEADER, b'Hello, World!'),
             MotorolaRecord(0x12345678, MotorolaTag.DATA_16, HEXBYTES),
@@ -1215,6 +1231,14 @@ class TestIntelRecord(object):
         assert ans_out == ans_ref
 
     def test_build_standalone(self):
+        ans_out = list(IntelRecord.build_standalone([]))
+        ans_ref = [
+            IntelRecord(0, IntelTag.EXTENDED_LINEAR_ADDRESS, b'\x00\x00'),
+            IntelRecord(0, IntelTag.START_LINEAR_ADDRESS, b'\x00\x00\x00\x00'),
+            IntelRecord(0, IntelTag.END_OF_FILE, b''),
+        ]
+        assert ans_out == ans_ref
+
         ans_out = list(IntelRecord.build_standalone([], start=0))
         ans_ref = [
             IntelRecord(0, IntelTag.EXTENDED_LINEAR_ADDRESS, b'\x00\x00'),
@@ -1375,6 +1399,10 @@ class TestTektronixRecord(object):
 
     def test_build_standalone(self):
         ans_out = list(TektronixRecord.build_standalone([], start=0))
+        ans_ref = [TektronixRecord(0, TektronixTag.TERMINATOR, b'')]
+        assert ans_out == ans_ref
+
+        ans_out = list(TektronixRecord.build_standalone([]))
         ans_ref = [TektronixRecord(0, TektronixTag.TERMINATOR, b'')]
         assert ans_out == ans_ref
 
