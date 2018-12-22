@@ -136,6 +136,9 @@ by ``vim``.
 The package can also be run as a command line tool, by running the `hexrec`
 package itself (``python -m hexrec``), providing some record file  utilities.
 
+You can also create you own standalone executable, or download a precompiled
+one from the ``pyinstaller`` folder.
+
 .. image:: _static/architecture.svg
     :alt: Architecture
 
