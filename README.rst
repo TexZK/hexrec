@@ -135,9 +135,20 @@ by ``vim``.
 
 The package can also be run as a command line tool, by running the `hexrec`
 package itself (``python -m hexrec``), providing some record file  utilities.
-
-You can also create you own standalone executable, or download a precompiled
+You can also create your own standalone executable, or download a precompiled
 one from the ``pyinstaller`` folder.
+
+The codebase is written in a simple fashion, to be easily readable and
+maintainable, following some naive pythonic *K.I.S.S.* approach by choice.
+
+This is mainly a library to create and manage sparse blocks of binary data,
+not made to edit binary data chunks directly.
+Please consider faster native pythonic ways to create and edit your binary data
+chunks (``bytes``, ``bytearray``, ``struct``, ...).
+Algorithms can be very slow if misused (this is Python anyway), but they are
+fast enough for the vast majority of operations made on the memory of a
+microcontroller-based embedded system.
+
 
 .. image:: _static/architecture.svg
     :alt: Architecture
@@ -289,6 +300,9 @@ per ``boot_original.hex``).
 
     $ python -m hexrec fill -s 0x8000 -e 0x20000 -v 0xFF boot_original.hex - | \
       python -m hexrec clear -s 0x3F800 -e 0x40000 -i intel - boot_fixed.srec
+
+(newline continuation is backslash ``\`` for a *Unix-like* shell, caret ``^``
+for a *DOS* prompt).
 
 
 Installation

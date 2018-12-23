@@ -1709,7 +1709,7 @@ class SparseItems(object):
             >>> memory[3:10]
             Traceback (most recent call last):
                 ...
-            :obj:`ValueError` contiguous slice not found
+            ValueError: contiguous slice not found
             >>> memory[3:10:'.']
             'CD.$.xy'
             >>> memory[memory.endex]

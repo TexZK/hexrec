@@ -24,7 +24,7 @@ package hexrec
         show block fields
 
         class SparseItems <<bytearray>> {
-            + blocks: block
+            + blocks: block[]
         }
         show SparseItems fields
 
