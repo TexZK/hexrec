@@ -19,7 +19,7 @@ For example, with Anaconda Prompt:
     $ conda create -n hexrec_pyinstaller python=3
     $ conda activate hexrec_pyinstaller
     $ pip install pyinstaller
-    $ cd PATH_TO_HEXREC_SOURCE_ROOT\pyinstaller
+    $ cd PATH_TO_HEXREC_SOURCE_ROOT
     $ python setup.py install
 
 
@@ -30,6 +30,8 @@ Example command line to create a standalone executable for Windows:
 
 .. code-block:: sh
 
+    $ cd PATH_TO_HEXREC_SOURCE_ROOT
+    $ cd pyinstaller
     $ pyinstaller -n hexrec --onefile --distpath=win-x86 hexrec_cli.py
 
 This will generate ``hexrec.exe`` in the ``win-x86`` subfolder.
