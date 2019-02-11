@@ -101,6 +101,10 @@ def test_read_doctest():
     ans_out = read(blocks, 3, None, None)
     assert ans_out == ans_ref
 
+    ans_ref = []
+    ans_out = read(blocks, 5, 6, None)
+    assert ans_out == ans_ref
+
 
 def test_read():
     blocks = [(1, 'ABCD')]
@@ -112,6 +116,11 @@ def test_read():
     ans_ref = blocks
     ans_out = read(blocks, None, None)
     assert ans_out == ans_ref
+
+    assert read(blocks, 3, -3) == []
+    assert read([], None, None) == []
+    assert read([], 3, None) == []
+    assert read([], None, 3) == []
 
 # ============================================================================
 
@@ -130,6 +139,11 @@ def test_clear():
     ans_ref = []
     ans_out = clear(blocks, None, None)
     assert ans_out == ans_ref
+
+    assert clear(blocks, 3, -3) == blocks
+    assert clear([], None, None) == []
+    assert clear([], 3, None) == []
+    assert clear([], None, 3) == []
 
 # ============================================================================
 
@@ -291,6 +305,16 @@ def test_collapse():
         (0, 'xyz'),
     ]
     ans_ref = [(0, None), (3, 'D'), (1, None), (0, 'xyz')]
+    ans_out = collapse(blocks)
+    assert ans_out == ans_ref
+
+    blocks = [
+        (0, 'ABCD'),
+        (3, 'EF'),
+        (0, '$'),
+        (6, 'xyz'),
+    ]
+    ans_ref = [(1, 'BC'), (3, 'EF'), (0, '$'), (6, 'xyz')]
     ans_out = collapse(blocks)
     assert ans_out == ans_ref
 

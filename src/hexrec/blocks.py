@@ -599,15 +599,24 @@ def read(blocks, start, endex, pattern=b'\0', join=b''.join):
         [(1, 'ABCD'), (6, '$'), (8, 'xy')]
         >>> read(blocks, 3, None, None)
         [(3, 'CD'), (6, '$'), (8, 'xyz')]
+        >>> read(blocks, 5, 6, None)
+        []
     """
     if start is None:
+        if not blocks:
+            return []
         start, _ = blocks[0]
     range_start = start
 
     if endex is None:
+        if not blocks:
+            return []
         start, items = blocks[-1]
         endex = start + len(items)
     range_endex = endex
+
+    if endex <= start:
+        return []
 
     index_start = locate_start(blocks, range_start)
     index_endex = locate_endex(blocks, range_endex)
@@ -638,8 +647,8 @@ def read(blocks, start, endex, pattern=b'\0', join=b''.join):
         elif range_start <= start < range_endex < endex:
             append((start, items[:(range_endex - endex)]))
 
-        else:
-            append((start, items))
+#        else:  # range_endex <= start
+#            pass  # fully outside
 
     result = blocks_inside
     return result
@@ -683,13 +692,20 @@ def clear(blocks, start, endex):
         [(1, 'A'), (3, 'C'), (9, 'yz')]
     """
     if start is None:
+        if not blocks:
+            return []
         start, _ = blocks[0]
     range_start = start
 
     if endex is None:
+        if not blocks:
+            return []
         start, items = blocks[-1]
         endex = start + len(items)
     range_endex = endex
+
+    if endex <= start:
+        return list(blocks)
 
     index_start = locate_start(blocks, range_start)
     index_endex = locate_endex(blocks, range_endex)
@@ -716,7 +732,7 @@ def clear(blocks, start, endex):
         elif range_start <= start < range_endex < endex:
             append((range_endex, items[(range_endex - endex):]))
 
-        else:
+        else:  # range_endex <= start
             append((start, items))
 
     result = blocks_before + blocks_inside + blocks_after
@@ -798,11 +814,8 @@ def delete(blocks, start, endex):
         elif range_start <= start < range_endex < endex:
             append((range_start, items[(range_endex - endex):]))
 
-        elif range_endex <= start:
-            append((start - (range_endex - range_start), items))
-
-        else:
-            append((start, items))
+        else:  # range_endex <= start
+            append((start - range_length, items))
 
     blocks_after = shift(blocks_after, -range_length)
     result = blocks_before + blocks_inside + blocks_after
