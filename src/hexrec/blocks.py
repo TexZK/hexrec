@@ -1390,6 +1390,8 @@ class SparseItems(object):
         """
         return bool(self.blocks)
 
+    __nonzero__ = __bool__  # for Python 2.7
+
     def __eq__(self, other):
         r"""Equality comparison.
 
