@@ -29,6 +29,7 @@
 r"""Emulation of the xxd utility."""
 
 import io
+import os
 import re
 import sys
 
@@ -272,14 +273,14 @@ def xxd(infile=None, outfile=None, autoskip=None, bits=None, cols=None,
         if iseek is not None:
             ss, sv = parse_seek(str(iseek))
 
-            if ss == '':
-                instream.seek(sv, io.SEEK_SET)
-            elif ss == '+':
+            if ss == '+':
                 instream.seek(sv, io.SEEK_CUR)
             elif ss == '+-':
                 instream.seek(-sv, io.SEEK_CUR)
             elif ss == '-':
                 instream.seek(-sv, io.SEEK_END)
+            else:  # ss == ''
+                instream.seek(sv, io.SEEK_SET)
 
             offset += instream.tell()
 
@@ -316,8 +317,7 @@ def xxd(infile=None, outfile=None, autoskip=None, bits=None, cols=None,
                         outstream.seek(address, io.SEEK_SET)
                         outstream.write(data)
 
-            # End of input stream
-            raise StopIteration
+            raise StopIteration  # End of input stream
 
         elif postscript:
             # Plain hexadecimal output
@@ -336,8 +336,7 @@ def xxd(infile=None, outfile=None, autoskip=None, bits=None, cols=None,
                     outstream.write('\n')
                     count += len(chunk)
                 else:
-                    # End of input stream
-                    raise StopIteration
+                    raise StopIteration  # End of input stream
 
         elif bits:
             if cols is None:
@@ -348,7 +347,40 @@ def xxd(infile=None, outfile=None, autoskip=None, bits=None, cols=None,
         elif include:
             if cols is None:
                 cols = 12
-            raise NotImplementedError
+
+            # Data variable definition
+            if isinstance(infile, str):
+                label = os.path.basename(infile)
+                label = re.sub('[^0-9a-zA-Z]+', '_', label)
+                fmt = 'unsigned char {}[] = {{\n'
+                outstream.write(fmt.format(label))
+
+            indent = '  0X' if upper_all else '  0x'
+            sep = ', 0X' if upper_all else ', 0x'
+
+            count = 0
+            while True:
+                if length is None:
+                    chunk = instream.read(cols)
+                else:
+                    chunk = instream.read(min(cols, length - count))
+
+                if chunk:
+                    if count:
+                        outstream.write(',\n')
+                    outstream.write(indent)
+                    outstream.write(hexlify(chunk, upper=upper, sep=sep))
+                    count += len(chunk)
+
+                else:
+                    # Data end and length variable definition
+                    if isinstance(infile, str):
+                        fmt = '\n}};\nunsigned int {}_len = {};\n'
+                        outstream.write(fmt.format(label, count))
+                    else:
+                        outstream.write('\n')
+
+                    raise StopIteration  # End of input stream
 
         else:
             if cols is None:
@@ -427,8 +459,7 @@ def xxd(infile=None, outfile=None, autoskip=None, bits=None, cols=None,
                     outstream.write('*\n')
 
             else:
-                # End of input stream
-                raise StopIteration
+                raise StopIteration  # End of input stream
 
     except StopIteration:
         pass
