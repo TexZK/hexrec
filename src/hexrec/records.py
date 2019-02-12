@@ -2034,7 +2034,7 @@ class IntelRecord(Record):
             start = min(record.address for record in data_records)
 
         for record in cls.terminate(start):
-                yield record
+            yield record
 
     @classmethod
     def terminate(cls, start):
