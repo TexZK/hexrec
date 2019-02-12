@@ -333,7 +333,7 @@ def xxd(infile=None, outfile=None, autoskip=None, bits=None, cols=None,
 
                 if chunk:
                     outstream.write(hexlify(chunk, upper=upper))
-                    outstream.write('\n')
+                    outstream.write(u'\n')
                     count += len(chunk)
                 else:
                     raise StopIteration  # End of input stream
@@ -352,11 +352,11 @@ def xxd(infile=None, outfile=None, autoskip=None, bits=None, cols=None,
             if isinstance(infile, str):
                 label = os.path.basename(infile)
                 label = re.sub('[^0-9a-zA-Z]+', '_', label)
-                fmt = 'unsigned char {}[] = {{\n'
+                fmt = u'unsigned char {}[] = {{\n'
                 outstream.write(fmt.format(label))
 
-            indent = '  0X' if upper_all else '  0x'
-            sep = ', 0X' if upper_all else ', 0x'
+            indent = u'  0X' if upper_all else u'  0x'
+            sep = u', 0X' if upper_all else u', 0x'
 
             count = 0
             while True:
@@ -367,7 +367,7 @@ def xxd(infile=None, outfile=None, autoskip=None, bits=None, cols=None,
 
                 if chunk:
                     if count:
-                        outstream.write(',\n')
+                        outstream.write(u',\n')
                     outstream.write(indent)
                     outstream.write(hexlify(chunk, upper=upper, sep=sep))
                     count += len(chunk)
@@ -375,10 +375,10 @@ def xxd(infile=None, outfile=None, autoskip=None, bits=None, cols=None,
                 else:
                     # Data end and length variable definition
                     if isinstance(infile, str):
-                        fmt = '\n}};\nunsigned int {}_len = {};\n'
+                        fmt = u'\n}};\nunsigned int {}_len = {};\n'
                         outstream.write(fmt.format(label, count))
                     else:
-                        outstream.write('\n')
+                        outstream.write(u'\n')
 
                     raise StopIteration  # End of input stream
 
