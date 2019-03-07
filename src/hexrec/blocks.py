@@ -572,8 +572,7 @@ def read(blocks, start, endex, pattern=b'\0', join=b''.join):
             is not null.
 
     Returns:
-        :obj:`list` of block: A new list of blocks, with the same order of
-            `blocks`.
+        :obj:`list` of block: A new list of blocks as per `blocks`.
 
     Example:
         +---+---+---+---+---+---+---+---+---+---+---+
@@ -668,8 +667,7 @@ def clear(blocks, start, endex):
             (i.e. that of the last block).
 
     Returns:
-        :obj:`list` of block: A new list of blocks, with the same order of
-            `blocks`.
+        :obj:`list` of block: A new list of blocks as per `blocks`.
 
     Example:
         +---+---+---+---+---+---+---+---+---+---+---+
@@ -753,8 +751,7 @@ def delete(blocks, start, endex):
             (i.e. that of the last block).
 
     Returns:
-        :obj:`list` of block: A new list of blocks, with the same order of
-            `blocks`.
+        :obj:`list` of block: A new list of blocks as per `blocks`.
 
     Example:
         +---+---+---+---+---+---+---+---+---+---+---+
@@ -834,8 +831,7 @@ def insert(blocks, inserted):
         inserted (block): Block to insert.
 
     Returns:
-        :obj:`list` of block: A new list of non-overlapping blocks, sorted by
-            start address.
+        :obj:`list` of block: Non-overlapping blocks, sorted by start address.
 
     Example:
         +---+---+---+---+---+---+---+---+---+---+---+---+
@@ -896,8 +892,7 @@ def write(blocks, written):
         written (block): Block to write.
 
     Returns:
-        :obj:`list` of block: A new list of non-overlapping blocks, sorted by
-            start address.
+        :obj:`list` of block: Non-overlapping blocks, sorted by start address.
 
     Example:
         +---+---+---+---+---+---+---+---+---+---+
@@ -1005,6 +1000,9 @@ def flood(blocks, start=None, endex=None, pattern=b'\0',
           flood_only=False, join=b''.join):
     r"""Fills emptiness between non-touching blocks.
 
+    Returns a List of the filling blocks, including the existing blocks if
+    `flood_only` is ``False``.
+
     Arguments:
         blocks (:obj:`list` of block): A fast indexable sequence of
             non-overlapping blocks, sorted by address.
@@ -1019,8 +1017,7 @@ def flood(blocks, start=None, endex=None, pattern=b'\0',
         join (callable): A function to join a sequence of items.
 
     Returns:
-        :obj:`list` of block: List of the filling blocks, including the
-            existing blocks if `flood_only` is ``False``.
+        :obj:`list` of block: Filling blocks.
 
     Example:
         +---+---+---+---+---+---+---+---+---+---+
@@ -1107,8 +1104,7 @@ def merge(blocks, join=None):
             If ``None``, defaults to ``b''.join``.
 
     Returns:
-        :obj:`list` of block: A new list of non-overlapping blocks, sorted by
-            address.
+        :obj:`list` of block: Non-overlapping blocks, sorted by address.
 
     Example:
         +---+---+---+---+---+---+---+---+---+---+---+---+---+
@@ -1365,11 +1361,23 @@ class SparseItems(object):
     def __str__(self):
         r"""String representation.
 
-        Returns:
-            :obj:`str`: The :func:`str` applied to all the items from
-                :attr:`blocks`. Emptiness around blocks is ignored.
+        Applies :func:`str` to all the items from :attr:`blocks`.
+        Emptiness around blocks is ignored.
 
-        Examples:
+        Returns:
+            :obj:`str`: String representation.
+
+        Example:
+            +---+---+---+---+---+---+---+---+---+---+---+
+            | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10|
+            +===+===+===+===+===+===+===+===+===+===+===+
+            |   |[A | B | C]|   |   |   |[x | y | z]|   |
+            +---+---+---+---+---+---+---+---+---+---+---+
+
+            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory.blocks = [(1, 'ABC'), (7, 'xyz')]
+            >>> str(memory)
+            'ABCxyz'
         """
         return ''.join(str(items) for _, items in self.blocks)
 
@@ -1599,9 +1607,11 @@ class SparseItems(object):
     def __len__(self):
         r"""Actual length.
 
+        Computes the actual length of the stored items, i.e.
+        (:attr:`endex` - :attr:`start`).
+
         Returns:
-            :obj:`int`: The actual length of the stored items, i.e.
-                (:attr:`endex` - :attr:`start`).
+            :obj:`int`: Length of the stored items.
         """
         return self.endex - self.start
 

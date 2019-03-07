@@ -358,10 +358,10 @@ class TestSparseItems(object):
                           items_type=str, items_join=''.join)
         assert obj.blocks == [(1, 'ABC')]
 
-    def test___str__(self):
-        obj = SparseItems(items_type=str, items_join=''.join)
-        obj.blocks = [(1, 'ABC'), (7, 'xyz')]
-        ans_out = str(obj)
+    def test___str__doctest(self):
+        memory = SparseItems(items_type=str, items_join=''.join)
+        memory.blocks = [(1, 'ABC'), (7, 'xyz')]
+        ans_out = str(memory)
         ans_ref= 'ABCxyz'
         assert ans_out == ans_ref
 

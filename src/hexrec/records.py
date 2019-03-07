@@ -659,10 +659,12 @@ class Record(object):
     def __str__(self):
         r"""Converts to text string.
 
+        Builds a printable text representation of the record, usually the same
+        found in the saved record file as per its :class:`Record` subclass
+        requirements.
+
         Returns:
-            :obj:`str`: A printable text representation of the record, usually
-                the same found in the saved record file as per its
-                :class:`Record` subclass requirements.
+            :obj:`str`: A printable text representation of the record.
 
         Examples:
             >>> str(BinaryRecord(0x1234, 0, b'Hello, World!'))
@@ -711,9 +713,11 @@ class Record(object):
     def __hash__(self):
         r"""Computes the hash value.
 
+        Computes the hash of the :class:`Record` fields.
+        Useful to make the record hashable although it is a mutable class.
+
         Returns:
-            :obj:`int`: Hash of the :class:`Record` fields. Useful to make
-                the record hashable although it is a mutable class.
+            :obj:`int`: Hash of the :class:`Record` fields.
 
         Warning:
             Be careful with hashable mutable objects!
@@ -761,9 +765,11 @@ class Record(object):
     def is_data(self):
         r"""Tells if it is a data record.
 
+        Tells whether the record contains plain binary data, i.e. it is not a
+        *special* record.
+
         Returns:
-            :obj:`bool`: The record contains plain binary data, i.e. it is
-                not a *special* record.
+            :obj:`bool`: The record contains plain binary data.
 
         Note:
             This method must be overridden.
@@ -792,8 +798,7 @@ class Record(object):
         r"""Computes the count.
 
         Returns:
-            :obj:`bool`: Computed `count` field value based on the current
-                record fields.
+            :obj:`bool`: `count` field value based on the current fields.
 
         Examples:
             >>> record = BinaryRecord(0, 0, b'Hello, World!')
@@ -825,8 +830,7 @@ class Record(object):
         r"""Computes the checksum.
 
         Returns:
-            :obj:`int`: Computed `checksum` field value based on the current
-                record fields.
+            :obj:`int`: `checksum` field value based on the current fields.
 
         Examples:
             >>> record = BinaryRecord(0, 0, b'Hello, World!')
@@ -891,9 +895,11 @@ class Record(object):
     def overlaps(self, other):
         r"""Checks if overlapping occurs.
 
+        This record and another have overlapping `data`, when both `address`
+        fields are not ``None``.
+
         Returns:
-            :obj:`bool`: This record and another have overlapping `data`,
-                when both `address` fields are not ``None``.
+            :obj:`bool`: Overlapping.
 
         Examples:
             >>> record1 = BinaryRecord(0, 0, b'abc')
