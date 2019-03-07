@@ -1780,7 +1780,7 @@ class SparseItems(object):
             else:
                 address, items = blocks[index]
                 key -= address
-                return items[key:(key + 1)]
+                return items[key]
 
     def __setitem__(self, key, value):
         r"""Writes data.
