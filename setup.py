@@ -24,7 +24,7 @@ def read(*names, **kwargs):
 
 setup(
     name='hexrec',
-    version='0.0.4',
+    version='0.1.0',
     license='BSD 2-Clause License',
     description='Library to handle hexadecimal record files',
     long_description='%s\n%s' % (
@@ -41,7 +41,7 @@ setup(
     zip_safe=False,
     classifiers=[
         # complete classifier list: http://pypi.python.org/pypi?%3Aaction=list_classifiers
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
@@ -51,6 +51,7 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',
         'Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator',
