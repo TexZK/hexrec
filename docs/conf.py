@@ -24,7 +24,7 @@ if os.getenv('SPELLCHECK'):
 source_suffix = '.rst'
 master_doc = 'index'
 project = 'hexrec'
-year = '2018'
+year = '2019'
 author = 'Andrea Zoppi'
 copyright = '{0}, {1}'.format(year, author)
 version = release = '0.1.0'
