@@ -31,6 +31,7 @@ setup(
         re.compile('^.. start-badges.*^.. end-badges', re.M | re.S).sub('', read('README.rst')),
         re.sub(':[a-z]+:`~?(.*?)`', r'``\1``', read('CHANGELOG.rst'))
     ),
+    long_description_content_type='text/x-rst',
     author='Andrea Zoppi',
     author_email='texzk@email.it',
     url='https://github.com/TexZK/hexrec',
@@ -77,6 +78,12 @@ setup(
     entry_points={
         'console_scripts': [
             'hexrec = hexrec.cli:main',
-        ]
+        ],
+        'hexrec_types': [
+            'binary = hexrec.records:BinaryRecord',
+            'intel = hexrec.records:IntelRecord',
+            'motorola = hexrec.records:MotorolaRecord',
+            'tektronix = hexrec.records:TektronixRecord',
+        ],
     },
 )

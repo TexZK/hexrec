@@ -1,4 +1,5 @@
 sphinx>=1.3
 sphinx-rtd-theme
 sphinx-click
+twine>=1.12.0
 -e .

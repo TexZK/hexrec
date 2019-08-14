@@ -63,6 +63,7 @@ import os
 import re
 import struct
 
+import pkg_resources
 import six
 from click import open_file
 
@@ -2320,12 +2321,9 @@ class TektronixRecord(Record):
             raise ValueError('missing terminator')
 
 
-RECORD_TYPES = {
-    'binary': BinaryRecord,
-    'intel': IntelRecord,
-    'motorola': MotorolaRecord,
-    'tektronix': TektronixRecord,
-}
+RECORD_TYPES = {}
+for entry_point in pkg_resources.iter_entry_points('hexrec_types'):
+    RECORD_TYPES[entry_point.name] = entry_point.load()
 
 
 def find_record_type(file_path):
