@@ -20,8 +20,6 @@ GET_PIP_PATH = "C:\get-pip.py"
 URLS = {
     ("2.7", "64"): BASE_URL + "2.7.16/python-2.7.16.amd64.msi",
     ("2.7", "32"): BASE_URL + "2.7.16/python-2.7.16.msi",
-    ("3.4", "64"): BASE_URL + "3.4.10/python-3.4.10.amd64.msi",
-    ("3.4", "32"): BASE_URL + "3.4.10/python-3.4.10.msi",
     ("3.5", "64"): BASE_URL + "3.5.7/python-3.5.7-amd64.exe",
     ("3.5", "32"): BASE_URL + "3.5.7/python-3.5.7.exe",
     ("3.6", "64"): BASE_URL + "3.6.9/python-3.6.9-amd64.exe",
@@ -32,8 +30,6 @@ URLS = {
 INSTALL_CMD = {
     # Commands are allowed to fail only if they are not the last command.  Eg: uninstall (/x) allowed to fail.
     "2.7": [["msiexec.exe", "/L*+!", "install.log", "/qn", "/x", "{path}"],
-            ["msiexec.exe", "/L*+!", "install.log", "/qn", "/i", "{path}", "TARGETDIR={home}"]],
-    "3.4": [["msiexec.exe", "/L*+!", "install.log", "/qn", "/x", "{path}"],
             ["msiexec.exe", "/L*+!", "install.log", "/qn", "/i", "{path}", "TARGETDIR={home}"]],
     "3.5": [["{path}", "/quiet", "TargetDir={home}"]],
     "3.6": [["{path}", "/quiet", "TargetDir={home}"]],
