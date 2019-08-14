@@ -25,7 +25,7 @@ matrix:
     - python: '3.7'
       env:
         - TOXENV=py37,report,codecov
-    - python: 'pypy3.5'
+    - python: 'pypy5.10'
       env:
         - TOXENV=pypy,report,codecov
 before_install:
