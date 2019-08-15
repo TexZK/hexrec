@@ -123,6 +123,7 @@ def test_by_filename(tmppath, datapath):
         ans_ref = read_text(path_ref)
         #if ans_out != ans_ref: raise AssertionError(str(path_ref))
         assert ans_out == ans_ref
+        del result
 
 # ============================================================================
 

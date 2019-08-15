@@ -536,9 +536,9 @@ class TestRecord(object):
         record2.address = None
         assert record1.overlaps(record2) == False
 
-    def test_parse(self):
+    def test_parse_record(self):
         with pytest.raises(NotImplementedError):
-            Record.parse('')
+            Record.parse_record('')
 
     def test_split(self):
         with pytest.raises(NotImplementedError):
@@ -604,7 +604,7 @@ class TestBinaryRecord(object):
 
     def test_parse_doctest(self):
         line = '48656C6C 6F2C2057 6F726C64 21'
-        record = BinaryRecord.parse(line)
+        record = BinaryRecord.parse_record(line)
         ans_out = str_bytes_quickfix(normalize_whitespace(repr(record)))
         ans_ref = normalize_whitespace('''
         BinaryRecord(address=0x00000000, tag=0, count=13,
@@ -631,17 +631,17 @@ class TestBinaryRecord(object):
                    for offset in range(0, 256, 8)]
         assert ans_out == ans_ref
 
-    def test_load(self, datapath):
+    def test_load_records(self, datapath):
         path_ref = datapath / 'hexbytes.bin'
-        ans_out = list(BinaryRecord.load(str(path_ref)))
+        ans_out = list(BinaryRecord.load_records(str(path_ref)))
         ans_ref = [BinaryRecord.build_data(0, HEXBYTES)]
         assert ans_out == ans_ref
 
-    def test_save(self, tmppath, datapath):
+    def test_save_records(self, tmppath, datapath):
         path_out = tmppath / 'hexbytes.bin'
         path_ref = datapath / 'hexbytes.bin'
         records = [BinaryRecord.build_data(0, HEXBYTES)]
-        BinaryRecord.save(str(path_out), records)
+        BinaryRecord.save_records(str(path_out), records)
         ans_out = read_text(path_out)
         ans_ref = read_text(path_ref)
         assert ans_out == ans_ref
@@ -847,9 +847,9 @@ class TestMotorolaRecord(object):
     def test_parse_doctest(self):
         pass  # TODO
 
-    def test_parse(self):
+    def test_parse_record(self):
         with pytest.raises(ValueError):
-            MotorolaRecord.parse('Hello, World!')
+            MotorolaRecord.parse_record('Hello, World!')
 
     def test_build_standalone(self):
         ans_out = list(MotorolaRecord.build_standalone(
@@ -1044,17 +1044,17 @@ class TestMotorolaRecord(object):
         ]
         assert ans_out == ans_ref
 
-    def test_load(self, datapath):
+    def test_load_records(self, datapath):
         path_ref = datapath / 'bytes.mot'
-        ans_out = list(MotorolaRecord.load(str(path_ref)))
+        ans_out = list(MotorolaRecord.load_records(str(path_ref)))
         ans_ref = list(MotorolaRecord.split(BYTES))
         assert ans_out == ans_ref
 
-    def test_save(self, tmppath, datapath):
+    def test_save_records(self, tmppath, datapath):
         path_out = tmppath / 'bytes.mot'
         path_ref = datapath / 'bytes.mot'
         records = list(MotorolaRecord.split(BYTES))
-        MotorolaRecord.save(str(path_out), records)
+        MotorolaRecord.save_records(str(path_out), records)
         ans_out = read_text(path_out)
         ans_ref = read_text(path_ref)
         assert ans_out == ans_ref
@@ -1177,12 +1177,12 @@ class TestIntelRecord(object):
     def test_parse_doctest(self):
         pass  # TODO
 
-    def test_parse(self):
+    def test_parse_record(self):
         with pytest.raises(ValueError):
-            IntelRecord.parse('Hello, World!')
+            IntelRecord.parse_record('Hello, World!')
 
         with pytest.raises(ValueError):
-            IntelRecord.parse(':01000001FF')
+            IntelRecord.parse_record(':01000001FF')
 
     def test_split_doctest(self):
         pass  # TODO
@@ -1287,17 +1287,17 @@ class TestIntelRecord(object):
         ]
         assert ans_out == ans_ref
 
-    def test_load(self, datapath):
+    def test_load_records(self, datapath):
         path_ref = datapath / 'bytes.hex'
-        ans_out = list(IntelRecord.load(str(path_ref)))
+        ans_out = list(IntelRecord.load_records(str(path_ref)))
         ans_ref = list(IntelRecord.split(BYTES))
         assert ans_out == ans_ref
 
-    def test_save(self, tmppath, datapath):
+    def test_save_records(self, tmppath, datapath):
         path_out = tmppath / 'bytes.hex'
         path_ref = datapath / 'bytes.hex'
         records = list(IntelRecord.split(BYTES))
-        IntelRecord.save(str(path_out), records)
+        IntelRecord.save_records(str(path_out), records)
         ans_out = read_text(path_out)
         ans_ref = read_text(path_ref)
         assert ans_out == ans_ref
@@ -1362,9 +1362,9 @@ class TestTektronixRecord(object):
     def test_parse_doctest(self):
         pass  # TODO
 
-    def test_parse(self):
+    def test_parse_record(self):
         with pytest.raises(ValueError):
-            TektronixRecord.parse('Hello, World!')
+            TektronixRecord.parse_record('Hello, World!')
 
     def test_build_data_doctest(self):
         ans_out = str(TektronixRecord.build_data(0x12345678,
@@ -1437,28 +1437,28 @@ class TestTektronixRecord(object):
             record = TektronixRecord(0x4321, TektronixTag.DATA, b'dummy')
             TektronixRecord.check_sequence(records + [record])
 
-    def test_load(self, datapath):
+    def test_load_records(self, datapath):
         path_ref = datapath / 'bytes.tek'
-        ans_out = list(TektronixRecord.load(str(path_ref)))
+        ans_out = list(TektronixRecord.load_records(str(path_ref)))
         ans_ref = list(TektronixRecord.split(BYTES))
         assert ans_out == ans_ref
 
-    def test_save(self, tmppath, datapath):
+    def test_save_records(self, tmppath, datapath):
         path_out = tmppath / 'bytes.tek'
         path_ref = datapath / 'bytes.tek'
         records = list(TektronixRecord.split(BYTES))
-        TektronixRecord.save(str(path_out), records)
+        TektronixRecord.save_records(str(path_out), records)
         ans_out = read_text(path_out)
         ans_ref = read_text(path_ref)
         assert ans_out == ans_ref
 
 # ============================================================================
 
-def test_find_record_type():
+def test_find_record_type_name():
     for name, record_type in six.iteritems(RECORD_TYPES):
         for ext in record_type.EXTENSIONS:
-            assert find_record_type('filename' + ext.lower()) == name
-            assert find_record_type('filename' + ext.upper()) == name
+            assert find_record_type_name('filename' + ext.lower()) == name
+            assert find_record_type_name('filename' + ext.upper()) == name
 
     with pytest.raises(KeyError):
-        find_record_type('filename.invalid')
+        find_record_type_name('filename.invalid')

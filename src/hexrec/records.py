@@ -346,17 +346,15 @@ def merge_files(input_files, output_file, input_types=None, output_type=None,
 
     for level in range(len(input_types)):
         if input_types[level] is None:
-            type_name = find_record_type(input_files[level])
-            input_types[level] = RECORD_TYPES[type_name]
+            input_types[level] = find_record_type(input_files[level])
 
     if output_type is None:
-        type_name = find_record_type(output_file)
-        output_type = RECORD_TYPES[type_name]
+        output_type = find_record_type(output_file)
 
     input_records = []
     for level in range(len(input_types)):
         input_type = input_types[level]
-        records = input_type.load(input_files[level])
+        records = input_type.load_records(input_files[level])
         input_type.readdress(records)
         records = [r for r in records if r.is_data()]
         input_records.append(records)
@@ -364,7 +362,7 @@ def merge_files(input_files, output_file, input_types=None, output_type=None,
     output_records = merge_records(input_records, input_types, output_type,
                                    split_args, split_kwargs,
                                    build_args, build_kwargs)
-    output_type.save(output_file, output_records)
+    output_type.save_records(output_file, output_records)
 
 
 def convert_file(input_file, output_file, input_type=None, output_type=None,
@@ -417,9 +415,9 @@ def load_records(path, record_type=None):
         True
     """
     if record_type is None:
-        type_name = find_record_type(path)
-        record_type = RECORD_TYPES[type_name]
-    records = record_type.load(path)
+        record_type = find_record_type(path)
+
+    records = record_type.load_records(path)
     return records
 
 
@@ -442,8 +440,7 @@ def save_records(path, records, output_type=None,
         True
     """
     if output_type is None:
-        type_name = find_record_type(path)
-        output_type = RECORD_TYPES[type_name]
+        output_type = find_record_type(path)
 
     if records:
         if not all(isinstance(r, output_type) for r in records):
@@ -453,7 +450,7 @@ def save_records(path, records, output_type=None,
     else:
         records = ()
 
-    output_type.save(path, records)
+    output_type.save_records(path, records)
 
 
 def load_blocks(path, record_type=None):
@@ -475,12 +472,9 @@ def load_blocks(path, record_type=None):
         True
     """
     if record_type is None:
-        type_name = find_record_type(path)
-        record_type = RECORD_TYPES[type_name]
+        record_type = find_record_type(path)
 
-    records = record_type.load(path)
-    record_type.readdress(records)
-    blocks = records_to_blocks(records)
+    blocks = record_type.load_blocks(path)
     return blocks
 
 
@@ -510,13 +504,9 @@ def save_blocks(path, blocks, record_type=None,
         True
     """
     if record_type is None:
-        type_name = find_record_type(path)
-        record_type = RECORD_TYPES[type_name]
+        record_type = find_record_type(path)
 
-    records = blocks_to_records(blocks, record_type,
-                                split_args, split_kwargs,
-                                build_args, build_kwargs)
-    record_type.save(path, records)
+    record_type.save_blocks(path, blocks)
 
 
 def load_memory(path, record_type=None):
@@ -645,6 +635,13 @@ class Record(object):
             self.update_checksum()
         else:
             self.checksum = checksum
+
+    LINE_SEP = '\n'
+    r"""Separator bewteen record lines.
+
+    If equivalent to ``False``, the file type is considered binary instead of
+    textual.
+    """
 
     def __repr__(self):
         fmt = ('{0}('
@@ -922,18 +919,47 @@ class Record(object):
                               other.address + len(other.data))
 
     @classmethod
-    def parse(cls, line, *args, **kwargs):
+    def parse_record(cls, line, *args, **kwargs):
         r"""Parses a record from a text line.
 
         Arguments:
-            line (:obj:`str`): Text line to parse.
+            line (:obj:`str`): Record line to parse.
             args (:obj:`tuple`): Further positional arguments for overriding.
             kwargs (:obj:`dict`): Further keyword arguments for overriding.
+
+        Returns:
+            :obj:`Record`: Parsed record.
 
         Note:
             This method must be overridden.
         """
         raise NotImplementedError('method must be overriden')
+
+    def marshal(self, *args, **kwargs):
+        r"""Marshals a record for output.
+
+        Arguments:
+            args (:obj:`tuple`): Further positional arguments for overriding.
+            kwargs (:obj:`dict`): Further keyword arguments for overriding.
+
+        Returns:
+            :obj:`object`: Data for output.
+        """
+        return str(self)
+
+    @classmethod
+    def unmarshal(cls, data, *args, **kwargs):
+        r"""Unmarshals a record from input.
+
+        Arguments:
+            data (object): Input data, according to the file type.
+            args (:obj:`tuple`): Further positional arguments for overriding.
+            kwargs (:obj:`dict`): Further keyword arguments for overriding.
+
+        Returns:
+            :obj:`Record`: Unmarshaled record.
+        """
+        return cls.parse_record(data, *args, **kwargs)
 
     @classmethod
     def split(cls, data, *args, **kwargs):
@@ -1016,11 +1042,53 @@ class Record(object):
         pass
 
     @classmethod
-    def load(cls, path):
-        r"""Loads records from a file.
+    def read_blocks(cls, stream):  # TODO
+        r"""Reads blocks from a stream.
 
-        Each line of the input text file is parsed via :meth:`parse`, and
-        collected into the returned list.
+        Read blocks from the input stream into the returned sequence.
+
+        Arguments:
+            stream (stream): Input stream of the blocks to read.
+
+        Returns:
+            :obj:`list`: Sequence of parsed blocks.
+        """
+        records = cls.read_records(stream)
+        cls.readdress(records)
+        blocks = records_to_blocks(records)
+        return blocks
+
+    @classmethod
+    def write_blocks(cls, stream, blocks,
+                     split_args=None, split_kwargs=None,
+                     build_args=None, build_kwargs=None):  # TODO test
+        r"""Writes blocks to a stream.
+
+        Each block of the `blocks` sequence is converted into a record via
+        :meth:`build_data` and written to the output stream.
+
+        Arguments:
+            stream (stream): Output stream of the records to write.
+            blocks (list): Sequence of records to store. Sequence generators
+                supported.
+            split_args (list): Positional arguments for :meth:`Record.split`.
+            split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
+            build_args (list): Positional arguments for
+                :meth:`Record.build_standalone`.
+            build_kwargs (dict): Keyword arguments for
+                :meth:`Record.build_standalone`.
+        """
+        records = blocks_to_records(blocks, cls,
+                                    split_args, split_kwargs,
+                                    build_args, build_kwargs)
+        cls.write_records(stream, records)
+
+    @classmethod
+    def load_blocks(cls, path):  # TODO
+        r"""Loads blocks from a file.
+
+        Each line of the input file is parsed via :meth:`parse_block`,
+        and collected into the returned sequence.
 
         Arguments:
             path (:obj:`str`): Path of the record file to load.
@@ -1028,12 +1096,82 @@ class Record(object):
         Returns:
             :obj:`list`: Sequence of parsed records.
         """
-        with open_file(path, 'rt') as stream:
-            records = [cls.parse(line) for line in stream]
+        mode = 'rt' if cls.LINE_SEP else 'rb'
+        with open_file(path, mode) as stream:
+            blocks = cls.read_blocks(stream)
+        return blocks
+
+    @classmethod
+    def save_blocks(cls, path, records):  # TODO
+        r"""Saves blocks to a file.
+
+        Each block of the `blocks` sequence is converted into a record via
+        :meth:`build_data` and written to the output file.
+
+        Arguments:
+            path (:obj:`str`): Path of the record file to save.
+            records (list): Sequence of records to store. Sequence generators
+                supported.
+        """
+        mode = 'wt' if cls.LINE_SEP else 'wb'
+        with open_file(path, mode) as stream:
+            cls.write_blocks(stream, records)
+            stream.flush()
+
+    @classmethod
+    def read_records(cls, stream):
+        r"""Reads records from a stream.
+
+        Each line of the input file is parsed via :meth:`parse`, and
+        collected into the returned sequence.
+
+        Arguments:
+            stream (stream): Input stream of the records to read.
+
+        Returns:
+            :obj:`list`: Sequence of parsed records.
+        """
+        if cls.LINE_SEP:
+            records = [cls.unmarshal(line) for line in stream]
+        else:
+            records = [cls.unmarshal(stream.read())]
         return records
 
     @classmethod
-    def save(cls, path, records):
+    def write_records(cls, stream, records):
+        r"""Saves records to a stream.
+
+        Each record of the `records` sequence is stored into the output file.
+
+        Arguments:
+            stream (stream): Output stream of the records to write.
+            records (list): Sequence of records to store. Sequence generators
+                supported.
+        """
+        for record in records:
+            stream.write(record.marshal())
+            stream.write(cls.LINE_SEP)
+
+    @classmethod
+    def load_records(cls, path):
+        r"""Loads records from a file.
+
+        Each line of the input file is parsed via :meth:`parse`, and
+        collected into the returned sequence.
+
+        Arguments:
+            path (:obj:`str`): Path of the record file to load.
+
+        Returns:
+            :obj:`list`: Sequence of parsed records.
+        """
+        mode = 'rt' if cls.LINE_SEP else 'rb'
+        with open_file(path, mode) as stream:
+            records = cls.read_records(stream)
+        return records
+
+    @classmethod
+    def save_records(cls, path, records):
         r"""Saves records to a file.
 
         Each record of the `records` sequence is converted into text via
@@ -1044,16 +1182,15 @@ class Record(object):
             records (list): Sequence of records to store. Sequence generators
                 supported.
         """
-        with open_file(path, 'wt') as stream:
-            for record in records:
-                stream.write(str(record))
-                stream.write('\n')
+        mode = 'wt' if cls.LINE_SEP else 'wb'
+        with open_file(path, mode) as stream:
+            cls.write_records(stream, records)
             stream.flush()
 
 
 @enum.unique
 class BinaryTag(enum.IntEnum):
-    """Binary record tag."""
+    """Hexadecimal record tag."""
 
     DATA = 0
     """Data record."""
@@ -1065,6 +1202,8 @@ class BinaryTag(enum.IntEnum):
 
 
 class BinaryRecord(Record):
+
+    LINE_SEP = b''
 
     EXTENSIONS = ('.bin', '.dat', '.raw')
 
@@ -1092,8 +1231,8 @@ class BinaryRecord(Record):
         return record
 
     @classmethod
-    def parse(cls, line):
-        r"""Parses a binary record line.
+    def parse_record(cls, line):
+        r"""Parses a hexadecimal record line.
 
         Warning:
             Since it parses raw hex data, it is not possible to set address
@@ -1101,14 +1240,22 @@ class BinaryRecord(Record):
 
         Example:
             >>> line = '48656C6C 6F2C2057 6F726C64 21'
-            >>> BinaryRecord.parse(line)
+            >>> BinaryRecord.parse_record(line)
             ... #doctest: +NORMALIZE_WHITESPACE
             BinaryRecord(address=0x00000000, tag=0, count=13,
                          data=b'Hello, World!', checksum=0x69)
         """
         line = str(line).strip()
         data = unhexlify(line)
-        record = cls.build_data(0, data)
+        return cls.unmarshal(data)
+
+    def marshal(self):
+        return self.data
+
+    @classmethod
+    def unmarshal(cls, data, *args, **kwargs):
+        address = kwargs.get('address', 0)
+        record = cls.build_data(address, data)
         return record
 
     @classmethod
@@ -1144,20 +1291,6 @@ class BinaryRecord(Record):
             for chunk in chop(data, columns, align_base):
                 yield cls.build_data(address, chunk)
                 address += len(chunk)
-
-    @classmethod
-    def load(cls, path, *args, **kwargs):
-        with open_file(path, 'rb') as stream:
-            chunk = stream.read()
-        records = cls.split(chunk, *args, **kwargs)
-        return records
-
-    @classmethod
-    def save(cls, path, records, *args, **kwargs):
-        with open_file(path, 'wb') as stream:
-            for record in records:
-                stream.write(record.data)
-            stream.flush()
 
 
 @enum.unique
@@ -1473,7 +1606,7 @@ class MotorolaRecord(Record):
         return count_record
 
     @classmethod
-    def parse(cls, line):
+    def parse_record(cls, line):
         line = str(line).strip()
         match = cls.REGEX.match(line)
         if not match:
@@ -1936,7 +2069,7 @@ class IntelRecord(Record):
         return record
 
     @classmethod
-    def parse(cls, line):
+    def parse_record(cls, line):
         line = str(line).strip()
         match = cls.REGEX.match(line)
         if not match:
@@ -2187,7 +2320,7 @@ class TektronixRecord(Record):
             raise ValueError('count error')
 
     @classmethod
-    def parse(cls, line):
+    def parse_record(cls, line):
         line = str(line).strip()
         match = cls.REGEX.match(line)
         if not match:
@@ -2326,17 +2459,17 @@ for entry_point in pkg_resources.iter_entry_points('hexrec_types'):
     RECORD_TYPES[entry_point.name] = entry_point.load()
 
 
-def find_record_type(file_path):
-    r"""Finds the record type.
+def find_record_type_name(file_path):
+    r"""Finds the record type name.
 
-    Check if the extension of `file_path` is in a record type mapped by
-    ``RECORD_TYPES``, and returns its mapped name.
+    Checks if the extension of `file_path` is a know record type, and returns
+    its mapped name.
 
     Arguments:
         file_path (:obj:`str`): File path to get the file extension from.
 
     Returns:
-        :obj:`str`: Key of ``RECORD_TYPES``.
+        :obj:`str`: Record type name.
 
     Raises:
         KeyError: Unsupported extension.
@@ -2347,3 +2480,23 @@ def find_record_type(file_path):
             return name
     else:
         raise KeyError('unsupported extension: ' + ext)
+
+
+def find_record_type(file_path):
+    r"""Finds the record type class.
+
+    Checks if the extension of `file_path` is a know record type, and returns
+    its mapped type class.
+
+    Arguments:
+        file_path (:obj:`str`): File path to get the file extension from.
+
+    Returns:
+        :obj:`str`: Record type class.
+
+    Raises:
+        KeyError: Unsupported extension.
+    """
+    type_name = find_record_type_name(file_path)
+    record_type = RECORD_TYPES[type_name]
+    return record_type

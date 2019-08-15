@@ -20,7 +20,7 @@ import six
 from .__init__ import __version__ as _version
 from .records import RECORD_TYPES as _RECORD_TYPES
 from .records import convert_file as _convert_file
-from .records import find_record_type as _find_record_type
+from .records import find_record_type_name as _find_record_type_name
 from .records import load_memory as _load_memory
 from .records import merge_files as _merge_files
 from .records import save_memory as _save_memory
@@ -71,14 +71,14 @@ def find_types(input_format, output_format, infile, outfile):
     elif infile == '-':
         raise ValueError('standard input requires input format')
     else:
-        input_type = _RECORD_TYPES[_find_record_type(infile)]
+        input_type = _RECORD_TYPES[_find_record_type_name(infile)]
 
     if output_format:
         output_type = _RECORD_TYPES[output_format]
     elif outfile == '-':
         output_type = input_type
     else:
-        output_type = _RECORD_TYPES[_find_record_type(outfile)]
+        output_type = _RECORD_TYPES[_find_record_type_name(outfile)]
 
     return input_type, output_type
 
@@ -357,8 +357,8 @@ def merge(input_format, output_format, infiles, outfile):
     ``OUTFILE`` is the path of the output file.
     Set to ``-`` to write to standard output.
 
-    Every file of ``INFILES`` will overwrite data of previous files of the list
-    where addresses overlap.
+    Every file of ``INFILES`` will overwrite data of previous files of the
+    list where addresses overlap.
     """
     for infile in infiles:
         if infile != '-':
