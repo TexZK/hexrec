@@ -5,7 +5,7 @@ Changelog
 ------------------
 
 * Added support for current Python versions (3.8, PyPy 3)
-* Removed support for dead Python versions (2.7, 3.4, PyPy 2)
+* Removed support for old Python versions (< 3.6, PyPy 2)
 
 
 0.1.0 (2019-08-13)
