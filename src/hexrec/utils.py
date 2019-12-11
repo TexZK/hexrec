@@ -30,8 +30,6 @@ r"""Generic utility functions.
 import binascii
 import re
 
-import six
-
 BIN8_TO_STR = tuple(bin(i)[2:].zfill(8) for i in range(256))
 STR_TO_BIN8 = {s: i for i, s in enumerate(BIN8_TO_STR)}
 
@@ -255,7 +253,7 @@ def bitlify(data, width=None, sep='', newline='\n', window=8):
     """
     if width is None:
         width = 8 * len(data)
-    bitstr = ''.join(BIN8_TO_STR[b] for b in six.iterbytes(data))
+    bitstr = ''.join(BIN8_TO_STR[b] for b in data)
     return columnize(bitstr, width, sep, newline, window)
 
 
@@ -389,8 +387,7 @@ def humanize_ascii(data, replace='.'):
         >>> humanize_ascii(b'\x89PNG\r\n\x1a\n')
         '.PNG....'
     """
-    text = ''.join(chr(b) if 0x20 <= b < 0x7F else replace
-                   for b in six.iterbytes(data))
+    text = ''.join(chr(b) if 0x20 <= b < 0x7F else replace for b in data)
     return text
 
 

@@ -33,8 +33,6 @@ import os
 import re
 import sys
 
-import six
-
 from .utils import BIN8_TO_STR
 from .utils import chop
 from .utils import hexlify
@@ -94,7 +92,7 @@ def humanize(chunk, charset):
     Returns:
         :obj:`str`: Human-readable byte string.
     """
-    return ''.join(charset[b] for b in six.iterbytes(chunk))
+    return ''.join(charset[b] for b in chunk)
 
 
 def parse_seek(value):
@@ -404,7 +402,6 @@ def xxd(infile=None, outfile=None, autoskip=None, bits=None, cols=None,
 
         last_zero = None
         count = 0
-        iterbytes = six.iterbytes
 
         while True:
             # Input byte columns
@@ -415,7 +412,7 @@ def xxd(infile=None, outfile=None, autoskip=None, bits=None, cols=None,
 
             if chunk:
                 # Null line skipping
-                if autoskip and not any(iterbytes(chunk)):
+                if autoskip and not any(chunk):
                     if last_zero:
                         offset += len(chunk)
                         count += len(chunk)
@@ -431,7 +428,7 @@ def xxd(infile=None, outfile=None, autoskip=None, bits=None, cols=None,
 
                 if bits:
                     tokens = ' '.join(''.join(BIN8_TO_STR[bits]
-                                              for bits in iterbytes(token))
+                                              for bits in token)
                                       for token in tokens)
                 elif groupsize:
                     tokens = ' '.join(hexlify(token[::-1] if endian else token,
@@ -448,7 +445,6 @@ def xxd(infile=None, outfile=None, autoskip=None, bits=None, cols=None,
 
                 # Line output
                 line = line_fmt.format(offset, tokens, text)
-                line = line.decode() if six.PY2 else line
                 outstream.write(line)
 
                 offset += len(chunk)

@@ -64,7 +64,6 @@ import re
 import struct
 
 import pkg_resources
-import six
 from click import open_file
 
 from .blocks import SparseItems
@@ -89,7 +88,7 @@ def get_data_records(records):
 
     Example:
         >>> from hexrec.blocks import chop_blocks
-        >>> data = bytes(bytearray(range(256)))
+        >>> data = bytes(range(256))
         >>> blocks = list(chop_blocks(data, 16))
         >>> records = blocks_to_records(blocks, MotorolaRecord)
         >>> all(r.is_data() for r in get_data_records(records))
@@ -109,7 +108,7 @@ def find_corrupted_records(records):
         :obj:`list` of :obj:`int`: Sequence of corrupted record indices.
 
     Example:
-        >>> data = bytes(bytearray(range(256)))
+        >>> data = bytes(range(256))
         >>> records = list(MotorolaRecord.split(data))
         >>> records[3].checksum ^= 0xFF
         >>> records[5].checksum ^= 0xFF
@@ -142,7 +141,7 @@ def records_to_blocks(records):
 
     Example:
         >>> from hexrec.blocks import chop_blocks, merge
-        >>> data = bytes(bytearray(range(256)))
+        >>> data = bytes(range(256))
         >>> blocks = list(chop_blocks(data, 16))
         >>> records = blocks_to_records(blocks, MotorolaRecord)
         >>> records_to_blocks(records) == merge(blocks)
@@ -174,7 +173,7 @@ def blocks_to_records(blocks, record_type,
 
     Example:
         >>> from hexrec.blocks import chop_blocks, merge
-        >>> data = bytes(bytearray(range(256)))
+        >>> data = bytes(range(256))
         >>> blocks = list(chop_blocks(data, 16))
         >>> records = blocks_to_records(blocks, MotorolaRecord)
         >>> records_to_blocks(records) == merge(blocks)
@@ -226,8 +225,8 @@ def merge_records(data_records, input_types=None, output_type=None,
 
     Example:
         >>> from hexrec.blocks import chop_blocks, merge
-        >>> data1 = bytes(bytearray(range(0, 32)))
-        >>> data2 = bytes(bytearray(range(96, 128)))
+        >>> data1 = bytes(range(0, 32))
+        >>> data2 = bytes(range(96, 128))
         >>> blocks1 = list(chop_blocks(data1, 16, start=0))
         >>> blocks2 = list(chop_blocks(data2, 16, start=96))
         >>> records1 = blocks_to_records(blocks1, MotorolaRecord)
@@ -465,7 +464,7 @@ def load_blocks(path, record_type=None):
         :obj:`list` of block: Blocks loaded from `path`.
 
     Example:
-        >>> blocks = [(offset, bytes(bytearray(range(offset, offset + 16))))
+        >>> blocks = [(offset, bytes(range(offset, offset + 16)))
         ...           for offset in range(0, 256, 16)]
         >>> save_blocks('bytes.mot', blocks)
         >>> load_blocks('bytes.mot') == blocks
@@ -497,7 +496,7 @@ def save_blocks(path, blocks, record_type=None,
             :meth:`Record.build_standalone`.
 
     Example:
-        >>> blocks = [(offset, bytes(bytearray(range(offset, offset + 16))))
+        >>> blocks = [(offset, bytes(range(offset, offset + 16)))
         ...           for offset in range(0, 256, 16)]
         >>> save_blocks('bytes.hex', blocks)
         >>> load_blocks('bytes.hex') == blocks
@@ -521,7 +520,7 @@ def load_memory(path, record_type=None):
         :obj:`SparseItems`: Virtual memory holding data from `path`.
 
     Example:
-        >>> blocks = [(offset, bytes(bytearray(range(offset, offset + 16))))
+        >>> blocks = [(offset, bytes(range(offset, offset + 16)))
         ...           for offset in range(0, 256, 16)]
         >>> sparse_items = SparseItems(blocks=blocks)
         >>> save_memory('bytes.mot', sparse_items)
@@ -547,7 +546,7 @@ def save_memory(path, sparse_items, record_type=None,
         split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
 
     Example:
-        >>> blocks = [(offset, bytes(bytearray(range(offset, offset + 16))))
+        >>> blocks = [(offset, bytes(range(offset, offset + 16)))
         ...           for offset in range(0, 256, 16)]
         >>> sparse_items = SparseItems(blocks=blocks)
         >>> save_memory('bytes.hex', sparse_items)
@@ -572,7 +571,7 @@ def save_chunk(path, chunk, address=0, record_type=None,
         split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
 
     Example:
-        >>> data = bytes(bytearray(range(256)))
+        >>> data = bytes(range(256))
         >>> save_chunk('bytes.mot', data, 0x12345678)
         >>> load_blocks('bytes.mot') == [(0x12345678, data)]
         True
@@ -2475,7 +2474,7 @@ def find_record_type_name(file_path):
         KeyError: Unsupported extension.
     """
     ext = os.path.splitext(file_path)[1].lower()
-    for name, record_type in six.iteritems(RECORD_TYPES):
+    for name, record_type in RECORD_TYPES.items():
         if ext in record_type.EXTENSIONS:
             return name
     else:

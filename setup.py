@@ -24,7 +24,7 @@ def read(*names, **kwargs):
 
 setup(
     name='hexrec',
-    version='0.1.0',
+    version='0.1.1',
     license='BSD 2-Clause License',
     description='Library to handle hexadecimal record files',
     long_description='%s\n%s' % (
@@ -47,12 +47,11 @@ setup(
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',
         'Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator',
@@ -64,9 +63,7 @@ setup(
         # eg: 'keyword1', 'keyword2', 'keyword3',
     ],
     install_requires=[
-        'six',
         'click',
-        'enum34',
         'pathlib',
         # eg: 'aspectlib==1.1.1', 'six>=1.7',
     ],

@@ -15,7 +15,6 @@ Why does this file exist, and why not put this in __main__?
   Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
 import click
-import six
 
 from .__init__ import __version__ as _version
 from .records import RECORD_TYPES as _RECORD_TYPES
@@ -60,7 +59,7 @@ FILE_PATH_IN = click.Path(dir_okay=False, allow_dash=True, readable=True,
                           exists=True)
 FILE_PATH_OUT = click.Path(dir_okay=False, allow_dash=True, writable=True)
 
-RECORD_FORMAT_CHOICE = click.Choice(list(sorted(six.iterkeys(_RECORD_TYPES))))
+RECORD_FORMAT_CHOICE = click.Choice(list(sorted(_RECORD_TYPES.keys())))
 
 # ----------------------------------------------------------------------------
 
@@ -211,7 +210,7 @@ def cut(input_format, output_format, value, start, endex, infile, outfile):
     m = _load_memory(infile, record_type=input_type)
     m.cut(start, endex)
     if value is not None:
-        m.flood(start, endex, bytes(bytearray([value])))
+        m.flood(start, endex, bytes([value]))
     _save_memory(outfile, m, record_type=output_type)
 
 
@@ -290,7 +289,7 @@ def fill(input_format, output_format, value, start, endex, infile, outfile):
                                          infile, outfile)
 
     m = _load_memory(infile, record_type=input_type)
-    m.fill(start, endex, bytes(bytearray([value])))
+    m.fill(start, endex, bytes([value]))
     _save_memory(outfile, m, record_type=output_type)
 
 
@@ -331,7 +330,7 @@ def flood(input_format, output_format, value, start, endex, infile, outfile):
                                          infile, outfile)
 
     m = _load_memory(infile, record_type=input_type)
-    m.flood(start, endex, bytes(bytearray([value])))
+    m.flood(start, endex, bytes([value]))
     _save_memory(outfile, m, record_type=output_type)
 
 

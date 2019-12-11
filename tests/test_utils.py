@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 import pytest
-import six
 
 from hexrec.utils import *
 
-HEXBYTES = bytes(bytearray(range(16)))
+HEXBYTES = bytes(range(16))
 
 # ============================================================================
 
@@ -66,12 +65,12 @@ def test_parse_int_doctest():
 
 
 def test_parse_int_pass():
-    for value_in, value_out in six.iteritems(PARSE_INT_PASS):
+    for value_in, value_out in PARSE_INT_PASS.items():
         assert parse_int(value_in) == value_out
 
 
 def test_parse_int_fail():
-    for value_in, raised_exception in six.iteritems(PARSE_INT_FAIL):
+    for value_in, raised_exception in PARSE_INT_FAIL.items():
         with pytest.raises(raised_exception):
             parse_int(value_in)
 
@@ -113,11 +112,11 @@ def test_bitlify():
     bytes_in = HEXBYTES
 
     sep = ''
-    ans_ref = sep.join('{:08b}'.format(b) for b in six.iterbytes(bytes_in))
+    ans_ref = sep.join('{:08b}'.format(b) for b in bytes_in)
     assert bitlify(bytes_in, sep=sep) == ans_ref
 
     sep = '.'
-    ans_ref = sep.join('{:08b}'.format(b) for b in six.iterbytes(bytes_in))
+    ans_ref = sep.join('{:08b}'.format(b) for b in bytes_in)
     assert bitlify(bytes_in, sep=sep) == ans_ref
 
 # ============================================================================
@@ -131,7 +130,7 @@ def test_unbitlify_doctest():
 def test_unbitlify():
     bytes_ref = HEXBYTES
 
-    str_in = ' '.join('{:08b}'.format(b) for b in six.iterbytes(bytes_ref))
+    str_in = ' '.join('{:08b}'.format(b) for b in bytes_ref)
     assert unbitlify(str_in) == bytes_ref
 
 # ============================================================================
@@ -150,7 +149,7 @@ def test_hexlify():
     bytes_in = HEXBYTES
 
     sep = ''
-    ans_ref = sep.join('{:02x}'.format(b) for b in six.iterbytes(bytes_in))
+    ans_ref = sep.join('{:02x}'.format(b) for b in bytes_in)
     ans_out = hexlify(bytes_in, sep=sep, upper=False)
     assert ans_out == ans_ref
 
@@ -158,12 +157,12 @@ def test_hexlify():
     ans_out = hexlify(bytes_in, sep=sep, upper=False, width=16)
     assert ans_out == ans_ref
 
-    ans_ref = sep.join('{:02X}'.format(b) for b in six.iterbytes(bytes_in))
+    ans_ref = sep.join('{:02X}'.format(b) for b in bytes_in)
     ans_out = hexlify(bytes_in, sep=sep, upper=True)
     assert ans_out == ans_ref
 
     sep = '.'
-    ans_ref = sep.join('{:02X}'.format(b) for b in six.iterbytes(bytes_in))
+    ans_ref = sep.join('{:02X}'.format(b) for b in bytes_in)
     ans_out = hexlify(bytes_in, sep=sep, upper=True)
     assert ans_out == ans_ref
 
@@ -178,10 +177,10 @@ def test_unhexlify_doctest():
 def test_unhexlify():
     bytes_ref = HEXBYTES
 
-    str_in = ' '.join('{:02x}'.format(b) for b in six.iterbytes(bytes_ref))
+    str_in = ' '.join('{:02x}'.format(b) for b in bytes_ref)
     assert unhexlify(str_in) == bytes_ref
 
-    str_in = ' '.join('{:02X}'.format(b) for b in six.iterbytes(bytes_ref))
+    str_in = ' '.join('{:02X}'.format(b) for b in bytes_ref)
     assert unhexlify(str_in) == bytes_ref
 
 # ============================================================================
@@ -189,16 +188,16 @@ def test_unhexlify():
 def test_hexlify_lists():
     bytes_in = HEXBYTES
 
-    ans_ref = [['{:02x}'.format(b) for b in six.iterbytes(bytes_in)]]
+    ans_ref = [['{:02x}'.format(b) for b in bytes_in]]
     ans_out = hexlify_lists(bytes_in, upper=False)
     assert ans_out == ans_ref
 
-    ans_ref = ['{:02x}'.format(b) for b in six.iterbytes(bytes_in)]
+    ans_ref = ['{:02x}'.format(b) for b in bytes_in]
     ans_ref = [ans_ref[:8], ans_ref[8:]]
     ans_out = hexlify_lists(bytes_in, upper=False, width=16)
     assert ans_out == ans_ref
 
-    ans_ref = [['{:02X}'.format(b) for b in six.iterbytes(bytes_in)]]
+    ans_ref = [['{:02X}'.format(b) for b in bytes_in]]
     ans_out = hexlify_lists(bytes_in, upper=True)
     assert ans_out == ans_ref
 
@@ -221,7 +220,7 @@ def test_humanize_ebcdic_doctest():
 # ============================================================================
 
 def test_sum_bytes_doctest():
-    assert sum_bytes(bytes(bytearray(range(16)))) == 120
+    assert sum_bytes(bytes(range(16))) == 120
     assert sum_bytes(range(16)) == 120
 
 def test_sum_bytes():
