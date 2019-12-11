@@ -111,14 +111,31 @@ block ``b`` must follow a block ``a`` which end address is lesser than the
 True
 
 """
+from typing import Callable
+from typing import Iterable
+from typing import Iterator
+from typing import Optional
+from typing import Sequence
+from typing import Tuple
+from typing import TypeVar
+from typing import Union
+
 from .utils import chop
 from .utils import do_overlap
 from .utils import makefill
 from .utils import straighten_index
 from .utils import straighten_slice
 
+Item = TypeVar('Item')
+ItemSeq = Sequence[Item]
+ItemJoiner = Callable[[Iterable[ItemSeq]], ItemSeq]
 
-def chop_blocks(items, window, align_base=0, start=0):
+Block = Tuple[int, ItemSeq]
+BlockSeq = Sequence[Block]
+
+
+def chop_blocks(items: ItemSeq, window: int,
+                align_base: int = 0, start: int = 0) -> Iterator[Block]:
     r"""Chops a sequence of items into blocks.
 
     Iterates through the vector grouping its items into windows.
@@ -159,7 +176,7 @@ def chop_blocks(items, window, align_base=0, start=0):
         offset += len(chunk)
 
 
-def overlap(block1, block2):
+def overlap(block1: Block, block2: Block) -> bool:
     r"""Checks if two blocks do overlap.
 
     Arguments:
@@ -201,7 +218,7 @@ def overlap(block1, block2):
     return do_overlap(start1, endex1, start2, endex2)
 
 
-def check_sequence(blocks):
+def check_sequence(blocks: BlockSeq) -> bool:
     r"""Checks if a sequence of blocks is valid.
 
     Checks that the sequence is ordered and non-overlapping.
@@ -258,7 +275,7 @@ def check_sequence(blocks):
         return True
 
 
-def sorting(block):
+def sorting(block: Block) -> int:
     r"""Block sorting key.
 
     Allows to sort blocks so that blocks with the same start address are kept
@@ -316,7 +333,7 @@ def sorting(block):
     return block[0]
 
 
-def locate_at(blocks, address):
+def locate_at(blocks: BlockSeq, address: int) -> Optional[Block]:
     r"""Locates the block enclosing an address.
 
     Returns the index of the block enclosing the given address.
@@ -371,7 +388,7 @@ def locate_at(blocks, address):
         return None
 
 
-def locate_start(blocks, address):
+def locate_start(blocks: BlockSeq, address: int) -> int:
     r"""Locates the first block inside of an address range.
 
     Returns the index of the first block whose start address is greater than
@@ -427,7 +444,7 @@ def locate_start(blocks, address):
         return left
 
 
-def locate_endex(blocks, address):
+def locate_endex(blocks: BlockSeq, address: int) -> int:
     r"""Locates the first block after an address range.
 
     Returns the index of the first block whose end address is lesser than or
@@ -483,7 +500,7 @@ def locate_endex(blocks, address):
         return right + 1
 
 
-def shift(blocks, amount):
+def shift(blocks: BlockSeq, amount: int) -> BlockSeq:
     r"""Shifts the address of blocks.
 
     Arguments:
@@ -509,7 +526,8 @@ def shift(blocks, amount):
     return [(start + amount, items) for start, items in blocks]
 
 
-def find(blocks, value, start=None, endex=None):
+def find(blocks: BlockSeq, value: ItemSeq,
+         start: int = None, endex: int = None) -> int:
     r"""Finds the address of a substring.
 
     Arguments:
@@ -555,7 +573,8 @@ def find(blocks, value, start=None, endex=None):
         raise ValueError('item not found')
 
 
-def read(blocks, start, endex, pattern=b'\0', join=b''.join):
+def read(blocks: BlockSeq, start: int, endex: int,
+         pattern: ItemSeq = b'\0', join: ItemJoiner = b''.join) -> BlockSeq:
     r"""Selects blocks from a range.
 
     Arguments:
@@ -653,7 +672,7 @@ def read(blocks, start, endex, pattern=b'\0', join=b''.join):
     return result
 
 
-def clear(blocks, start, endex):
+def clear(blocks: BlockSeq, start: int, endex: int) -> BlockSeq:
     r"""Clears a range.
 
     Arguments:
@@ -737,7 +756,7 @@ def clear(blocks, start, endex):
     return result
 
 
-def delete(blocks, start, endex):
+def delete(blocks: BlockSeq, start: int, endex: int) -> BlockSeq:
     r"""Deletes a range.
 
     Arguments:
@@ -819,7 +838,7 @@ def delete(blocks, start, endex):
     return result
 
 
-def insert(blocks, inserted):
+def insert(blocks: BlockSeq, inserted: Block) -> BlockSeq:
     r"""Inserts a block into a sequence.
 
     Inserts a block into a sequence, moving existing items after the insertion
@@ -883,7 +902,7 @@ def insert(blocks, inserted):
     return result
 
 
-def write(blocks, written):
+def write(blocks: BlockSeq, written: Block) -> BlockSeq:
     r"""Writes a block onto a sequence.
 
     Arguments:
@@ -921,7 +940,11 @@ def write(blocks, written):
     return result
 
 
-def fill(blocks, start=None, endex=None, pattern=b'\0', join=b''.join):
+def fill(blocks: BlockSeq,
+         start: Optional[int] = None,
+         endex: Optional[int] = None,
+         pattern: ItemSeq = b'\0',
+         join: ItemJoiner = b''.join) -> BlockSeq:
     r"""Overwrites a range with a pattern.
 
     Arguments:
@@ -996,8 +1019,12 @@ def fill(blocks, start=None, endex=None, pattern=b'\0', join=b''.join):
     return result
 
 
-def flood(blocks, start=None, endex=None, pattern=b'\0',
-          flood_only=False, join=b''.join):
+def flood(blocks: BlockSeq,
+          start: Optional[int] = None,
+          endex: Optional[int] = None,
+          pattern: ItemSeq = b'\0',
+          flood_only: bool = False,
+          join: ItemJoiner = b''.join) -> BlockSeq:
     r"""Fills emptiness between non-touching blocks.
 
     Returns a List of the filling blocks, including the existing blocks if
@@ -1094,7 +1121,7 @@ def flood(blocks, start=None, endex=None, pattern=b'\0',
     return result
 
 
-def merge(blocks, join=None):
+def merge(blocks: BlockSeq, join: Optional[ItemJoiner] = None) -> BlockSeq:
     r"""Merges touching blocks.
 
     Arguments:
@@ -1158,7 +1185,7 @@ def merge(blocks, join=None):
     return result
 
 
-def collapse(blocks):
+def collapse(blocks: BlockSeq) -> BlockSeq:
     r"""Collapses blocks of items.
 
     Given a sequence of blocks, they are modified so that a previous block
@@ -1236,7 +1263,7 @@ def collapse(blocks):
     return result
 
 
-def union(*blocks_list, **kwargs):  # kwargs because of Python 2.7
+def union(*blocks_list: BlockSeq, join: Optional[ItemJoiner] = None) -> BlockSeq:
     r"""Performs the union of multiple block lists.
 
     Given some sequences of blocks, their blocks are overwritten to the result
@@ -1283,7 +1310,7 @@ def union(*blocks_list, **kwargs):  # kwargs because of Python 2.7
     result = []
 
     for blocks in blocks_list:
-        result.extend(merge(blocks, join=kwargs.get('join')))
+        result.extend(merge(blocks, join=join))
 
     result = collapse(result)
     result.sort(key=sorting)
@@ -1332,9 +1359,13 @@ class SparseItems(object):
         [(5, 'Hello, World!')]
 
     """
-    def __init__(self, items=None, start=0, blocks=None,
-                 items_type=bytes, items_join=b''.join,
-                 autofill=None, automerge=True):
+    def __init__(self, items: ItemSeq = None,
+                 start: int = 0,
+                 blocks: BlockSeq = None,
+                 items_type: type = bytes,
+                 items_join: ItemJoiner = b''.join,
+                 autofill: Optional[ItemSeq] = None,
+                 automerge: bool = True) -> None:
 
         if items is not None and blocks is not None:
             raise ValueError('cannot construct from both items and blocks')
@@ -1358,7 +1389,7 @@ class SparseItems(object):
         self.autofill = autofill
         self.automerge = automerge
 
-    def __str__(self):
+    def __str__(self) -> str:
         r"""String representation.
 
         Applies :func:`str` to all the items from :attr:`blocks`.
@@ -1381,7 +1412,7 @@ class SparseItems(object):
         """
         return ''.join(str(items) for _, items in self.blocks)
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         r"""Has any items.
 
         Returns:
@@ -1400,7 +1431,7 @@ class SparseItems(object):
 
     __nonzero__ = __bool__  # for Python 2.7
 
-    def __eq__(self, other):
+    def __eq__(self, other: Union['SparseItems', Sequence[ItemSeq], ItemSeq]) -> bool:
         r"""Equality comparison.
 
         Arguments:
@@ -1449,7 +1480,7 @@ class SparseItems(object):
             start, items = next(iter(self.blocks))
             return start == 0 and items == other
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Item]:
         r"""Iterates over all the items.
 
         Yields:
@@ -1469,10 +1500,9 @@ class SparseItems(object):
             ['A', 'B', 'C', 'x', 'y', 'z']
         """
         for _, items in self.blocks:
-            for item in items:
-                yield item
+            yield from items
 
-    def __reversed__(self):
+    def __reversed__(self) -> Iterator[Item]:
         r"""Iterates over all the items, in reverse.
 
         Yields:
@@ -1492,15 +1522,14 @@ class SparseItems(object):
             ['z', 'y', 'x', 'C', 'B', 'A']
         """
         for _, items in reversed(self.blocks):
-            for item in reversed(items):
-                yield item
+            yield from reversed(items)
 
-    def __add__(self, value):
+    def __add__(self, value: Union['SparseItems', ItemSeq, BlockSeq]) -> 'SparseItems':
         r"""Concatenates items.
 
         Arguments:
             value (:obj:`SparseItems` or items or :obj:`list` of block):
-                Items to append at the end of the current virtual space.
+                ItemSeq to append at the end of the current virtual space.
                 If instance of :class:`list`, it is interpreted as a sequence
                 of non-overlapping blocks, sorted by start address.
 
@@ -1515,12 +1544,12 @@ class SparseItems(object):
         result += value
         return result
 
-    def __iadd__(self, value):
+    def __iadd__(self, value: Union['SparseItems', ItemSeq, BlockSeq]) -> 'SparseItems':
         r"""Concatenates items.
 
         Arguments:
             value (:obj:`SparseItems` or items or :obj:`list` of block):
-                Items to append at the end of the current virtual space.
+                ItemSeq to append at the end of the current virtual space.
                 If instance of :class:`list`, it is interpreted as a sequence
                 of non-overlapping blocks, sorted by start address.
 
@@ -1556,7 +1585,7 @@ class SparseItems(object):
         self.blocks = blocks
         return self
 
-    def __mul__(self, times):
+    def __mul__(self, times: int) -> 'SparseItems':
         r"""Repeats the items.
 
         Repeats the stored items by `times`. Each repeated sequence is
@@ -1576,7 +1605,7 @@ class SparseItems(object):
         result *= times
         return result
 
-    def __imul__(self, times):
+    def __imul__(self, times: int) -> 'SparseItems':
         r"""Repeats the items.
 
         Repeats the stored items by `times`. Each repeated sequence is
@@ -1604,7 +1633,7 @@ class SparseItems(object):
         self.blocks = repeated
         return self
 
-    def __len__(self):
+    def __len__(self) -> int:
         r"""Actual length.
 
         Computes the actual length of the stored items, i.e.
@@ -1615,7 +1644,9 @@ class SparseItems(object):
         """
         return self.endex - self.start
 
-    def index(self, value, start=None, endex=None):
+    def index(self, value: Item,
+              start: Optional[int] = None,
+              endex: Optional[int] = None) -> int:
         r"""Index of an item.
 
         Arguments:
@@ -1639,7 +1670,7 @@ class SparseItems(object):
         address = find(self.blocks, value, start, endex)
         return address
 
-    def __contains__(self, value):
+    def __contains__(self, value: Item) -> bool:
         r"""Checks if some value is contained.
 
         Arguments:
@@ -1671,7 +1702,7 @@ class SparseItems(object):
         else:
             return True
 
-    def count(self, value):
+    def count(self, value: Item) -> int:
         r"""Counts items.
 
         Arguments:
@@ -1694,7 +1725,7 @@ class SparseItems(object):
         """
         return sum(items.count(value) for _, items in self.blocks)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Union[slice, int]) -> ItemSeq:
         r"""Reads data.
 
         Arguments:
@@ -1782,12 +1813,12 @@ class SparseItems(object):
                 key -= address
                 return items[key]
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: Union[slice, int], value: ItemSeq) -> None:
         r"""Writes data.
 
         Arguments:
             key (:obj:`slice` or :obj:`int`): Selection range or address.
-            value (items): Items to write at the selection address.
+            value (items): ItemSeq to write at the selection address.
                 If `value` is null, the range is cleared.
 
         Note:
@@ -1885,7 +1916,7 @@ class SparseItems(object):
 
         self.blocks = blocks
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: Union[slice, int]) -> None:
         r"""Deletes data.
 
         Arguments:
@@ -1970,7 +2001,7 @@ class SparseItems(object):
 
         self.blocks = blocks
 
-    def append(self, value):
+    def append(self, value: ItemSeq) -> None:
         r"""Appends some items.
 
         Arguments:
@@ -2002,21 +2033,21 @@ class SparseItems(object):
             blocks = [(0, value)]
         self.blocks = blocks
 
-    def extend(self, items):
+    def extend(self, items: ItemSeq) -> None:
         r"""Concatenates items.
 
         Equivalent to ``self += items``.
 
         Arguments:
             value (:obj:`SparseItems` or items or :obj:`list` of block):
-                Items to append at the end of the current virtual space.
+                ItemSeq to append at the end of the current virtual space.
                 If instance of :class:`list`, it is interpreted as a sequence
                 of non-overlapping blocks, sorted by start address.
         """
         self += items
 
     @property
-    def start(self):
+    def start(self) -> int:
         r"""Inclusive start address.
 
         This property holds the inclusive start address of the virtual space.
@@ -2052,7 +2083,7 @@ class SparseItems(object):
             return 0
 
     @property
-    def endex(self):
+    def endex(self) -> int:
         r"""Exclusive end address.
 
         This property holds the exclusive end address of the virtual space.
@@ -2087,7 +2118,7 @@ class SparseItems(object):
         else:
             return 0
 
-    def shift(self, amount):
+    def shift(self, amount: int) -> None:
         r"""Shifts the items.
 
         Arguments:
@@ -2114,7 +2145,8 @@ class SparseItems(object):
         blocks = shift(blocks, amount)
         self.blocks = blocks
 
-    def read(self, start, endex, pattern=None):
+    def read(self, start: Optional[int], endex: Optional[int],
+             pattern: Optional[ItemSeq] = None) -> ItemSeq:
         r"""Selects items from a range.
 
         Arguments:
@@ -2128,11 +2160,12 @@ class SparseItems(object):
                 If ``None``, the :attr:`autofill` attribute is used.
 
         Returns:
-            items: Items from the selected range.
+            items: ItemSeq from the selected range.
         """
         return self[start:endex:pattern]
 
-    def cut(self, start, endex, pattern=None):
+    def cut(self, start: Optional[int], endex: Optional[int],
+            pattern: Optional[ItemSeq] = None) -> None:
         r"""Keeps data within a range.
 
         Arguments:
@@ -2171,7 +2204,8 @@ class SparseItems(object):
 
         self.blocks = blocks
 
-    def clear(self, start=None, endex=None):
+    def clear(self, start: Optional[int] = None,
+              endex: Optional[int] = None) -> None:
         r"""Clears a range.
 
         Arguments:
@@ -2208,7 +2242,8 @@ class SparseItems(object):
 
         self.blocks = blocks
 
-    def delete(self, start=None, endex=None):
+    def delete(self, start: Optional[int] = None,
+               endex: Optional[int] = None) -> None:
         r"""Deletes a range.
 
         Arguments:
@@ -2239,7 +2274,7 @@ class SparseItems(object):
         """
         del self[start:endex]
 
-    def pop(self, address=None):
+    def pop(self, address: Optional[int] = None) -> Item:
         r"""Retrieves an item and deletes it.
 
         Arguments:
@@ -2314,7 +2349,7 @@ class SparseItems(object):
         self.blocks = blocks
         return value
 
-    def remove(self, value):
+    def remove(self, value: ItemSeq) -> None:
         r"""Removes some data.
 
         Finds the first occurrence of `value` and deletes it.
@@ -2358,7 +2393,7 @@ class SparseItems(object):
 
         self.blocks = blocks
 
-    def insert(self, address, items):
+    def insert(self, address: int, items: ItemSeq) -> None:
         r"""Inserts data.
 
         Inserts a block, moving existing items after the insertion address by
@@ -2394,7 +2429,7 @@ class SparseItems(object):
 
         self.blocks = blocks
 
-    def write(self, address, items):
+    def write(self, address: int, items: ItemSeq) -> None:
         r"""Writes data.
 
         Arguments:
@@ -2427,7 +2462,9 @@ class SparseItems(object):
 
         self.blocks = blocks
 
-    def fill(self, start=None, endex=None, pattern=None):
+    def fill(self, start: Optional[int] = None,
+             endex: Optional[int] = None,
+             pattern: Optional[ItemSeq] = None) -> None:
         r"""Overwrites a range with a pattern.
 
         Arguments:
@@ -2502,7 +2539,9 @@ class SparseItems(object):
 
         self.blocks = blocks
 
-    def flood(self, start=None, endex=None, pattern=None):
+    def flood(self, start: Optional[int] = None,
+              endex: Optional[int] = None,
+              pattern: Optional[ItemSeq] = None) -> None:
         r"""Fills emptiness between non-touching blocks.
 
         Arguments:
@@ -2560,7 +2599,7 @@ class SparseItems(object):
 
         self.blocks = blocks
 
-    def merge(self):
+    def merge(self) -> None:
         r"""Merges touching blocks.
 
         See Also:
@@ -2587,7 +2626,7 @@ class SparseItems(object):
         blocks = merge(blocks, join=self.items_join)
         self.blocks = blocks
 
-    def reverse(self):
+    def reverse(self) -> None:
         r"""Reverses data in-place.
 
         Example:

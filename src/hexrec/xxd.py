@@ -32,6 +32,11 @@ import io
 import os
 import re
 import sys
+from typing import ByteString
+from typing import Mapping
+from typing import Optional
+from typing import Tuple
+from typing import Union
 
 from .utils import BIN8_TO_STR
 from .utils import chop
@@ -82,7 +87,8 @@ HUMAN_EBCDIC = (r'................'
 r"""Mapping from byte to human-readable EBCDIC characters."""
 
 
-def humanize(chunk, charset):
+def humanize(chunk: ByteString,
+             charset: Union[str, Mapping[int, str]]) -> str:
     r"""Translates bytes to a human-readable representation.
 
     Arguments:
@@ -95,7 +101,7 @@ def humanize(chunk, charset):
     return ''.join(charset[b] for b in chunk)
 
 
-def parse_seek(value):
+def parse_seek(value: Optional[str]) -> Tuple[str, int]:
     r"""Parses the seek option string.
 
     Argument:
@@ -116,10 +122,24 @@ def parse_seek(value):
         return ss, sv
 
 
-def xxd(infile=None, outfile=None, autoskip=None, bits=None, cols=None,
-        ebcdic=None, endian=None, groupsize=None, include=None, length=None,
-        offset=None, postscript=False, quadword=False, revert=False,
-        oseek=None, iseek=None, upper_all=False, upper=False):
+def xxd(infile: Optional[Union[str, ByteString]] = None,
+        outfile: Optional[Union[str, ByteString]] = None,
+        autoskip: bool = False,
+        bits: Optional[int] = None,
+        cols: Optional[int] = None,
+        ebcdic: bool = False,
+        endian: bool = False,
+        groupsize: Optional[int] = None,
+        include: bool = False,
+        length: Optional[int] = None,
+        offset: Optional[int] = None,
+        postscript: bool = False,
+        quadword: bool = False,
+        revert: bool = False,
+        oseek: Optional[int] = None,
+        iseek: Optional[Union[int, str]] = None,
+        upper_all: bool = False,
+        upper: bool = False) -> None:
     r"""Emulation of the xxd utility core.
 
     Arguments:

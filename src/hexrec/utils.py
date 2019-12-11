@@ -29,9 +29,23 @@ r"""Generic utility functions.
 """
 import binascii
 import re
+from typing import Any
+from typing import ByteString
+from typing import Callable
+from typing import Iterable
+from typing import Iterator
+from typing import List
+from typing import Mapping
+from typing import Optional
+from typing import Sequence
+from typing import Tuple
+from typing import TypeVar
+from typing import Union
 
-BIN8_TO_STR = tuple(bin(i)[2:].zfill(8) for i in range(256))
-STR_TO_BIN8 = {s: i for i, s in enumerate(BIN8_TO_STR)}
+T = TypeVar('T')
+
+BIN8_TO_STR: Tuple[str] = tuple(bin(i)[2:].zfill(8) for i in range(256))
+STR_TO_BIN8: Mapping[str, int] = {s: i for i, s in enumerate(BIN8_TO_STR)}
 
 INT_REGEX = re.compile(r'^\s*(?P<sign>[+-]?)\s*'
                        r'(?P<prefix>(0x|0b|0o|0)?)'
@@ -40,7 +54,7 @@ INT_REGEX = re.compile(r'^\s*(?P<sign>[+-]?)\s*'
                        r'(?P<scale>[km]?)\s*$')
 
 
-def expmsg(actual, expected, msg=None):
+def expmsg(actual: str, expected: str, msg: str = None) -> str:
     r"""Builds an expectation messages.
 
     Arguments:
@@ -62,7 +76,7 @@ def expmsg(actual, expected, msg=None):
     return text
 
 
-def parse_int(value):
+def parse_int(value: Union[str, Any]) -> int:
     r"""Parses an integer.
 
     Arguments:
@@ -132,7 +146,7 @@ def parse_int(value):
         return int(value)
 
 
-def chop(vector, window, align_base=0):
+def chop(vector: Sequence[T], window: int, align_base: int = 0) -> Iterator[T]:
     r"""Chops a vector.
 
     Iterates through the vector grouping its items into windows.
@@ -171,7 +185,8 @@ def chop(vector, window, align_base=0):
         yield vector[i:(i + window)]
 
 
-def columnize(line, width, sep='', newline='\n', window=1):
+def columnize(line: str, width: int, sep: str = '',
+              newline: str = '\n', window: int = 1) -> str:
     r"""Splits and wraps a line into columns.
 
     A text line is wrapped up to a width limit, separated by a given newline
@@ -206,7 +221,8 @@ def columnize(line, width, sep='', newline='\n', window=1):
     return flat
 
 
-def columnize_lists(vector, width, window=1):
+def columnize_lists(vector: Sequence[Any], width: int,
+                    window: int = 1) -> List[str]:
     r"""Splits and wraps a line into columns.
 
     A vector is wrapped up to a width limit; wrapped slices are collected
@@ -230,7 +246,8 @@ def columnize_lists(vector, width, window=1):
     return nested
 
 
-def bitlify(data, width=None, sep='', newline='\n', window=8):
+def bitlify(data: ByteString, width: int = None, sep: str = '',
+            newline: str = '\n', window: int = 8) -> str:
     r"""Splits ans wraps byte data into columns.
 
     A chunk of byte data is converted into a text line, and then
@@ -257,7 +274,7 @@ def bitlify(data, width=None, sep='', newline='\n', window=8):
     return columnize(bitstr, width, sep, newline, window)
 
 
-def unbitlify(binstr):
+def unbitlify(binstr: str) -> bytes:
     r"""Converts a binary text line into bytes.
 
     Arguments:
@@ -276,7 +293,8 @@ def unbitlify(binstr):
     return data
 
 
-def hexlify(data, width=None, sep='', newline='\n', window=2, upper=True):
+def hexlify(data: ByteString, width: int = None, sep: str = '',
+            newline: str = '\n', window: int = 2, upper: bool = True) -> str:
     r"""Splits ans wraps byte data into hexadecimal columns.
 
     A chunk of byte data is converted into a hexadecimal text line, and then
@@ -311,7 +329,7 @@ def hexlify(data, width=None, sep='', newline='\n', window=2, upper=True):
     return columnize(hexstr, width, sep, newline, window)
 
 
-def unhexlify(hexstr):
+def unhexlify(hexstr: str) -> bytes:
     r"""Converts a hexadecimal text line into bytes.
 
     Arguments:
@@ -329,7 +347,8 @@ def unhexlify(hexstr):
     return data
 
 
-def hexlify_lists(data, width=None, window=2, upper=True):
+def hexlify_lists(data: ByteString, width: int = None, window: int = 2,
+                  upper: bool = True) -> List[str]:
     r"""Splits and columnizes an hexadecimal representation.
 
     Converts some byte data into text as per :func:`hexlify`, then
@@ -369,7 +388,7 @@ def hexlify_lists(data, width=None, window=2, upper=True):
     return columnize_lists(hexstr, width, window)
 
 
-def humanize_ascii(data, replace='.'):
+def humanize_ascii(data: ByteString, replace: str = '.') -> str:
     r"""ASCII for human readers.
 
     Simplifies the ASCII representation replacing all non-human-readable
@@ -391,7 +410,7 @@ def humanize_ascii(data, replace='.'):
     return text
 
 
-def humanize_ebcdic(data, replace='.'):
+def humanize_ebcdic(data: ByteString, replace: str = '.') -> str:
     r"""EBCDIC for human readers.
 
     Simplifies the EBCDIC representation replacing all non-human-readable
@@ -414,14 +433,14 @@ def humanize_ebcdic(data, replace='.'):
     return text
 
 
-def sum_bytes(data):
+def sum_bytes(data: Union[ByteString, str]) -> int:
     r"""Sums bytes.
 
     Supports both Python 2.7 and Python 3.
 
     Arguments:
-        data (:obj:`bytes`): Data bytes. Actually supports any sequence with
-            integers in it.
+        data (:obj:`bytes` or :obj:`str`): Data bytes. Actually supports any
+            sequence with integers in it.
 
     Returns:
         :obj:`int`: The sum of all items in `data`.
@@ -439,7 +458,7 @@ def sum_bytes(data):
         return sum(data)
 
 
-def do_overlap(start1, endex1, start2, endex2):
+def do_overlap(start1: int, endex1: int, start2: int, endex2: int) -> bool:
     r"""Do ranges overlap?
 
     Arguments:
@@ -474,7 +493,7 @@ def do_overlap(start1, endex1, start2, endex2):
     return (endex1 > start2 and endex2 > start1)
 
 
-def straighten_index(index, length):
+def straighten_index(index: Optional[int], length: int) -> int:
     """Wraps negative vector index.
 
     Arguments:
@@ -512,7 +531,10 @@ def straighten_index(index, length):
     return index
 
 
-def straighten_slice(start, stop, step, length):
+def straighten_slice(start: Optional[int],
+                     stop: Optional[int],
+                     step: Optional[int],
+                     length: int) -> Tuple[int, int, int]:
     """Wraps negative slice indices.
 
     Arguments:
@@ -566,7 +588,7 @@ def straighten_slice(start, stop, step, length):
     return start, stop, step
 
 
-def wrap_index(index, length):
+def wrap_index(index: Optional[int], length: int) -> int:
     """Wraps vector index into a window.
 
     Arguments:
@@ -602,7 +624,10 @@ def wrap_index(index, length):
     return index
 
 
-def wrap_slice(start, stop, step, length):
+def wrap_slice(start: Optional[int],
+               stop: Optional[int],
+               step: Optional[int],
+               length: Optional[int]) -> Tuple[int, int, int]:
     """Wraps slice indices into a window.
 
     Arguments:
@@ -659,7 +684,8 @@ def wrap_slice(start, stop, step, length):
     return start, stop, step
 
 
-def makefill(pattern, start, endex, join=b''.join):
+def makefill(pattern: T, start: int, endex: int,
+             join: Callable[[Iterable[T]], T] = b''.join) -> T:
     r"""Builds a filling pattern.
 
     Arguments:
