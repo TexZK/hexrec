@@ -1318,7 +1318,7 @@ def union(*blocks_list: BlockSeq, join: Optional[ItemJoiner] = None) -> BlockSeq
     return result
 
 
-class SparseItems(object):
+class SparseItems:
     r"""Sparse item blocks manager.
 
     This is an helper class to emulate a virtual space with sparse blocks of

@@ -62,6 +62,18 @@ import enum
 import os
 import re
 import struct
+from typing import IO
+from typing import Any
+from typing import ByteString
+from typing import Callable
+from typing import Iterable
+from typing import Iterator
+from typing import Mapping
+from typing import Optional
+from typing import Sequence
+from typing import Tuple
+from typing import TypeVar
+from typing import Union
 
 import pkg_resources
 from click import open_file
@@ -76,8 +88,17 @@ from .utils import hexlify
 from .utils import sum_bytes
 from .utils import unhexlify
 
+Item = TypeVar('Item')
+ItemSeq = Sequence[Item]
+ItemJoiner = Callable[[Iterable[ItemSeq]], ItemSeq]
 
-def get_data_records(records):
+Block = Tuple[int, ItemSeq]
+BlockSeq = Sequence[Block]
+
+RecordSeq = Sequence['Record']
+
+
+def get_data_records(records: RecordSeq) -> RecordSeq:
     r"""Extracts data records.
 
     Arguments:
@@ -98,7 +119,7 @@ def get_data_records(records):
     return data_records
 
 
-def find_corrupted_records(records):
+def find_corrupted_records(records: RecordSeq) -> RecordSeq:
     r"""Finds corrupted records.
 
     Arguments:
@@ -125,7 +146,7 @@ def find_corrupted_records(records):
     return corrupted
 
 
-def records_to_blocks(records):
+def records_to_blocks(records: RecordSeq) -> RecordSeq:
     r"""Converts records to blocks.
 
     Extracts all the data records, collapses them in the order they compare in
@@ -152,9 +173,13 @@ def records_to_blocks(records):
     return blocks
 
 
-def blocks_to_records(blocks, record_type,
-                      split_args=None, split_kwargs=None,
-                      build_args=None, build_kwargs=None):
+def blocks_to_records(blocks: BlockSeq,
+                      record_type: type,
+                      split_args: Optional[Sequence[Any]] = None,
+                      split_kwargs: Optional[Mapping[str, Any]] = None,
+                      build_args: Optional[Sequence[Any]] = None,
+                      build_kwargs: Optional[Mapping[str, Any]] = None) \
+                      -> RecordSeq:
     r"""Converts blocks to records.
 
     Arguments:
@@ -196,9 +221,14 @@ def blocks_to_records(blocks, record_type,
     return records
 
 
-def merge_records(data_records, input_types=None, output_type=None,
-                  split_args=None, split_kwargs=None,
-                  build_args=None, build_kwargs=None):
+def merge_records(data_records: RecordSeq,
+                  input_types: Optional[Sequence[type]] = None,
+                  output_type: Optional[type] = None,
+                  split_args: Optional[Sequence[Any]] = None,
+                  split_kwargs: Optional[Mapping[str, Any]] = None,
+                  build_args: Optional[Sequence[Any]] = None,
+                  build_kwargs: Optional[Mapping[str, Any]] = None) \
+                  -> RecordSeq:
     r"""Merges data records.
 
     Merges multiple sequences of data records where each sequence overwrites
@@ -257,9 +287,14 @@ def merge_records(data_records, input_types=None, output_type=None,
     return output_records
 
 
-def convert_records(records, input_type=None, output_type=None,
-                    split_args=None, split_kwargs=None,
-                    build_args=None, build_kwargs=None):
+def convert_records(records: RecordSeq,
+                    input_type: Optional[type] = None,
+                    output_type: Optional[type] = None,
+                    split_args: Optional[Sequence[Any]] = None,
+                    split_kwargs: Optional[Mapping[str, Any]] = None,
+                    build_args: Optional[Sequence[Any]] = None,
+                    build_kwargs: Optional[Mapping[str, Any]] = None) \
+                    -> RecordSeq:
     r"""Converts records to another type.
 
     Arguments:
@@ -307,9 +342,15 @@ def convert_records(records, input_type=None, output_type=None,
     return output_records
 
 
-def merge_files(input_files, output_file, input_types=None, output_type=None,
-                split_args=None, split_kwargs=None,
-                build_args=None, build_kwargs=None):
+def merge_files(input_files: Sequence[str],
+                output_file: str,
+                input_types: Optional[Sequence[type]] = None,
+                output_type: Optional[type] = None,
+                split_args: Optional[Sequence[Any]] = None,
+                split_kwargs: Optional[Mapping[str, Any]] = None,
+                build_args: Optional[Sequence[Any]] = None,
+                build_kwargs: Optional[Mapping[str, Any]] = None) \
+                -> RecordSeq:
     r"""Merges record files.
 
     Merges multiple record files where each file overwrites overlapping data
@@ -364,9 +405,15 @@ def merge_files(input_files, output_file, input_types=None, output_type=None,
     output_type.save_records(output_file, output_records)
 
 
-def convert_file(input_file, output_file, input_type=None, output_type=None,
-                 split_args=None, split_kwargs=None,
-                 build_args=None, build_kwargs=None):
+def convert_file(input_file: str,
+                 output_file: str,
+                 input_type: Optional[type] = None,
+                 output_type: Optional[type] = None,
+                 split_args: Optional[Sequence[Any]] = None,
+                 split_kwargs: Optional[Mapping[str, Any]] = None,
+                 build_args: Optional[Sequence[Any]] = None,
+                 build_kwargs: Optional[Mapping[str, Any]] = None) \
+                 -> RecordSeq:
     r"""Converts a record file to another record type.
 
     Warning:
@@ -399,7 +446,7 @@ def convert_file(input_file, output_file, input_type=None, output_type=None,
                 split_args, split_kwargs, build_args, build_kwargs)
 
 
-def load_records(path, record_type=None):
+def load_records(path: str, record_type: Optional[type] = None) -> RecordSeq:
     r"""Loads records from a record file.
 
     Arguments:
@@ -420,8 +467,11 @@ def load_records(path, record_type=None):
     return records
 
 
-def save_records(path, records, output_type=None,
-                 split_args=None, split_kwargs=None):
+def save_records(path: str,
+                 records: RecordSeq,
+                 output_type: Optional[type] = None,
+                 split_args: Optional[Sequence[Any]] = None,
+                 split_kwargs: Optional[Mapping[str, Any]] = None) -> None:
     r"""Saves records to a record file.
 
     Arguments:
@@ -452,7 +502,7 @@ def save_records(path, records, output_type=None,
     output_type.save_records(path, records)
 
 
-def load_blocks(path, record_type=None):
+def load_blocks(path: str, record_type: Optional[type] = None):
     r"""Loads blocks from a record file.
 
     Arguments:
@@ -477,9 +527,13 @@ def load_blocks(path, record_type=None):
     return blocks
 
 
-def save_blocks(path, blocks, record_type=None,
-                split_args=None, split_kwargs=None,
-                build_args=None, build_kwargs=None):
+def save_blocks(path: str,
+                blocks: BlockSeq,
+                record_type: Optional[type] = None,
+                split_args: Optional[Sequence[Any]] = None,
+                split_kwargs: Optional[Mapping[str, Any]] = None,
+                build_args: Optional[Sequence[Any]] = None,
+                build_kwargs: Optional[Mapping[str, Any]] = None) -> None:
     r"""Saves blocks to a record file.
 
     Arguments:
@@ -508,7 +562,7 @@ def save_blocks(path, blocks, record_type=None,
     record_type.save_blocks(path, blocks)
 
 
-def load_memory(path, record_type=None):
+def load_memory(path: str, record_type: Optional[type] = None) -> SparseItems:
     r"""Loads a virtual memory from a file.
 
     Arguments:
@@ -533,8 +587,11 @@ def load_memory(path, record_type=None):
     return sparse_items
 
 
-def save_memory(path, sparse_items, record_type=None,
-                split_args=None, split_kwargs=None):
+def save_memory(path: str,
+                sparse_items: SparseItems,
+                record_type: Optional[type] = None,
+                split_args: Optional[Sequence[Any]] = None,
+                split_kwargs: Optional[Mapping[str, Any]] = None) -> None:
     r"""Saves a virtual memory to a record file.
 
     Arguments:
@@ -557,8 +614,12 @@ def save_memory(path, sparse_items, record_type=None,
                 split_args, split_kwargs)
 
 
-def save_chunk(path, chunk, address=0, record_type=None,
-               split_args=None, split_kwargs=None):
+def save_chunk(path: str,
+               chunk: ByteString,
+               address: int = 0,
+               record_type: Optional[type] = None,
+               split_args: Optional[Sequence[Any]] = None,
+               split_kwargs: Optional[Mapping[str, Any]] = None) -> None:
     r"""Saves a data chunk to a record file.
 
     Arguments:
@@ -580,7 +641,16 @@ def save_chunk(path, chunk, address=0, record_type=None,
                 split_args, split_kwargs)
 
 
-class Record(object):
+class Tag(enum.IntEnum):
+    """Abstract record tag."""
+
+    @classmethod
+    def is_data(cls, value: Union[int, 'BinaryTag']) -> bool:
+        r""":obj:`bool`: `value` is a data record tag."""
+        raise NotImplementedError()
+
+
+class Record:
     r"""Abstract record type.
 
     A record is the basic structure of a record file.
@@ -624,7 +694,11 @@ class Record(object):
         IntelRecord(address=0x00001234, tag=<IntelTag.DATA: 0>, count=13,
                     data=b'Hello, World!', checksum=0x44)
     """
-    def __init__(self, address, tag, data, checksum=Ellipsis):
+    def __init__(self, address: int,
+                 tag: Tag,
+                 data: ByteString,
+                 checksum: Union[int, type(Ellipsis)] = Ellipsis):
+
         self.address = address
         self.tag = tag
         self.data = data
@@ -642,7 +716,7 @@ class Record(object):
     textual.
     """
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         fmt = ('{0}('
                'address=0x{1.address:08X}, '
                'tag={1.tag!r}, '
@@ -653,7 +727,7 @@ class Record(object):
         checksum = self._get_checksum() or 0
         return fmt.format(type(self).__name__, self, checksum)
 
-    def __str__(self):
+    def __str__(self) -> str:
         r"""Converts to text string.
 
         Builds a printable text representation of the record, usually the same
@@ -676,7 +750,7 @@ class Record(object):
         """
         return repr(self)
 
-    def __eq__(self, other):
+    def __eq__(self, other: 'Record') -> bool:
         r"""Equality comparison.
 
         Returns:
@@ -707,7 +781,7 @@ class Record(object):
                 self.tag == other.tag and
                 self.data == other.data)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         r"""Computes the hash value.
 
         Computes the hash of the :class:`Record` fields.
@@ -740,7 +814,7 @@ class Record(object):
                 hash(int(self.count) or 0) ^
                 hash(int(self.checksum) or 0))
 
-    def __lt__(self, other):
+    def __lt__(self, other: 'Record'):
         r"""Less-than comparison.
 
         Returns:
@@ -759,7 +833,7 @@ class Record(object):
         """
         return self.address < other.address
 
-    def is_data(self):
+    def is_data(self) -> bool:
         r"""Tells if it is a data record.
 
         Tells whether the record contains plain binary data, i.e. it is not a
@@ -791,7 +865,7 @@ class Record(object):
         """
         return self.TAG_TYPE.is_data(self.tag)
 
-    def compute_count(self):
+    def compute_count(self) -> int:
         r"""Computes the count.
 
         Returns:
@@ -819,11 +893,11 @@ class Record(object):
         """
         return len(self.data)
 
-    def update_count(self):
+    def update_count(self) -> None:
         r"""Updates the `count` field via :meth:`compute_count`."""
         self.count = self.compute_count()
 
-    def compute_checksum(self):
+    def compute_checksum(self) -> int:
         r"""Computes the checksum.
 
         Returns:
@@ -851,11 +925,11 @@ class Record(object):
         """
         return sum_bytes(self.data) & 0xFF
 
-    def update_checksum(self):
+    def update_checksum(self) -> None:
         r"""Updates the `checksum` field via :meth:`compute_count`."""
         self.checksum = self.compute_checksum()
 
-    def _get_checksum(self):
+    def _get_checksum(self) -> int:
         r""":obj:`int`: The `checksum` field itself if not ``None``, the
             value computed by :meth:`compute_count` otherwise.
         """
@@ -864,7 +938,7 @@ class Record(object):
         else:
             return self.checksum
 
-    def check(self):
+    def check(self) -> None:
         r"""Performs consistency checks.
 
         Raises:
@@ -889,7 +963,7 @@ class Record(object):
             if self.checksum != self.compute_checksum():
                 raise ValueError('checksum error')
 
-    def overlaps(self, other):
+    def overlaps(self, other: 'Record') -> bool:
         r"""Checks if overlapping occurs.
 
         This record and another have overlapping `data`, when both `address`
@@ -918,7 +992,7 @@ class Record(object):
                               other.address + len(other.data))
 
     @classmethod
-    def parse_record(cls, line, *args, **kwargs):
+    def parse_record(cls, line: str, *args: Any, **kwargs: Any) -> 'Record':
         r"""Parses a record from a text line.
 
         Arguments:
@@ -934,7 +1008,7 @@ class Record(object):
         """
         raise NotImplementedError('method must be overriden')
 
-    def marshal(self, *args, **kwargs):
+    def marshal(self, *args: Any, **kwargs: Any) -> str:
         r"""Marshals a record for output.
 
         Arguments:
@@ -947,7 +1021,8 @@ class Record(object):
         return str(self)
 
     @classmethod
-    def unmarshal(cls, data, *args, **kwargs):
+    def unmarshal(cls, data: ByteString,
+                  *args: Any, **kwargs: Any) -> 'Record':
         r"""Unmarshals a record from input.
 
         Arguments:
@@ -961,7 +1036,8 @@ class Record(object):
         return cls.parse_record(data, *args, **kwargs)
 
     @classmethod
-    def split(cls, data, *args, **kwargs):
+    def split(cls, data: ByteString,
+              *args: Any, **kwargs: Any) -> Sequence['Record']:
         r"""Splits a chunk of data into records.
 
         Arguments:
@@ -975,7 +1051,8 @@ class Record(object):
         raise NotImplementedError('method must be overriden')
 
     @classmethod
-    def build_standalone(cls, data_records, *args, **kwargs):
+    def build_standalone(cls, data_records: RecordSeq,
+                         *args: Any, **kwargs: Any) -> 'Record':
         r"""Makes a sequence of data records standalone.
 
         Arguments:
@@ -996,7 +1073,7 @@ class Record(object):
             yield record
 
     @classmethod
-    def check_sequence(cls, records):
+    def check_sequence(cls, records: RecordSeq) -> None:
         r"""Consistency check of a sequence of records.
 
         Raises:
@@ -1021,7 +1098,7 @@ class Record(object):
             record_endex = record.address + len(record.data)
 
     @classmethod
-    def readdress(cls, records):
+    def readdress(cls, records: RecordSeq) -> None:
         r"""Converts to flat addressing.
 
         Some record types, notably the *Intel HEX*, store records by some
@@ -1041,7 +1118,7 @@ class Record(object):
         pass
 
     @classmethod
-    def read_blocks(cls, stream):  # TODO
+    def read_blocks(cls, stream: IO) -> BlockSeq:  # TODO
         r"""Reads blocks from a stream.
 
         Read blocks from the input stream into the returned sequence.
@@ -1058,9 +1135,12 @@ class Record(object):
         return blocks
 
     @classmethod
-    def write_blocks(cls, stream, blocks,
-                     split_args=None, split_kwargs=None,
-                     build_args=None, build_kwargs=None):  # TODO test
+    def write_blocks(cls, stream: IO,
+                     blocks: BlockSeq,
+                     split_args: Optional[Sequence[Any]] = None,
+                     split_kwargs: Optional[Mapping[str, Any]] = None,
+                     build_args: Optional[Sequence[Any]] = None,
+                     build_kwargs: Optional[Mapping[str, Any]] = None) -> None:
         r"""Writes blocks to a stream.
 
         Each block of the `blocks` sequence is converted into a record via
@@ -1083,7 +1163,7 @@ class Record(object):
         cls.write_records(stream, records)
 
     @classmethod
-    def load_blocks(cls, path):  # TODO
+    def load_blocks(cls, path: str) -> BlockSeq:
         r"""Loads blocks from a file.
 
         Each line of the input file is parsed via :meth:`parse_block`,
@@ -1101,7 +1181,7 @@ class Record(object):
         return blocks
 
     @classmethod
-    def save_blocks(cls, path, records):  # TODO
+    def save_blocks(cls, path: str, records: RecordSeq) -> None:
         r"""Saves blocks to a file.
 
         Each block of the `blocks` sequence is converted into a record via
@@ -1118,7 +1198,7 @@ class Record(object):
             stream.flush()
 
     @classmethod
-    def read_records(cls, stream):
+    def read_records(cls, stream: IO) -> RecordSeq:
         r"""Reads records from a stream.
 
         Each line of the input file is parsed via :meth:`parse`, and
@@ -1137,7 +1217,7 @@ class Record(object):
         return records
 
     @classmethod
-    def write_records(cls, stream, records):
+    def write_records(cls, stream: IO, records: RecordSeq) -> None:
         r"""Saves records to a stream.
 
         Each record of the `records` sequence is stored into the output file.
@@ -1152,7 +1232,7 @@ class Record(object):
             stream.write(cls.LINE_SEP)
 
     @classmethod
-    def load_records(cls, path):
+    def load_records(cls, path: str) -> RecordSeq:
         r"""Loads records from a file.
 
         Each line of the input file is parsed via :meth:`parse`, and
@@ -1170,7 +1250,7 @@ class Record(object):
         return records
 
     @classmethod
-    def save_records(cls, path, records):
+    def save_records(cls, path: str, records: RecordSeq):
         r"""Saves records to a file.
 
         Each record of the `records` sequence is converted into text via
@@ -1188,14 +1268,14 @@ class Record(object):
 
 
 @enum.unique
-class BinaryTag(enum.IntEnum):
+class BinaryTag(Tag):
     """Hexadecimal record tag."""
 
     DATA = 0
     """Data record."""
 
     @classmethod
-    def is_data(cls, value):
+    def is_data(cls, value: Union[int, 'BinaryTag']) -> bool:
         r""":obj:`bool`: `value` is a data record tag."""
         return True
 
@@ -1206,18 +1286,22 @@ class BinaryRecord(Record):
 
     EXTENSIONS = ('.bin', '.dat', '.raw')
 
-    def __init__(self, address, tag, data, checksum=Ellipsis):
+    def __init__(self, address: int,
+                 tag: BinaryTag,
+                 data: ByteString,
+                 checksum: Union[int, type(Ellipsis)] = Ellipsis) -> None:
+
         super(BinaryRecord, self).__init__(address, 0, data, checksum)
 
-    def __str__(self):
+    def __str__(self) -> str:
         text = hexlify(self.data)
         return text
 
-    def is_data(self):
+    def is_data(self) -> bool:
         return True
 
     @classmethod
-    def build_data(cls, address, data):
+    def build_data(cls, address: int, data: ByteString) -> 'BinaryRecord':
         r"""Builds a data record.
 
         Example:
@@ -1230,7 +1314,7 @@ class BinaryRecord(Record):
         return record
 
     @classmethod
-    def parse_record(cls, line):
+    def parse_record(cls, line: str) -> Sequence['BinaryRecord']:
         r"""Parses a hexadecimal record line.
 
         Warning:
@@ -1248,18 +1332,24 @@ class BinaryRecord(Record):
         data = unhexlify(line)
         return cls.unmarshal(data)
 
-    def marshal(self):
+    def marshal(self) -> ByteString:
         return self.data
 
     @classmethod
-    def unmarshal(cls, data, *args, **kwargs):
+    def unmarshal(cls, data: ByteString,
+                  *args: Any,
+                  **kwargs: Any) -> 'BinaryRecord':
+
         address = kwargs.get('address', 0)
         record = cls.build_data(address, data)
         return record
 
     @classmethod
-    def split(cls, data, address=0, columns=None, align=True,
-              standalone=True):
+    def split(cls, data: ByteString,
+              address: int = 0,
+              columns: Optional[int] = None,
+              align: bool = True,
+              standalone: bool = True) -> Sequence['BinaryRecord']:
         r"""Splits a chunk of data into records.
 
         Arguments:
@@ -1293,7 +1383,7 @@ class BinaryRecord(Record):
 
 
 @enum.unique
-class MotorolaTag(enum.IntEnum):
+class MotorolaTag(Tag):
     """Motorola S-record tag."""
 
     HEADER = 0
@@ -1327,7 +1417,7 @@ class MotorolaTag(enum.IntEnum):
     """16-bit start address. Terminates :attr:`DATA_16`."""
 
     @classmethod
-    def is_data(cls, value):
+    def is_data(cls, value: Union[int, 'MotorolaTag']) -> bool:
         r""":obj:`bool`: `value` is a data record tag."""
         return value in (cls.DATA_16, cls.DATA_24, cls.DATA_32)
 
@@ -1354,11 +1444,15 @@ class MotorolaRecord(Record):
     EXTENSIONS = ('.mot', '.s19', '.s28', '.s37', '.srec', '.exo')
     """Automatically supported file extensions."""
 
-    def __init__(self, address, tag, data, checksum=Ellipsis):
+    def __init__(self, address: int,
+                 tag: MotorolaTag,
+                 data: ByteString,
+                 checksum: Union[int, type(Ellipsis)] = Ellipsis) -> None:
+
         super(MotorolaRecord, self).__init__(address, self.TAG_TYPE(tag),
                                              data, checksum)
 
-    def __str__(self):
+    def __str__(self) -> str:
         self.check()
         tag_text = 'S{:d}'.format(self.tag)
 
@@ -1382,18 +1476,18 @@ class MotorolaRecord(Record):
                         checksum_text))
         return text
 
-    def compute_count(self):
+    def compute_count(self) -> int:
         tag = int(self.tag)
         address_length = self.TAG_TO_ADDRESS_LENGTH[tag] or 0
         return address_length + len(self.data) + 1
 
-    def compute_checksum(self):
+    def compute_checksum(self) -> int:
         checksum = sum_bytes(struct.pack('BL', self.count, self.address))
         checksum += sum_bytes(self.data)
         checksum = (checksum & 0xFF) ^ 0xFF
         return checksum
 
-    def check(self):
+    def check(self) -> None:
         super(MotorolaRecord, self).check()
 
         tag = int(self.TAG_TYPE(self.tag))
@@ -1405,7 +1499,7 @@ class MotorolaRecord(Record):
             raise ValueError('count error')
 
     @classmethod
-    def fit_data_tag(cls, endex):
+    def fit_data_tag(cls, endex: int) -> 'MotorolaRecord':
         r"""Fits a data tag by address.
 
         Depending on the value of `endex`, get the data tag with the smallest
@@ -1456,7 +1550,7 @@ class MotorolaRecord(Record):
             return cls.TAG_TYPE.DATA_32
 
     @classmethod
-    def fit_count_tag(cls, record_count):
+    def fit_count_tag(cls, record_count: int) -> 'MotorolaRecord':
         r"""Fits the record count tag.
 
         Arguments:
@@ -1492,7 +1586,7 @@ class MotorolaRecord(Record):
             return cls.TAG_TYPE.COUNT_24
 
     @classmethod
-    def build_header(cls, data):
+    def build_header(cls, data: ByteString) -> 'MotorolaRecord':
         r"""Builds a header record.
 
         Arguments:
@@ -1508,7 +1602,9 @@ class MotorolaRecord(Record):
         return cls(0, 0, data)
 
     @classmethod
-    def build_data(cls, address, data, tag=None):
+    def build_data(cls, address: int,
+                   data: ByteString,
+                   tag: Optional[MotorolaTag] = None) -> 'MotorolaRecord':
         r"""Builds a data record.
 
         Arguments:
@@ -1549,7 +1645,9 @@ class MotorolaRecord(Record):
         return record
 
     @classmethod
-    def build_terminator(cls, start, last_data_tag=MotorolaTag.DATA_16):
+    def build_terminator(cls, start: int,
+                         last_data_tag: MotorolaTag = MotorolaTag.DATA_16) \
+            -> 'MotorolaRecord':
         r"""Builds a terminator record.
 
         Arguments:
@@ -1580,7 +1678,7 @@ class MotorolaRecord(Record):
         return terminator_record
 
     @classmethod
-    def build_count(cls, record_count):
+    def build_count(cls, record_count: int) -> 'MotorolaRecord':
         r"""Builds a count record.
 
         Arguments:
@@ -1605,7 +1703,7 @@ class MotorolaRecord(Record):
         return count_record
 
     @classmethod
-    def parse_record(cls, line):
+    def parse_record(cls, line: str) -> 'MotorolaRecord':
         line = str(line).strip()
         match = cls.REGEX.match(line)
         if not match:
@@ -1623,7 +1721,10 @@ class MotorolaRecord(Record):
         return record
 
     @classmethod
-    def build_standalone(cls, data_records, start=None, tag=None, header=b''):
+    def build_standalone(cls, data_records: RecordSeq,
+                         start: Optional[int] = None,
+                         tag: Optional[MotorolaTag] = None,
+                         header: ByteString = b''):
         r"""Makes a sequence of data records standalone.
 
         Arguments:
@@ -1663,7 +1764,7 @@ class MotorolaRecord(Record):
         yield cls.build_terminator(start, tag)
 
     @classmethod
-    def check_sequence(cls, records, overlap=True):
+    def check_sequence(cls, records: RecordSeq, overlap: bool = True) -> None:
         Record.check_sequence(records)
 
         unpack = struct.unpack
@@ -1749,8 +1850,15 @@ class MotorolaRecord(Record):
             raise ValueError('sequence length error')
 
     @classmethod
-    def split(cls, data, address=0, columns=16, align=True,
-              standalone=True, start=None, tag=None, header=b''):
+    def split(cls, data: ByteString,
+              address: int = 0,
+              columns: int = 16,
+              align: bool = True,
+              standalone: bool = True,
+              start: Optional[int] = None,
+              tag: Optional[MotorolaTag] = None,
+              header: ByteString = b'') \
+            -> Sequence['MotorolaRecord']:
         r"""Splits a chunk of data into records.
 
         Arguments:
@@ -1802,7 +1910,7 @@ class MotorolaRecord(Record):
             yield cls.build_terminator(start, tag)
 
     @classmethod
-    def fix_tags(cls, records):
+    def fix_tags(cls, records: RecordSeq) -> Sequence['MotorolaRecord']:
         r"""Fix record tags.
 
         Updates record tags to reflect modified size and count.
@@ -1851,7 +1959,7 @@ class MotorolaRecord(Record):
 
 
 @enum.unique
-class IntelTag(enum.IntEnum):
+class IntelTag(Tag):
     """Intel HEX tag."""
 
     DATA = 0
@@ -1873,7 +1981,7 @@ class IntelTag(enum.IntEnum):
     """Start linear address."""
 
     @classmethod
-    def is_data(cls, value):
+    def is_data(cls, value: Union[int, 'IntegTag']) -> bool:
         r""":obj:`bool`: `value` is a data record tag."""
         return value == cls.DATA
 
@@ -1898,7 +2006,11 @@ class IntelRecord(Record):
     EXTENSIONS = ('.hex', '.ihex', '.mcs')
     """Automatically supported file extensions."""
 
-    def __init__(self, address, tag, data, checksum=Ellipsis):
+    def __init__(self, address: int,
+                 tag: 'IntelTag',
+                 data: ByteString,
+                 checksum: Union[int, type(Ellipsis)] = Ellipsis) -> None:
+
         if not 0 <= address < (1 << 32):
             raise ValueError('address overflow')
         if not 0 <= address + len(data) <= (1 << 32):
@@ -1906,7 +2018,7 @@ class IntelRecord(Record):
         super(IntelRecord, self).__init__(address, self.TAG_TYPE(tag),
                                           data, checksum)
 
-    def __str__(self):
+    def __str__(self) -> str:
         self.check()
         offset = (self.address or 0) & 0xFFFF
         data = self.data or b''
@@ -1916,10 +2028,10 @@ class IntelRecord(Record):
         text = fmt.format(len(data), offset, self.tag, data_hex, checksum)
         return text
 
-    def compute_count(self):
+    def compute_count(self) -> int:
         return len(self.data)
 
-    def compute_checksum(self):
+    def compute_checksum(self) -> int:
         offset = (self.address or 0) & 0xFFFF
 
         checksum = (self.count +
@@ -1930,7 +2042,7 @@ class IntelRecord(Record):
         checksum = (0x100 - int(checksum & 0xFF)) & 0xFF
         return checksum
 
-    def check(self):
+    def check(self) -> None:
         super(IntelRecord, self).check()
 
         if self.count != self.compute_count():
@@ -1940,7 +2052,7 @@ class IntelRecord(Record):
         # TODO: check values
 
     @classmethod
-    def build_data(cls, address, data):
+    def build_data(cls, address: int, data: ByteString) -> 'IntelRecord':
         r"""Builds a data record.
 
         Arguments:
@@ -1958,7 +2070,7 @@ class IntelRecord(Record):
         return record
 
     @classmethod
-    def build_extended_segment_address(cls, address):
+    def build_extended_segment_address(cls, address: int) -> 'IntelRecord':
         r"""Builds an extended segment address record.
 
         Arguments:
@@ -1980,7 +2092,7 @@ class IntelRecord(Record):
         return record
 
     @classmethod
-    def build_start_segment_address(cls, address):
+    def build_start_segment_address(cls, address: int) -> 'IntelRecord':
         r"""Builds an start segment address record.
 
         Arguments:
@@ -2004,7 +2116,7 @@ class IntelRecord(Record):
         return record
 
     @classmethod
-    def build_end_of_file(cls):
+    def build_end_of_file(cls) -> 'IntelRecord':
         r"""Builds an end-of-file record.
 
         Returns:
@@ -2018,7 +2130,7 @@ class IntelRecord(Record):
         return cls(0, tag, b'')
 
     @classmethod
-    def build_extended_linear_address(cls, address):
+    def build_extended_linear_address(cls, address: int) -> 'IntelRecord':
         r"""Builds an extended linear address record.
 
         Arguments:
@@ -2044,7 +2156,7 @@ class IntelRecord(Record):
         return record
 
     @classmethod
-    def build_start_linear_address(cls, address):
+    def build_start_linear_address(cls, address: int) -> 'IntelRecord':
         r"""Builds an start linear address record.
 
         Arguments:
@@ -2068,7 +2180,7 @@ class IntelRecord(Record):
         return record
 
     @classmethod
-    def parse_record(cls, line):
+    def parse_record(cls, line: str) -> 'IntelRecord':
         line = str(line).strip()
         match = cls.REGEX.match(line)
         if not match:
@@ -2087,8 +2199,12 @@ class IntelRecord(Record):
         return record
 
     @classmethod
-    def split(cls, data, address=0, columns=16, align=True,
-              standalone=True, start=None):
+    def split(cls, data: ByteString,
+              address: int = 0,
+              columns: int = 16,
+              align: bool = True,
+              standalone: bool = True,
+              start: Optional[int] = None) -> Iterator['IntelRecord']:
         r"""Splits a chunk of data into records.
 
         Arguments:
@@ -2152,7 +2268,9 @@ class IntelRecord(Record):
                 yield record
 
     @classmethod
-    def build_standalone(cls, data_records, start=None):
+    def build_standalone(cls, data_records: RecordSeq,
+                         start: Optional[int] = None) \
+            -> Iterator['IntelRecord']:
         r"""Makes a sequence of data records standalone.
 
         Arguments:
@@ -2176,7 +2294,7 @@ class IntelRecord(Record):
             yield record
 
     @classmethod
-    def terminate(cls, start):
+    def terminate(cls, start: int) -> Sequence['IntelRecord']:
         r"""Builds a record termination sequence.
 
         The termination sequence is made of:
@@ -2200,7 +2318,7 @@ class IntelRecord(Record):
                 cls.build_end_of_file()]
 
     @classmethod
-    def readdress(cls, records):
+    def readdress(cls, records: RecordSeq) -> Sequence['IntelRecord']:
         r"""Converts to flat addressing.
 
         *Intel HEX*, stores records by *segment/offset* addressing.
@@ -2254,12 +2372,12 @@ class IntelRecord(Record):
 
 
 @enum.unique
-class TektronixTag(enum.IntEnum):
+class TektronixTag(Tag):
     DATA = 6
     TERMINATOR = 8
 
     @classmethod
-    def is_data(cls, value):
+    def is_data(cls, value: Union[int, 'TektronixTag']) -> bool:
         r""":obj:`bool`: `value` is a data record tag."""
         return value == cls.DATA
 
@@ -2285,11 +2403,15 @@ class TektronixRecord(Record):
     EXTENSIONS = ('.tek',)
     """Automatically supported file extensions."""
 
-    def __init__(self, address, tag, data, checksum=Ellipsis):
+    def __init__(self, address: int,
+                 tag: TektronixTag,
+                 data: ByteString,
+                 checksum: Union[int, type(Ellipsis)] = Ellipsis) -> None:
+
         super(TektronixRecord, self).__init__(address, self.TAG_TYPE(tag),
                                               data, checksum)
 
-    def __str__(self):
+    def __str__(self) -> str:
         self.check()
         checksum = self._get_checksum()
         fmt = '%{0.count:02X}{0.tag:01X}{1:02X}8{0.address:08X}'
@@ -2297,18 +2419,18 @@ class TektronixRecord(Record):
         text += hexlify(self.data)
         return text
 
-    def compute_count(self):
+    def compute_count(self) -> int:
         count = 9 + (len(self.data) * 2)
         return count
 
-    def compute_checksum(self):
+    def compute_checksum(self) -> int:
         fmt = '{0.count:02X}{0.tag:01X}8{0.address:08X}'
         text = fmt.format(self)
         text += hexlify(self.data)
         checksum = sum_bytes(int(c, 16) for c in text) & 0xFF
         return checksum
 
-    def check(self):
+    def check(self) -> None:
         super(TektronixRecord, self).check()
         tag = self.TAG_TYPE(self.tag)
 
@@ -2319,7 +2441,7 @@ class TektronixRecord(Record):
             raise ValueError('count error')
 
     @classmethod
-    def parse_record(cls, line):
+    def parse_record(cls, line: str) -> 'TektronixRecord':
         line = str(line).strip()
         match = cls.REGEX.match(line)
         if not match:
@@ -2337,7 +2459,7 @@ class TektronixRecord(Record):
         return record
 
     @classmethod
-    def build_data(cls, address, data):
+    def build_data(cls, address: int, data: ByteString) -> 'TektronixRecord':
         r"""Builds a data record.
 
         Arguments:
@@ -2355,7 +2477,7 @@ class TektronixRecord(Record):
         return record
 
     @classmethod
-    def build_terminator(cls, start):
+    def build_terminator(cls, start: int) -> 'TektronixRecord':
         r"""Builds a terminator record.
 
         Arguments:
@@ -2372,8 +2494,13 @@ class TektronixRecord(Record):
         return record
 
     @classmethod
-    def split(cls, data, address=0, columns=16, align=True,
-              standalone=True, start=None):
+    def split(cls, data: ByteString,
+              address: int = 0,
+              columns: int = 16,
+              align: bool = True,
+              standalone: bool = True,
+              start: Optional[int] = None) \
+            -> Iterator['TektronixRecord']:
         r"""Splits a chunk of data into records.
 
         Arguments:
@@ -2412,7 +2539,9 @@ class TektronixRecord(Record):
             yield cls.build_terminator(address if start is None else start)
 
     @classmethod
-    def build_standalone(cls, data_records, start=None):
+    def build_standalone(cls, data_records: RecordSeq,
+                         start: Optional[int] = None) \
+            -> Iterator['TektronixRecord']:
         r"""Makes a sequence of data records standalone.
 
         Arguments:
@@ -2435,7 +2564,7 @@ class TektronixRecord(Record):
         yield cls.build_terminator(start)
 
     @classmethod
-    def check_sequence(cls, records):
+    def check_sequence(cls, records: RecordSeq) -> None:
         Record.check_sequence(records)
 
         if len(records) < 1:
@@ -2458,7 +2587,7 @@ for entry_point in pkg_resources.iter_entry_points('hexrec_types'):
     RECORD_TYPES[entry_point.name] = entry_point.load()
 
 
-def find_record_type_name(file_path):
+def find_record_type_name(file_path: str) -> str:
     r"""Finds the record type name.
 
     Checks if the extension of `file_path` is a know record type, and returns
@@ -2481,7 +2610,7 @@ def find_record_type_name(file_path):
         raise KeyError('unsupported extension: ' + ext)
 
 
-def find_record_type(file_path):
+def find_record_type(file_path: str) -> type:
     r"""Finds the record type class.
 
     Checks if the extension of `file_path` is a know record type, and returns

@@ -336,7 +336,7 @@ def test_union_doctest():
 
 # ============================================================================
 
-class TestSparseItems(object):
+class TestSparseItems:
 
     def test___init__(self):
         obj = SparseItems(items_type=str, items_join=''.join)

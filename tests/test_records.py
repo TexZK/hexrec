@@ -298,7 +298,15 @@ def test_save_chunk_doctest(tmppath):
 
 # ============================================================================
 
-class TestRecord(object):
+class TestTag:
+
+    def test_is_data(self):
+        with pytest.raises(NotImplementedError):
+            Tag.is_data(0)
+
+# ============================================================================
+
+class TestRecord:
 
     def test___init___doctest(self):
         r = BinaryRecord(0x1234, 0, b'Hello, World!')
@@ -574,7 +582,7 @@ class TestRecord(object):
 
 # ============================================================================
 
-class TestBinaryTag(object):
+class TestBinaryTag:
 
     def test_is_data(self):
         for tag in range(256):
@@ -582,7 +590,7 @@ class TestBinaryTag(object):
 
 # ============================================================================
 
-class TestBinaryRecord(object):
+class TestBinaryRecord:
 
     def test_build_data_doctest(self):
         record = BinaryRecord.build_data(0x1234, b'Hello, World!')
@@ -639,7 +647,7 @@ class TestBinaryRecord(object):
 
 # ============================================================================
 
-class TestMotorolaTag(object):
+class TestMotorolaTag:
 
     def test_is_data(self):
         DATA_INTS = {1, 2, 3}
@@ -649,7 +657,7 @@ class TestMotorolaTag(object):
 
 # ============================================================================
 
-class TestMotorolaRecord(object):
+class TestMotorolaRecord:
 
     def test___init___doctest(self):
         pass  # TODO
@@ -1052,7 +1060,7 @@ class TestMotorolaRecord(object):
 
 # ============================================================================
 
-class TestIntelTag(object):
+class TestIntelTag:
 
     def test_is_data(self):
         DATA_INTS = {0}
@@ -1062,7 +1070,7 @@ class TestIntelTag(object):
 
 # ============================================================================
 
-class TestIntelRecord(object):
+class TestIntelRecord:
 
     def test___init___doctest(self):
         pass  # TODO
@@ -1295,7 +1303,7 @@ class TestIntelRecord(object):
 
 # ============================================================================
 
-class TestTektronixTag(object):
+class TestTektronixTag:
 
     def test_is_data(self):
         DATA_INTS = {6}
@@ -1305,7 +1313,7 @@ class TestTektronixTag(object):
 
 # ============================================================================
 
-class TestTektronixRecord(object):
+class TestTektronixRecord:
 
     def test___init___doctest(self):
         pass  # TODO
