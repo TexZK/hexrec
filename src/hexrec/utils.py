@@ -71,8 +71,8 @@ def expmsg(actual: str, expected: str, msg: str = None) -> str:
         actual:   1
         expected: 2
     """
-    text = '' if msg is None else '{!s}\n'.format(msg)
-    text += 'actual:   {!s}\nexpected: {!s}'.format(actual, expected)
+    text = '' if msg is None else f'{msg!s}\n'
+    text += f'actual:   {actual!s}\nexpected: {expected!s}'
     return text
 
 
@@ -113,7 +113,7 @@ def parse_int(value: Union[str, Any]) -> int:
         value = value.lower()
         m = INT_REGEX.match(value)
         if not m:
-            raise ValueError('invalid syntax: {!r}'.format(value))
+            raise ValueError(f'invalid syntax: {value!r}')
         g = m.groupdict()
         sign = g['sign']
         prefix = g['prefix']
@@ -121,7 +121,7 @@ def parse_int(value: Union[str, Any]) -> int:
         suffix = g['suffix']
         scale = g['scale']
         if prefix in ('0b', '0o') and suffix == 'h':
-            raise ValueError('invalid syntax: {!r}'.format(value))
+            raise ValueError(f'invalid syntax: {value!r}')
 
         if prefix == '0x' or suffix == 'h':
             i = int(value, 16)

@@ -351,7 +351,7 @@ def xxd(infile: Optional[Union[str, ByteString]] = None,
 
                 if chunk:
                     outstream.write(hexlify(chunk, upper=upper))
-                    outstream.write(u'\n')
+                    outstream.write('\n')
                     count += len(chunk)
                 else:
                     raise StopIteration  # End of input stream
@@ -370,11 +370,10 @@ def xxd(infile: Optional[Union[str, ByteString]] = None,
             if isinstance(infile, str):
                 label = os.path.basename(infile)
                 label = re.sub('[^0-9a-zA-Z]+', '_', label)
-                fmt = u'unsigned char {}[] = {{\n'
-                outstream.write(fmt.format(label))
+                outstream.write(f'unsigned char {label}[] = {{\n')
 
-            indent = u'  0X' if upper_all else u'  0x'
-            sep = u', 0X' if upper_all else u', 0x'
+            indent = '  0X' if upper_all else '  0x'
+            sep = ', 0X' if upper_all else ', 0x'
 
             count = 0
             while True:
@@ -385,7 +384,7 @@ def xxd(infile: Optional[Union[str, ByteString]] = None,
 
                 if chunk:
                     if count:
-                        outstream.write(u',\n')
+                        outstream.write(',\n')
                     outstream.write(indent)
                     outstream.write(hexlify(chunk, upper=upper, sep=sep))
                     count += len(chunk)
@@ -393,10 +392,10 @@ def xxd(infile: Optional[Union[str, ByteString]] = None,
                 else:
                     # Data end and length variable definition
                     if isinstance(infile, str):
-                        fmt = u'\n}};\nunsigned int {}_len = {};\n'
-                        outstream.write(fmt.format(label, count))
+                        outstream.write(f'\n}};\nunsigned int {label}_len'
+                                        f' = {count};\n')
                     else:
-                        outstream.write(u'\n')
+                        outstream.write('\n')
 
                     raise StopIteration  # End of input stream
 
@@ -411,10 +410,13 @@ def xxd(infile: Optional[Union[str, ByteString]] = None,
 
         data_width = (cols * (8 if bits else 2) +
                       ((cols - 1) // groupsize if groupsize else 0))
-        line_fmt = '{{:0{}{}}}: {{:{}s}}  {{}}\n'
-        line_fmt = line_fmt.format(16 if quadword else 8,
-                                   'X' if upper_all else 'x',
-                                   data_width)
+
+        line_fmt = (f'{{:0'
+                    f'{16 if quadword else 8}'
+                    f'{"X" if upper_all else "x"}'
+                    f'}}: '
+                    f'{{:{data_width}s}}  '
+                    f'{{}}\n')
 
         # Hex dump
         if not 0 <= offset < 0xFFFFFFFF:

@@ -1328,7 +1328,9 @@ class SparseItems:
         blocks (:obj:`list` of block): A sequence of non-overlapping blocks,
             sorted by address.
         items_type (class): Type of the items stored into blocks.
+            Defaults to :obj:`bytes` if ``None``.
         items_join (callable): A function to join a sequence of items.
+            Defaults to ``items_type().join`` if ``None``.
         autofill (items): Pattern for automatic flood, or ``None``.
         automerge (:obj:`bool`): Automatically merges touching blocks after
             operations that can alter attribute :attr:`blocks`.
@@ -1362,10 +1364,16 @@ class SparseItems:
     def __init__(self, items: ItemSeq = None,
                  start: int = 0,
                  blocks: BlockSeq = None,
-                 items_type: type = bytes,
-                 items_join: ItemJoiner = b''.join,
+                 items_type: Optional[type] = None,
+                 items_join: Optional[ItemJoiner] = None,
                  autofill: Optional[ItemSeq] = None,
                  automerge: bool = True) -> None:
+
+        if items_type is None:
+            items_type = bytes
+
+        if items_join is None:
+            items_join = items_type().join
 
         if items is not None and blocks is not None:
             raise ValueError('cannot construct from both items and blocks')
@@ -1405,7 +1413,7 @@ class SparseItems:
             |   |[A | B | C]|   |   |   |[x | y | z]|   |
             +---+---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory = SparseItems(items_type=str)
             >>> memory.blocks = [(1, 'ABC'), (7, 'xyz')]
             >>> str(memory)
             'ABCxyz'
@@ -1524,7 +1532,8 @@ class SparseItems:
         for _, items in reversed(self.blocks):
             yield from reversed(items)
 
-    def __add__(self, value: Union['SparseItems', ItemSeq, BlockSeq]) -> 'SparseItems':
+    def __add__(self, value: Union['SparseItems', ItemSeq, BlockSeq]) \
+            -> 'SparseItems':
         r"""Concatenates items.
 
         Arguments:
@@ -1544,7 +1553,8 @@ class SparseItems:
         result += value
         return result
 
-    def __iadd__(self, value: Union['SparseItems', ItemSeq, BlockSeq]) -> 'SparseItems':
+    def __iadd__(self, value: Union['SparseItems', ItemSeq, BlockSeq]) \
+            -> 'SparseItems':
         r"""Concatenates items.
 
         Arguments:
@@ -1686,7 +1696,7 @@ class SparseItems:
             |   |[A | B | C]|   |[1 | 2 | 3]|   |[x | y | z]|
             +---+---+---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory = SparseItems(items_type=str)
             >>> memory.blocks = [(1, 'ABC'), (5, '123'), (9, 'xyz')]
             >>> '23' in memory
             True
@@ -1718,7 +1728,7 @@ class SparseItems:
             |   |[A | B | C]|   |[B | a | t]|   |[t | a | b]|
             +---+---+---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory = SparseItems(items_type=str)
             >>> memory.blocks = [(1, 'ABC'), (5, 'Bat'), (9, 'tab')]
             >>> memory.count('a')
             2
@@ -1752,7 +1762,7 @@ class SparseItems:
             |   |[A | B | C | D]|   |[$]|   |[x | y | z]|
             +---+---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory = SparseItems(items_type=str)
             >>> memory.blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
             >>> memory[9]
             'y'
@@ -1836,7 +1846,7 @@ class SparseItems:
             |   |[A | B | C]|   |[x | y | z]|   |
             +---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory = SparseItems(items_type=str)
             >>> memory.blocks = [(5, 'ABC'), (9, 'xyz')]
             >>> memory[7:10] = None
             >>> memory.blocks
@@ -1860,8 +1870,7 @@ class SparseItems:
             |[$]|   |[A | B]|[4 | 5]|[< | >]|[8]|[y | z]|   |
             +---+---+---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, items_join=''.join,
-            ...                      automerge=False)
+            >>> memory = SparseItems(items_type=str, automerge=False)
             >>> memory.blocks = [(5, 'ABC'), (9, 'xyz')]
             >>> memory[0:4] = '$'
             >>> memory.blocks
@@ -1935,7 +1944,7 @@ class SparseItems:
             |   |[A | B | C | y | z]|   |   |   |   |   |   |
             +---+---+---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory = SparseItems(items_type=str)
             >>> memory.blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
             >>> del memory[4:9]
             >>> memory.blocks
@@ -1951,7 +1960,7 @@ class SparseItems:
             |   |[A | B | C]|[y | z]|   |   |   |   |   |   |
             +---+---+---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, items_join=''.join,
+            >>> memory = SparseItems(items_type=str,
             ...                      automerge=False)
             >>> memory.blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
             >>> del memory[4:9]
@@ -1970,7 +1979,7 @@ class SparseItems:
             |   |[A | B | D]|   |[$]|   |[x | z]|   |   |   |
             +---+---+---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory = SparseItems(items_type=str)
             >>> memory.blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
             >>> del memory[-2]
             >>> memory.blocks
@@ -2012,14 +2021,14 @@ class SparseItems:
             :attr:`items_type` with unitary length.
 
         Examples:
-            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory = SparseItems(items_type=str)
             >>> memory.append('$')
             >>> memory.blocks
             [(0, '$')]
 
             ~~~
 
-            >>> memory = SparseItems(items_type=list, items_join=''.join)
+            >>> memory = SparseItems(items_type=list)
             >>> memory.append(3)
             >>> memory.blocks
             [(0, 3)]
@@ -2069,7 +2078,7 @@ class SparseItems:
             |   |[A | B | C]|   |[x | y | z]|   |
             +---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory = SparseItems(items_type=str)
             >>> memory.blocks = [(1, 'ABC'), (5, 'xyz')]
             >>> memory.start
             1
@@ -2105,7 +2114,7 @@ class SparseItems:
             |   |[A | B | C]|   |[x | y | z]|   |
             +---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory = SparseItems(items_type=str)
             >>> memory.blocks = [(1, 'ABC'), (5, 'xyz')]
             >>> memory.endex
             8
@@ -2190,7 +2199,7 @@ class SparseItems:
             |   |   |[B | C]|   |[x]|   |   |   |
             +---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory = SparseItems(items_type=str)
             >>> memory.blocks = [(5, 'ABC'), (9, 'xyz')]
             >>> memory.cut(6, 10)
             >>> memory.blocks
@@ -2228,7 +2237,7 @@ class SparseItems:
             |   |[A]|   |   |   |   |[y | z]|   |
             +---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory = SparseItems(items_type=str)
             >>> memory.blocks = [(5, 'ABC'), (9, 'xyz')]
             >>> memory.clear(6, 10)
             >>> memory.blocks
@@ -2266,7 +2275,7 @@ class SparseItems:
             |   |[A | y | z]|   |   |   |   |   |   |
             +---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory = SparseItems(items_type=str)
             >>> memory.blocks = [(5, 'ABC'), (9, 'xyz')]
             >>> memory.delete(6, 10)
             >>> memory.blocks
@@ -2302,7 +2311,7 @@ class SparseItems:
             |   |[A | C]|[x]|   |   |   |   |   |
             +---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory = SparseItems(items_type=str)
             >>> memory.blocks = [(5, 'ABC'), (9, 'xyz')]
             >>> memory.pop(6)
             'B'
@@ -2371,7 +2380,7 @@ class SparseItems:
             |   |[A | B | C]|   |[1]|   |[x | z]|   |   |   |   |
             +---+---+---+---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory = SparseItems(items_type=str)
             >>> memory.blocks = [(1, 'ABC'), (5, '123'), (9, 'xyz')]
             >>> memory.remove('23')
             >>> memory.blocks
@@ -2415,7 +2424,7 @@ class SparseItems:
             |   |[A | B | C]|   |[1 | 2 | 3]|   |[x | y | z]|   |
             +---+---+---+---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory = SparseItems(items_type=str)
             >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
             >>> memory.insert(5, '123')
             >>> memory.blocks
@@ -2448,7 +2457,7 @@ class SparseItems:
             |   |[A | B | C]|   |[1 | 2 | 3 | z]|   |
             +---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory = SparseItems(items_type=str)
             >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
             >>> memory.write(5, '123')
             >>> memory.blocks
@@ -2489,7 +2498,7 @@ class SparseItems:
             |   |[2 | 3 | 1 | 2 | 3 | 1 | 2 | 3]|   |
             +---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory = SparseItems(items_type=str)
             >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
             >>> memory.fill(pattern='123')
             >>> memory.blocks
@@ -2505,8 +2514,7 @@ class SparseItems:
             |   |[2 | 3 | 1 | 2 | 3 | 1 | 2 | 3]|   |
             +---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, items_join=''.join,
-            ...                      autofill='123')
+            >>> memory = SparseItems(items_type=str, autofill='123')
             >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
             >>> memory.fill()
             >>> memory.blocks
@@ -2522,8 +2530,7 @@ class SparseItems:
             |   |[A | B | 1 | 2 | 3 | 1 | y | z]|   |
             +---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, items_join=''.join,
-            ...                      autofill='123')
+            >>> memory = SparseItems(items_type=str, autofill='123')
             >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
             >>> memory.fill(3, 7)
             >>> memory.blocks
@@ -2566,7 +2573,7 @@ class SparseItems:
             |   |[A | B | C | 2 | 3 | x | y | z]|   |
             +---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory = SparseItems(items_type=str)
             >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
             >>> memory.flood(pattern='123')
             >>> memory.blocks
@@ -2582,8 +2589,7 @@ class SparseItems:
             |   |[A | B | C | 2 | 3 | x | y | z]|   |
             +---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, items_join=''.join,
-            ...                      autofill='123')
+            >>> memory = SparseItems(items_type=str, autofill='123')
             >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
             >>> memory.flood()
             >>> memory.blocks
@@ -2616,7 +2622,7 @@ class SparseItems:
             |   |[A | B | C | x | y | z]|   |
             +---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory = SparseItems(items_type=str)
             >>> memory.blocks = [(1, 'ABC'), (4, 'xyz')]
             >>> memory.merge()
             >>> memory.blocks
@@ -2638,7 +2644,7 @@ class SparseItems:
             |[z | y | x]|   |[$]|   |[C | B | A]|   |   |
             +---+---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, items_join=''.join)
+            >>> memory = SparseItems(items_type=str)
             >>> memory.blocks = [(1, 'ABC'), (5, '$'), (7, 'xyz')]
             >>> memory.reverse()
             >>> memory.blocks

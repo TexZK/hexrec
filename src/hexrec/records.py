@@ -717,15 +717,14 @@ class Record:
     """
 
     def __repr__(self) -> str:
-        fmt = ('{0}('
-               'address=0x{1.address:08X}, '
-               'tag={1.tag!r}, '
-               'count={1.count:d}, '
-               'data={1.data!r}, '
-               'checksum=0x{2:02X}'
-               ')')
-        checksum = self._get_checksum() or 0
-        return fmt.format(type(self).__name__, self, checksum)
+        text = (f'{type(self).__name__}('
+                f'address=0x{self.address:08X}, '
+                f'tag={self.tag!r}, '
+                f'count={self.count:d}, '
+                f'data={self.data!r}, '
+                f'checksum=0x{(self._get_checksum() or 0):02X}'
+                f')')
+        return text
 
     def __str__(self) -> str:
         r"""Converts to text string.
@@ -1454,20 +1453,20 @@ class MotorolaRecord(Record):
 
     def __str__(self) -> str:
         self.check()
-        tag_text = 'S{:d}'.format(self.tag)
+        tag_text = f'S{self.tag:d}'
 
         address_length = self.TAG_TO_ADDRESS_LENGTH[self.tag]
         if address_length is None:
             address_text = ''
-            count_text = '{:02X}'.format(len(self.data) + 1)
+            count_text = f'{(len(self.data) + 1):02X}'
         else:
-            count_text = '{:02X}'.format(address_length + len(self.data) + 1)
+            count_text = f'{(address_length + len(self.data) + 1):02X}'
             offset = 2 * (4 - address_length)
-            address_text = '{:08X}'.format(self.address)[offset:]
+            address_text = f'{self.address:08X}'[offset:]
 
         data_text = hexlify(self.data)
 
-        checksum_text = '{:02X}'.format(self._get_checksum())
+        checksum_text = f'{self._get_checksum():02X}'
 
         text = ''.join((tag_text,
                         count_text,
@@ -2020,12 +2019,12 @@ class IntelRecord(Record):
 
     def __str__(self) -> str:
         self.check()
-        offset = (self.address or 0) & 0xFFFF
         data = self.data or b''
-        data_hex = hexlify(data)
-        checksum = self._get_checksum()
-        fmt = ':{:02X}{:04X}{:02X}{}{:02X}'
-        text = fmt.format(len(data), offset, self.tag, data_hex, checksum)
+        text = (f':{len(data):02X}'
+                f'{((self.address or 0) & 0xFFFF):04X}'
+                f'{self.tag:02X}'
+                f'{hexlify(data)}'
+                f'{self._get_checksum():02X}')
         return text
 
     def compute_count(self) -> int:
@@ -2413,10 +2412,12 @@ class TektronixRecord(Record):
 
     def __str__(self) -> str:
         self.check()
-        checksum = self._get_checksum()
-        fmt = '%{0.count:02X}{0.tag:01X}{1:02X}8{0.address:08X}'
-        text = fmt.format(self, checksum)
-        text += hexlify(self.data)
+        text = (f'%{self.count:02X}'
+                f'{self.tag:01X}'
+                f'{self._get_checksum():02X}'
+                f'8'
+                f'{self.address:08X}'
+                f'{hexlify(self.data)}')
         return text
 
     def compute_count(self) -> int:
@@ -2424,9 +2425,11 @@ class TektronixRecord(Record):
         return count
 
     def compute_checksum(self) -> int:
-        fmt = '{0.count:02X}{0.tag:01X}8{0.address:08X}'
-        text = fmt.format(self)
-        text += hexlify(self.data)
+        text = (f'{self.count:02X}'
+                f'{self.tag:01X}'
+                f'8'
+                f'{self.address:08X}'
+                f'{hexlify(self.data)}')
         checksum = sum_bytes(int(c, 16) for c in text) & 0xFF
         return checksum
 
