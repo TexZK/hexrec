@@ -506,11 +506,13 @@ class TestSparseItems:
 
         assert memory[memory.endex] == ''
 
+        assert memory[3:10:3] == 'C$y'
+        with pytest.raises(ValueError): memory[3:10:2]
+
     def test___getitem__(self):
         memory = SparseItems(items_type=str, autofill='.')
         memory.blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
         assert memory[3:10] == 'CD.$.xy'
-        with pytest.raises(NotImplementedError): _ = memory[::2]
 
     def test___setitem___doctest(self):
         memory = SparseItems(items_type=str)
@@ -520,6 +522,10 @@ class TestSparseItems:
         memory[7] = 'C'
         memory[-3] = 'x'
         assert memory.blocks == [(5, 'ABC'), (9, 'xyz')]
+        memory[6:12:3] = None
+        assert memory.blocks == [(5, 'A'), (7, 'C'), (10, 'yz')]
+        memory[6:12:3] = '123'
+        assert memory.blocks == [(5, 'A1C'), (9, '2yz')]
 
         memory = SparseItems(items_type=str, automerge=False)
         memory.blocks = [(5, 'ABC'), (9, 'xyz')]
@@ -544,7 +550,6 @@ class TestSparseItems:
         memory[1] = None
         assert memory.blocks == [(0, 'A'), (2, 'C')]
         with pytest.raises(ValueError): memory[0] = 'xyz'
-        with pytest.raises(NotImplementedError): memory[::2] = '$'
 
     def test___delitem___doctest(self):
         memory = SparseItems(items_type=str)
@@ -563,10 +568,11 @@ class TestSparseItems:
         assert memory.blocks == [(1, 'ABCD'), (6, '$'), (8, 'xz')]
         del memory[3]
         assert memory.blocks == [(1, 'ABD'), (5, '$'), (7, 'xz')]
+        del memory[2:10:3]
+        assert memory.blocks == [(1, 'AD'), (5, 'x')]
 
     def test___delitem__(self):
-        memory = SparseItems(items='ABC', items_type=str)
-        with pytest.raises(NotImplementedError): del memory[::2]
+        pass
 
     def test_append_doctest(self):
         memory = SparseItems(items_type=str)

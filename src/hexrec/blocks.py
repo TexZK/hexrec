@@ -1437,8 +1437,6 @@ class SparseItems:
         """
         return bool(self.blocks)
 
-    __nonzero__ = __bool__  # for Python 2.7
-
     def __eq__(self, other: Union['SparseItems', Sequence[ItemSeq], ItemSeq]) -> bool:
         r"""Equality comparison.
 
@@ -1780,6 +1778,12 @@ class SparseItems:
             'CD.$.xy'
             >>> memory[memory.endex]
             ''
+            >>> memory[3:10:3]
+            'C$y'
+            >>> memory[3:10:2]
+            Traceback (most recent call last):
+                ...
+            ValueError: contiguous slice not found
         """
         blocks = self.blocks
 
@@ -1809,7 +1813,15 @@ class SparseItems:
                     else:
                         raise ValueError('contiguous slice not found')
                 else:
-                    raise NotImplementedError((start, endex, step))  # TODO
+                    items = []
+                    for address in range(start, endex, step):
+                        index = locate_at(blocks, address)
+                        if index is None:
+                            raise ValueError('contiguous slice not found')
+                        block = blocks[index]
+                        items.append(block[1][address - block[0]])
+                    items = self.items_join(items)
+                    return items
         else:
             key = key.__index__()
             if key < 0:
@@ -1845,16 +1857,30 @@ class SparseItems:
             +===+===+===+===+===+===+===+===+===+
             |   |[A | B | C]|   |[x | y | z]|   |
             +---+---+---+---+---+---+---+---+---+
+            |   |[A]|   |   |   |   |[y | z]|   |
+            +---+---+---+---+---+---+---+---+---+
+            |   |[A | B | C]|   |[x | y | z]|   |
+            +---+---+---+---+---+---+---+---+---+
+            |   |[A]|   |[C]|   |   | y | z]|   |
+            +---+---+---+---+---+---+---+---+---+
+            |   |[A | 1 | C]|   |[2 | y | z]|   |
+            +---+---+---+---+---+---+---+---+---+
 
             >>> memory = SparseItems(items_type=str)
             >>> memory.blocks = [(5, 'ABC'), (9, 'xyz')]
             >>> memory[7:10] = None
             >>> memory.blocks
-            [(5, 'A'), (10, 'yz')]
+            [(5, 'AB'), (10, 'yz')]
             >>> memory[7] = 'C'
             >>> memory[-3] = 'x'
-            >>> memory.blocks == blocks
+            >>> memory.blocks == [(5, 'ABC'), (9, 'xyz')]
             True
+            >>> memory[6:12:3] = None
+            >>> memory.blocks
+            [(5, 'A'), (7, 'C'), (10, 'yz')]
+            >>> memory[6:12:3] = '123'
+            >>> memory.blocks
+            [(5, 'A1C'), (9, '2yz')]
 
             ~~~
 
@@ -1905,9 +1931,17 @@ class SparseItems:
                     else:
                         blocks = write(blocks, (start, value))
                 else:
-                    raise NotImplementedError((start, endex, step))  # TODO
+                    count = min((endex - start) // step, len(value))
+                    for index in range(count):
+                        items = value[index:(index + 1)]
+                        blocks = write(blocks, (start, items))
+                        start += step
             else:
-                blocks = clear(blocks, start, endex)
+                if step is None or step == 1:
+                    blocks = clear(blocks, start, endex)
+                else:
+                    for address in range(start, endex, step):
+                        blocks = clear(blocks, address, address + 1)
         else:
             key = key.__index__()
             if key < 0:
@@ -1978,6 +2012,8 @@ class SparseItems:
             +---+---+---+---+---+---+---+---+---+---+---+---+
             |   |[A | B | D]|   |[$]|   |[x | z]|   |   |   |
             +---+---+---+---+---+---+---+---+---+---+---+---+
+            |   |[A | D]|   |   |[x]|   |   |   |   |   |   |
+            +---+---+---+---+---+---+---+---+---+---+---+---+
 
             >>> memory = SparseItems(items_type=str)
             >>> memory.blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
@@ -1987,6 +2023,9 @@ class SparseItems:
             >>> del memory[3]
             >>> memory.blocks
             [(1, 'ABD'), (5, '$'), (7, 'xz')]
+            >>> del memory[2:10:3]
+            >>> memory.blocks
+            [(1, 'AD'), (5, 'x')]
         """
         blocks = self.blocks
 
@@ -1998,7 +2037,8 @@ class SparseItems:
             if step is None or step == 1:
                 blocks = delete(blocks, start, endex)
             else:
-                raise NotImplementedError((start, endex, step))  # TODO
+                for address in reversed(range(start, endex, step)):
+                    blocks = delete(blocks, address, address + 1)
         else:
             key = key.__index__()
             if key < 0:
