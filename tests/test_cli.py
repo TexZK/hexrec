@@ -9,8 +9,8 @@ from click.testing import CliRunner
 from hexrec.__init__ import __version__ as _version
 from hexrec.__main__ import main as _main
 from hexrec.cli import *
-from hexrec.records import IntelRecord
-from hexrec.records import MotorolaRecord
+from hexrec.formats.intel import Record as IntelRecord
+from hexrec.formats.motorola import Record as MotorolaRecord
 
 # ============================================================================
 

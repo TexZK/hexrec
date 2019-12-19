@@ -76,10 +76,10 @@ setup(
             'hexrec = hexrec.cli:main',
         ],
         'hexrec_types': [
-            'binary = hexrec.records:BinaryRecord',
-            'intel = hexrec.records:IntelRecord',
-            'motorola = hexrec.records:MotorolaRecord',
-            'tektronix = hexrec.records:TektronixRecord',
+            'binary = hexrec.formats.binary:Record',
+            'intel = hexrec.formats.intel:Record',
+            'motorola = hexrec.formats.motorola:Record',
+            'tektronix = hexrec.formats.tektronix:Record',
         ],
     },
 )
