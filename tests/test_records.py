@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from hexrec.blocks import SparseItems
+from hexrec.blocks import Memory
 from hexrec.blocks import chop_blocks
 from hexrec.blocks import merge
 from hexrec.formats.binary import Record as BinaryRecord
@@ -283,7 +283,7 @@ def test_load_memory_doctest(tmppath):
     path = str(tmppath / 'bytes.mot')
     blocks = [(offset, bytes(range(offset, offset + 16)))
               for offset in range(0, 256, 16)]
-    sparse_items = SparseItems(blocks=blocks)
+    sparse_items = Memory(blocks=blocks)
     save_memory(path, sparse_items)
     ans_out = load_memory(path)
     ans_ref = sparse_items
@@ -295,7 +295,7 @@ def test_save_memory_doctest(tmppath):
     path = str(tmppath / 'bytes.hex')
     blocks = [(offset, bytes(range(offset, offset + 16)))
               for offset in range(0, 256, 16)]
-    sparse_items = SparseItems(blocks=blocks)
+    sparse_items = Memory(blocks=blocks)
     save_memory(path, sparse_items)
     ans_out = load_memory(path)
     ans_ref = sparse_items

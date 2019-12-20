@@ -1318,7 +1318,7 @@ def union(*blocks_list: BlockSeq, join: Optional[ItemJoiner] = None) -> BlockSeq
     return result
 
 
-class SparseItems:
+class Memory:
     r"""Sparse item blocks manager.
 
     This is an helper class to emulate a virtual space with sparse blocks of
@@ -1352,11 +1352,11 @@ class SparseItems:
         :obj:`ValueError` Both `items` and `blocks` are not ``None``.
 
     Examples:
-        >>> memory = SparseItems()
+        >>> memory = Memory()
         >>> memory.blocks
         []
 
-        >>> memory = SparseItems('Hello, World!', 5)
+        >>> memory = Memory('Hello, World!', 5)
         >>> memory.blocks
         [(5, 'Hello, World!')]
 
@@ -1413,7 +1413,7 @@ class SparseItems:
             |   |[A | B | C]|   |   |   |[x | y | z]|   |
             +---+---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str)
+            >>> memory = Memory(items_type=str)
             >>> memory.blocks = [(1, 'ABC'), (7, 'xyz')]
             >>> str(memory)
             'ABCxyz'
@@ -1427,23 +1427,23 @@ class SparseItems:
             :obj:`bool`: Has any items.
 
         Examples:
-            >>> memory = SparseItems()
+            >>> memory = Memory()
             >>> bool(memory)
             False
 
-            >>> memory = SparseItems('Hello, World!', 5)
+            >>> memory = Memory('Hello, World!', 5)
             >>> bool(memory)
             True
         """
         return bool(self.blocks)
 
-    def __eq__(self, other: Union['SparseItems', Sequence[ItemSeq], ItemSeq]) -> bool:
+    def __eq__(self, other: Union['Memory', Sequence[ItemSeq], ItemSeq]) -> bool:
         r"""Equality comparison.
 
         Arguments:
-            other (:obj:`SparseItems`, or :obj:`list` of items, or items):
+            other (:obj:`Memory`, or :obj:`list` of items, or items):
                 Data to compare with `self`.
-                If it is an instance of `SparseItems`, all of its blocks must
+                If it is an instance of `Memory`, all of its blocks must
                 match.
                 If it is a :obj:`list`, it is expected that it contains the
                 same blocks as `self`.
@@ -1455,7 +1455,7 @@ class SparseItems:
 
         Examples:
             >>> items = 'Hello, World!'
-            >>> memory = SparseItems(items)
+            >>> memory = Memory(items)
             >>> memory == items
             True
             >>> memory.shift(1)
@@ -1463,7 +1463,7 @@ class SparseItems:
             False
 
             >>> items = 'Hello, World!'
-            >>> memory = SparseItems(items)
+            >>> memory = Memory(items)
             >>> blocks = [(0, items)]
             >>> memory == blocks
             True
@@ -1473,7 +1473,7 @@ class SparseItems:
             >>> memory == blocks
             False
         """
-        if isinstance(other, SparseItems):
+        if isinstance(other, Memory):
             return self.blocks == other.blocks
 
         elif isinstance(other, list):
@@ -1500,7 +1500,7 @@ class SparseItems:
             |   |[A | B | C]|   |   |   |[x | y | z]|   |
             +---+---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems()
+            >>> memory = Memory()
             >>> memory.blocks = [(1, 'ABC'), (7, 'xyz')]
             >>> list(memory)
             ['A', 'B', 'C', 'x', 'y', 'z']
@@ -1522,7 +1522,7 @@ class SparseItems:
             |   |[A | B | C]|   |   |   |[x | y | z]|   |
             +---+---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems()
+            >>> memory = Memory()
             >>> memory.blocks = [(1, 'ABC'), (7, 'xyz')]
             >>> list(reversed(memory))
             ['z', 'y', 'x', 'C', 'B', 'A']
@@ -1530,18 +1530,18 @@ class SparseItems:
         for _, items in reversed(self.blocks):
             yield from reversed(items)
 
-    def __add__(self, value: Union['SparseItems', ItemSeq, BlockSeq]) \
-            -> 'SparseItems':
+    def __add__(self, value: Union['Memory', ItemSeq, BlockSeq]) \
+            -> 'Memory':
         r"""Concatenates items.
 
         Arguments:
-            value (:obj:`SparseItems` or items or :obj:`list` of block):
+            value (:obj:`Memory` or items or :obj:`list` of block):
                 ItemSeq to append at the end of the current virtual space.
                 If instance of :class:`list`, it is interpreted as a sequence
                 of non-overlapping blocks, sorted by start address.
 
         Returns:
-            :obj:`SparseItems`: A new space with the items concatenated.
+            :obj:`Memory`: A new space with the items concatenated.
         """
         cls = type(self)
         result = cls(automerge=self.automerge,
@@ -1551,12 +1551,12 @@ class SparseItems:
         result += value
         return result
 
-    def __iadd__(self, value: Union['SparseItems', ItemSeq, BlockSeq]) \
-            -> 'SparseItems':
+    def __iadd__(self, value: Union['Memory', ItemSeq, BlockSeq]) \
+            -> 'Memory':
         r"""Concatenates items.
 
         Arguments:
-            value (:obj:`SparseItems` or items or :obj:`list` of block):
+            value (:obj:`Memory` or items or :obj:`list` of block):
                 ItemSeq to append at the end of the current virtual space.
                 If instance of :class:`list`, it is interpreted as a sequence
                 of non-overlapping blocks, sorted by start address.
@@ -1566,7 +1566,7 @@ class SparseItems:
         """
         blocks = self.blocks
 
-        if isinstance(value, SparseItems):
+        if isinstance(value, Memory):
             if value is self:
                 value.blocks = list(blocks)  # guard extend() over iter()
 
@@ -1593,7 +1593,7 @@ class SparseItems:
         self.blocks = blocks
         return self
 
-    def __mul__(self, times: int) -> 'SparseItems':
+    def __mul__(self, times: int) -> 'Memory':
         r"""Repeats the items.
 
         Repeats the stored items by `times`. Each repeated sequence is
@@ -1603,7 +1603,7 @@ class SparseItems:
             times (:obj:`int`): Times to repeat the sequence of items.
 
         Returns:
-            :obj:`SparseItems`: A new space with the items repeated.
+            :obj:`Memory`: A new space with the items repeated.
         """
         cls = type(self)
         result = cls(automerge=self.automerge,
@@ -1613,7 +1613,7 @@ class SparseItems:
         result *= times
         return result
 
-    def __imul__(self, times: int) -> 'SparseItems':
+    def __imul__(self, times: int) -> 'Memory':
         r"""Repeats the items.
 
         Repeats the stored items by `times`. Each repeated sequence is
@@ -1694,7 +1694,7 @@ class SparseItems:
             |   |[A | B | C]|   |[1 | 2 | 3]|   |[x | y | z]|
             +---+---+---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str)
+            >>> memory = Memory(items_type=str)
             >>> memory.blocks = [(1, 'ABC'), (5, '123'), (9, 'xyz')]
             >>> '23' in memory
             True
@@ -1726,7 +1726,7 @@ class SparseItems:
             |   |[A | B | C]|   |[B | a | t]|   |[t | a | b]|
             +---+---+---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str)
+            >>> memory = Memory(items_type=str)
             >>> memory.blocks = [(1, 'ABC'), (5, 'Bat'), (9, 'tab')]
             >>> memory.count('a')
             2
@@ -1760,7 +1760,7 @@ class SparseItems:
             |   |[A | B | C | D]|   |[$]|   |[x | y | z]|
             +---+---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str)
+            >>> memory = Memory(items_type=str)
             >>> memory.blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
             >>> memory[9]
             'y'
@@ -1866,7 +1866,7 @@ class SparseItems:
             |   |[A | 1 | C]|   |[2 | y | z]|   |
             +---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str)
+            >>> memory = Memory(items_type=str)
             >>> memory.blocks = [(5, 'ABC'), (9, 'xyz')]
             >>> memory[7:10] = None
             >>> memory.blocks
@@ -1896,7 +1896,7 @@ class SparseItems:
             |[$]|   |[A | B]|[4 | 5]|[< | >]|[8]|[y | z]|   |
             +---+---+---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, automerge=False)
+            >>> memory = Memory(items_type=str, automerge=False)
             >>> memory.blocks = [(5, 'ABC'), (9, 'xyz')]
             >>> memory[0:4] = '$'
             >>> memory.blocks
@@ -1978,7 +1978,7 @@ class SparseItems:
             |   |[A | B | C | y | z]|   |   |   |   |   |   |
             +---+---+---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str)
+            >>> memory = Memory(items_type=str)
             >>> memory.blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
             >>> del memory[4:9]
             >>> memory.blocks
@@ -1994,7 +1994,7 @@ class SparseItems:
             |   |[A | B | C]|[y | z]|   |   |   |   |   |   |
             +---+---+---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str,
+            >>> memory = Memory(items_type=str,
             ...                      automerge=False)
             >>> memory.blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
             >>> del memory[4:9]
@@ -2015,7 +2015,7 @@ class SparseItems:
             |   |[A | D]|   |   |[x]|   |   |   |   |   |   |
             +---+---+---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str)
+            >>> memory = Memory(items_type=str)
             >>> memory.blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
             >>> del memory[-2]
             >>> memory.blocks
@@ -2061,14 +2061,14 @@ class SparseItems:
             :attr:`items_type` with unitary length.
 
         Examples:
-            >>> memory = SparseItems(items_type=str)
+            >>> memory = Memory(items_type=str)
             >>> memory.append('$')
             >>> memory.blocks
             [(0, '$')]
 
             ~~~
 
-            >>> memory = SparseItems(items_type=list)
+            >>> memory = Memory(items_type=list)
             >>> memory.append(3)
             >>> memory.blocks
             [(0, 3)]
@@ -2088,7 +2088,7 @@ class SparseItems:
         Equivalent to ``self += items``.
 
         Arguments:
-            value (:obj:`SparseItems` or items or :obj:`list` of block):
+            value (:obj:`Memory` or items or :obj:`list` of block):
                 ItemSeq to append at the end of the current virtual space.
                 If instance of :class:`list`, it is interpreted as a sequence
                 of non-overlapping blocks, sorted by start address.
@@ -2107,7 +2107,7 @@ class SparseItems:
             :obj:`int`: The inclusive start address, or 0.
 
         Examples:
-            >>> SparseItems().start
+            >>> Memory().start
             0
 
             ~~~
@@ -2118,7 +2118,7 @@ class SparseItems:
             |   |[A | B | C]|   |[x | y | z]|   |
             +---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str)
+            >>> memory = Memory(items_type=str)
             >>> memory.blocks = [(1, 'ABC'), (5, 'xyz')]
             >>> memory.start
             1
@@ -2143,7 +2143,7 @@ class SparseItems:
             :obj:`int`: The eclusive end address, or 0.
 
         Examples:
-            >>> SparseItems().endex
+            >>> Memory().endex
             0
 
             ~~~
@@ -2154,7 +2154,7 @@ class SparseItems:
             |   |[A | B | C]|   |[x | y | z]|   |
             +---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str)
+            >>> memory = Memory(items_type=str)
             >>> memory.blocks = [(1, 'ABC'), (5, 'xyz')]
             >>> memory.endex
             8
@@ -2185,7 +2185,7 @@ class SparseItems:
             |   |[A | B | C]|   |[x | y | z]|   |   |   |
             +---+---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(blocks=[(5, 'ABC'), (9, 'xyz')])
+            >>> memory = Memory(blocks=[(5, 'ABC'), (9, 'xyz')])
             >>> memory.shift(-2)
             >>> memory.blocks
             [(3, 'ABC'), (7, 'xyz')]
@@ -2239,7 +2239,7 @@ class SparseItems:
             |   |   |[B | C]|   |[x]|   |   |   |
             +---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str)
+            >>> memory = Memory(items_type=str)
             >>> memory.blocks = [(5, 'ABC'), (9, 'xyz')]
             >>> memory.cut(6, 10)
             >>> memory.blocks
@@ -2277,7 +2277,7 @@ class SparseItems:
             |   |[A]|   |   |   |   |[y | z]|   |
             +---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str)
+            >>> memory = Memory(items_type=str)
             >>> memory.blocks = [(5, 'ABC'), (9, 'xyz')]
             >>> memory.clear(6, 10)
             >>> memory.blocks
@@ -2315,7 +2315,7 @@ class SparseItems:
             |   |[A | y | z]|   |   |   |   |   |   |
             +---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str)
+            >>> memory = Memory(items_type=str)
             >>> memory.blocks = [(5, 'ABC'), (9, 'xyz')]
             >>> memory.delete(6, 10)
             >>> memory.blocks
@@ -2351,7 +2351,7 @@ class SparseItems:
             |   |[A | C]|[x]|   |   |   |   |   |
             +---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str)
+            >>> memory = Memory(items_type=str)
             >>> memory.blocks = [(5, 'ABC'), (9, 'xyz')]
             >>> memory.pop(6)
             'B'
@@ -2420,7 +2420,7 @@ class SparseItems:
             |   |[A | B | C]|   |[1]|   |[x | z]|   |   |   |   |
             +---+---+---+---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str)
+            >>> memory = Memory(items_type=str)
             >>> memory.blocks = [(1, 'ABC'), (5, '123'), (9, 'xyz')]
             >>> memory.remove('23')
             >>> memory.blocks
@@ -2464,7 +2464,7 @@ class SparseItems:
             |   |[A | B | C]|   |[1 | 2 | 3]|   |[x | y | z]|   |
             +---+---+---+---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str)
+            >>> memory = Memory(items_type=str)
             >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
             >>> memory.insert(5, '123')
             >>> memory.blocks
@@ -2497,7 +2497,7 @@ class SparseItems:
             |   |[A | B | C]|   |[1 | 2 | 3 | z]|   |
             +---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str)
+            >>> memory = Memory(items_type=str)
             >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
             >>> memory.write(5, '123')
             >>> memory.blocks
@@ -2538,7 +2538,7 @@ class SparseItems:
             |   |[2 | 3 | 1 | 2 | 3 | 1 | 2 | 3]|   |
             +---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str)
+            >>> memory = Memory(items_type=str)
             >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
             >>> memory.fill(pattern='123')
             >>> memory.blocks
@@ -2554,7 +2554,7 @@ class SparseItems:
             |   |[2 | 3 | 1 | 2 | 3 | 1 | 2 | 3]|   |
             +---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, autofill='123')
+            >>> memory = Memory(items_type=str, autofill='123')
             >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
             >>> memory.fill()
             >>> memory.blocks
@@ -2570,7 +2570,7 @@ class SparseItems:
             |   |[A | B | 1 | 2 | 3 | 1 | y | z]|   |
             +---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, autofill='123')
+            >>> memory = Memory(items_type=str, autofill='123')
             >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
             >>> memory.fill(3, 7)
             >>> memory.blocks
@@ -2613,7 +2613,7 @@ class SparseItems:
             |   |[A | B | C | 2 | 3 | x | y | z]|   |
             +---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str)
+            >>> memory = Memory(items_type=str)
             >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
             >>> memory.flood(pattern='123')
             >>> memory.blocks
@@ -2629,7 +2629,7 @@ class SparseItems:
             |   |[A | B | C | 2 | 3 | x | y | z]|   |
             +---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str, autofill='123')
+            >>> memory = Memory(items_type=str, autofill='123')
             >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
             >>> memory.flood()
             >>> memory.blocks
@@ -2662,7 +2662,7 @@ class SparseItems:
             |   |[A | B | C | x | y | z]|   |
             +---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str)
+            >>> memory = Memory(items_type=str)
             >>> memory.blocks = [(1, 'ABC'), (4, 'xyz')]
             >>> memory.merge()
             >>> memory.blocks
@@ -2684,7 +2684,7 @@ class SparseItems:
             |[z | y | x]|   |[$]|   |[C | B | A]|   |   |
             +---+---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = SparseItems(items_type=str)
+            >>> memory = Memory(items_type=str)
             >>> memory.blocks = [(1, 'ABC'), (5, '$'), (7, 'xyz')]
             >>> memory.reverse()
             >>> memory.blocks

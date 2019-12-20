@@ -75,7 +75,7 @@ from typing import Union
 import pkg_resources
 from click import open_file
 
-from .blocks import SparseItems
+from .blocks import Memory
 from .blocks import merge
 from .blocks import union
 from .utils import do_overlap
@@ -555,7 +555,7 @@ def save_blocks(path: str,
     record_type.save_blocks(path, blocks)
 
 
-def load_memory(path: str, record_type: Optional[type] = None) -> SparseItems:
+def load_memory(path: str, record_type: Optional[type] = None) -> Memory:
     r"""Loads a virtual memory from a file.
 
     Arguments:
@@ -564,24 +564,25 @@ def load_memory(path: str, record_type: Optional[type] = None) -> SparseItems:
             If ``None``, it is guessed from the file extension.
 
     Returns:
-        :obj:`SparseItems`: Virtual memory holding data from `path`.
+        :obj:`Memory`: Virtual memory holding data from `path`.
 
     Example:
         >>> blocks = [(offset, bytes(range(offset, offset + 16)))
         ...           for offset in range(0, 256, 16)]
-        >>> sparse_items = SparseItems(blocks=blocks)
-        >>> save_memory('bytes.mot', sparse_items)
-        >>> load_memory('bytes.mot') == sparse_items
+        >>> memory = Memory(blocks=blocks)
+        >>> save_memory('bytes.mot', memory)
+        >>> load_memory('bytes.mot') == memory
         True
     """
-    blocks = load_blocks(path, record_type)
-    sparse_items = SparseItems()
-    sparse_items.blocks = blocks  # avoid useless constructor operations
-    return sparse_items
+    if record_type is None:
+        record_type = find_record_type(path)
+
+    memory = record_type.load_memory(path)
+    return memory
 
 
 def save_memory(path: str,
-                sparse_items: SparseItems,
+                memory: Memory,
                 record_type: Optional[type] = None,
                 split_args: Optional[Sequence[Any]] = None,
                 split_kwargs: Optional[Mapping[str, Any]] = None) -> None:
@@ -589,7 +590,7 @@ def save_memory(path: str,
 
     Arguments:
         path (:obj:`str`): Path of the output file.
-        sparse_items (:obj:`SparseItems`): A virtual memory.
+        memory (:obj:`Memory`): A virtual memory.
         record_type (:class:`Record`): Explicit record type.
             If ``None``, it is guessed from the file extension.
         split_args (list): Positional arguments for :meth:`Record.split`.
@@ -598,13 +599,15 @@ def save_memory(path: str,
     Example:
         >>> blocks = [(offset, bytes(range(offset, offset + 16)))
         ...           for offset in range(0, 256, 16)]
-        >>> sparse_items = SparseItems(blocks=blocks)
-        >>> save_memory('bytes.hex', sparse_items)
-        >>> load_memory('bytes.hex') == sparse_items
+        >>> memory = Memory(blocks=blocks)
+        >>> save_memory('bytes.hex', memory)
+        >>> load_memory('bytes.hex') == memory
         True
     """
-    save_blocks(path, sparse_items.blocks, record_type,
-                split_args, split_kwargs)
+    if record_type is None:
+        record_type = find_record_type(path)
+
+    record_type.save_memory(path, memory)
 
 
 def save_chunk(path: str,
@@ -1135,7 +1138,7 @@ class Record:
         pass
 
     @classmethod
-    def read_blocks(cls, stream: IO) -> BlockSeq:  # TODO
+    def read_blocks(cls, stream: IO) -> BlockSeq:  # TODO: example
         r"""Reads blocks from a stream.
 
         Read blocks from the input stream into the returned sequence.
@@ -1212,6 +1215,73 @@ class Record:
         mode = 'wt' if cls.LINE_SEP else 'wb'
         with open_file(path, mode) as stream:
             cls.write_blocks(stream, records)
+            stream.flush()
+
+    @classmethod
+    def read_memory(cls, stream: IO) -> Memory:  # TODO: example
+        r"""Reads a virtual memory from a stream.
+
+        Read blocks from the input stream into the returned sequence.
+
+        Arguments:
+            stream (stream): Input stream of the blocks to read.
+
+        Returns:
+            :obj:`Memory`: Loaded virtual memory.
+        """
+        blocks = cls.read_blocks(stream)
+        memory = Memory()
+        memory.blocks = blocks  # avoid useless constructor operations
+        return memory
+
+    @classmethod
+    def write_memory(cls, stream: IO,
+                     memory: Memory,
+                     split_args: Optional[Sequence[Any]] = None,
+                     split_kwargs: Optional[Mapping[str, Any]] = None,
+                     build_args: Optional[Sequence[Any]] = None,
+                     build_kwargs: Optional[Mapping[str, Any]] = None) -> None:  # TODO: example
+        r"""Writes a virtual memory to a stream.
+
+        Arguments:
+            stream (stream): Output stream of the records to write.
+            blocks (list): Sequence of records to store. Sequence generators
+                supported.
+            split_args (list): Positional arguments for :meth:`Record.split`.
+            split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
+            build_args (list): Positional arguments for
+                :meth:`Record.build_standalone`.
+            build_kwargs (dict): Keyword arguments for
+                :meth:`Record.build_standalone`.
+        """
+        cls.write_blocks(stream, memory.blocks)
+
+    @classmethod
+    def load_memory(cls, path: str) -> Memory:  # TODO: example
+        r"""Loads a virtual memory from a file.
+
+        Arguments:
+            path (:obj:`str`): Path of the record file to load.
+
+        Returns:
+            :obj:`Memory`: Loaded virtual memory.
+        """
+        mode = 'rt' if cls.LINE_SEP else 'rb'
+        with open_file(path, mode) as stream:
+            memory = cls.read_memory(stream)
+        return memory
+
+    @classmethod
+    def save_memory(cls, path: str, memory: Memory) -> None:  # TODO: example
+        r"""Saves a virtual memory to a file.
+
+        Arguments:
+            path (:obj:`str`): Path of the record file to save.
+            memory (:obj:`Memory`): Sparse data to save.
+        """
+        mode = 'wt' if cls.LINE_SEP else 'wb'
+        with open_file(path, mode) as stream:
+            cls.write_memory(stream, memory)
             stream.flush()
 
     @classmethod
