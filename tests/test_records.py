@@ -316,8 +316,7 @@ def test_save_chunk_doctest(tmppath):
 class TestTag:
 
     def test_is_data(self):
-        with pytest.raises(NotImplementedError):
-            Tag.is_data(0)
+        assert Tag.is_data(None) == True
 
 # ============================================================================
 
@@ -327,7 +326,7 @@ class TestRecord:
         r = BinaryRecord(0x1234, 0, b'Hello, World!')
         ans_out = normalize_whitespace(repr(r))
         ans_ref = normalize_whitespace('''
-        Record(address=0x00001234, tag=0, count=13,
+        Record(address=0x00001234, tag=None, count=13,
                data=b'Hello, World!', checksum=0x69)
         ''')
         assert ans_out == ans_ref

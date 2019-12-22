@@ -62,7 +62,7 @@ class TestRecord:
         record = Record.build_data(0x1234, b'Hello, World!')
         ans_out = normalize_whitespace(repr(record))
         ans_ref = normalize_whitespace('''
-        Record(address=0x00001234, tag=0, count=13,
+        Record(address=0x00001234, tag=None, count=13,
                data=b'Hello, World!', checksum=0x69)
         ''')
         assert ans_out == ans_ref
@@ -72,7 +72,7 @@ class TestRecord:
         record = Record.parse_record(line)
         ans_out = normalize_whitespace(repr(record))
         ans_ref = normalize_whitespace('''
-        Record(address=0x00000000, tag=0, count=13,
+        Record(address=0x00000000, tag=None, count=13,
                data=b'Hello, World!', checksum=0x69)
         ''')
         assert ans_out == ans_ref

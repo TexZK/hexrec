@@ -17,9 +17,6 @@ from ..utils import unhexlify
 class Tag(_Tag):
     """Hexadecimal record tag."""
 
-    DATA = 0
-    """Data record."""
-
     @classmethod
     def is_data(cls, value: Union[int, 'Tag']) -> bool:
         r""":obj:`bool`: `value` is a data record tag."""
@@ -37,7 +34,7 @@ class Record(_Record):
                  data: ByteString,
                  checksum: Union[int, type(Ellipsis)] = Ellipsis) -> None:
 
-        super().__init__(address, 0, data, checksum)
+        super().__init__(address, None, data, checksum)
 
     def __str__(self) -> str:
         text = hexlify(self.data)
@@ -56,7 +53,7 @@ class Record(_Record):
             Record(address=0x00001234, tag=0, count=13,
                          data=b'Hello, World!', checksum=0x69)
         """
-        record = cls(address, 0, data)
+        record = cls(address, None, data)
         return record
 
     @classmethod

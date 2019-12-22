@@ -641,9 +641,9 @@ class Tag(enum.IntEnum):
     """Abstract record tag."""
 
     @classmethod
-    def is_data(cls, value: Union[int, 'BinaryTag']) -> bool:
+    def is_data(cls, value: Union[int, 'Tag']) -> bool:
         r""":obj:`bool`: `value` is a data record tag."""
-        raise NotImplementedError()
+        return True  # by default, all records are data records
 
 
 class Record:
@@ -705,11 +705,12 @@ class Record:
         else:
             self.checksum = checksum
 
+    __slots__ = ('tag', 'count', 'address', 'data', 'checksum')
+
     LINE_SEP = '\n'
     r"""Separator bewteen record lines.
 
-    If equivalent to ``False``, the file type is considered binary instead of
-    textual.
+    If subclass of :obj:`bytes`, it is considered as a binary file.
     """
 
     def __repr__(self) -> str:
@@ -813,11 +814,11 @@ class Record:
             ... #doctest: +SKIP
             7668968047460943289
         """
-        return (hash(int(self.address) or 0) ^
-                hash(int(self.tag) or 0) ^
-                hash(bytes(self.data) or b'') ^
-                hash(int(self.count) or 0) ^
-                hash(int(self.checksum) or 0))
+        return (hash(int(self.address or 0)) ^
+                hash(int(self.tag or 0)) ^
+                hash(bytes(self.data or b'')) ^
+                hash(int(self.count or 0)) ^
+                hash(int(self.checksum or 0)))
 
     def __lt__(self, other: 'Record'):
         r"""Less-than comparison.
@@ -965,7 +966,7 @@ class Record:
         if not 0 <= self.address:
             raise ValueError('address overflow')
 
-        if not 0x00 <= self.tag <= 0xFF:
+        if self.tag is not None and not 0x00 <= self.tag <= 0xFF:
             raise ValueError('tag overflow')
 
         if not 0x00 <= self.count <= 0xFF:
@@ -1010,6 +1011,38 @@ class Record:
                               self.address + len(self.data),
                               other.address,
                               other.address + len(other.data))
+
+    @classmethod
+    def _open_input(cls, path):
+        r"""Opens a file for input.
+
+        Arguments:
+            path (:obj:`str`): File path.
+
+        Returns:
+            stream: An input stream handle.
+        """
+        if isinstance(cls.LINE_SEP, (bytes, bytearray)):
+            mode = 'rb'
+        else:
+            mode = 'rt'
+        return open_file(path, mode)
+
+    @classmethod
+    def _open_output(cls, path):
+        r"""Opens a file for output.
+
+        Arguments:
+            path (:obj:`str`): File path.
+
+        Returns:
+            stream: An output stream handle.
+        """
+        if isinstance(cls.LINE_SEP, (bytes, bytearray)):
+            mode = 'wb'
+        else:
+            mode = 'wt'
+        return open_file(path, mode)
 
     @classmethod
     def parse_record(cls, line: str, *args: Any, **kwargs: Any) -> 'Record':
@@ -1195,8 +1228,7 @@ class Record:
         Returns:
             :obj:`list`: Sequence of parsed records.
         """
-        mode = 'rt' if cls.LINE_SEP else 'rb'
-        with open_file(path, mode) as stream:
+        with cls._open_input(path) as stream:
             blocks = cls.read_blocks(stream)
         return blocks
 
@@ -1212,8 +1244,7 @@ class Record:
             records (list): Sequence of records to store. Sequence generators
                 supported.
         """
-        mode = 'wt' if cls.LINE_SEP else 'wb'
-        with open_file(path, mode) as stream:
+        with cls._open_output(path) as stream:
             cls.write_blocks(stream, records)
             stream.flush()
 
@@ -1266,8 +1297,7 @@ class Record:
         Returns:
             :obj:`Memory`: Loaded virtual memory.
         """
-        mode = 'rt' if cls.LINE_SEP else 'rb'
-        with open_file(path, mode) as stream:
+        with cls._open_input(path) as stream:
             memory = cls.read_memory(stream)
         return memory
 
@@ -1279,8 +1309,7 @@ class Record:
             path (:obj:`str`): Path of the record file to save.
             memory (:obj:`Memory`): Sparse data to save.
         """
-        mode = 'wt' if cls.LINE_SEP else 'wb'
-        with open_file(path, mode) as stream:
+        with cls._open_output(path) as stream:
             cls.write_memory(stream, memory)
             stream.flush()
 
@@ -1288,8 +1317,11 @@ class Record:
     def read_records(cls, stream: IO) -> RecordSeq:  # TODO: example
         r"""Reads records from a stream.
 
-        Each line of the input file is parsed via :meth:`parse`, and
-        collected into the returned sequence.
+        For text files, each line of the input file is parsed via
+        :meth:`parse`, and collected into the returned sequence.
+
+        For binary files, everything tot he end of the stream is parsed as a
+        dingle record.
 
         Arguments:
             stream (stream): Input stream of the records to read.
@@ -1297,10 +1329,10 @@ class Record:
         Returns:
             :obj:`list`: Sequence of parsed records.
         """
-        if cls.LINE_SEP:
-            records = [cls.unmarshal(line) for line in stream]
-        else:
+        if isinstance(cls.LINE_SEP, (bytes, bytearray)):
             records = [cls.unmarshal(stream.read())]
+        else:
+            records = [cls.unmarshal(line) for line in stream]
         return records
 
     @classmethod
@@ -1331,8 +1363,7 @@ class Record:
         Returns:
             :obj:`list`: Sequence of parsed records.
         """
-        mode = 'rt' if cls.LINE_SEP else 'rb'
-        with open_file(path, mode) as stream:
+        with cls._open_input(path) as stream:
             records = cls.read_records(stream)
         return records
 
@@ -1348,8 +1379,7 @@ class Record:
             records (list): Sequence of records to store. Sequence generators
                 supported.
         """
-        mode = 'wt' if cls.LINE_SEP else 'wb'
-        with open_file(path, mode) as stream:
+        with cls._open_output(path) as stream:
             cls.write_records(stream, records)
             stream.flush()
 
