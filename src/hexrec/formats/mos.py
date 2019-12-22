@@ -2,7 +2,6 @@
 import re
 from typing import ByteString
 from typing import Iterator
-from typing import Optional
 from typing import Sequence
 from typing import Union
 
@@ -22,7 +21,7 @@ class Record(_Record):
 
     """
 
-    TAG_TYPE = None  # no tagging
+    TAG_TYPE = None
 
     REGEX = re.compile(r'^;(?P<count>[0-9A-Fa-f]{2})'
                        r'(?P<address>[0-9A-Fa-f]{4})'
@@ -58,14 +57,6 @@ class Record(_Record):
         return text
 
     def is_data(self) -> bool:
-        r"""Tells if it is a data record.
-
-        Tells whether the record contains plain binary data, i.e. it is not a
-        *special* record.
-
-        Returns:
-            :obj:`bool`: The record contains plain binary data.
-        """
         return self.count > 0
 
     def compute_checksum(self) -> int:
@@ -202,16 +193,13 @@ class Record(_Record):
         return record
 
     @classmethod
-    def build_standalone(cls, data_records: RecordSeq,
-                         start: Optional[int] = None) \
+    def build_standalone(cls, data_records: RecordSeq) \
             -> Iterator['Record']:
         r"""Makes a sequence of data records standalone.
 
         Arguments:
             data_records (:obj:`list` of :class:`Record`): A sequence of data
                 records.
-            start (:obj:`int`): Program start address.
-                If ``None``, it is assigned the minimum data record address.
 
         Yields:
             :obj:`Record`: Records for a standalone record file.

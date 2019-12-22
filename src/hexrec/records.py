@@ -675,20 +675,25 @@ class Record:
             its actual value automatically. ``None`` assigns ``None``.
 
     Examples:
-        >>> BinaryRecord(0x1234, 0, b'Hello, World!')
+        >>> from hexrec.formats.binary import Record
+        >>> BinaryRecord(0x1234, None, b'Hello, World!')
         ... #doctest: +NORMALIZE_WHITESPACE
-        BinaryRecord(address=0x00001234, tag=0, count=13,
-                     data=b'Hello, World!', checksum=0x69)
+        Record(address=0x00001234, tag=None, count=13,
+               data=b'Hello, World!', checksum=0x69)
 
+        >>> from hexrec.formats.motorola import Record as MotorolaRecord
+        >>> from hexrec.formats.motorola import Tag as MotorolaTag
         >>> MotorolaRecord(0x1234, MotorolaTag.DATA_16, b'Hello, World!')
         ... #doctest: +NORMALIZE_WHITESPACE
-        MotorolaRecord(address=0x00001234, tag=<MotorolaTag.DATA_16: 1>,
-                       count=16, data=b'Hello, World!', checksum=0x40)
+        Record(address=0x00001234, tag=<MotorolaTag.DATA_16: 1>,
+               count=16, data=b'Hello, World!', checksum=0x40)
 
+        >>> from hexrec.formats.intel import Record as IntelRecord
+        >>> from hexrec.formats.intel import Tag as IntelTag
         >>> IntelRecord(0x1234, IntelTag.DATA, b'Hello, World!')
         ... #doctest: +NORMALIZE_WHITESPACE
-        IntelRecord(address=0x00001234, tag=<IntelTag.DATA: 0>, count=13,
-                    data=b'Hello, World!', checksum=0x44)
+        Record(address=0x00001234, tag=<IntelTag.DATA: 0>, count=13,
+               data=b'Hello, World!', checksum=0x44)
     """
     def __init__(self, address: int,
                  tag: Tag,
@@ -737,16 +742,18 @@ class Record:
             :obj:`str`: A printable text representation of the record.
 
         Examples:
-            >>> from hexrec.formats.binary import Record as BinaryRecord
-            >>> str(BinaryRecord(0x1234, 0, b'Hello, World!'))
+            >>> from hexrec.formats.binary import Record
+            >>> str(BinaryRecord(0x1234, None, b'Hello, World!'))
             '48656C6C6F2C20576F726C6421'
 
             >>> from hexrec.formats.motorola import Record as MotorolaRecord
+            >>> from hexrec.formats.motorola import Tag as MotorolaTag
             >>> str(MotorolaRecord(0x1234, MotorolaTag.DATA_16,
             ...                    b'Hello, World!'))
             'S110123448656C6C6F2C20576F726C642140'
 
             >>> from hexrec.formats.intel import Record as IntelRecord
+            >>> from hexrec.formats.intel import Tag as IntelTag
             >>> str(IntelRecord(0x1234, IntelTag.DATA, b'Hello, World!'))
             ':0D12340048656C6C6F2C20576F726C642144'
         """
@@ -759,19 +766,19 @@ class Record:
             :obj:`bool`: The `address`, `tag`, and `data` fields are equal.
 
         Examples:
-            >>> from hexrec.formats.binary import Record as BinaryRecord
+            >>> from hexrec.formats.binary import Record
             >>> record1 = BinaryRecord.build_data(0, b'Hello, World!')
             >>> record2 = BinaryRecord.build_data(0, b'Hello, World!')
             >>> record1 == record2
             True
 
-            >>> from hexrec.formats.binary import Record as BinaryRecord
+            >>> from hexrec.formats.binary import Record
             >>> record1 = BinaryRecord.build_data(0, b'Hello, World!')
             >>> record2 = BinaryRecord.build_data(1, b'Hello, World!')
             >>> record1 == record2
             False
 
-            >>> from hexrec.formats.binary import Record as BinaryRecord
+            >>> from hexrec.formats.binary import Record
             >>> record1 = BinaryRecord.build_data(0, b'Hello, World!')
             >>> record2 = BinaryRecord.build_data(0, b'hello, world!')
             >>> record1 == record2
@@ -800,20 +807,21 @@ class Record:
             Be careful with hashable mutable objects!
 
         Examples:
-            >>> from hexrec.formats.binary import Record as BinaryRecord
+            >>> from hexrec.formats.binary import Record
             >>> hash(BinaryRecord(0x1234, 0, b'Hello, World!'))
             ... #doctest: +SKIP
             7668968047460943252
 
             >>> from hexrec.formats.motorola import Record as MotorolaRecord
+            >>> from hexrec.formats.motorola import Tag as MotorolaTag
             >>> hash(MotorolaRecord(0x1234, MotorolaTag.DATA_16,
             ...                             b'Hello, World!'))
             ... #doctest: +SKIP
             7668968047460943265
 
             >>> from hexrec.formats.intel import Record as IntelRecord
-            >>> hash(IntelRecord(0x1234, IntelTag.DATA,
-            ...                          b'Hello, World!'))
+            >>> from hexrec.formats.intel import Tag as IntelTag
+            >>> hash(IntelRecord(0x1234, IntelTag.DATA, b'Hello, World!'))
             ... #doctest: +SKIP
             7668968047460943289
         """
@@ -830,13 +838,13 @@ class Record:
             :obj:`bool`: `address` less than `other`'s.
 
         Examples:
-            >>> from hexrec.formats.binary import Record as BinaryRecord
+            >>> from hexrec.formats.binary import Record
             >>> record1 = BinaryRecord(0x1234, 0, b'')
             >>> record2 = BinaryRecord(0x4321, 0, b'')
             >>> record1 < record2
             True
 
-            >>> from hexrec.formats.binary import Record as BinaryRecord
+            >>> from hexrec.formats.binary import Record
             >>> record1 = BinaryRecord(0x4321, 0, b'')
             >>> record2 = BinaryRecord(0x1234, 0, b'')
             >>> record1 < record2
@@ -857,38 +865,42 @@ class Record:
             This method must be overridden.
 
         Examples:
-            >>> from hexrec.formats.binary import Record as BinaryRecord
+            >>> from hexrec.formats.binary import Record
             >>> BinaryRecord(0, 0, b'Hello, World!').is_data()
             True
 
             >>> from hexrec.formats.motorola import Record as MotorolaRecord
+            >>> from hexrec.formats.motorola import Tag as MotorolaTag
             >>> MotorolaRecord(0, MotorolaTag.DATA_16,
             ...                b'Hello, World!').is_data()
             True
 
             >>> from hexrec.formats.motorola import Record as MotorolaRecord
+            >>> from hexrec.formats.motorola import Tag as MotorolaTag
             >>> MotorolaRecord(0, MotorolaTag.HEADER,
             ...                b'Hello, World!').is_data()
             False
 
             >>> from hexrec.formats.intel import Record as IntelRecord
+            >>> from hexrec.formats.intel import Tag as IntelTag
             >>> IntelRecord(0, IntelTag.DATA, b'Hello, World!').is_data()
             True
 
             >>> from hexrec.formats.intel import Record as IntelRecord
+            >>> from hexrec.formats.intel import Tag as IntelTag
             >>> IntelRecord(0, IntelTag.END_OF_FILE, b'').is_data()
             False
         """
         return self.TAG_TYPE.is_data(self.tag)
 
-    def compute_count(self) -> int:
+    def compute_count(self) -> Optional[int]:
         r"""Computes the count.
 
         Returns:
             :obj:`bool`: `count` field value based on the current fields.
 
         Examples:
-            >>> from hexrec.formats.binary import Record as BinaryRecord
+            >>> from hexrec.formats.binary import Record
             >>> record = BinaryRecord(0, 0, b'Hello, World!')
             >>> str(record)
             '48656C6C6F2C20576F726C6421'
@@ -896,6 +908,7 @@ class Record:
             13
 
             >>> from hexrec.formats.motorola import Record as MotorolaRecord
+            >>> from hexrec.formats.motorola import Tag as MotorolaTag
             >>> record = MotorolaRecord(0, MotorolaTag.DATA_16,
             ...                         b'Hello, World!')
             >>> str(record)
@@ -904,26 +917,27 @@ class Record:
             16
 
             >>> from hexrec.formats.intel import Record as IntelRecord
+            >>> from hexrec.formats.intel import Tag as IntelTag
             >>> record = IntelRecord(0, IntelTag.DATA, b'Hello, World!')
             >>> str(record)
             ':0D00000048656C6C6F2C20576F726C64218A'
             >>> record.compute_count()
             13
         """
-        return len(self.data)
+        return len(self.data or b'')
 
     def update_count(self) -> None:
         r"""Updates the `count` field via :meth:`compute_count`."""
         self.count = self.compute_count()
 
-    def compute_checksum(self) -> int:
+    def compute_checksum(self) -> Optional[int]:
         r"""Computes the checksum.
 
         Returns:
             :obj:`int`: `checksum` field value based on the current fields.
 
         Examples:
-            >>> from hexrec.formats.binary import Record as BinaryRecord
+            >>> from hexrec.formats.binary import Record
             >>> record = BinaryRecord(0, 0, b'Hello, World!')
             >>> str(record)
             '48656C6C6F2C20576F726C6421'
@@ -931,6 +945,7 @@ class Record:
             '0x69'
 
             >>> from hexrec.formats.motorola import Record as MotorolaRecord
+            >>> from hexrec.formats.motorola import Tag as MotorolaTag
             >>> record = MotorolaRecord(0, MotorolaTag.DATA_16,
             ...                         b'Hello, World!')
             >>> str(record)
@@ -939,19 +954,20 @@ class Record:
             '0x86'
 
             >>> from hexrec.formats.intel import Record as IntelRecord
+            >>> from hexrec.formats.intel import Tag as IntelTag
             >>> record = IntelRecord(0, IntelTag.DATA, b'Hello, World!')
             >>> str(record)
             ':0D00000048656C6C6F2C20576F726C64218A'
             >>> hex(record.compute_checksum())
             '0x8a'
         """
-        return sum_bytes(self.data) & 0xFF
+        return sum_bytes(self.data or b'') & 0xFF
 
     def update_checksum(self) -> None:
         r"""Updates the `checksum` field via :meth:`compute_count`."""
         self.checksum = self.compute_checksum()
 
-    def _get_checksum(self) -> int:
+    def _get_checksum(self) -> Optional[int]:
         r""":obj:`int`: The `checksum` field itself if not ``None``, the
             value computed by :meth:`compute_count` otherwise.
         """
@@ -995,13 +1011,13 @@ class Record:
             :obj:`bool`: Overlapping.
 
         Examples:
-            >>> from hexrec.formats.binary import Record as BinaryRecord
+            >>> from hexrec.formats.binary import Record
             >>> record1 = BinaryRecord(0, 0, b'abc')
             >>> record2 = BinaryRecord(1, 0, b'def')
             >>> record1.overlaps(record2)
             True
 
-            >>> from hexrec.formats.binary import Record as BinaryRecord
+            >>> from hexrec.formats.binary import Record
             >>> record1 = BinaryRecord(0, 0, b'abc')
             >>> record2 = BinaryRecord(3, 0, b'def')
             >>> record1.overlaps(record2)
@@ -1011,9 +1027,9 @@ class Record:
             return False
         else:
             return do_overlap(self.address,
-                              self.address + len(self.data),
+                              self.address + len(self.data or b''),
                               other.address,
-                              other.address + len(other.data))
+                              other.address + len(other.data or b''))
 
     @classmethod
     def _open_input(cls, path):
@@ -1125,8 +1141,7 @@ class Record:
         if kwargs:
             raise NotImplementedError('kwargs reserved for overriding')
 
-        for record in data_records:
-            yield record
+        yield from data_records
 
     @classmethod
     def check_sequence(cls, records: RecordSeq) -> None:
@@ -1323,8 +1338,8 @@ class Record:
         For text files, each line of the input file is parsed via
         :meth:`parse`, and collected into the returned sequence.
 
-        For binary files, everything tot he end of the stream is parsed as a
-        dingle record.
+        For binary files, everything to the end of the stream is parsed as a
+        single record.
 
         Arguments:
             stream (stream): Input stream of the records to read.

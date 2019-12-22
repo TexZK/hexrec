@@ -1,0 +1,244 @@
+# -*- coding: utf-8 -*-
+import io
+import re
+from typing import IO
+from typing import ByteString
+from typing import Iterator
+from typing import Optional
+from typing import Sequence
+from typing import Union
+
+from ..records import Record as _Record
+from ..records import RecordSeq
+from ..records import Tag
+from ..utils import chop
+from ..utils import hexlify
+from ..utils import unhexlify
+
+
+class Record(_Record):
+    r"""ASCII-hex record file.
+
+    See:
+        `<http://srecord.sourceforge.net/man/man5/srec_ascii_hex.html>`_
+
+    """
+
+    TAG_TYPE = None
+
+    REGEX = re.compile(r"^(\$A(?P<address>[0-9A-Fa-f]{4})[,.][ %',]?)?"
+                       r"(?P<data>([0-9A-Fa-f]{2}[ %',])*([0-9A-Fa-f]{2})?)"
+                       r"(\$S(?P<checksum>[0-9A-Fa-f]{4})[,.][ %',]?)?$")
+    """Regular expression for parsing a record text line."""
+
+    EXTENSIONS = ()
+
+    def __init__(self, address: int,
+                 tag: Tag,
+                 data: ByteString,
+                 checksum: Union[int, type(Ellipsis)] = None) -> None:
+
+        super().__init__(address, None, data, checksum)
+
+    def __repr__(self) -> str:
+        address, data, checksum = None, None, None
+
+        if self.address is not None:
+            address = f'0x{self.address:04X}'
+
+        if self.data is not None:
+            data = f'{self.data!r}'
+
+        if self.checksum is not None:
+            checksum = f'0x{(self._get_checksum() or 0):04X}'
+
+        text = (f'{type(self).__name__}('
+                f'address={address}, '
+                f'tag={self.tag!r}, '
+                f'count={self.count:d}, '
+                f'data={data}, '
+                f'checksum={checksum}'
+                f')')
+        return text
+
+    def __str__(self) -> str:
+        address, data, checksum = '', '', ''
+
+        if self.address is not None:
+            address = f'$A{self.address:04X},'
+
+        if self.data:
+            data = f'{hexlify(self.data, sep=" ")} '
+
+        if self.checksum is not None:
+            checksum = f'$S{self._get_checksum():04X},'
+
+        text = ''.join([address, data, checksum])
+        return text
+
+    def is_data(self) -> bool:
+        return self.data is not None
+
+    def compute_checksum(self) -> Optional[int]:
+        checksum = sum(self.data or b'') & 0xFFFF
+        return checksum
+
+    def check(self) -> None:
+        if self.address is not None and not 0 <= self.address < (1 << 16):
+            raise ValueError('address overflow')
+
+        if self.tag is not None:
+            raise ValueError('wrong tag')
+
+        if not 0 <= self.count < (1 << 16):
+            raise ValueError('count overflow')
+
+        if self.count != len(self.data or b''):
+            raise ValueError('count error')
+
+        if self.checksum is not None:
+            if not 0 <= self.checksum < (1 << 16):
+                raise ValueError('checksum overflow')
+
+    @classmethod
+    def build_data(cls, address: Optional[int],
+                   data: Optional[ByteString]) -> 'Record':
+        r"""Builds a data record.
+
+        Arguments:
+            address (:obj:`int`): Record address, or ``None``.
+            data (:obj:`bytes`): Record data, or ``None``.
+
+        Returns:
+            :obj:`Record`: A data record.
+
+        Examples:
+            >>> Record.build_data(0x1234, b'Hello, World!')
+            ... #doctest: +NORMALIZE_WHITESPACE
+            Record(address=0x1234, tag=None, count=13,
+                   data=b'Hello, World!', checksum=None)
+
+            >>> Record.build_data(None, b'Hello, World!')
+            ... #doctest: +NORMALIZE_WHITESPACE
+            Record(address=None, tag=None, count=13,
+                   data=b'Hello, World!', checksum=None)
+
+            >>> Record.build_data(0x1234, None)
+            ... #doctest: +NORMALIZE_WHITESPACE
+            Record(address=0x1234, tag=None, count=0, data=None, checksum=None)
+        """
+        record = cls(address, None, data)
+        return record
+
+    @classmethod
+    def split(cls, data: ByteString,
+              address: int = 0,
+              columns: int = 16,
+              align: bool = True,
+              standalone: bool = True) \
+            -> Iterator['Record']:
+        r"""Splits a chunk of data into records.
+
+        Arguments:
+            data (:obj:`bytes`): Byte data to split.
+            address (:obj:`int`): Start address of the first data record being
+                split.
+            columns (:obj:`int`): Maximum number of columns per data record.
+                If ``None``, the whole `data` is put into a single record.
+                Maximum of 128 columns.
+            align (:obj:`bool`): Aligns record addresses to the column length.
+            standalone (:obj:`bool`): Generates a sequence of records that can
+                be saved as a standlone record file.
+
+        Yields:
+            :obj:`Record`: Data split into records.
+
+        Raises:
+            :obj:`ValueError` Address, size, or column overflow.
+        """
+        if not 0 <= address < (1 << 16):
+            raise ValueError('address overflow')
+        if not 0 <= address + len(data) <= (1 << 16):
+            raise ValueError('size overflow')
+        if not 0 < columns < (1 << 8):
+            raise ValueError('column overflow')
+
+        align_base = (address % columns) if align else 0
+        offset = address
+        checksum = 0
+
+        if standalone:
+            record = cls.build_data(offset, None)
+            yield record
+
+        for chunk in chop(data, columns, align_base):
+            if standalone:
+                record = cls.build_data(None, chunk)
+            else:
+                record = cls.build_data(offset, chunk)
+            yield record
+            checksum = (checksum + record.compute_checksum()) & 0xFFFF
+            offset += len(chunk)
+
+        if standalone:
+            record = cls(None, None, None, checksum)
+            yield record
+
+    @classmethod
+    def parse_record(cls, line: str) -> Sequence['Record']:
+        line = str(line).strip()
+        match = cls.REGEX.match(line)
+        if not match:
+            raise ValueError('regex error')
+        groups = match.groupdict()
+
+        address = groups['address']
+        if address is not None:
+            address = int(address, 16)
+
+        data = groups['data']
+        if data:
+            for c in " %',":
+                data = data.replace(c, '')
+            data = unhexlify(data)
+        else:
+            data = None
+
+        checksum = groups['checksum']
+        if checksum is not None:
+            checksum = int(checksum, 16)
+
+        record = cls(address, None, data, checksum)
+        return record
+
+    @classmethod
+    def build_standalone(cls, data_records: RecordSeq) -> Iterator['Record']:
+        checksum = 0
+        for record in data_records:
+            yield record
+            checksum = (checksum + record.compute_checksum()) & 0xFFFF
+
+        record = cls(None, None, None, checksum)
+        yield record
+
+    @classmethod
+    def readdress(cls, records: RecordSeq) -> None:
+        offset = 0
+        for record in records:
+            if record.address is None:
+                record.address = offset
+            offset = record.address + len(record.data or b'')
+
+    @classmethod
+    def read_records(cls, stream: IO) -> RecordSeq:
+        text = stream.read()
+        stx = text.index('\x02')
+        etx = text.index('\x03')
+        text = text[(stx + 1):etx]
+        return super().read_records(io.StringIO(text))
+
+    @classmethod
+    def write_records(cls, stream: IO, records: RecordSeq) -> None:
+        stream.write('\x02')
+        super().write_records(stream, records)
+        stream.write('\x03')

@@ -150,10 +150,6 @@ fast enough for the vast majority of operations made on the memory of a
 microcontroller-based embedded system.
 
 
-.. image:: _static/architecture.svg
-    :alt: Architecture
-
-
 Examples
 ========
 
@@ -244,7 +240,7 @@ The rest of the data is left untouched.
 >>> blocks = hb.write(blocks, 0x3FFC, struct.pack('>L', crc))
 >>> hr.save_blocks('data_crc.srec', blocks)
 
-The same example as above, this time using ``hexrec.blocks.SparseItems`` as
+The same example as above, this time using ``hexrec.blocks.Memory`` as
 a virtual memory behaving almost like ``bytearray``.
 
 >>> import binascii, struct
