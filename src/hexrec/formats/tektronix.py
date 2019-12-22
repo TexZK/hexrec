@@ -56,7 +56,8 @@ class Record(_Record):
 
     def __str__(self) -> str:
         self.check()
-        text = (f'%{self.count:02X}'
+        text = (f'%'
+                f'{self.count:02X}'
                 f'{self.tag:01X}'
                 f'{self._get_checksum():02X}'
                 f'8'
@@ -101,7 +102,9 @@ class Record(_Record):
         data = unhexlify(groups['data'] or '')
         checksum = int(groups['checksum'], 16)
 
-        assert count == 9 + (len(data) * 2)
+        if count != 9 + (len(data) * 2):
+            raise ValueError('count error')
+
         record = cls(address, tag, data, checksum)
         return record
 
@@ -178,6 +181,7 @@ class Record(_Record):
 
         align_base = (address % columns) if align else 0
         offset = address
+
         for chunk in chop(data, columns, align_base):
             yield cls.build_data(offset, chunk)
             offset += len(chunk)
@@ -219,11 +223,9 @@ class Record(_Record):
 
         for i in range(len(records) - 1):
             record = records[i]
-            record.check()
             if record.tag != cls.TAG_TYPE.DATA:
                 raise ValueError('tag error')
 
         record = records[-1]
-        record.check()
         if record.tag != cls.TAG_TYPE.TERMINATOR:
             raise ValueError('missing terminator')

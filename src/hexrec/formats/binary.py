@@ -40,9 +40,6 @@ class Record(_Record):
         text = hexlify(self.data)
         return text
 
-    def is_data(self) -> bool:
-        return True
-
     @classmethod
     def build_data(cls, address: int, data: ByteString) -> 'Record':
         r"""Builds a data record.
@@ -51,7 +48,7 @@ class Record(_Record):
             >>> Record.build_data(0x1234, b'Hello, World!')
             ... #doctest: +NORMALIZE_WHITESPACE
             Record(address=0x00001234, tag=0, count=13,
-                         data=b'Hello, World!', checksum=0x69)
+                   data=b'Hello, World!', checksum=0x69)
         """
         record = cls(address, None, data)
         return record
@@ -69,7 +66,7 @@ class Record(_Record):
             >>> Record.parse_record(line)
             ... #doctest: +NORMALIZE_WHITESPACE
             Record(address=0x00000000, tag=0, count=13,
-                         data=b'Hello, World!', checksum=0x69)
+                   data=b'Hello, World!', checksum=0x69)
         """
         line = str(line).strip()
         data = unhexlify(line)

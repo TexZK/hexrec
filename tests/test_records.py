@@ -323,7 +323,7 @@ class TestTag:
 class TestRecord:
 
     def test___init___doctest(self):
-        r = BinaryRecord(0x1234, 0, b'Hello, World!')
+        r = BinaryRecord(0x1234, None, b'Hello, World!')
         ans_out = normalize_whitespace(repr(r))
         ans_ref = normalize_whitespace('''
         Record(address=0x00001234, tag=None, count=13,
@@ -348,7 +348,7 @@ class TestRecord:
         assert ans_out == ans_ref
 
     def test___str___doctest(self):
-        ans_out = str(BinaryRecord(0x1234, 0, b'Hello, World!'))
+        ans_out = str(BinaryRecord(0x1234, None, b'Hello, World!'))
         ans_ref = '48656C6C6F2C20576F726C6421'
         assert ans_out == ans_ref
 
@@ -387,21 +387,21 @@ class TestRecord:
         assert (record1 == record2) == False
 
     def test___hash__(self):
-        hash(BinaryRecord(0x1234, 0, b'Hello, World!'))
+        hash(BinaryRecord(0x1234, None, b'Hello, World!'))
         hash(MotorolaRecord(0x1234, MotorolaTag.DATA_16, b'Hello, World!'))
         hash(IntelRecord(0x1234, IntelTag.DATA, b'Hello, World!'))
 
     def test___lt___doctest(self):
-        record1 = BinaryRecord(0x1234, 0, b'')
-        record2 = BinaryRecord(0x4321, 0, b'')
+        record1 = BinaryRecord(0x1234, None, b'')
+        record2 = BinaryRecord(0x4321, None, b'')
         assert (record1 < record2) == True
 
-        record1 = BinaryRecord(0x4321, 0, b'')
-        record2 = BinaryRecord(0x1234, 0, b'')
+        record1 = BinaryRecord(0x4321, None, b'')
+        record2 = BinaryRecord(0x1234, None, b'')
         assert (record1 < record2) == False
 
     def test_is_data_doctest(self):
-        record = BinaryRecord(0, 0, b'Hello, World!')
+        record = BinaryRecord(0, None, b'Hello, World!')
         assert record.is_data() == True
 
         record = MotorolaRecord(0, MotorolaTag.DATA_16, b'Hello, World!')
@@ -417,7 +417,7 @@ class TestRecord:
         assert record.is_data() == False
 
     def test_compute_count_doctest(self):
-        record = BinaryRecord(0, 0, b'Hello, World!')
+        record = BinaryRecord(0, None, b'Hello, World!')
         assert str(record) == '48656C6C6F2C20576F726C6421'
         assert record.compute_count() == 13
 
@@ -430,7 +430,7 @@ class TestRecord:
         assert record.compute_count() == 13
 
     def test_update_count(self):
-        record = BinaryRecord(0, 0, b'Hello, World!')
+        record = BinaryRecord(0, None, b'Hello, World!')
         record.count = None
         record.update_count()
         assert str(record) == '48656C6C6F2C20576F726C6421'
@@ -449,7 +449,7 @@ class TestRecord:
         assert record.count == 13
 
     def test_compute_checksum_doctest(self):
-        record = BinaryRecord(0, 0, b'Hello, World!')
+        record = BinaryRecord(0, None, b'Hello, World!')
         assert str(record) == '48656C6C6F2C20576F726C6421'
         assert hex(record.compute_checksum()) == '0x69'
 
@@ -462,7 +462,7 @@ class TestRecord:
         assert hex(record.compute_checksum()) == '0x8a'
 
     def test_update_checksum(self):
-        record = BinaryRecord(0, 0, b'Hello, World!')
+        record = BinaryRecord(0, None, b'Hello, World!')
         record.checksum = None
         record.update_checksum()
         assert str(record) == '48656C6C6F2C20576F726C6421'
@@ -514,7 +514,7 @@ class TestRecord:
         with pytest.raises(ValueError): record.check()
 
     def test__get_checksum(self):
-        record = BinaryRecord(0, 0, b'Hello, World!')
+        record = BinaryRecord(0, None, b'Hello, World!')
         assert hex(record._get_checksum()) == '0x69'
         record.checksum = None
         assert hex(record._get_checksum()) == '0x69'
@@ -530,22 +530,22 @@ class TestRecord:
         assert hex(record._get_checksum()) == '0x8a'
 
     def test_overlaps_doctest(self):
-        record1 = BinaryRecord(0, 0, b'abc')
-        record2 = BinaryRecord(1, 0, b'def')
+        record1 = BinaryRecord(0, None, b'abc')
+        record2 = BinaryRecord(1, None, b'def')
         assert record1.overlaps(record2) == True
 
-        record1 = BinaryRecord(0, 0, b'abc')
-        record2 = BinaryRecord(3, 0, b'def')
+        record1 = BinaryRecord(0, None, b'abc')
+        record2 = BinaryRecord(3, None, b'def')
         assert record1.overlaps(record2) == False
 
     def test_overlaps(self):
-        record1 = BinaryRecord(0, 0, b'abc')
+        record1 = BinaryRecord(0, None, b'abc')
         record1.address = None
-        record2 = BinaryRecord(3, 0, b'def')
+        record2 = BinaryRecord(3, None, b'def')
         assert record1.overlaps(record2) == False
 
-        record1 = BinaryRecord(0, 0, b'abc')
-        record2 = BinaryRecord(3, 0, b'def')
+        record1 = BinaryRecord(0, None, b'abc')
+        record2 = BinaryRecord(3, None, b'def')
         record2.address = None
         assert record1.overlaps(record2) == False
 
@@ -574,8 +574,8 @@ class TestRecord:
             next(BinaryRecord.build_standalone((), _=Ellipsis))
 
     def test_check_sequence(self):
-        record1 = BinaryRecord(0, 0, b'abc')
-        record2 = BinaryRecord(3, 0, b'def')
+        record1 = BinaryRecord(0, None, b'abc')
+        record2 = BinaryRecord(3, None, b'def')
         records = [record1, record2]
         BinaryRecord.check_sequence(records)
 

@@ -707,6 +707,9 @@ class Record:
 
     __slots__ = ('tag', 'count', 'address', 'data', 'checksum')
 
+    TAG_TYPE = Tag
+    """Associated Python class for tags."""
+
     LINE_SEP = '\n'
     r"""Separator bewteen record lines.
 

@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from hexrec.formats.tektronix import Record
-from hexrec.formats.tektronix import Tag
+from hexrec.formats.mos import Record
+from hexrec.formats.mos import Tag
 
 BYTES = bytes(range(256))
 HEXBYTES = bytes(range(16))
@@ -28,22 +28,23 @@ def datapath(datadir):
 
 # ============================================================================
 
+def normalize_whitespace(text):
+    return ' '.join(text.split())
+
+
+def test_normalize_whitespace():
+    ans_ref = 'abc def'
+    ans_out = normalize_whitespace('abc\tdef')
+    assert ans_ref == ans_out
+
+# ============================================================================
+
 def read_text(path):
     path = str(path)
     with open(path, 'rt') as file:
         data = file.read()
     data = data.replace('\r\n', '\n').replace('\r', '\n')  # normalize
     return data
-
-# ============================================================================
-
-class TestTag:
-
-    def test_is_data(self):
-        DATA_INTS = {6}
-        for tag in Tag:
-            assert Tag.is_data(tag) == (tag in DATA_INTS)
-            assert Tag.is_data(int(tag)) == (tag in DATA_INTS)
 
 # ============================================================================
 
@@ -54,6 +55,15 @@ class TestRecord:
 
     def test___init__(self):
         pass  # TODO
+
+    def test___repr__(self):
+        r = Record(0x1234, None, b'Hello, World!')
+        ans_out = normalize_whitespace(repr(r))
+        ans_ref = normalize_whitespace('''
+        Record(address=0x1234, tag=None, count=13,
+               data=b'Hello, World!', checksum=0x04AA)
+        ''')
+        assert ans_out == ans_ref
 
     def test___str___doctest(self):
         pass  # TODO
@@ -77,7 +87,6 @@ class TestRecord:
         record = Record.build_terminator(0)
         record.data = b'Hello, World!'
         record.update_count()
-        record.update_checksum()
         with pytest.raises(ValueError): record.check()
 
         record = Record.build_data(0, b'Hello, World!')
@@ -85,12 +94,32 @@ class TestRecord:
         record.update_checksum()
         with pytest.raises(ValueError): record.check()
 
+        record = Record.build_data(-1, b'Hello, World!')
+        with pytest.raises(ValueError): record.check()
+
+        record = Record.build_data((1 << 16), b'Hello, World!')
+        with pytest.raises(ValueError): record.check()
+
         record = Record.build_data(0, b'Hello, World!')
+        record.tag = 1
+        with pytest.raises(ValueError): record.check()
+
+        record = Record.build_data(0, b'Hello, World!')
+        record.data = None
+        with pytest.raises(ValueError): record.check()
+
+        record = Record.build_data(0, BYTES)
+        with pytest.raises(ValueError): record.check()
+        record.count = 1
+        with pytest.raises(ValueError): record.check()
+
+        record = Record.build_data(0, b'Hello, World!')
+        record.checksum = None
         record.check()
-        for tag in range(256):
-            if tag not in (6, 8):
-                record.tag = tag
-                with pytest.raises(ValueError): record.check()
+        record.checksum = -1
+        with pytest.raises(ValueError): record.check()
+        record.checksum = 1
+        with pytest.raises(ValueError): record.check()
 
     def test_parse_doctest(self):
         pass  # TODO
@@ -100,16 +129,16 @@ class TestRecord:
             Record.parse_record('Hello, World!')
 
         with pytest.raises(ValueError, match='count error'):
-            Record.parse_record('%336E081234567848656C6C6F2C20576F726C6421')
+            Record.parse_record(';FF123448656C6C6F2C20576F726C642104AA')
 
     def test_build_data_doctest(self):
-        ans_out = str(Record.build_data(0x12345678, b'Hello, World!'))
-        ans_ref = '%236E081234567848656C6C6F2C20576F726C6421'
+        ans_out = str(Record.build_data(0x1234, b'Hello, World!'))
+        ans_ref = ';0D123448656C6C6F2C20576F726C642104AA'
         assert ans_out == ans_ref
 
     def test_build_terminator_doctest(self):
-        ans_out = str(Record.build_terminator(0x12345678))
-        ans_ref = '%0983D812345678'
+        ans_out = str(Record.build_terminator(0x1234))
+        ans_ref = ';0012341234'
         assert ans_out == ans_ref
 
     def test_split(self):
@@ -117,35 +146,41 @@ class TestRecord:
             list(Record.split(BYTES, address=-1))
 
         with pytest.raises(ValueError):
-            list(Record.split(BYTES, address=(1 << 32)))
+            list(Record.split(BYTES, address=(1 << 16)))
 
         with pytest.raises(ValueError):
-            list(Record.split(BYTES, address=((1 << 32) - 128)))
+            list(Record.split(BYTES, address=((1 << 16) - 128)))
 
         with pytest.raises(ValueError):
-            list(Record.split(BYTES, columns=129))
+            list(Record.split(BYTES, columns=256))
 
         ans_out = list(Record.split(HEXBYTES))
         ans_ref = [
-            Record(0, Tag.DATA, HEXBYTES),
-            Record(0, Tag.TERMINATOR, b''),
+            Record(0, None, HEXBYTES),
+            Record(1, None, b'', 1),
+        ]
+        assert ans_out == ans_ref
+
+        ans_out = list(Record.split(HEXBYTES, standalone=False))
+        ans_ref = [
+            Record(0, None, HEXBYTES),
         ]
         assert ans_out == ans_ref
 
     def test_build_standalone(self):
         ans_out = list(Record.build_standalone([], start=0))
-        ans_ref = [Record(0, Tag.TERMINATOR, b'')]
+        ans_ref = [Record(0, None, b'', 0)]
         assert ans_out == ans_ref
 
         ans_out = list(Record.build_standalone([]))
-        ans_ref = [Record(0, Tag.TERMINATOR, b'')]
+        ans_ref = [Record(0, None, b'', 0)]
         assert ans_out == ans_ref
 
         data_records = [Record.build_data(0x1234, b'Hello, World!')]
         ans_out = list(Record.build_standalone(data_records))
         ans_ref = [
-            Record(0x1234, Tag.DATA, b'Hello, World!'),
-            Record(0x1234, Tag.TERMINATOR, b''),
+            Record(0x1234, None, b'Hello, World!'),
+            Record(1, None, b'', 1),
         ]
         assert ans_out == ans_ref
 
@@ -154,33 +189,26 @@ class TestRecord:
 
     def test_check_sequence(self):
         records = [
-            Record(0x1234, Tag.DATA, b'Hello, World!'),
-            Record(0x1234, Tag.TERMINATOR, b''),
+            Record(0x1234, None, b'Hello, World!'),
+            Record(1, None, b'', 1),
         ]
         Record.check_sequence(records)
 
         with pytest.raises(ValueError, match='missing terminator'):
             Record.check_sequence(records[0:0])
 
-        with pytest.raises(ValueError, match='missing terminator'):
-            Record.check_sequence(records[:-1])
-
-        with pytest.raises(ValueError, match='tag error'):
-            Record.check_sequence(records[::-1])
-
-        with pytest.raises(ValueError, match='tag error'):
-            record = Record(0x4321, Tag.DATA, b'dummy')
-            Record.check_sequence(records + [record])
+        with pytest.raises(ValueError, match='wrong terminator'):
+            Record.check_sequence(records[-1:])
 
     def test_load_records(self, datapath):
-        path_ref = datapath / 'bytes.tek'
+        path_ref = datapath / 'bytes.mos'
         ans_out = list(Record.load_records(str(path_ref)))
         ans_ref = list(Record.split(BYTES))
         assert ans_out == ans_ref
 
     def test_save_records(self, tmppath, datapath):
-        path_out = tmppath / 'bytes.tek'
-        path_ref = datapath / 'bytes.tek'
+        path_out = tmppath / 'bytes.mos'
+        path_ref = datapath / 'bytes.mos'
         records = list(Record.split(BYTES))
         Record.save_records(str(path_out), records)
         ans_out = read_text(path_out)
