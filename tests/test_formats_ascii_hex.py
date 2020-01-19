@@ -9,11 +9,13 @@ from hexrec.formats.ascii_hex import Record
 BYTES = bytes(range(256))
 HEXBYTES = bytes(range(16))
 
+
 # ============================================================================
 
 @pytest.fixture
 def tmppath(tmpdir):
     return Path(str(tmpdir))
+
 
 @pytest.fixture(scope='module')
 def datadir(request):
@@ -21,9 +23,11 @@ def datadir(request):
     assert os.path.isdir(str(dir_path))
     return dir_path
 
+
 @pytest.fixture
 def datapath(datadir):
     return Path(str(datadir))
+
 
 # ============================================================================
 
@@ -36,6 +40,7 @@ def test_normalize_whitespace():
     ans_out = normalize_whitespace('abc\tdef')
     assert ans_ref == ans_out
 
+
 # ============================================================================
 
 def read_text(path):
@@ -44,6 +49,7 @@ def read_text(path):
         data = file.read()
     data = data.replace('\r\n', '\n').replace('\r', '\n')  # normalize
     return data
+
 
 # ============================================================================
 
@@ -110,40 +116,50 @@ class TestRecord:
         record = Record.build_data(0, b'Hello, World!')
         record.count += 1
         record.update_checksum()
-        with pytest.raises(ValueError): record.check()
+        with pytest.raises(ValueError):
+            record.check()
 
         record = Record.build_data(-1, b'Hello, World!')
-        with pytest.raises(ValueError): record.check()
+        with pytest.raises(ValueError):
+            record.check()
 
         record = Record.build_data((1 << 16), b'Hello, World!')
-        with pytest.raises(ValueError): record.check()
+        with pytest.raises(ValueError):
+            record.check()
 
         record = Record.build_data(0, b'Hello, World!')
         record.tag = 1
-        with pytest.raises(ValueError): record.check()
+        with pytest.raises(ValueError):
+            record.check()
 
         record = Record.build_data(0, b'Hello, World!')
         record.data = None
-        with pytest.raises(ValueError): record.check()
+        with pytest.raises(ValueError):
+            record.check()
         record.update_count()
         record.check()
 
         record = Record.build_data(0, BYTES)
         record.check()
         record.count = 1
-        with pytest.raises(ValueError): record.check()
+        with pytest.raises(ValueError):
+            record.check()
         record.count = -1
-        with pytest.raises(ValueError): record.check()
+        with pytest.raises(ValueError):
+            record.check()
         record.count = 1 << 16
-        with pytest.raises(ValueError): record.check()
+        with pytest.raises(ValueError):
+            record.check()
 
         record = Record.build_data(0, b'Hello, World!')
         record.checksum = None
         record.check()
         record.checksum = -1
-        with pytest.raises(ValueError): record.check()
+        with pytest.raises(ValueError):
+            record.check()
         record.checksum = 1 << 16
-        with pytest.raises(ValueError): record.check()
+        with pytest.raises(ValueError):
+            record.check()
         record.checksum = 1
         record.check()
 

@@ -11,6 +11,7 @@ import pytest
 from hexrec.utils import parse_int
 from hexrec.xxd import *
 
+
 # ============================================================================
 
 @pytest.fixture
@@ -27,6 +28,7 @@ def datadir(request):
 def datapath(datadir):
     return Path(str(datadir))
 
+
 # ============================================================================
 
 def read_text(path):
@@ -36,6 +38,7 @@ def read_text(path):
     data = data.replace('\r\n', '\n').replace('\r', '\n')  # normalize
     return data
 
+
 # ============================================================================
 
 def read_bytes(path):
@@ -43,6 +46,7 @@ def read_bytes(path):
     with open(path, 'rb') as file:
         data = file.read()
     return data
+
 
 # ============================================================================
 
@@ -54,6 +58,7 @@ def test_normalize_whitespace():
     ans_ref = 'abc def'
     ans_out = normalize_whitespace('abc\tdef')
     assert ans_ref == ans_out
+
 
 # ============================================================================
 
@@ -84,10 +89,12 @@ def run_cli(args=None, namespace=None):
 
     xxd(**kwargs)
 
+
 # ============================================================================
 
 def test_parse_seek():
     assert parse_seek(None) == ('', 0)
+
 
 # ============================================================================
 

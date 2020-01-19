@@ -32,13 +32,13 @@ import io
 import os
 import re
 import sys
-from typing import ByteString
 from typing import Mapping
 from typing import Optional
 from typing import Tuple
 from typing import Union
 
 from .utils import BIN8_TO_STR
+from .utils import AnyBytes
 from .utils import chop
 from .utils import hexlify
 from .utils import parse_int
@@ -87,8 +87,10 @@ HUMAN_EBCDIC = (r'................'
 r"""Mapping from byte to human-readable EBCDIC characters."""
 
 
-def humanize(chunk: ByteString,
-             charset: Union[str, Mapping[int, str]]) -> str:
+def humanize(
+    chunk: AnyBytes,
+    charset: Union[str, Mapping[int, str]],
+) -> str:
     r"""Translates bytes to a human-readable representation.
 
     Arguments:
@@ -101,7 +103,9 @@ def humanize(chunk: ByteString,
     return ''.join(charset[b] for b in chunk)
 
 
-def parse_seek(value: Optional[str]) -> Tuple[str, int]:
+def parse_seek(
+    value: Optional[str],
+) -> Tuple[str, int]:
     r"""Parses the seek option string.
 
     Argument:
@@ -122,24 +126,26 @@ def parse_seek(value: Optional[str]) -> Tuple[str, int]:
         return ss, sv
 
 
-def xxd(infile: Optional[Union[str, ByteString]] = None,
-        outfile: Optional[Union[str, ByteString]] = None,
-        autoskip: bool = False,
-        bits: Optional[int] = None,
-        cols: Optional[int] = None,
-        ebcdic: bool = False,
-        endian: bool = False,
-        groupsize: Optional[int] = None,
-        include: bool = False,
-        length: Optional[int] = None,
-        offset: Optional[int] = None,
-        postscript: bool = False,
-        quadword: bool = False,
-        revert: bool = False,
-        oseek: Optional[int] = None,
-        iseek: Optional[Union[int, str]] = None,
-        upper_all: bool = False,
-        upper: bool = False) -> None:
+def xxd(
+    infile: Optional[Union[str, AnyBytes]] = None,
+    outfile: Optional[Union[str, AnyBytes]] = None,
+    autoskip: bool = False,
+    bits: Optional[int] = None,
+    cols: Optional[int] = None,
+    ebcdic: bool = False,
+    endian: bool = False,
+    groupsize: Optional[int] = None,
+    include: bool = False,
+    length: Optional[int] = None,
+    offset: Optional[int] = None,
+    postscript: bool = False,
+    quadword: bool = False,
+    revert: bool = False,
+    oseek: Optional[int] = None,
+    iseek: Optional[Union[int, str]] = None,
+    upper_all: bool = False,
+    upper: bool = False,
+) -> None:
     r"""Emulation of the xxd utility core.
 
     Arguments:
@@ -371,6 +377,8 @@ def xxd(infile: Optional[Union[str, ByteString]] = None,
                 label = os.path.basename(infile)
                 label = re.sub('[^0-9a-zA-Z]+', '_', label)
                 outstream.write(f'unsigned char {label}[] = {{\n')
+            else:
+                label = None
 
             indent = '  0X' if upper_all else '  0x'
             sep = ', 0X' if upper_all else ', 0x'

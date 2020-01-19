@@ -114,12 +114,15 @@ True
 from typing import Callable
 from typing import Iterable
 from typing import Iterator
+from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
+from typing import Type
 from typing import TypeVar
 from typing import Union
 
+from .utils import AnyBytes
 from .utils import chop
 from .utils import do_overlap
 from .utils import makefill
@@ -127,15 +130,20 @@ from .utils import straighten_index
 from .utils import straighten_slice
 
 Item = TypeVar('Item')
-ItemSeq = Sequence[Item]
+ItemSeq = Union[Sequence[Item], AnyBytes, Sequence[int], str]
 ItemJoiner = Callable[[Iterable[ItemSeq]], ItemSeq]
 
 Block = Tuple[int, ItemSeq]
 BlockSeq = Sequence[Block]
+BlockList = List[Block]
 
 
-def chop_blocks(items: ItemSeq, window: int,
-                align_base: int = 0, start: int = 0) -> Iterator[Block]:
+def chop_blocks(
+    items: ItemSeq,
+    window: int,
+    align_base: int = 0,
+    start: int = 0,
+) -> Iterator[Block]:
     r"""Chops a sequence of items into blocks.
 
     Iterates through the vector grouping its items into windows.
@@ -172,11 +180,14 @@ def chop_blocks(items: ItemSeq, window: int,
     """
     offset = start + align_base
     for chunk in chop(items, window, align_base):
-        yield (offset, chunk)
+        yield offset, chunk
         offset += len(chunk)
 
 
-def overlap(block1: Block, block2: Block) -> bool:
+def overlap(
+    block1: Block,
+    block2: Block,
+) -> bool:
     r"""Checks if two blocks do overlap.
 
     Arguments:
@@ -218,7 +229,9 @@ def overlap(block1: Block, block2: Block) -> bool:
     return do_overlap(start1, endex1, start2, endex2)
 
 
-def check_sequence(blocks: BlockSeq) -> bool:
+def check_sequence(
+    blocks: BlockSeq,
+) -> bool:
     r"""Checks if a sequence of blocks is valid.
 
     Checks that the sequence is ordered and non-overlapping.
@@ -275,7 +288,9 @@ def check_sequence(blocks: BlockSeq) -> bool:
         return True
 
 
-def sorting(block: Block) -> int:
+def sorting(
+    block: Block,
+) -> int:
     r"""Block sorting key.
 
     Allows to sort blocks so that blocks with the same start address are kept
@@ -333,7 +348,10 @@ def sorting(block: Block) -> int:
     return block[0]
 
 
-def locate_at(blocks: BlockSeq, address: int) -> Optional[Block]:
+def locate_at(
+    blocks: BlockSeq,
+    address: int,
+) -> Optional[int]:
     r"""Locates the block enclosing an address.
 
     Returns the index of the block enclosing the given address.
@@ -388,7 +406,10 @@ def locate_at(blocks: BlockSeq, address: int) -> Optional[Block]:
         return None
 
 
-def locate_start(blocks: BlockSeq, address: int) -> int:
+def locate_start(
+    blocks: BlockSeq,
+    address: int,
+) -> int:
     r"""Locates the first block inside of an address range.
 
     Returns the index of the first block whose start address is greater than
@@ -444,7 +465,10 @@ def locate_start(blocks: BlockSeq, address: int) -> int:
         return left
 
 
-def locate_endex(blocks: BlockSeq, address: int) -> int:
+def locate_endex(
+    blocks: BlockSeq,
+    address: int,
+) -> int:
     r"""Locates the first block after an address range.
 
     Returns the index of the first block whose end address is lesser than or
@@ -500,7 +524,10 @@ def locate_endex(blocks: BlockSeq, address: int) -> int:
         return right + 1
 
 
-def shift(blocks: BlockSeq, amount: int) -> BlockSeq:
+def shift(
+    blocks: BlockSeq,
+    amount: int,
+) -> BlockList:
     r"""Shifts the address of blocks.
 
     Arguments:
@@ -526,8 +553,12 @@ def shift(blocks: BlockSeq, amount: int) -> BlockSeq:
     return [(start + amount, items) for start, items in blocks]
 
 
-def find(blocks: BlockSeq, value: ItemSeq,
-         start: int = None, endex: int = None) -> int:
+def find(
+    blocks: BlockSeq,
+    value: ItemSeq,
+    start: int = None,
+    endex: int = None,
+) -> int:
     r"""Finds the address of a substring.
 
     Arguments:
@@ -573,8 +604,13 @@ def find(blocks: BlockSeq, value: ItemSeq,
         raise ValueError('item not found')
 
 
-def read(blocks: BlockSeq, start: int, endex: int,
-         pattern: ItemSeq = b'\0', join: ItemJoiner = b''.join) -> BlockSeq:
+def read(
+    blocks: BlockSeq,
+    start: Optional[int],
+    endex: Optional[int],
+    pattern: Optional[ItemSeq] = b'\0',
+    join: ItemJoiner = b''.join,
+) -> BlockList:
     r"""Selects blocks from a range.
 
     Arguments:
@@ -672,7 +708,11 @@ def read(blocks: BlockSeq, start: int, endex: int,
     return result
 
 
-def clear(blocks: BlockSeq, start: int, endex: int) -> BlockSeq:
+def clear(
+    blocks: BlockSeq,
+    start: Optional[int],
+    endex: Optional[int],
+) -> BlockList:
     r"""Clears a range.
 
     Arguments:
@@ -752,11 +792,18 @@ def clear(blocks: BlockSeq, start: int, endex: int) -> BlockSeq:
         else:  # range_endex <= start
             append((start, items))
 
-    result = blocks_before + blocks_inside + blocks_after
+    result = []
+    result.extend(blocks_before)
+    result.extend(blocks_inside)
+    result.extend(blocks_after)
     return result
 
 
-def delete(blocks: BlockSeq, start: int, endex: int) -> BlockSeq:
+def delete(
+    blocks: BlockSeq,
+    start: Optional[int],
+    endex: Optional[int],
+) -> BlockList:
     r"""Deletes a range.
 
     Arguments:
@@ -834,11 +881,17 @@ def delete(blocks: BlockSeq, start: int, endex: int) -> BlockSeq:
             append((start - range_length, items))
 
     blocks_after = shift(blocks_after, -range_length)
-    result = blocks_before + blocks_inside + blocks_after
+    result = []
+    result.extend(blocks_before)
+    result.extend(blocks_inside)
+    result.extend(blocks_after)
     return result
 
 
-def insert(blocks: BlockSeq, inserted: Block) -> BlockSeq:
+def insert(
+    blocks: BlockSeq,
+    inserted: Block,
+) -> BlockList:
     r"""Inserts a block into a sequence.
 
     Inserts a block into a sequence, moving existing items after the insertion
@@ -898,11 +951,17 @@ def insert(blocks: BlockSeq, inserted: Block) -> BlockSeq:
                              (inserted_endex, pivot_items[inserted_length:])]
 
     blocks_after = shift(blocks_after, inserted_length)
-    result = blocks_before + blocks_inside + blocks_after
+    result = []
+    result.extend(blocks_before)
+    result.extend(blocks_inside)
+    result.extend(blocks_after)
     return result
 
 
-def write(blocks: BlockSeq, written: Block) -> BlockSeq:
+def write(
+    blocks: BlockSeq,
+    written: Block,
+) -> BlockList:
     r"""Writes a block onto a sequence.
 
     Arguments:
@@ -940,11 +999,13 @@ def write(blocks: BlockSeq, written: Block) -> BlockSeq:
     return result
 
 
-def fill(blocks: BlockSeq,
-         start: Optional[int] = None,
-         endex: Optional[int] = None,
-         pattern: ItemSeq = b'\0',
-         join: ItemJoiner = b''.join) -> BlockSeq:
+def fill(
+    blocks: BlockSeq,
+    start: Optional[int] = None,
+    endex: Optional[int] = None,
+    pattern: ItemSeq = b'\0',
+    join: ItemJoiner = b''.join,
+) -> BlockList:
     r"""Overwrites a range with a pattern.
 
     Arguments:
@@ -1019,12 +1080,14 @@ def fill(blocks: BlockSeq,
     return result
 
 
-def flood(blocks: BlockSeq,
-          start: Optional[int] = None,
-          endex: Optional[int] = None,
-          pattern: ItemSeq = b'\0',
-          flood_only: bool = False,
-          join: ItemJoiner = b''.join) -> BlockSeq:
+def flood(
+    blocks: BlockSeq,
+    start: Optional[int] = None,
+    endex: Optional[int] = None,
+    pattern: ItemSeq = b'\0',
+    flood_only: bool = False,
+    join: ItemJoiner = b''.join,
+) -> BlockList:
     r"""Fills emptiness between non-touching blocks.
 
     Returns a List of the filling blocks, including the existing blocks if
@@ -1064,9 +1127,9 @@ def flood(blocks: BlockSeq,
         [(1, 'ABC'), (4, '23'), (6, 'xyz')]
         >>> flood(blocks, pattern='123', fill_only=True, join=''.join)
         [(4, '23')]
-        >>> flood(blocks, 0, 5, '123', ''.join)
+        >>> flood(blocks, 0, 5, '123', join=''.join)
         [(0, '1'), (1, 'ABC'), (4, '2'), (6, 'xyz')]
-        >>> flood(blocks, 5, 10, '123', ''.join)
+        >>> flood(blocks, 5, 10, '123', join=''.join)
         [(1, 'ABC'), (5, '3'), (6, 'xyz'), (9, '1')]
     """
     if start is None and endex is None and not blocks:
@@ -1115,13 +1178,19 @@ def flood(blocks: BlockSeq,
         blocks_inside.append((last_endex, items))
 
     if with_blocks:
-        result = blocks_before + blocks_inside + blocks_after
+        result = []
+        result.extend(blocks_before)
+        result.extend(blocks_inside)
+        result.extend(blocks_after)
     else:
         result = blocks_inside
     return result
 
 
-def merge(blocks: BlockSeq, join: Optional[ItemJoiner] = None) -> BlockSeq:
+def merge(
+    blocks: BlockSeq,
+    join: Optional[ItemJoiner] = None,
+) -> BlockList:
     r"""Merges touching blocks.
 
     Arguments:
@@ -1185,7 +1254,9 @@ def merge(blocks: BlockSeq, join: Optional[ItemJoiner] = None) -> BlockSeq:
     return result
 
 
-def collapse(blocks: BlockSeq) -> BlockSeq:
+def collapse(
+    blocks: BlockSeq,
+) -> BlockList:
     r"""Collapses blocks of items.
 
     Given a sequence of blocks, they are modified so that a previous block
@@ -1263,14 +1334,17 @@ def collapse(blocks: BlockSeq) -> BlockSeq:
     return result
 
 
-def union(*blocks_list: BlockSeq, join: Optional[ItemJoiner] = None) -> BlockSeq:
+def union(
+    *blocks_list: BlockSeq,
+    join: Optional[ItemJoiner] = None,
+) -> BlockList:
     r"""Performs the union of multiple block lists.
 
     Given some sequences of blocks, their blocks are overwritten to the result
     block list, in the order such sequences are.
 
     Arguments:
-        blocks_lists (:obj:`list` of :obj:`list` of block): Multiple sequences
+        blocks_list (:obj:`list` of :obj:`list` of block): Multiple sequences
             of blocks. Sequence generators supported.
         join (callable): A function to join a sequence of items.
             If ``None``, defaults to ``b''.join``.
@@ -1361,14 +1435,18 @@ class Memory:
         [(5, 'Hello, World!')]
 
     """
-    def __init__(self, items: ItemSeq = None,
-                 start: int = 0,
-                 blocks: BlockSeq = None,
-                 items_type: Optional[type] = None,
-                 items_join: Optional[ItemJoiner] = None,
-                 autofill: Optional[ItemSeq] = None,
-                 automerge: bool = True) -> None:
+    def __init__(
+        self: 'Memory',
+        items: Optional[ItemSeq] = None,
+        start: int = 0,
+        blocks: Optional[BlockList] = None,
+        items_type: Optional[type] = None,
+        items_join: Optional[ItemJoiner] = None,
+        autofill: Optional[ItemSeq] = None,
+        automerge: bool = True,
+    ) -> None:
 
+        self.blocks = None
         if items_type is None:
             items_type = bytes
 
@@ -1391,13 +1469,15 @@ class Memory:
         if automerge:
             blocks = merge(blocks, items_join)
 
-        self.blocks = blocks
-        self.items_type = items_type
-        self.items_join = items_join
-        self.autofill = autofill
-        self.automerge = automerge
+        self.blocks: BlockList = blocks
+        self.items_type: Type[Item] = items_type
+        self.items_join: ItemJoiner = items_join
+        self.autofill: Optional[ItemSeq] = autofill
+        self.automerge: bool = automerge
 
-    def __str__(self) -> str:
+    def __str__(
+        self: 'Memory',
+    ) -> str:
         r"""String representation.
 
         Applies :func:`str` to all the items from :attr:`blocks`.
@@ -1420,7 +1500,9 @@ class Memory:
         """
         return ''.join(str(items) for _, items in self.blocks)
 
-    def __bool__(self) -> bool:
+    def __bool__(
+        self: 'Memory',
+    ) -> bool:
         r"""Has any items.
 
         Returns:
@@ -1437,7 +1519,10 @@ class Memory:
         """
         return bool(self.blocks)
 
-    def __eq__(self, other: Union['Memory', Sequence[ItemSeq], ItemSeq]) -> bool:
+    def __eq__(
+        self: 'Memory',
+        other: Union['Memory', Sequence[ItemSeq], ItemSeq],
+    ) -> bool:
         r"""Equality comparison.
 
         Arguments:
@@ -1486,7 +1571,9 @@ class Memory:
             start, items = next(iter(self.blocks))
             return start == 0 and items == other
 
-    def __iter__(self) -> Iterator[Item]:
+    def __iter__(
+        self: 'Memory',
+    ) -> Iterator[Item]:
         r"""Iterates over all the items.
 
         Yields:
@@ -1508,7 +1595,9 @@ class Memory:
         for _, items in self.blocks:
             yield from items
 
-    def __reversed__(self) -> Iterator[Item]:
+    def __reversed__(
+        self: 'Memory',
+    ) -> Iterator[Item]:
         r"""Iterates over all the items, in reverse.
 
         Yields:
@@ -1530,8 +1619,10 @@ class Memory:
         for _, items in reversed(self.blocks):
             yield from reversed(items)
 
-    def __add__(self, value: Union['Memory', ItemSeq, BlockSeq]) \
-            -> 'Memory':
+    def __add__(
+        self: 'Memory',
+        value: Union['Memory', ItemSeq, BlockSeq],
+    ) -> 'Memory':
         r"""Concatenates items.
 
         Arguments:
@@ -1551,8 +1642,10 @@ class Memory:
         result += value
         return result
 
-    def __iadd__(self, value: Union['Memory', ItemSeq, BlockSeq]) \
-            -> 'Memory':
+    def __iadd__(
+        self: 'Memory',
+        value: Union['Memory', ItemSeq, BlockSeq],
+    ) -> 'Memory':
         r"""Concatenates items.
 
         Arguments:
@@ -1566,7 +1659,7 @@ class Memory:
         """
         blocks = self.blocks
 
-        if isinstance(value, Memory):
+        if isinstance(value, type(self)):
             if value is self:
                 value.blocks = list(blocks)  # guard extend() over iter()
 
@@ -1593,7 +1686,10 @@ class Memory:
         self.blocks = blocks
         return self
 
-    def __mul__(self, times: int) -> 'Memory':
+    def __mul__(
+        self: 'Memory',
+        times: int,
+    ) -> 'Memory':
         r"""Repeats the items.
 
         Repeats the stored items by `times`. Each repeated sequence is
@@ -1613,7 +1709,10 @@ class Memory:
         result *= times
         return result
 
-    def __imul__(self, times: int) -> 'Memory':
+    def __imul__(
+        self: 'Memory',
+        times: int,
+    ) -> 'Memory':
         r"""Repeats the items.
 
         Repeats the stored items by `times`. Each repeated sequence is
@@ -1641,7 +1740,9 @@ class Memory:
         self.blocks = repeated
         return self
 
-    def __len__(self) -> int:
+    def __len__(
+        self: 'Memory',
+    ) -> int:
         r"""Actual length.
 
         Computes the actual length of the stored items, i.e.
@@ -1652,9 +1753,12 @@ class Memory:
         """
         return self.endex - self.start
 
-    def index(self, value: Item,
-              start: Optional[int] = None,
-              endex: Optional[int] = None) -> int:
+    def index(
+        self: 'Memory',
+        value: Item,
+        start: Optional[int] = None,
+        endex: Optional[int] = None,
+    ) -> int:
         r"""Index of an item.
 
         Arguments:
@@ -1678,7 +1782,10 @@ class Memory:
         address = find(self.blocks, value, start, endex)
         return address
 
-    def __contains__(self, value: Item) -> bool:
+    def __contains__(
+        self: 'Memory',
+        value: Item,
+    ) -> bool:
         r"""Checks if some value is contained.
 
         Arguments:
@@ -1710,7 +1817,10 @@ class Memory:
         else:
             return True
 
-    def count(self, value: Item) -> int:
+    def count(
+        self: 'Memory',
+        value: Item,
+    ) -> int:
         r"""Counts items.
 
         Arguments:
@@ -1733,7 +1843,10 @@ class Memory:
         """
         return sum(items.count(value) for _, items in self.blocks)
 
-    def __getitem__(self, key: Union[slice, int]) -> ItemSeq:
+    def __getitem__(
+        self: 'Memory',
+        key: Union[slice, int],
+    ) -> ItemSeq:
         r"""Reads data.
 
         Arguments:
@@ -1835,7 +1948,11 @@ class Memory:
                 key -= address
                 return items[key]
 
-    def __setitem__(self, key: Union[slice, int], value: ItemSeq) -> None:
+    def __setitem__(
+        self: 'Memory',
+        key: Union[slice, int],
+        value: Optional[ItemSeq],
+    ) -> None:
         r"""Writes data.
 
         Arguments:
@@ -1959,7 +2076,10 @@ class Memory:
 
         self.blocks = blocks
 
-    def __delitem__(self, key: Union[slice, int]) -> None:
+    def __delitem__(
+        self: 'Memory',
+        key: Union[slice, int],
+    ) -> None:
         r"""Deletes data.
 
         Arguments:
@@ -2050,7 +2170,10 @@ class Memory:
 
         self.blocks = blocks
 
-    def append(self, value: ItemSeq) -> None:
+    def append(
+        self: 'Memory',
+        value: ItemSeq,
+    ) -> None:
         r"""Appends some items.
 
         Arguments:
@@ -2069,9 +2192,9 @@ class Memory:
             ~~~
 
             >>> memory = Memory(items_type=list)
-            >>> memory.append(3)
+            >>> memory.append([3])
             >>> memory.blocks
-            [(0, 3)]
+            [(0, [3])]
         """
         blocks = self.blocks
         if blocks:
@@ -2082,21 +2205,24 @@ class Memory:
             blocks = [(0, value)]
         self.blocks = blocks
 
-    def extend(self, items: ItemSeq) -> None:
+    def extend(
+        self: 'Memory',
+        items: ItemSeq,
+    ) -> None:
         r"""Concatenates items.
 
         Equivalent to ``self += items``.
 
         Arguments:
-            value (:obj:`Memory` or items or :obj:`list` of block):
-                ItemSeq to append at the end of the current virtual space.
+            items (:obj:`Memory` or items or :obj:`list` of block):
+                Items to append at the end of the current virtual space.
                 If instance of :class:`list`, it is interpreted as a sequence
                 of non-overlapping blocks, sorted by start address.
         """
-        self += items
+        self.__iadd__(items)
 
     @property
-    def start(self) -> int:
+    def start(self: 'Memory') -> int:
         r"""Inclusive start address.
 
         This property holds the inclusive start address of the virtual space.
@@ -2132,7 +2258,7 @@ class Memory:
             return 0
 
     @property
-    def endex(self) -> int:
+    def endex(self: 'Memory') -> int:
         r"""Exclusive end address.
 
         This property holds the exclusive end address of the virtual space.
@@ -2167,7 +2293,10 @@ class Memory:
         else:
             return 0
 
-    def shift(self, amount: int) -> None:
+    def shift(
+        self: 'Memory',
+        amount: int,
+    ) -> None:
         r"""Shifts the items.
 
         Arguments:
@@ -2194,8 +2323,12 @@ class Memory:
         blocks = shift(blocks, amount)
         self.blocks = blocks
 
-    def read(self, start: Optional[int], endex: Optional[int],
-             pattern: Optional[ItemSeq] = None) -> ItemSeq:
+    def read(
+        self: 'Memory',
+        start: Optional[int],
+        endex: Optional[int],
+        pattern: Optional[ItemSeq] = None,
+    ) -> ItemSeq:
         r"""Selects items from a range.
 
         Arguments:
@@ -2213,8 +2346,12 @@ class Memory:
         """
         return self[start:endex:pattern]
 
-    def cut(self, start: Optional[int], endex: Optional[int],
-            pattern: Optional[ItemSeq] = None) -> None:
+    def cut(
+        self: 'Memory',
+        start: Optional[int],
+        endex: Optional[int],
+        pattern: Optional[ItemSeq] = None,
+    ) -> None:
         r"""Keeps data within a range.
 
         Arguments:
@@ -2253,8 +2390,11 @@ class Memory:
 
         self.blocks = blocks
 
-    def clear(self, start: Optional[int] = None,
-              endex: Optional[int] = None) -> None:
+    def clear(
+        self: 'Memory',
+        start: Optional[int] = None,
+        endex: Optional[int] = None,
+    ) -> None:
         r"""Clears a range.
 
         Arguments:
@@ -2291,8 +2431,11 @@ class Memory:
 
         self.blocks = blocks
 
-    def delete(self, start: Optional[int] = None,
-               endex: Optional[int] = None) -> None:
+    def delete(
+        self: 'Memory',
+        start: Optional[int] = None,
+        endex: Optional[int] = None,
+    ) -> None:
         r"""Deletes a range.
 
         Arguments:
@@ -2323,7 +2466,10 @@ class Memory:
         """
         del self[start:endex]
 
-    def pop(self, address: Optional[int] = None) -> Item:
+    def pop(
+        self: 'Memory',
+        address: Optional[int] = None,
+    ) -> Item:
         r"""Retrieves an item and deletes it.
 
         Arguments:
@@ -2398,7 +2544,10 @@ class Memory:
         self.blocks = blocks
         return value
 
-    def remove(self, value: ItemSeq) -> None:
+    def remove(
+        self: 'Memory',
+        value: ItemSeq,
+    ) -> None:
         r"""Removes some data.
 
         Finds the first occurrence of `value` and deletes it.
@@ -2442,7 +2591,11 @@ class Memory:
 
         self.blocks = blocks
 
-    def insert(self, address: int, items: ItemSeq) -> None:
+    def insert(
+        self: 'Memory',
+        address: int,
+        items: ItemSeq,
+    ) -> None:
         r"""Inserts data.
 
         Inserts a block, moving existing items after the insertion address by
@@ -2478,7 +2631,11 @@ class Memory:
 
         self.blocks = blocks
 
-    def write(self, address: int, items: ItemSeq) -> None:
+    def write(
+        self: 'Memory',
+        address: int,
+        items: ItemSeq,
+    ) -> None:
         r"""Writes data.
 
         Arguments:
@@ -2511,9 +2668,12 @@ class Memory:
 
         self.blocks = blocks
 
-    def fill(self, start: Optional[int] = None,
-             endex: Optional[int] = None,
-             pattern: Optional[ItemSeq] = None) -> None:
+    def fill(
+        self: 'Memory',
+        start: Optional[int] = None,
+        endex: Optional[int] = None,
+        pattern: Optional[ItemSeq] = None,
+    ) -> None:
         r"""Overwrites a range with a pattern.
 
         Arguments:
@@ -2586,9 +2746,12 @@ class Memory:
 
         self.blocks = blocks
 
-    def flood(self, start: Optional[int] = None,
-              endex: Optional[int] = None,
-              pattern: Optional[ItemSeq] = None) -> None:
+    def flood(
+        self: 'Memory',
+        start: Optional[int] = None,
+        endex: Optional[int] = None,
+        pattern: Optional[ItemSeq] = None,
+    ) -> None:
         r"""Fills emptiness between non-touching blocks.
 
         Arguments:
@@ -2645,7 +2808,9 @@ class Memory:
 
         self.blocks = blocks
 
-    def merge(self) -> None:
+    def merge(
+        self: 'Memory',
+    ) -> None:
         r"""Merges touching blocks.
 
         See Also:
@@ -2672,7 +2837,9 @@ class Memory:
         blocks = merge(blocks, join=self.items_join)
         self.blocks = blocks
 
-    def reverse(self) -> None:
+    def reverse(
+        self: 'Memory',
+    ) -> None:
         r"""Reverses data in-place.
 
         Example:

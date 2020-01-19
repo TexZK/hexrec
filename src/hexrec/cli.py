@@ -14,10 +14,15 @@ Why does this file exist, and why not put this in __main__?
 
   Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
+from typing import Optional
+from typing import Tuple
+from typing import Type
+
 import click
 
 from .__init__ import __version__ as _version
 from .records import RECORD_TYPES as _RECORD_TYPES
+from .records import Record as _Record
 from .records import convert_file as _convert_file
 from .records import find_record_type_name as _find_record_type_name
 from .records import load_memory as _load_memory
@@ -64,7 +69,12 @@ RECORD_FORMAT_CHOICE = click.Choice(list(sorted(_RECORD_TYPES.keys())))
 # ----------------------------------------------------------------------------
 
 
-def find_types(input_format, output_format, infile, outfile):
+def find_types(
+    input_format: Optional[str],
+    output_format: Optional[str],
+    infile: str,
+    outfile: str
+) -> Tuple[Type[_Record], Type[_Record]]:
     if input_format:
         input_type = _RECORD_TYPES[input_format]
     elif infile == '-':
@@ -82,7 +92,7 @@ def find_types(input_format, output_format, infile, outfile):
     return input_type, output_type
 
 
-def print_version(ctx, param, value):
+def print_version(ctx, _, value):
     if not value or ctx.resilient_parsing:
         return
     click.echo(str(_version))
@@ -92,7 +102,7 @@ def print_version(ctx, param, value):
 # ============================================================================
 
 @click.group()
-def main():
+def main() -> None:
     """
     A set of command line utilities for common operations with record files.
 
@@ -124,7 +134,14 @@ By default it applies till the end of the data contents.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
-def clear(input_format, output_format, start, endex, infile, outfile):
+def clear(
+    input_format: str,
+    output_format: str,
+    start: int,
+    endex: int,
+    infile: str,
+    outfile: str,
+) -> None:
     r"""Clears an address range.
 
     ``INFILE`` is the path of the input file.
@@ -154,7 +171,12 @@ By default it is that of the input file.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
-def convert(input_format, output_format, infile, outfile):
+def convert(
+    input_format: str,
+    output_format: str,
+    infile: str,
+    outfile: str,
+) -> None:
     r"""Converts a file to another format.
 
     ``INFILE`` is the list of paths of the input files.
@@ -195,7 +217,15 @@ By default it applies till the end of the data contents.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
-def cut(input_format, output_format, value, start, endex, infile, outfile):
+def cut(
+    input_format: str,
+    output_format: str,
+    value: int,
+    start: int,
+    endex: int,
+    infile: str,
+    outfile: str,
+) -> None:
     r"""Selects data from an address range.
 
     ``INFILE`` is the path of the input file.
@@ -235,7 +265,14 @@ By default it applies till the end of the data contents.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
-def delete(input_format, output_format, start, endex, infile, outfile):
+def delete(
+    input_format: str,
+    output_format: str,
+    start: int,
+    endex: int,
+    infile: str,
+    outfile: str,
+) -> None:
     r"""Deletes an address range.
 
     ``INFILE`` is the path of the input file.
@@ -276,7 +313,15 @@ By default it applies till the end of the data contents.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
-def fill(input_format, output_format, value, start, endex, infile, outfile):
+def fill(
+    input_format: str,
+    output_format: str,
+    value: int,
+    start: int,
+    endex: int,
+    infile: str,
+    outfile: str,
+) -> None:
     r"""Fills an address range with a byte value.
 
     ``INFILE`` is the path of the input file.
@@ -317,7 +362,15 @@ By default it applies till the end of the data contents.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
-def flood(input_format, output_format, value, start, endex, infile, outfile):
+def flood(
+    input_format: str,
+    output_format: str,
+    value: BYTE_INT,
+    start: BASED_INT,
+    endex: BASED_INT,
+    infile: str,
+    outfile: str,
+) -> None:
     r"""Fills emptiness of an address range with a byte value.
 
     ``INFILE`` is the path of the input file.
@@ -347,7 +400,12 @@ By default it is that of the input file.
 """)
 @click.argument('infiles', type=FILE_PATH_IN, nargs=-1, required=True)
 @click.argument('outfile', type=FILE_PATH_OUT)
-def merge(input_format, output_format, infiles, outfile):
+def merge(
+    input_format: str,
+    output_format: str,
+    infiles: str,
+    outfile: str,
+) -> None:
     r"""Merges multiple files.
 
     ``INFILES`` is the list of paths of the input files.
@@ -385,7 +443,12 @@ By default it is that of the input file.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
-def reverse(input_format, output_format, infile, outfile):
+def reverse(
+    input_format: str,
+    output_format: str,
+    infile: str,
+    outfile: str,
+) -> None:
     r"""Reverses data.
 
     ``INFILE`` is the path of the input file.
@@ -413,12 +476,18 @@ Required for the standard input.
 Forces the output file format.
 By default it is that of the input file.
 """)
-@click.option('-n', '--shift', type=BASED_INT, default=0, help="""
+@click.option('-n', '--amount', type=BASED_INT, default=0, help="""
 Address shift to apply.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
-def shift(input_format, output_format, shift, infile, outfile):
+def shift(
+    input_format: str,
+    output_format: str,
+    amount: int,
+    infile: str,
+    outfile: str,
+) -> None:
     r"""Shifts data addresses.
 
     ``INFILE`` is the path of the input file.
@@ -431,7 +500,7 @@ def shift(input_format, output_format, shift, infile, outfile):
                                          infile, outfile)
 
     m = _load_memory(infile, record_type=input_type)
-    m.shift(shift)
+    m.shift(amount)
     _save_memory(outfile, m, record_type=output_type)
 
 
@@ -547,30 +616,49 @@ Prints the package version number.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
-def xxd(autoskip, bits, cols, ebcdic, endian, groupsize, include, length,
-        offset, postscript, quadword, revert, oseek, iseek, upper_all, upper,
-        infile, outfile):
+def xxd(
+    autoskip: bool,
+    bits: bool,
+    cols: int,
+    ebcdic: bool,
+    endian: bool,
+    groupsize: int,
+    include: bool,
+    length: int,
+    offset: int,
+    postscript: bool,
+    quadword: bool,
+    revert: bool,
+    oseek: int,
+    iseek: int,
+    upper_all: bool,
+    upper: bool,
+    infile: str,
+    outfile: str,
+) -> None:
     r"""Emulates the xxd command.
 
     Please refer to the xxd manual page to know its features and caveats.
 
     Some parameters were changed to satisfy the POSIX-like command line parser.
     """
-    _xxd(infile=infile,
-         outfile=outfile,
-         autoskip=autoskip,
-         bits=bits,
-         cols=cols,
-         ebcdic=ebcdic,
-         endian=endian,
-         groupsize=groupsize,
-         include=include,
-         length=length,
-         offset=offset,
-         postscript=postscript,
-         quadword=quadword,
-         revert=revert,
-         oseek=oseek,
-         iseek=iseek,
-         upper_all=upper_all,
-         upper=upper)
+    _xxd(
+        infile=infile,
+        outfile=outfile,
+        autoskip=autoskip,
+        bits=bits,
+        cols=cols,
+        ebcdic=ebcdic,
+        endian=endian,
+        groupsize=groupsize,
+        include=include,
+        length=length,
+        offset=offset,
+        postscript=postscript,
+        quadword=quadword,
+        revert=revert,
+        oseek=oseek,
+        iseek=iseek,
+        upper_all=upper_all,
+        upper=upper,
+    )

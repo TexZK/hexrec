@@ -62,36 +62,32 @@ import enum
 import os
 from typing import IO
 from typing import Any
-from typing import ByteString
-from typing import Callable
-from typing import Iterable
+from typing import Iterator
+from typing import List
 from typing import Mapping
 from typing import Optional
 from typing import Sequence
-from typing import Tuple
-from typing import TypeVar
+from typing import Type
 from typing import Union
 
 import pkg_resources
 from click import open_file
 
+from .blocks import BlockSeq
 from .blocks import Memory
 from .blocks import merge
 from .blocks import union
+from .utils import AnyBytes
 from .utils import do_overlap
 from .utils import sum_bytes
 
-Item = TypeVar('Item')
-ItemSeq = Sequence[Item]
-ItemJoiner = Callable[[Iterable[ItemSeq]], ItemSeq]
-
-Block = Tuple[int, ItemSeq]
-BlockSeq = Sequence[Block]
-
 RecordSeq = Sequence['Record']
+RecordList = List['Record']
 
 
-def get_data_records(records: RecordSeq) -> RecordSeq:
+def get_data_records(
+    records: RecordSeq,
+) -> RecordList:
     r"""Extracts data records.
 
     Arguments:
@@ -102,6 +98,7 @@ def get_data_records(records: RecordSeq) -> RecordSeq:
 
     Example:
         >>> from hexrec.blocks import chop_blocks
+        >>> from hexrec.formats.motorola import Record as MotorolaRecord
         >>> data = bytes(range(256))
         >>> blocks = list(chop_blocks(data, 16))
         >>> records = blocks_to_records(blocks, MotorolaRecord)
@@ -112,7 +109,9 @@ def get_data_records(records: RecordSeq) -> RecordSeq:
     return data_records
 
 
-def find_corrupted_records(records: RecordSeq) -> RecordSeq:
+def find_corrupted_records(
+    records: RecordSeq,
+) -> List[int]:
     r"""Finds corrupted records.
 
     Arguments:
@@ -122,6 +121,7 @@ def find_corrupted_records(records: RecordSeq) -> RecordSeq:
         :obj:`list` of :obj:`int`: Sequence of corrupted record indices.
 
     Example:
+        >>> from hexrec.formats.motorola import Record as MotorolaRecord
         >>> data = bytes(range(256))
         >>> records = list(MotorolaRecord.split(data))
         >>> records[3].checksum ^= 0xFF
@@ -139,7 +139,9 @@ def find_corrupted_records(records: RecordSeq) -> RecordSeq:
     return corrupted
 
 
-def records_to_blocks(records: RecordSeq) -> RecordSeq:
+def records_to_blocks(
+    records: RecordSeq,
+) -> BlockSeq:
     r"""Converts records to blocks.
 
     Extracts all the data records, collapses them in the order they compare in
@@ -155,6 +157,7 @@ def records_to_blocks(records: RecordSeq) -> RecordSeq:
 
     Example:
         >>> from hexrec.blocks import chop_blocks, merge
+        >>> from hexrec.formats.motorola import Record as MotorolaRecord
         >>> data = bytes(range(256))
         >>> blocks = list(chop_blocks(data, 16))
         >>> records = blocks_to_records(blocks, MotorolaRecord)
@@ -166,13 +169,14 @@ def records_to_blocks(records: RecordSeq) -> RecordSeq:
     return blocks
 
 
-def blocks_to_records(blocks: BlockSeq,
-                      record_type: type,
-                      split_args: Optional[Sequence[Any]] = None,
-                      split_kwargs: Optional[Mapping[str, Any]] = None,
-                      build_args: Optional[Sequence[Any]] = None,
-                      build_kwargs: Optional[Mapping[str, Any]] = None) \
-                      -> RecordSeq:
+def blocks_to_records(
+    blocks: BlockSeq,
+    record_type: Type['Record'],
+    split_args: Optional[Sequence[Any]] = None,
+    split_kwargs: Optional[Mapping[str, Any]] = None,
+    build_args: Optional[Sequence[Any]] = None,
+    build_kwargs: Optional[Mapping[str, Any]] = None,
+) -> RecordList:
     r"""Converts blocks to records.
 
     Arguments:
@@ -191,6 +195,7 @@ def blocks_to_records(blocks: BlockSeq,
 
     Example:
         >>> from hexrec.blocks import chop_blocks, merge
+        >>> from hexrec.formats.motorola import Record as MotorolaRecord
         >>> data = bytes(range(256))
         >>> blocks = list(chop_blocks(data, 16))
         >>> records = blocks_to_records(blocks, MotorolaRecord)
@@ -214,14 +219,15 @@ def blocks_to_records(blocks: BlockSeq,
     return records
 
 
-def merge_records(data_records: RecordSeq,
-                  input_types: Optional[Sequence[type]] = None,
-                  output_type: Optional[type] = None,
-                  split_args: Optional[Sequence[Any]] = None,
-                  split_kwargs: Optional[Mapping[str, Any]] = None,
-                  build_args: Optional[Sequence[Any]] = None,
-                  build_kwargs: Optional[Mapping[str, Any]] = None) \
-                  -> RecordSeq:
+def merge_records(
+    data_records: Sequence[RecordSeq],
+    input_types: Optional[Sequence[type]] = None,
+    output_type: Optional[Type['Record']] = None,
+    split_args: Optional[Sequence[Any]] = None,
+    split_kwargs: Optional[Mapping[str, Any]] = None,
+    build_args: Optional[Sequence[Any]] = None,
+    build_kwargs: Optional[Mapping[str, Any]] = None,
+) -> RecordList:
     r"""Merges data records.
 
     Merges multiple sequences of data records where each sequence overwrites
@@ -248,6 +254,8 @@ def merge_records(data_records: RecordSeq,
 
     Example:
         >>> from hexrec.blocks import chop_blocks, merge
+        >>> from hexrec.formats.intel import Record as IntelRecord
+        >>> from hexrec.formats.motorola import Record as MotorolaRecord
         >>> data1 = bytes(range(0, 32))
         >>> data2 = bytes(range(96, 128))
         >>> blocks1 = list(chop_blocks(data1, 16, start=0))
@@ -280,14 +288,15 @@ def merge_records(data_records: RecordSeq,
     return output_records
 
 
-def convert_records(records: RecordSeq,
-                    input_type: Optional[type] = None,
-                    output_type: Optional[type] = None,
-                    split_args: Optional[Sequence[Any]] = None,
-                    split_kwargs: Optional[Mapping[str, Any]] = None,
-                    build_args: Optional[Sequence[Any]] = None,
-                    build_kwargs: Optional[Mapping[str, Any]] = None) \
-                    -> RecordSeq:
+def convert_records(
+    records: RecordSeq,
+    input_type: Optional[Type['Record']] = None,
+    output_type: Optional[Type['Record']] = None,
+    split_args: Optional[Sequence[Any]] = None,
+    split_kwargs: Optional[Mapping[str, Any]] = None,
+    build_args: Optional[Sequence[Any]] = None,
+    build_kwargs: Optional[Mapping[str, Any]] = None,
+) -> RecordList:
     r"""Converts records to another type.
 
     Arguments:
@@ -309,12 +318,16 @@ def convert_records(records: RecordSeq,
         :obj:`list` of :obj:`Record`: Converted records.
 
     Examples:
+        >>> from hexrec.formats.intel import Record as IntelRecord
+        >>> from hexrec.formats.motorola import Record as MotorolaRecord
         >>> motorola = list(MotorolaRecord.split(bytes(range(256))))
         >>> intel = list(IntelRecord.split(bytes(range(256))))
         >>> converted = convert_records(motorola, output_type=IntelRecord)
         >>> converted == intel
         True
 
+        >>> from hexrec.formats.intel import Record as IntelRecord
+        >>> from hexrec.formats.motorola import Record as MotorolaRecord
         >>> motorola = list(MotorolaRecord.split(bytes(range(256))))
         >>> intel = list(IntelRecord.split(bytes(range(256))))
         >>> converted = convert_records(intel, output_type=MotorolaRecord)
@@ -335,15 +348,16 @@ def convert_records(records: RecordSeq,
     return output_records
 
 
-def merge_files(input_files: Sequence[str],
-                output_file: str,
-                input_types: Optional[Sequence[type]] = None,
-                output_type: Optional[type] = None,
-                split_args: Optional[Sequence[Any]] = None,
-                split_kwargs: Optional[Mapping[str, Any]] = None,
-                build_args: Optional[Sequence[Any]] = None,
-                build_kwargs: Optional[Mapping[str, Any]] = None) \
-                -> RecordSeq:
+def merge_files(
+    input_files: Sequence[str],
+    output_file: str,
+    input_types: Optional[Sequence[Type['Record']]] = None,
+    output_type: Optional[Type['Record']] = None,
+    split_args: Optional[Sequence[Any]] = None,
+    split_kwargs: Optional[Mapping[str, Any]] = None,
+    build_args: Optional[Sequence[Any]] = None,
+    build_kwargs: Optional[Mapping[str, Any]] = None,
+) -> None:
     r"""Merges record files.
 
     Merges multiple record files where each file overwrites overlapping data
@@ -373,7 +387,7 @@ def merge_files(input_files: Sequence[str],
 
     """
     if input_types is None:
-        input_types = [None] * len(input_files)
+        input_types: List[Optional[Type['Record']]] = [None] * len(input_files)
     else:
         input_types = list(input_types)
 
@@ -398,15 +412,16 @@ def merge_files(input_files: Sequence[str],
     output_type.save_records(output_file, output_records)
 
 
-def convert_file(input_file: str,
-                 output_file: str,
-                 input_type: Optional[type] = None,
-                 output_type: Optional[type] = None,
-                 split_args: Optional[Sequence[Any]] = None,
-                 split_kwargs: Optional[Mapping[str, Any]] = None,
-                 build_args: Optional[Sequence[Any]] = None,
-                 build_kwargs: Optional[Mapping[str, Any]] = None) \
-                 -> RecordSeq:
+def convert_file(
+    input_file: str,
+    output_file: str,
+    input_type: Optional[Type['Record']] = None,
+    output_type: Optional[Type['Record']] = None,
+    split_args: Optional[Sequence[Any]] = None,
+    split_kwargs: Optional[Mapping[str, Any]] = None,
+    build_args: Optional[Sequence[Any]] = None,
+    build_kwargs: Optional[Mapping[str, Any]] = None,
+) -> None:
     r"""Converts a record file to another record type.
 
     Warning:
@@ -428,6 +443,8 @@ def convert_file(input_file: str,
             :meth:`Record.build_standalone`.
 
     Example:
+        >>> from hexrec.formats.intel import Record as IntelRecord
+        >>> from hexrec.formats.motorola import Record as MotorolaRecord
         >>> motorola = list(MotorolaRecord.split(bytes(range(256))))
         >>> intel = list(IntelRecord.split(bytes(range(256))))
         >>> save_records('bytes.mot', motorola)
@@ -439,7 +456,10 @@ def convert_file(input_file: str,
                 split_args, split_kwargs, build_args, build_kwargs)
 
 
-def load_records(path: str, record_type: Optional[type] = None) -> RecordSeq:
+def load_records(
+    path: str,
+    record_type: Optional[Type['Record']] = None,
+) -> RecordList:
     r"""Loads records from a record file.
 
     Arguments:
@@ -448,6 +468,7 @@ def load_records(path: str, record_type: Optional[type] = None) -> RecordSeq:
             If ``None``, it is guessed from the file extension.
 
     Example:
+        >>> from hexrec.formats.motorola import Record as MotorolaRecord
         >>> records = list(MotorolaRecord.split(bytes(range(256))))
         >>> save_records('bytes.mot', records)
         >>> load_records('bytes.mot') == records
@@ -460,11 +481,13 @@ def load_records(path: str, record_type: Optional[type] = None) -> RecordSeq:
     return records
 
 
-def save_records(path: str,
-                 records: RecordSeq,
-                 output_type: Optional[type] = None,
-                 split_args: Optional[Sequence[Any]] = None,
-                 split_kwargs: Optional[Mapping[str, Any]] = None) -> None:
+def save_records(
+    path: str,
+    records: RecordSeq,
+    output_type: Optional[Type['Record']] = None,
+    split_args: Optional[Sequence[Any]] = None,
+    split_kwargs: Optional[Mapping[str, Any]] = None,
+) -> None:
     r"""Saves records to a record file.
 
     Arguments:
@@ -476,6 +499,7 @@ def save_records(path: str,
         split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
 
     Example:
+        >>> from hexrec.formats.intel import Record as IntelRecord
         >>> records = list(IntelRecord.split(bytes(range(256))))
         >>> save_records('bytes.hex', records)
         >>> load_records('bytes.hex') == records
@@ -495,7 +519,10 @@ def save_records(path: str,
     output_type.save_records(path, records)
 
 
-def load_blocks(path: str, record_type: Optional[type] = None):
+def load_blocks(
+    path: str,
+    record_type: Optional[Type['Record']] = None,
+):
     r"""Loads blocks from a record file.
 
     Arguments:
@@ -520,17 +547,20 @@ def load_blocks(path: str, record_type: Optional[type] = None):
     return blocks
 
 
-def save_blocks(path: str,
-                blocks: BlockSeq,
-                record_type: Optional[type] = None,
-                split_args: Optional[Sequence[Any]] = None,
-                split_kwargs: Optional[Mapping[str, Any]] = None,
-                build_args: Optional[Sequence[Any]] = None,
-                build_kwargs: Optional[Mapping[str, Any]] = None) -> None:
+def save_blocks(
+    path: str,
+    blocks: BlockSeq,
+    record_type: Optional[Type['Record']] = None,
+    split_args: Optional[Sequence[Any]] = None,
+    split_kwargs: Optional[Mapping[str, Any]] = None,
+    build_args: Optional[Sequence[Any]] = None,
+    build_kwargs: Optional[Mapping[str, Any]] = None,
+) -> None:
     r"""Saves blocks to a record file.
 
     Arguments:
         path (:obj:`str`): Path of the output file.
+        blocks (:obj:`list` of block): Sequence of blocks to save.
         records (:obj:`list` of block): Sequence of non-overlapping blocks,
             sorted by start address.
         record_type (:class:`Record`): Explicit record type.
@@ -555,7 +585,10 @@ def save_blocks(path: str,
     record_type.save_blocks(path, blocks)
 
 
-def load_memory(path: str, record_type: Optional[type] = None) -> Memory:
+def load_memory(
+    path: str,
+    record_type: Optional[Type['Record']] = None,
+) -> Memory:
     r"""Loads a virtual memory from a file.
 
     Arguments:
@@ -581,11 +614,13 @@ def load_memory(path: str, record_type: Optional[type] = None) -> Memory:
     return memory
 
 
-def save_memory(path: str,
-                memory: Memory,
-                record_type: Optional[type] = None,
-                split_args: Optional[Sequence[Any]] = None,
-                split_kwargs: Optional[Mapping[str, Any]] = None) -> None:
+def save_memory(
+    path: str,
+    memory: Memory,
+    record_type: Optional[Type['Record']] = None,
+    split_args: Optional[Sequence[Any]] = None,
+    split_kwargs: Optional[Mapping[str, Any]] = None,
+) -> None:
     r"""Saves a virtual memory to a record file.
 
     Arguments:
@@ -610,12 +645,14 @@ def save_memory(path: str,
     record_type.save_memory(path, memory)
 
 
-def save_chunk(path: str,
-               chunk: ByteString,
-               address: int = 0,
-               record_type: Optional[type] = None,
-               split_args: Optional[Sequence[Any]] = None,
-               split_kwargs: Optional[Mapping[str, Any]] = None) -> None:
+def save_chunk(
+    path: str,
+    chunk: AnyBytes,
+    address: int = 0,
+    record_type: Optional[Type['Record']] = None,
+    split_args: Optional[Sequence[Any]] = None,
+    split_kwargs: Optional[Mapping[str, Any]] = None,
+) -> None:
     r"""Saves a data chunk to a record file.
 
     Arguments:
@@ -641,8 +678,12 @@ class Tag(enum.IntEnum):
     """Abstract record tag."""
 
     @classmethod
-    def is_data(cls, value: Union[int, 'Tag']) -> bool:
+    def is_data(
+        cls: Type['Tag'],
+        value: Optional[Union[int, 'Tag']],
+    ) -> bool:
         r""":obj:`bool`: `value` is a data record tag."""
+        del cls, value
         return True  # by default, all records are data records
 
 
@@ -675,7 +716,7 @@ class Record:
             its actual value automatically. ``None`` assigns ``None``.
 
     Examples:
-        >>> from hexrec.formats.binary import Record
+        >>> from hexrec.formats.binary import Record as BinaryRecord
         >>> BinaryRecord(0x1234, None, b'Hello, World!')
         ... #doctest: +NORMALIZE_WHITESPACE
         Record(address=0x00001234, tag=None, count=13,
@@ -695,15 +736,19 @@ class Record:
         Record(address=0x00001234, tag=<IntelTag.DATA: 0>, count=13,
                data=b'Hello, World!', checksum=0x44)
     """
-    def __init__(self, address: int,
-                 tag: Tag,
-                 data: ByteString,
-                 checksum: Union[int, type(Ellipsis)] = Ellipsis):
+    def __init__(
+        self: 'Record',
+        address: int,
+        tag: Optional[Tag],
+        data: AnyBytes,
+        checksum: Optional[Union[int, type(Ellipsis)]] = Ellipsis,
+    ) -> None:
+        self.address: int = address
+        self.tag: Optional[Tag] = tag
+        self.data: AnyBytes = data
+        self.checksum: Optional[Union[int, type(Ellipsis)]] = None
+        self.count: int = -1  # invalidate
 
-        self.address = address
-        self.tag = tag
-        self.data = data
-        self.checksum = None
         self.update_count()
         if checksum is Ellipsis:
             self.update_checksum()
@@ -713,15 +758,20 @@ class Record:
     __slots__ = ('tag', 'count', 'address', 'data', 'checksum')
 
     TAG_TYPE = Tag
-    """Associated Python class for tags."""
+    r"""Associated Python class for tags."""
 
     LINE_SEP = '\n'
-    r"""Separator bewteen record lines.
+    r"""Separator between record lines.
 
     If subclass of :obj:`bytes`, it is considered as a binary file.
     """
 
-    def __repr__(self) -> str:
+    EXTENSIONS = ()
+    r"""File extensions typically mapped to this record type."""
+
+    def __repr__(
+        self: 'Record',
+    ) -> str:
         text = (f'{type(self).__name__}('
                 f'address=0x{self.address:08X}, '
                 f'tag={self.tag!r}, '
@@ -731,7 +781,9 @@ class Record:
                 f')')
         return text
 
-    def __str__(self) -> str:
+    def __str__(
+        self: 'Record',
+    ) -> str:
         r"""Converts to text string.
 
         Builds a printable text representation of the record, usually the same
@@ -742,7 +794,7 @@ class Record:
             :obj:`str`: A printable text representation of the record.
 
         Examples:
-            >>> from hexrec.formats.binary import Record
+            >>> from hexrec.formats.binary import Record as BinaryRecord
             >>> str(BinaryRecord(0x1234, None, b'Hello, World!'))
             '48656C6C6F2C20576F726C6421'
 
@@ -759,26 +811,29 @@ class Record:
         """
         return repr(self)
 
-    def __eq__(self, other: 'Record') -> bool:
+    def __eq__(
+        self: 'Record',
+        other: 'Record',
+    ) -> bool:
         r"""Equality comparison.
 
         Returns:
             :obj:`bool`: The `address`, `tag`, and `data` fields are equal.
 
         Examples:
-            >>> from hexrec.formats.binary import Record
+            >>> from hexrec.formats.binary import Record as BinaryRecord
             >>> record1 = BinaryRecord.build_data(0, b'Hello, World!')
             >>> record2 = BinaryRecord.build_data(0, b'Hello, World!')
             >>> record1 == record2
             True
 
-            >>> from hexrec.formats.binary import Record
+            >>> from hexrec.formats.binary import Record as BinaryRecord
             >>> record1 = BinaryRecord.build_data(0, b'Hello, World!')
             >>> record2 = BinaryRecord.build_data(1, b'Hello, World!')
             >>> record1 == record2
             False
 
-            >>> from hexrec.formats.binary import Record
+            >>> from hexrec.formats.binary import Record as BinaryRecord
             >>> record1 = BinaryRecord.build_data(0, b'Hello, World!')
             >>> record2 = BinaryRecord.build_data(0, b'hello, world!')
             >>> record1 == record2
@@ -794,7 +849,9 @@ class Record:
                 self.tag == other.tag and
                 self.data == other.data)
 
-    def __hash__(self) -> int:
+    def __hash__(
+        self: 'Record',
+    ) -> int:
         r"""Computes the hash value.
 
         Computes the hash of the :class:`Record` fields.
@@ -807,8 +864,8 @@ class Record:
             Be careful with hashable mutable objects!
 
         Examples:
-            >>> from hexrec.formats.binary import Record
-            >>> hash(BinaryRecord(0x1234, 0, b'Hello, World!'))
+            >>> from hexrec.formats.binary import Record as BinaryRecord
+            >>> hash(BinaryRecord(0x1234, None, b'Hello, World!'))
             ... #doctest: +SKIP
             7668968047460943252
 
@@ -831,28 +888,33 @@ class Record:
                 hash(int(self.count or 0)) ^
                 hash(int(self.checksum or 0)))
 
-    def __lt__(self, other: 'Record'):
+    def __lt__(
+        self: 'Record',
+        other: 'Record',
+    ):
         r"""Less-than comparison.
 
         Returns:
             :obj:`bool`: `address` less than `other`'s.
 
         Examples:
-            >>> from hexrec.formats.binary import Record
-            >>> record1 = BinaryRecord(0x1234, 0, b'')
-            >>> record2 = BinaryRecord(0x4321, 0, b'')
+            >>> from hexrec.formats.binary import Record as BinaryRecord
+            >>> record1 = BinaryRecord(0x1234, None, b'')
+            >>> record2 = BinaryRecord(0x4321, None, b'')
             >>> record1 < record2
             True
 
-            >>> from hexrec.formats.binary import Record
-            >>> record1 = BinaryRecord(0x4321, 0, b'')
-            >>> record2 = BinaryRecord(0x1234, 0, b'')
+            >>> from hexrec.formats.binary import Record as BinaryRecord
+            >>> record1 = BinaryRecord(0x4321, None, b'')
+            >>> record2 = BinaryRecord(0x1234, None, b'')
             >>> record1 < record2
             False
         """
         return self.address < other.address
 
-    def is_data(self) -> bool:
+    def is_data(
+        self: 'Record',
+    ) -> bool:
         r"""Tells if it is a data record.
 
         Tells whether the record contains plain binary data, i.e. it is not a
@@ -865,8 +927,8 @@ class Record:
             This method must be overridden.
 
         Examples:
-            >>> from hexrec.formats.binary import Record
-            >>> BinaryRecord(0, 0, b'Hello, World!').is_data()
+            >>> from hexrec.formats.binary import Record as BinaryRecord
+            >>> BinaryRecord(0, None, b'Hello, World!').is_data()
             True
 
             >>> from hexrec.formats.motorola import Record as MotorolaRecord
@@ -893,15 +955,17 @@ class Record:
         """
         return self.TAG_TYPE.is_data(self.tag)
 
-    def compute_count(self) -> Optional[int]:
+    def compute_count(
+        self: 'Record',
+    ) -> Optional[int]:
         r"""Computes the count.
 
         Returns:
             :obj:`bool`: `count` field value based on the current fields.
 
         Examples:
-            >>> from hexrec.formats.binary import Record
-            >>> record = BinaryRecord(0, 0, b'Hello, World!')
+            >>> from hexrec.formats.binary import Record as BinaryRecord
+            >>> record = BinaryRecord(0, None, b'Hello, World!')
             >>> str(record)
             '48656C6C6F2C20576F726C6421'
             >>> record.compute_count()
@@ -926,19 +990,23 @@ class Record:
         """
         return len(self.data or b'')
 
-    def update_count(self) -> None:
+    def update_count(
+        self: 'Record',
+    ) -> None:
         r"""Updates the `count` field via :meth:`compute_count`."""
         self.count = self.compute_count()
 
-    def compute_checksum(self) -> Optional[int]:
+    def compute_checksum(
+        self: 'Record',
+    ) -> Optional[int]:
         r"""Computes the checksum.
 
         Returns:
             :obj:`int`: `checksum` field value based on the current fields.
 
         Examples:
-            >>> from hexrec.formats.binary import Record
-            >>> record = BinaryRecord(0, 0, b'Hello, World!')
+            >>> from hexrec.formats.binary import Record as BinaryRecord
+            >>> record = BinaryRecord(0, None, b'Hello, World!')
             >>> str(record)
             '48656C6C6F2C20576F726C6421'
             >>> hex(record.compute_checksum())
@@ -963,11 +1031,15 @@ class Record:
         """
         return sum_bytes(self.data or b'') & 0xFF
 
-    def update_checksum(self) -> None:
+    def update_checksum(
+        self: 'Record',
+    ) -> None:
         r"""Updates the `checksum` field via :meth:`compute_count`."""
         self.checksum = self.compute_checksum()
 
-    def _get_checksum(self) -> Optional[int]:
+    def _get_checksum(
+        self: 'Record',
+    ) -> Optional[int]:
         r""":obj:`int`: The `checksum` field itself if not ``None``, the
             value computed by :meth:`compute_count` otherwise.
         """
@@ -976,7 +1048,9 @@ class Record:
         else:
             return self.checksum
 
-    def check(self) -> None:
+    def check(
+        self: 'Record',
+    ) -> None:
         r"""Performs consistency checks.
 
         Raises:
@@ -1001,7 +1075,10 @@ class Record:
             if self.checksum != self.compute_checksum():
                 raise ValueError('checksum error')
 
-    def overlaps(self, other: 'Record') -> bool:
+    def overlaps(
+        self: 'Record',
+        other: 'Record',
+    ) -> bool:
         r"""Checks if overlapping occurs.
 
         This record and another have overlapping `data`, when both `address`
@@ -1011,15 +1088,15 @@ class Record:
             :obj:`bool`: Overlapping.
 
         Examples:
-            >>> from hexrec.formats.binary import Record
-            >>> record1 = BinaryRecord(0, 0, b'abc')
-            >>> record2 = BinaryRecord(1, 0, b'def')
+            >>> from hexrec.formats.binary import Record as BinaryRecord
+            >>> record1 = BinaryRecord(0, None, b'abc')
+            >>> record2 = BinaryRecord(1, None, b'def')
             >>> record1.overlaps(record2)
             True
 
-            >>> from hexrec.formats.binary import Record
-            >>> record1 = BinaryRecord(0, 0, b'abc')
-            >>> record2 = BinaryRecord(3, 0, b'def')
+            >>> from hexrec.formats.binary import Record as BinaryRecord
+            >>> record1 = BinaryRecord(0, None, b'abc')
+            >>> record2 = BinaryRecord(3, None, b'def')
             >>> record1.overlaps(record2)
             False
         """
@@ -1032,7 +1109,10 @@ class Record:
                               other.address + len(other.data or b''))
 
     @classmethod
-    def _open_input(cls, path):
+    def _open_input(
+        cls: Type['Record'],
+        path: str,
+    ) -> IO:
         r"""Opens a file for input.
 
         Arguments:
@@ -1048,7 +1128,10 @@ class Record:
         return open_file(path, mode)
 
     @classmethod
-    def _open_output(cls, path):
+    def _open_output(
+        cls: Type['Record'],
+        path: str,
+    ) -> IO:
         r"""Opens a file for output.
 
         Arguments:
@@ -1064,7 +1147,12 @@ class Record:
         return open_file(path, mode)
 
     @classmethod
-    def parse_record(cls, line: str, *args: Any, **kwargs: Any) -> 'Record':
+    def parse_record(
+        cls: Type['Record'],
+        line: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> 'Record':
         r"""Parses a record from a text line.
 
         Arguments:
@@ -1080,7 +1168,11 @@ class Record:
         """
         raise NotImplementedError('method must be overriden')
 
-    def marshal(self, *args: Any, **kwargs: Any) -> str:
+    def marshal(
+        self: 'Record',
+        *args: Any,
+        **kwargs: Any,
+    ) -> str:
         r"""Marshals a record for output.
 
         Arguments:
@@ -1093,8 +1185,12 @@ class Record:
         return str(self)
 
     @classmethod
-    def unmarshal(cls, data: ByteString,
-                  *args: Any, **kwargs: Any) -> 'Record':
+    def unmarshal(
+        cls: Type['Record'],
+        data: AnyBytes,
+        *args: Any,
+        **kwargs: Any,
+    ) -> 'Record':
         r"""Unmarshals a record from input.
 
         Arguments:
@@ -1108,8 +1204,12 @@ class Record:
         return cls.parse_record(data, *args, **kwargs)
 
     @classmethod
-    def split(cls, data: ByteString,
-              *args: Any, **kwargs: Any) -> Sequence['Record']:
+    def split(
+        cls: Type['Record'],
+        data: AnyBytes,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Sequence['Record']:
         r"""Splits a chunk of data into records.
 
         Arguments:
@@ -1123,8 +1223,12 @@ class Record:
         raise NotImplementedError('method must be overriden')
 
     @classmethod
-    def build_standalone(cls, data_records: RecordSeq,
-                         *args: Any, **kwargs: Any) -> 'Record':
+    def build_standalone(
+        cls: Type['Record'],
+        data_records: RecordSeq,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Iterator['Record']:
         r"""Makes a sequence of data records standalone.
 
         Arguments:
@@ -1144,7 +1248,10 @@ class Record:
         yield from data_records
 
     @classmethod
-    def check_sequence(cls, records: RecordSeq) -> None:
+    def check_sequence(
+        cls: Type['Record'],
+        records: RecordSeq,
+    ) -> None:
         r"""Consistency check of a sequence of records.
 
         Raises:
@@ -1169,7 +1276,10 @@ class Record:
             record_endex = record.address + len(record.data)
 
     @classmethod
-    def readdress(cls, records: RecordSeq) -> None:
+    def readdress(
+        cls: Type['Record'],
+        records: RecordSeq,
+    ) -> None:
         r"""Converts to flat addressing.
 
         Some record types, notably the *Intel HEX*, store records by some
@@ -1189,7 +1299,10 @@ class Record:
         pass
 
     @classmethod
-    def read_blocks(cls, stream: IO) -> BlockSeq:  # TODO: example
+    def read_blocks(
+        cls: Type['Record'],
+        stream: IO,
+    ) -> BlockSeq:  # TODO: example
         r"""Reads blocks from a stream.
 
         Read blocks from the input stream into the returned sequence.
@@ -1206,12 +1319,15 @@ class Record:
         return blocks
 
     @classmethod
-    def write_blocks(cls, stream: IO,
-                     blocks: BlockSeq,
-                     split_args: Optional[Sequence[Any]] = None,
-                     split_kwargs: Optional[Mapping[str, Any]] = None,
-                     build_args: Optional[Sequence[Any]] = None,
-                     build_kwargs: Optional[Mapping[str, Any]] = None) -> None:  # TODO: example
+    def write_blocks(
+        cls: Type['Record'],
+        stream: IO,
+        blocks: BlockSeq,
+        split_args: Optional[Sequence[Any]] = None,
+        split_kwargs: Optional[Mapping[str, Any]] = None,
+        build_args: Optional[Sequence[Any]] = None,
+        build_kwargs: Optional[Mapping[str, Any]] = None,
+    ) -> None:  # TODO: example
         r"""Writes blocks to a stream.
 
         Each block of the `blocks` sequence is converted into a record via
@@ -1234,7 +1350,9 @@ class Record:
         cls.write_records(stream, records)
 
     @classmethod
-    def load_blocks(cls, path: str) -> BlockSeq:  # TODO: example
+    def load_blocks(
+        cls: Type['Record'], path: str,
+    ) -> BlockSeq:  # TODO: example
         r"""Loads blocks from a file.
 
         Each line of the input file is parsed via :meth:`parse_block`,
@@ -1251,7 +1369,11 @@ class Record:
         return blocks
 
     @classmethod
-    def save_blocks(cls, path: str, records: RecordSeq) -> None:  # TODO: example
+    def save_blocks(
+        cls: Type['Record'],
+        path: str,
+        blocks: BlockSeq,
+    ) -> None:  # TODO: example
         r"""Saves blocks to a file.
 
         Each block of the `blocks` sequence is converted into a record via
@@ -1259,15 +1381,18 @@ class Record:
 
         Arguments:
             path (:obj:`str`): Path of the record file to save.
-            records (list): Sequence of records to store. Sequence generators
+            blocks (list): Sequence of blocks to store. Sequence generators
                 supported.
         """
         with cls._open_output(path) as stream:
-            cls.write_blocks(stream, records)
+            cls.write_blocks(stream, blocks)
             stream.flush()
 
     @classmethod
-    def read_memory(cls, stream: IO) -> Memory:  # TODO: example
+    def read_memory(
+        cls: Type['Record'],
+        stream: IO,
+    ) -> Memory:  # TODO: example
         r"""Reads a virtual memory from a stream.
 
         Read blocks from the input stream into the returned sequence.
@@ -1284,18 +1409,20 @@ class Record:
         return memory
 
     @classmethod
-    def write_memory(cls, stream: IO,
-                     memory: Memory,
-                     split_args: Optional[Sequence[Any]] = None,
-                     split_kwargs: Optional[Mapping[str, Any]] = None,
-                     build_args: Optional[Sequence[Any]] = None,
-                     build_kwargs: Optional[Mapping[str, Any]] = None) -> None:  # TODO: example
+    def write_memory(
+        cls: Type['Record'],
+        stream: IO,
+        memory: Memory,
+        split_args: Optional[Sequence[Any]] = None,
+        split_kwargs: Optional[Mapping[str, Any]] = None,
+        build_args: Optional[Sequence[Any]] = None,
+        build_kwargs: Optional[Mapping[str, Any]] = None,
+    ) -> None:  # TODO: example
         r"""Writes a virtual memory to a stream.
 
         Arguments:
             stream (stream): Output stream of the records to write.
-            blocks (list): Sequence of records to store. Sequence generators
-                supported.
+            memory (:obj:`Memory'): Virtual memory to save.
             split_args (list): Positional arguments for :meth:`Record.split`.
             split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
             build_args (list): Positional arguments for
@@ -1303,10 +1430,14 @@ class Record:
             build_kwargs (dict): Keyword arguments for
                 :meth:`Record.build_standalone`.
         """
+        del split_args, split_kwargs, build_args, build_kwargs
         cls.write_blocks(stream, memory.blocks)
 
     @classmethod
-    def load_memory(cls, path: str) -> Memory:  # TODO: example
+    def load_memory(
+        cls: Type['Record'],
+        path: str,
+    ) -> Memory:  # TODO: example
         r"""Loads a virtual memory from a file.
 
         Arguments:
@@ -1320,7 +1451,11 @@ class Record:
         return memory
 
     @classmethod
-    def save_memory(cls, path: str, memory: Memory) -> None:  # TODO: example
+    def save_memory(
+        cls: Type['Record'],
+        path: str,
+        memory: Memory,
+    ) -> None:  # TODO: example
         r"""Saves a virtual memory to a file.
 
         Arguments:
@@ -1332,7 +1467,10 @@ class Record:
             stream.flush()
 
     @classmethod
-    def read_records(cls, stream: IO) -> RecordSeq:  # TODO: example
+    def read_records(
+        cls: Type['Record'],
+        stream: IO,
+    ) -> RecordList:  # TODO: example
         r"""Reads records from a stream.
 
         For text files, each line of the input file is parsed via
@@ -1354,7 +1492,11 @@ class Record:
         return records
 
     @classmethod
-    def write_records(cls, stream: IO, records: RecordSeq) -> None:  # TODO: example
+    def write_records(
+        cls: Type['Record'],
+        stream: IO,
+        records: RecordSeq,
+    ) -> None:  # TODO: example
         r"""Saves records to a stream.
 
         Each record of the `records` sequence is stored into the output file.
@@ -1369,7 +1511,10 @@ class Record:
             stream.write(cls.LINE_SEP)
 
     @classmethod
-    def load_records(cls, path: str) -> RecordSeq:  # TODO: example
+    def load_records(
+        cls: Type['Record'],
+        path: str,
+    ) -> RecordList:  # TODO: example
         r"""Loads records from a file.
 
         Each line of the input file is parsed via :meth:`parse`, and
@@ -1386,7 +1531,11 @@ class Record:
         return records
 
     @classmethod
-    def save_records(cls, path: str, records: RecordSeq):  # TODO: example
+    def save_records(
+        cls: Type['Record'],
+        path: str,
+        records: RecordSeq,
+    ):  # TODO: example
         r"""Saves records to a file.
 
         Each record of the `records` sequence is converted into text via
@@ -1402,12 +1551,15 @@ class Record:
             stream.flush()
 
 
-RECORD_TYPES = {}
-for entry_point in pkg_resources.iter_entry_points('hexrec_types'):
-    RECORD_TYPES[entry_point.name] = entry_point.load()
+RECORD_TYPES: Mapping[str, Type[Record]] = {
+    entry_point.name: entry_point.load()
+    for entry_point in pkg_resources.iter_entry_points('hexrec_types')
+}
 
 
-def find_record_type_name(file_path: str) -> str:  # TODO: example
+def find_record_type_name(
+    file_path: str,
+) -> str:  # TODO: example
     r"""Finds the record type name.
 
     Checks if the extension of `file_path` is a know record type, and returns
@@ -1424,13 +1576,16 @@ def find_record_type_name(file_path: str) -> str:  # TODO: example
     """
     ext = os.path.splitext(file_path)[1].lower()
     for name, record_type in RECORD_TYPES.items():
-        if ext in record_type.EXTENSIONS:
+        extensions = record_type.EXTENSIONS
+        if extensions and ext in extensions:
             return name
     else:
         raise KeyError('unsupported extension: ' + ext)
 
 
-def find_record_type(file_path: str) -> type:  # TODO: example
+def find_record_type(
+    file_path: str,
+) -> Type[Record]:  # TODO: example
     r"""Finds the record type class.
 
     Checks if the extension of `file_path` is a know record type, and returns

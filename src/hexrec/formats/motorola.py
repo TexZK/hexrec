@@ -2,15 +2,18 @@
 import enum
 import re
 import struct
-from typing import ByteString
+from typing import Any
+from typing import Iterator
 from typing import Optional
 from typing import Sequence
+from typing import Type
 from typing import Union
 
 from ..records import Record as _Record
 from ..records import RecordSeq
 from ..records import Tag as _Tag
 from ..records import get_data_records
+from ..utils import AnyBytes
 from ..utils import chop
 from ..utils import expmsg
 from ..utils import hexlify
@@ -53,9 +56,12 @@ class Tag(_Tag):
     """16-bit start address. Terminates :attr:`DATA_16`."""
 
     @classmethod
-    def is_data(cls, value: Union[int, 'Tag']) -> bool:
+    def is_data(
+        cls: Type['Tag'],
+        value: Union[int, 'Tag'],
+    ) -> bool:
         r""":obj:`bool`: `value` is a data record tag."""
-        return value in (cls.DATA_16, cls.DATA_24, cls.DATA_32)
+        return 1 <= value <= 3
 
 
 class Record(_Record):
@@ -80,14 +86,18 @@ class Record(_Record):
     EXTENSIONS = ('.mot', '.s19', '.s28', '.s37', '.srec', '.exo')
     """Automatically supported file extensions."""
 
-    def __init__(self, address: int,
-                 tag: Tag,
-                 data: ByteString,
-                 checksum: Union[int, type(Ellipsis)] = Ellipsis) -> None:
-
+    def __init__(
+        self: 'Record',
+        address: int,
+        tag: Tag,
+        data: AnyBytes,
+        checksum: Union[int, type(Ellipsis)] = Ellipsis,
+    ) -> None:
         super().__init__(address, self.TAG_TYPE(tag), data, checksum)
 
-    def __str__(self) -> str:
+    def __str__(
+        self: 'Record',
+    ) -> str:
         self.check()
         tag_text = f'S{self.tag:d}'
 
@@ -111,18 +121,24 @@ class Record(_Record):
                         checksum_text))
         return text
 
-    def compute_count(self) -> int:
+    def compute_count(
+        self: 'Record',
+    ) -> int:
         tag = int(self.tag)
         address_length = self.TAG_TO_ADDRESS_LENGTH[tag] or 0
         return address_length + len(self.data) + 1
 
-    def compute_checksum(self) -> int:
+    def compute_checksum(
+        self: 'Record',
+    ) -> int:
         checksum = sum_bytes(struct.pack('BL', self.count, self.address))
         checksum += sum_bytes(self.data)
         checksum = (checksum & 0xFF) ^ 0xFF
         return checksum
 
-    def check(self) -> None:
+    def check(
+        self: 'Record',
+    ) -> None:
         super().check()
 
         tag = int(self.TAG_TYPE(self.tag))
@@ -134,7 +150,10 @@ class Record(_Record):
             raise ValueError('count error')
 
     @classmethod
-    def fit_data_tag(cls, endex: int) -> 'Record':
+    def fit_data_tag(
+        cls: Type['Record'],
+        endex: int,
+    ) -> 'Tag':
         r"""Fits a data tag by address.
 
         Depending on the value of `endex`, get the data tag with the smallest
@@ -185,7 +204,10 @@ class Record(_Record):
             return cls.TAG_TYPE.DATA_32
 
     @classmethod
-    def fit_count_tag(cls, record_count: int) -> 'Record':
+    def fit_count_tag(
+        cls: Type['Record'],
+        record_count: int,
+    ) -> 'Tag':
         r"""Fits the record count tag.
 
         Arguments:
@@ -221,7 +243,10 @@ class Record(_Record):
             return cls.TAG_TYPE.COUNT_24
 
     @classmethod
-    def build_header(cls, data: ByteString) -> 'Record':
+    def build_header(
+        cls: Type['Record'],
+        data: AnyBytes,
+    ) -> 'Record':
         r"""Builds a header record.
 
         Arguments:
@@ -234,12 +259,15 @@ class Record(_Record):
             >>> str(Record.build_header(b'Hello, World!'))
             'S010000048656C6C6F2C20576F726C642186'
         """
-        return cls(0, 0, data)
+        return cls(0, cls.TAG_TYPE.HEADER, data)
 
     @classmethod
-    def build_data(cls, address: int,
-                   data: ByteString,
-                   tag: Optional[Tag] = None) -> 'Record':
+    def build_data(
+        cls: Type['Record'],
+        address: int,
+        data: AnyBytes,
+        tag: Optional[Tag] = None,
+    ) -> 'Record':
         r"""Builds a data record.
 
         Arguments:
@@ -280,9 +308,11 @@ class Record(_Record):
         return record
 
     @classmethod
-    def build_terminator(cls, start: int,
-                         last_data_tag: Tag = Tag.DATA_16) \
-            -> 'Record':
+    def build_terminator(
+        cls: Type['Record'],
+        start: int,
+        last_data_tag: Tag = Tag.DATA_16,
+    ) -> 'Record':
         r"""Builds a terminator record.
 
         Arguments:
@@ -308,16 +338,19 @@ class Record(_Record):
             ...                                     Tag.DATA_32))
             'S70512345678E6'
         """
-        tag_index = cls.MATCHING_TAG.index(int(last_data_tag))
-        terminator_record = cls(start, tag_index, b'')
+        tag = cls.TAG_TYPE(cls.MATCHING_TAG.index(int(last_data_tag)))
+        terminator_record = cls(start, tag, b'')
         return terminator_record
 
     @classmethod
-    def build_count(cls, record_count: int) -> 'Record':
+    def build_count(
+        cls: Type['Record'],
+        record_count: int,
+    ) -> 'Record':
         r"""Builds a count record.
 
         Arguments:
-            count (:obj:`int`): Record count.
+            record_count (:obj:`int`): Record count.
 
         Returns:
             :obj:`Record`: Count record.
@@ -338,13 +371,19 @@ class Record(_Record):
         return count_record
 
     @classmethod
-    def parse_record(cls, line: str) -> 'Record':
+    def parse_record(
+        cls: Type['Record'],
+        line: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> 'Record':
+        del args, kwargs
         line = str(line).strip()
         match = cls.REGEX.match(line)
         if not match:
             raise ValueError('regex error')
 
-        tag = int(line[1:2])
+        tag = cls.TAG_TYPE(int(line[1:2]))
         count = int(line[2:4], 16)
         assert 2 * count == len(line) - (2 + 2)
         address_length = cls.TAG_TO_ADDRESS_LENGTH[tag] or 0
@@ -356,10 +395,13 @@ class Record(_Record):
         return record
 
     @classmethod
-    def build_standalone(cls, data_records: RecordSeq,
-                         start: Optional[int] = None,
-                         tag: Optional[Tag] = None,
-                         header: ByteString = b''):
+    def build_standalone(
+        cls: Type['Record'],
+        data_records: RecordSeq,
+        start: Optional[int] = None,
+        tag: Optional[Tag] = None,
+        header: AnyBytes = b'',
+    ) -> Iterator['Record']:
         r"""Makes a sequence of data records standalone.
 
         Arguments:
@@ -399,7 +441,11 @@ class Record(_Record):
         yield cls.build_terminator(start, tag)
 
     @classmethod
-    def check_sequence(cls, records: RecordSeq, overlap: bool = True) -> None:
+    def check_sequence(
+        cls: Type['Record'],
+        records: RecordSeq,
+        overlap: bool = True,
+    ) -> None:
         super().check_sequence(records)
 
         unpack = struct.unpack
@@ -485,15 +531,17 @@ class Record(_Record):
             raise ValueError('sequence length error')
 
     @classmethod
-    def split(cls, data: ByteString,
-              address: int = 0,
-              columns: int = 16,
-              align: bool = True,
-              standalone: bool = True,
-              start: Optional[int] = None,
-              tag: Optional[Tag] = None,
-              header: ByteString = b'') \
-            -> Sequence['Record']:
+    def split(
+        cls: Type['Record'],
+        data: AnyBytes,
+        address: int = 0,
+        columns: int = 16,
+        align: bool = True,
+        standalone: bool = True,
+        start: Optional[int] = None,
+        tag: Optional[Tag] = None,
+        header: AnyBytes = b'',
+    ) -> Sequence['Record']:
         r"""Splits a chunk of data into records.
 
         Arguments:
@@ -545,7 +593,10 @@ class Record(_Record):
             yield cls.build_terminator(start, tag)
 
     @classmethod
-    def fix_tags(cls, records: RecordSeq) -> Sequence['Record']:
+    def fix_tags(
+        cls: Type['Record'],
+        records: RecordSeq,
+    ) -> None:
         r"""Fix record tags.
 
         Updates record tags to reflect modified size and count.
@@ -562,14 +613,14 @@ class Record(_Record):
         else:
             max_address = 0
         tag = cls.TAG_TYPE(cls.fit_data_tag(max_address))
-        COUNT_16 = cls.TAG_TYPE.COUNT_16
+        count_16 = cls.TAG_TYPE.COUNT_16
         start_tags = (cls.TAG_TYPE.START_16,
                       cls.TAG_TYPE.START_24,
                       cls.TAG_TYPE.START_32)
         start_ids = []
 
         for index, record in enumerate(records):
-            if record.tag == COUNT_16:
+            if record.tag == count_16:
                 count = struct.unpack('>L', record.data.rjust(4, b'\0'))[0]
                 if count >= (1 << 16):
                     record.tag = cls.TAG_TYPE.COUNT_24

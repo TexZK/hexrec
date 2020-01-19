@@ -36,11 +36,13 @@ from hexrec.records import save_records
 BYTES = bytes(range(256))
 HEXBYTES = bytes(range(16))
 
+
 # ============================================================================
 
 @pytest.fixture
 def tmppath(tmpdir):
     return Path(str(tmpdir))
+
 
 @pytest.fixture(scope='module')
 def datadir(request):
@@ -48,9 +50,11 @@ def datadir(request):
     assert os.path.isdir(str(dir_path))
     return dir_path
 
+
 @pytest.fixture
 def datapath(datadir):
     return Path(str(datadir))
+
 
 # ============================================================================
 
@@ -63,6 +67,7 @@ def test_normalize_whitespace():
     ans_out = normalize_whitespace('abc\tdef')
     assert ans_ref == ans_out
 
+
 # ============================================================================
 
 def test_get_data_records_doctest():
@@ -70,6 +75,7 @@ def test_get_data_records_doctest():
     blocks = list(chop_blocks(data, 16))
     records = blocks_to_records(blocks, MotorolaRecord)
     assert all(r.is_data() for r in get_data_records(records))
+
 
 # ============================================================================
 
@@ -83,6 +89,7 @@ def test_find_corrupted_records_doctest():
     ans_ref = [3, 5, 7]
     assert ans_out == ans_ref
 
+
 # ============================================================================
 
 def test_records_to_blocks_doctest():
@@ -93,6 +100,7 @@ def test_records_to_blocks_doctest():
     ans_out = records_to_blocks(records)
     assert ans_ref == ans_out
 
+
 # ============================================================================
 
 def test_blocks_to_records_doctest():
@@ -102,6 +110,7 @@ def test_blocks_to_records_doctest():
     ans_ref = merge(blocks)
     ans_out = records_to_blocks(records)
     assert ans_ref == ans_out
+
 
 # ============================================================================
 
@@ -120,6 +129,7 @@ def test_merge_records_doctest():
     ans_ref = merge(blocks1 + blocks2)
     ans_out = merged_blocks
     assert ans_ref == ans_out
+
 
 # ============================================================================
 
@@ -146,6 +156,7 @@ def test_convert_records():
     converted = convert_records(intel1, output_type=IntelRecord)
     assert converted == intel2
 
+
 # ============================================================================
 
 def test_merge_files_doctest(tmppath, datapath):
@@ -170,6 +181,7 @@ def test_merge_files(tmppath, datapath):
     ans_ref = load_records(path_merged_ref)
     assert ans_out == ans_ref
 
+
 # ============================================================================
 
 def test_convert_file_doctest(tmppath):
@@ -182,6 +194,7 @@ def test_convert_file_doctest(tmppath):
     ans_out = load_records(path_hex)
     ans_ref = intel
     assert ans_out == ans_ref
+
 
 # ============================================================================
 
@@ -201,6 +214,7 @@ def test_load_records(tmppath):
     ans_out = load_records(path, MotorolaRecord)
     ans_ref = records
     assert ans_out == ans_ref
+
 
 # ============================================================================
 
@@ -235,6 +249,7 @@ def test_save_records(tmppath):
     ans_ref = motorola
     assert ans_out == ans_ref
 
+
 # ============================================================================
 
 def test_load_blocks_doctest(tmppath):
@@ -255,6 +270,7 @@ def test_load_blocks(tmppath):
     ans_out = load_blocks(path, MotorolaRecord)
     ans_ref = merge(blocks)
     assert ans_out == ans_ref
+
 
 # ============================================================================
 
@@ -277,6 +293,7 @@ def test_save_blocks(tmppath):
     ans_ref = merge(blocks)
     assert ans_out == ans_ref
 
+
 # ============================================================================
 
 def test_load_memory_doctest(tmppath):
@@ -288,6 +305,7 @@ def test_load_memory_doctest(tmppath):
     ans_out = load_memory(path)
     ans_ref = sparse_items
     assert ans_out == ans_ref
+
 
 # ============================================================================
 
@@ -301,6 +319,7 @@ def test_save_memory_doctest(tmppath):
     ans_ref = sparse_items
     assert ans_out == ans_ref
 
+
 # ============================================================================
 
 def test_save_chunk_doctest(tmppath):
@@ -311,12 +330,14 @@ def test_save_chunk_doctest(tmppath):
     ans_ref = [(0x12345678, data)]
     assert ans_out == ans_ref
 
+
 # ============================================================================
 
 class TestTag:
 
     def test_is_data(self):
-        assert Tag.is_data(None) == True
+        assert Tag.is_data(None)
+
 
 # ============================================================================
 
@@ -362,9 +383,9 @@ class TestRecord:
         assert ans_out == ans_ref
 
     def test___str__(self):
-        ans_out = str(Record(0x1234, 0, b'Hello, World!'))
+        ans_out = str(Record(0x1234, None, b'Hello, World!'))
         ans_out = normalize_whitespace(ans_out)
-        ans_ref = ("Record(address=0x00001234, tag=0, count=13, "
+        ans_ref = ("Record(address=0x00001234, tag=None, count=13, "
                    "data=b'Hello, World!', checksum=0x69)")
         ans_ref = normalize_whitespace(ans_ref)
         assert ans_out == ans_ref
@@ -372,19 +393,19 @@ class TestRecord:
     def test___eq___doctest(self):
         record1 = BinaryRecord.build_data(0, b'Hello, World!')
         record2 = BinaryRecord.build_data(0, b'Hello, World!')
-        assert (record1 == record2) == True
+        assert record1 == record2
 
         record1 = BinaryRecord.build_data(0, b'Hello, World!')
         record2 = BinaryRecord.build_data(1, b'Hello, World!')
-        assert (record1 == record2) == False
+        assert record1 != record2
 
         record1 = BinaryRecord.build_data(0, b'Hello, World!')
         record2 = BinaryRecord.build_data(0, b'hello, world!')
-        assert (record1 == record2) == False
+        assert record1 != record2
 
         record1 = MotorolaRecord.build_header(b'Hello, World!')
         record2 = MotorolaRecord.build_data(0, b'hello, world!')
-        assert (record1 == record2) == False
+        assert record1 != record2
 
     def test___hash__(self):
         hash(BinaryRecord(0x1234, None, b'Hello, World!'))
@@ -394,27 +415,27 @@ class TestRecord:
     def test___lt___doctest(self):
         record1 = BinaryRecord(0x1234, None, b'')
         record2 = BinaryRecord(0x4321, None, b'')
-        assert (record1 < record2) == True
+        assert (record1 < record2)
 
         record1 = BinaryRecord(0x4321, None, b'')
         record2 = BinaryRecord(0x1234, None, b'')
-        assert (record1 < record2) == False
+        assert not (record1 < record2)
 
     def test_is_data_doctest(self):
         record = BinaryRecord(0, None, b'Hello, World!')
-        assert record.is_data() == True
+        assert record.is_data()
 
         record = MotorolaRecord(0, MotorolaTag.DATA_16, b'Hello, World!')
-        assert record.is_data() == True
+        assert record.is_data()
 
         record = MotorolaRecord(0, MotorolaTag.HEADER, b'Hello, World!')
-        assert record.is_data() == False
+        assert not record.is_data()
 
         record = IntelRecord(0, IntelTag.DATA, b'Hello, World!')
-        assert record.is_data() == True
+        assert record.is_data()
 
         record = IntelRecord(0, IntelTag.END_OF_FILE, b'')
-        assert record.is_data() == False
+        assert not record.is_data()
 
     def test_compute_count_doctest(self):
         record = BinaryRecord(0, None, b'Hello, World!')
@@ -466,19 +487,19 @@ class TestRecord:
         record.checksum = None
         record.update_checksum()
         assert str(record) == '48656C6C6F2C20576F726C6421'
-        assert hex(record.checksum) == '0x69'
+        assert hex(record.checksum or -1) == '0x69'
 
         record = MotorolaRecord(0, MotorolaTag.DATA_16, b'Hello, World!')
         record.checksum = None
         record.update_checksum()
         assert str(record) == 'S110000048656C6C6F2C20576F726C642186'
-        assert hex(record.checksum) == '0x86'
+        assert hex(record.checksum or -1) == '0x86'
 
         record = IntelRecord(0, IntelTag.DATA, b'Hello, World!')
         record.checksum = None
         record.update_checksum()
         assert str(record) == ':0D00000048656C6C6F2C20576F726C64218A'
-        assert hex(record.checksum) == '0x8a'
+        assert hex(record.checksum or -1) == '0x8a'
 
     def test_check(self):
         with pytest.raises(ValueError):
@@ -490,28 +511,33 @@ class TestRecord:
         with pytest.raises(ValueError):
             Record(0, 256, b'Hello, World!').check()
 
-        record = Record(0, 0, b'')
+        record = Record(0, None, b'')
         record.data = None
-        with pytest.raises(ValueError): record.check()
+        with pytest.raises(ValueError):
+            record.check()
 
-        record = Record(0, 0, b'#' * 256)
-        with pytest.raises(ValueError): record.check()
+        record = Record(0, None, b'#' * 256)
+        with pytest.raises(ValueError):
+            record.check()
 
-        record = Record(0, 0, b'Hello, World!')
+        record = Record(0, None, b'Hello, World!')
         record.checksum = None
         record.check()
 
-        record = Record(0, 0, b'Hello, World!')
+        record = Record(0, None, b'Hello, World!')
         record.checksum = -1
-        with pytest.raises(ValueError): record.check()
+        with pytest.raises(ValueError):
+            record.check()
 
-        record = Record(0, 0, b'Hello, World!')
+        record = Record(0, None, b'Hello, World!')
         record.checksum = 256
-        with pytest.raises(ValueError): record.check()
+        with pytest.raises(ValueError):
+            record.check()
 
-        record = Record(0, 0, b'')
+        record = Record(0, None, b'')
         record.checksum ^= 0xFF
-        with pytest.raises(ValueError): record.check()
+        with pytest.raises(ValueError):
+            record.check()
 
     def test__get_checksum(self):
         record = BinaryRecord(0, None, b'Hello, World!')
@@ -532,22 +558,22 @@ class TestRecord:
     def test_overlaps_doctest(self):
         record1 = BinaryRecord(0, None, b'abc')
         record2 = BinaryRecord(1, None, b'def')
-        assert record1.overlaps(record2) == True
+        assert record1.overlaps(record2)
 
         record1 = BinaryRecord(0, None, b'abc')
         record2 = BinaryRecord(3, None, b'def')
-        assert record1.overlaps(record2) == False
+        assert not record1.overlaps(record2)
 
     def test_overlaps(self):
         record1 = BinaryRecord(0, None, b'abc')
         record1.address = None
         record2 = BinaryRecord(3, None, b'def')
-        assert record1.overlaps(record2) == False
+        assert not record1.overlaps(record2)
 
         record1 = BinaryRecord(0, None, b'abc')
         record2 = BinaryRecord(3, None, b'def')
         record2.address = None
-        assert record1.overlaps(record2) == False
+        assert not record1.overlaps(record2)
 
     def test_parse_record(self):
         with pytest.raises(NotImplementedError):
@@ -593,6 +619,7 @@ class TestRecord:
 
     def test_readdress(self):
         pass
+
 
 # ============================================================================
 

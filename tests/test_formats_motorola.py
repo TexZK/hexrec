@@ -10,11 +10,13 @@ from hexrec.formats.motorola import Tag
 BYTES = bytes(range(256))
 HEXBYTES = bytes(range(16))
 
+
 # ============================================================================
 
 @pytest.fixture
 def tmppath(tmpdir):
     return Path(str(tmpdir))
+
 
 @pytest.fixture(scope='module')
 def datadir(request):
@@ -22,9 +24,11 @@ def datadir(request):
     assert os.path.isdir(str(dir_path))
     return dir_path
 
+
 @pytest.fixture
 def datapath(datadir):
     return Path(str(datadir))
+
 
 # ============================================================================
 
@@ -35,15 +39,17 @@ def read_text(path):
     data = data.replace('\r\n', '\n').replace('\r', '\n')  # normalize
     return data
 
+
 # ============================================================================
 
 class TestTag:
 
     def test_is_data(self):
-        DATA_INTS = {1, 2, 3}
+        tags = {1, 2, 3}
         for tag in Tag:
-            assert Tag.is_data(tag) == (tag in DATA_INTS)
-            assert Tag.is_data(int(tag)) == (tag in DATA_INTS)
+            assert Tag.is_data(tag) == (tag in tags)
+            assert Tag.is_data(int(tag)) == (tag in tags)
+
 
 # ============================================================================
 
@@ -87,32 +93,38 @@ class TestRecord:
         for tag in range(len(Tag), 256):
             record.tag = tag
             record.update_checksum()
-            with pytest.raises(ValueError): record.check()
+            with pytest.raises(ValueError):
+                record.check()
 
         record = Record.build_data(0, b'Hello, World!')
         record.check()
         record.tag = len(Tag)
-        with pytest.raises(ValueError): record.check()
+        with pytest.raises(ValueError):
+            record.check()
 
         record = Record.build_header(b'')
         record.address = 1
         record.update_checksum()
-        with pytest.raises(ValueError): record.check()
+        with pytest.raises(ValueError):
+            record.check()
 
         record = Record.build_count(0x1234)
         record.address = 1
         record.update_checksum()
-        with pytest.raises(ValueError): record.check()
+        with pytest.raises(ValueError):
+            record.check()
 
         record = Record.build_count(0x123456)
         record.address = 1
         record.update_checksum()
-        with pytest.raises(ValueError): record.check()
+        with pytest.raises(ValueError):
+            record.check()
 
         record = Record.build_data(0, b'Hello, World!')
         record.count += 1
         record.update_checksum()
-        with pytest.raises(ValueError): record.check()
+        with pytest.raises(ValueError):
+            record.check()
 
     def test_fit_data_tag_doctest(self):
         ans_out = repr(Record.fit_data_tag(0x00000000))
@@ -185,22 +197,23 @@ class TestRecord:
         assert ans_out == ans_ref
 
         ans_out = str(Record.build_data(0x1234, b'Hello, World!',
-                                                tag=Tag.DATA_16))
+                                        tag=Tag.DATA_16))
         ans_ref = 'S110123448656C6C6F2C20576F726C642140'
         assert ans_out == ans_ref
 
         ans_out = str(Record.build_data(0x123456, b'Hello, World!',
-                                                tag=Tag.DATA_24))
+                                        tag=Tag.DATA_24))
         ans_ref = 'S21112345648656C6C6F2C20576F726C6421E9'
         assert ans_out == ans_ref
 
         ans_out = str(Record.build_data(0x12345678, b'Hello, World!',
-                                                tag=Tag.DATA_32))
+                                        tag=Tag.DATA_32))
         ans_ref = 'S3121234567848656C6C6F2C20576F726C642170'
         assert ans_out == ans_ref
 
     def test_build_data_tag(self):
         for tag in [0] + list(range(4, len(Tag))):
+            tag = Tag(tag)
             with pytest.raises(ValueError):
                 Record.build_data(0x1234, b'Hello, World!', tag=tag)
 
@@ -209,18 +222,15 @@ class TestRecord:
         ans_ref = 'S9031234B6'
         assert ans_out == ans_ref
 
-        ans_out = str(Record.build_terminator(0x1234,
-                                                      Tag.DATA_16))
+        ans_out = str(Record.build_terminator(0x1234, Tag.DATA_16))
         ans_ref = 'S9031234B6'
         assert ans_out == ans_ref
 
-        ans_out = str(Record.build_terminator(0x123456,
-                                                      Tag.DATA_24))
+        ans_out = str(Record.build_terminator(0x123456, Tag.DATA_24))
         ans_ref = 'S8041234565F'
         assert ans_out == ans_ref
 
-        ans_out = str(Record.build_terminator(0x12345678,
-                                                      Tag.DATA_32))
+        ans_out = str(Record.build_terminator(0x12345678, Tag.DATA_32))
         ans_ref = 'S70512345678E6'
         assert ans_out == ans_ref
 
@@ -287,7 +297,7 @@ class TestRecord:
 
         records = list(Record.split(BYTES, header=b'Hello, World!'))
         assert records[0].tag == Tag.HEADER
-        records.insert(1, Record(0, 4, b''))
+        records.insert(1, Record(0, Tag._RESERVED, b''))
         with pytest.raises(ValueError, match='missing count'):
             Record.check_sequence(records)
 
@@ -372,13 +382,13 @@ class TestRecord:
 
         records = list(Record.split(BYTES))
         assert records[-1].tag == Tag.START_16
-        records.insert(-1, Record(0, 4, b''))
+        records.insert(-1, Record(0, Tag._RESERVED, b''))
         with pytest.raises(ValueError, match='tag error'):
             Record.check_sequence(records)
 
         records = list(Record.split(BYTES))
         assert records[-1].tag == Tag.START_16
-        records.append(Record(0, 4, b''))
+        records.append(Record(0, Tag._RESERVED, b''))
         with pytest.raises(ValueError, match='sequence length error'):
             Record.check_sequence(records)
 
@@ -399,7 +409,7 @@ class TestRecord:
             list(Record.split(BYTES, columns=129))
 
         ans_out = list(Record.split(HEXBYTES, header=b'Hello, World!',
-                                            start=0, tag=1))
+                                    start=0, tag=Tag.DATA_16))
         ans_ref = [
             Record(0, Tag.HEADER, b'Hello, World!'),
             Record(0, Tag.DATA_16, HEXBYTES),

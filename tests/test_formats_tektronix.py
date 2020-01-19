@@ -10,11 +10,13 @@ from hexrec.formats.tektronix import Tag
 BYTES = bytes(range(256))
 HEXBYTES = bytes(range(16))
 
+
 # ============================================================================
 
 @pytest.fixture
 def tmppath(tmpdir):
     return Path(str(tmpdir))
+
 
 @pytest.fixture(scope='module')
 def datadir(request):
@@ -22,9 +24,11 @@ def datadir(request):
     assert os.path.isdir(str(dir_path))
     return dir_path
 
+
 @pytest.fixture
 def datapath(datadir):
     return Path(str(datadir))
+
 
 # ============================================================================
 
@@ -35,6 +39,7 @@ def read_text(path):
     data = data.replace('\r\n', '\n').replace('\r', '\n')  # normalize
     return data
 
+
 # ============================================================================
 
 class TestTag:
@@ -44,6 +49,7 @@ class TestTag:
         for tag in Tag:
             assert Tag.is_data(tag) == (tag in DATA_INTS)
             assert Tag.is_data(int(tag)) == (tag in DATA_INTS)
+
 
 # ============================================================================
 

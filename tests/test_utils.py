@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
+from typing import Type
+
 import pytest
 
 from hexrec.utils import *
 
 HEXBYTES = bytes(range(16))
 
+
 # ============================================================================
 
-PARSE_INT_PASS = {
+PARSE_INT_PASS: Mapping[Any, int] = {
     None: None,
 
     '123': 123,
@@ -26,7 +29,6 @@ PARSE_INT_PASS = {
     'DEADBEEFH': 0xDEADBEEF,
 
     '0b101100111000': 0b101100111000,
-    '0b101100111000': 0b101100111000,
 
     '01234567': 0o1234567,
     '0o1234567': 0o1234567,
@@ -35,12 +37,12 @@ PARSE_INT_PASS = {
     '1k': 1 << 10,
     '1m': 1 << 20,
 
-    b'123': 123,
+    b'456': 456,
     123: 123,
     135.7: 135,
 }
 
-PARSE_INT_FAIL = {
+PARSE_INT_FAIL: Mapping[Any, Type[BaseException]] = {
     Ellipsis: TypeError,
     'x': ValueError,
     '0b1h': ValueError,
@@ -48,12 +50,14 @@ PARSE_INT_FAIL = {
     (1,): TypeError,
 }
 
+
 # ============================================================================
 
 def test_expmsg_doctest():
     ans_out = expmsg(1, 2, 'different')
     ans_ref = 'different\nactual:   1\nexpected: 2'
     assert ans_out == ans_ref
+
 
 # ============================================================================
 
@@ -74,6 +78,7 @@ def test_parse_int_fail():
         with pytest.raises(raised_exception):
             parse_int(value_in)
 
+
 # ============================================================================
 
 def test_chop_doctest():
@@ -86,6 +91,7 @@ def test_chop():
     with pytest.raises(ValueError):
         next(chop('ABDEFG', -1))
 
+
 # ============================================================================
 
 def test_columnize_doctest():
@@ -93,12 +99,14 @@ def test_columnize_doctest():
     ans_ref = 'ABC DEF\nGHI JKL\nMNO PQR\nSTU VWX\nYZ'
     assert ans_out == ans_ref
 
+
 # ============================================================================
 
 def test_columnize_lists_doctest():
     ans_out = columnize_lists('ABCDEFG', 5, window=2)
     ans_ref = [['AB', 'CD', 'E'], ['FG']]
     assert ans_out == ans_ref
+
 
 # ============================================================================
 
@@ -119,6 +127,7 @@ def test_bitlify():
     ans_ref = sep.join('{:08b}'.format(b) for b in bytes_in)
     assert bitlify(bytes_in, sep=sep) == ans_ref
 
+
 # ============================================================================
 
 def test_unbitlify_doctest():
@@ -132,6 +141,7 @@ def test_unbitlify():
 
     str_in = ' '.join('{:08b}'.format(b) for b in bytes_ref)
     assert unbitlify(str_in) == bytes_ref
+
 
 # ============================================================================
 
@@ -166,6 +176,7 @@ def test_hexlify():
     ans_out = hexlify(bytes_in, sep=sep, upper=True)
     assert ans_out == ans_ref
 
+
 # ============================================================================
 
 def test_unhexlify_doctest():
@@ -182,6 +193,7 @@ def test_unhexlify():
 
     str_in = ' '.join('{:02X}'.format(b) for b in bytes_ref)
     assert unhexlify(str_in) == bytes_ref
+
 
 # ============================================================================
 
@@ -201,6 +213,7 @@ def test_hexlify_lists():
     ans_out = hexlify_lists(bytes_in, upper=True)
     assert ans_out == ans_ref
 
+
 # ============================================================================
 
 def test_humanize_ascii_doctest():
@@ -208,6 +221,7 @@ def test_humanize_ascii_doctest():
     ans_out = humanize_ascii(bytes_in)
     ans_ref = '.PNG....'
     assert ans_out == ans_ref
+
 
 # ============================================================================
 
@@ -217,22 +231,26 @@ def test_humanize_ebcdic_doctest():
     ans_ref = '{ABCDEFGHI......'
     assert ans_out == ans_ref
 
+
 # ============================================================================
 
 def test_sum_bytes_doctest():
     assert sum_bytes(bytes(range(16))) == 120
     assert sum_bytes(range(16)) == 120
 
+
 def test_sum_bytes():
     assert sum_bytes(''.join(chr(c) for c in range(16))) == 120
+
 
 # ============================================================================
 
 def test_do_overlap_doctest():
-    assert do_overlap(0, 4, 4, 8) == False
-    assert do_overlap(0, 4, 2, 6) == True
-    assert do_overlap(4, 0, 2, 6) == True
-    assert do_overlap(8, 4, 4, 0) == False
+    assert not do_overlap(0, 4, 4, 8)
+    assert do_overlap(0, 4, 2, 6)
+    assert do_overlap(4, 0, 2, 6)
+    assert not do_overlap(8, 4, 4, 0)
+
 
 # ============================================================================
 
@@ -243,6 +261,7 @@ def test_straighten_index_doctest():
     assert straighten_index(-8, 7) == 6
     assert straighten_index(None, 3) is None
     assert straighten_index(3, None) == 0
+
 
 # ============================================================================
 
@@ -256,6 +275,7 @@ def test_straighten_slice_doctest():
     assert straighten_slice(3, 5, None, 7) == (3, 5, None)
     assert straighten_slice(3, 5, 1, None) == (0, 0, 1)
 
+
 # ============================================================================
 
 def test_wrap_index_doctest():
@@ -265,6 +285,7 @@ def test_wrap_index_doctest():
     assert wrap_index(-8, 7) == 6
     assert wrap_index(None, 3) == 0
     assert wrap_index(3, None) == 0
+
 
 # ============================================================================
 
@@ -277,6 +298,7 @@ def test_wrap_slice_doctest():
     assert wrap_slice(3, None, 1, 7) == (3, 7, 1)
     assert wrap_slice(3, 5, None, 7) == (3, 5, 1)
     assert wrap_slice(3, 5, 1, None) == (0, 0, 1)
+
 
 # ============================================================================
 

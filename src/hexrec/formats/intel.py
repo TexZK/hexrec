@@ -2,15 +2,17 @@
 import enum
 import re
 import struct
-from typing import ByteString
+from typing import Any
 from typing import Iterator
 from typing import Optional
 from typing import Sequence
+from typing import Type
 from typing import Union
 
 from ..records import Record as _Record
 from ..records import RecordSeq
 from ..records import Tag as _Tag
+from ..utils import AnyBytes
 from ..utils import chop
 from ..utils import hexlify
 from ..utils import sum_bytes
@@ -40,7 +42,10 @@ class Tag(_Tag):
     """Start linear address."""
 
     @classmethod
-    def is_data(cls, value: Union[int, 'IntegTag']) -> bool:
+    def is_data(
+        cls: Type['Tag'],
+        value: Union[int, 'Tag'],
+    ) -> bool:
         r""":obj:`bool`: `value` is a data record tag."""
         return value == cls.DATA
 
@@ -65,18 +70,22 @@ class Record(_Record):
     EXTENSIONS = ('.hex', '.ihex', '.mcs')
     """Automatically supported file extensions."""
 
-    def __init__(self, address: int,
-                 tag: 'Tag',
-                 data: ByteString,
-                 checksum: Union[int, type(Ellipsis)] = Ellipsis) -> None:
-
+    def __init__(
+        self: 'Record',
+        address: int,
+        tag: 'Tag',
+        data: AnyBytes,
+        checksum: Union[int, type(Ellipsis)] = Ellipsis,
+    ) -> None:
         if not 0 <= address < (1 << 32):
             raise ValueError('address overflow')
         if not 0 <= address + len(data) <= (1 << 32):
             raise ValueError('size overflow')
         super().__init__(address, self.TAG_TYPE(tag), data, checksum)
 
-    def __str__(self) -> str:
+    def __str__(
+        self: 'Record',
+    ) -> str:
         self.check()
         data = self.data or b''
         text = (f':{len(data):02X}'
@@ -86,10 +95,14 @@ class Record(_Record):
                 f'{self._get_checksum():02X}')
         return text
 
-    def compute_count(self) -> int:
+    def compute_count(
+        self: 'Record',
+    ) -> int:
         return len(self.data)
 
-    def compute_checksum(self) -> int:
+    def compute_checksum(
+        self: 'Record',
+    ) -> int:
         offset = (self.address or 0) & 0xFFFF
 
         checksum = (self.count +
@@ -100,7 +113,9 @@ class Record(_Record):
         checksum = (0x100 - int(checksum & 0xFF)) & 0xFF
         return checksum
 
-    def check(self) -> None:
+    def check(
+        self: 'Record',
+    ) -> None:
         super().check()
 
         if self.count != self.compute_count():
@@ -110,7 +125,11 @@ class Record(_Record):
         # TODO: check values
 
     @classmethod
-    def build_data(cls, address: int, data: ByteString) -> 'Record':
+    def build_data(
+        cls: Type['Record'],
+        address: int,
+        data: AnyBytes,
+    ) -> 'Record':
         r"""Builds a data record.
 
         Arguments:
@@ -128,7 +147,10 @@ class Record(_Record):
         return record
 
     @classmethod
-    def build_extended_segment_address(cls, address: int) -> 'Record':
+    def build_extended_segment_address(
+        cls: Type['Record'],
+        address: int,
+    ) -> 'Record':
         r"""Builds an extended segment address record.
 
         Arguments:
@@ -150,7 +172,10 @@ class Record(_Record):
         return record
 
     @classmethod
-    def build_start_segment_address(cls, address: int) -> 'Record':
+    def build_start_segment_address(
+        cls: Type['Record'],
+        address: int,
+    ) -> 'Record':
         r"""Builds an start segment address record.
 
         Arguments:
@@ -174,7 +199,9 @@ class Record(_Record):
         return record
 
     @classmethod
-    def build_end_of_file(cls) -> 'Record':
+    def build_end_of_file(
+        cls: Type['Record'],
+    ) -> 'Record':
         r"""Builds an end-of-file record.
 
         Returns:
@@ -188,7 +215,10 @@ class Record(_Record):
         return cls(0, tag, b'')
 
     @classmethod
-    def build_extended_linear_address(cls, address: int) -> 'Record':
+    def build_extended_linear_address(
+        cls: Type['Record'],
+        address: int,
+    ) -> 'Record':
         r"""Builds an extended linear address record.
 
         Arguments:
@@ -214,7 +244,10 @@ class Record(_Record):
         return record
 
     @classmethod
-    def build_start_linear_address(cls, address: int) -> 'Record':
+    def build_start_linear_address(
+        cls: Type['Record'],
+        address: int,
+    ) -> 'Record':
         r"""Builds an start linear address record.
 
         Arguments:
@@ -238,31 +271,15 @@ class Record(_Record):
         return record
 
     @classmethod
-    def parse_record(cls, line: str) -> 'Record':
-        line = str(line).strip()
-        match = cls.REGEX.match(line)
-        if not match:
-            raise ValueError('regex error')
-        groups = match.groupdict()
-
-        offset = int(groups['offset'], 16)
-        tag = cls.TAG_TYPE(int(groups['tag'], 16))
-        count = int(groups['count'], 16)
-        data = unhexlify(groups['data'] or '')
-        checksum = int(groups['checksum'], 16)
-
-        if count != len(data):
-            raise ValueError('count error')
-        record = cls(offset, tag, data, checksum)
-        return record
-
-    @classmethod
-    def split(cls, data: ByteString,
-              address: int = 0,
-              columns: int = 16,
-              align: bool = True,
-              standalone: bool = True,
-              start: Optional[int] = None) -> Iterator['Record']:
+    def split(
+        cls: Type['Record'],
+        data: AnyBytes,
+        address: int = 0,
+        columns: int = 16,
+        align: bool = True,
+        standalone: bool = True,
+        start: Optional[int] = None,
+    ) -> Iterator['Record']:
         r"""Splits a chunk of data into records.
 
         Arguments:
@@ -326,9 +343,13 @@ class Record(_Record):
                 yield record
 
     @classmethod
-    def build_standalone(cls, data_records: RecordSeq,
-                         start: Optional[int] = None) \
-            -> Iterator['Record']:
+    def build_standalone(
+        cls: Type['Record'],
+        data_records: RecordSeq,
+        start: Optional[int] = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Iterator['Record']:
         r"""Makes a sequence of data records standalone.
 
         Arguments:
@@ -340,6 +361,8 @@ class Record(_Record):
         Yields:
             :obj:`Record`: Records for a standalone record file.
         """
+        del args, kwargs
+
         for record in data_records:
             yield record
 
@@ -352,7 +375,10 @@ class Record(_Record):
             yield record
 
     @classmethod
-    def terminate(cls, start: int) -> Sequence['Record']:
+    def terminate(
+        cls: Type['Record'],
+        start: int,
+    ) -> Sequence['Record']:
         r"""Builds a record termination sequence.
 
         The termination sequence is made of:
@@ -376,7 +402,10 @@ class Record(_Record):
                 cls.build_end_of_file()]
 
     @classmethod
-    def readdress(cls, records: RecordSeq) -> Sequence['Record']:
+    def readdress(
+        cls: Type['Record'],
+        records: RecordSeq,
+    ) -> None:
         r"""Converts to flat addressing.
 
         *Intel HEX*, stores records by *segment/offset* addressing.
@@ -411,19 +440,44 @@ class Record(_Record):
              Record(address=0x76543210, tag=<Tag.DATA: 0>, count=13,
                          data=b'Hello, World!', checksum=0x48)]
         """
-        ESA = cls.TAG_TYPE.EXTENDED_SEGMENT_ADDRESS
-        ELA = cls.TAG_TYPE.EXTENDED_LINEAR_ADDRESS
+        esa = cls.TAG_TYPE.EXTENDED_SEGMENT_ADDRESS
+        ela = cls.TAG_TYPE.EXTENDED_LINEAR_ADDRESS
         base = 0
 
         for record in records:
             tag = record.tag
-            if tag == ESA:
+            if tag == esa:
                 base = struct.unpack('>H', record.data)[0] << 4
                 address = base
-            elif tag == ELA:
+            elif tag == ela:
                 base = struct.unpack('>H', record.data)[0] << 16
                 address = base
             else:
                 address = base + record.address
 
             record.address = address
+
+    @classmethod
+    def parse_record(
+        cls: Type['Record'],
+        line: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> 'Record':
+        del args, kwargs
+        line = str(line).strip()
+        match = cls.REGEX.match(line)
+        if not match:
+            raise ValueError('regex error')
+        groups = match.groupdict()
+
+        offset = int(groups['offset'], 16)
+        tag = cls.TAG_TYPE(int(groups['tag'], 16))
+        count = int(groups['count'], 16)
+        data = unhexlify(groups['data'] or '')
+        checksum = int(groups['checksum'], 16)
+
+        if count != len(data):
+            raise ValueError('count error')
+        record = cls(offset, tag, data, checksum)
+        return record

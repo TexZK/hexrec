@@ -2,15 +2,16 @@
 import io
 import re
 from typing import IO
-from typing import ByteString
+from typing import Any
 from typing import Iterator
 from typing import Optional
-from typing import Sequence
+from typing import Type
 from typing import Union
 
 from ..records import Record as _Record
 from ..records import RecordSeq
 from ..records import Tag
+from ..utils import AnyBytes
 from ..utils import chop
 from ..utils import hexlify
 from ..utils import unhexlify
@@ -31,16 +32,18 @@ class Record(_Record):
                        r"(\$S(?P<checksum>[0-9A-Fa-f]{4})[,.][ %',]?)?$")
     """Regular expression for parsing a record text line."""
 
-    EXTENSIONS = ()
+    def __init__(
+        self: 'Record',
+        address: Optional[int],
+        tag: Optional[Tag],
+        data: Optional[AnyBytes],
+        checksum: Union[int, type(Ellipsis)] = None,
+    ) -> None:
+        super().__init__(address, tag, data, checksum)
 
-    def __init__(self, address: int,
-                 tag: Tag,
-                 data: ByteString,
-                 checksum: Union[int, type(Ellipsis)] = None) -> None:
-
-        super().__init__(address, None, data, checksum)
-
-    def __repr__(self) -> str:
+    def __repr__(
+        self: 'Record',
+    ) -> str:
         address, data, checksum = None, None, None
 
         if self.address is not None:
@@ -61,7 +64,9 @@ class Record(_Record):
                 f')')
         return text
 
-    def __str__(self) -> str:
+    def __str__(
+        self: 'Record',
+    ) -> str:
         address, data, checksum = '', '', ''
 
         if self.address is not None:
@@ -76,14 +81,20 @@ class Record(_Record):
         text = ''.join([address, data, checksum])
         return text
 
-    def is_data(self) -> bool:
+    def is_data(
+        self: 'Record',
+    ) -> bool:
         return self.data is not None
 
-    def compute_checksum(self) -> Optional[int]:
+    def compute_checksum(
+        self: 'Record',
+    ) -> Optional[int]:
         checksum = sum(self.data or b'') & 0xFFFF
         return checksum
 
-    def check(self) -> None:
+    def check(
+        self: 'Record',
+    ) -> None:
         if self.address is not None and not 0 <= self.address < (1 << 16):
             raise ValueError('address overflow')
 
@@ -101,8 +112,11 @@ class Record(_Record):
                 raise ValueError('checksum overflow')
 
     @classmethod
-    def build_data(cls, address: Optional[int],
-                   data: Optional[ByteString]) -> 'Record':
+    def build_data(
+        cls: Type['Record'],
+        address: Optional[int],
+        data: Optional[AnyBytes],
+    ) -> 'Record':
         r"""Builds a data record.
 
         Arguments:
@@ -131,12 +145,14 @@ class Record(_Record):
         return record
 
     @classmethod
-    def split(cls, data: ByteString,
-              address: int = 0,
-              columns: int = 16,
-              align: bool = True,
-              standalone: bool = True) \
-            -> Iterator['Record']:
+    def split(
+        cls: Type['Record'],
+        data: AnyBytes,
+        address: int = 0,
+        columns: int = 16,
+        align: bool = True,
+        standalone: bool = True,
+    ) -> Iterator['Record']:
         r"""Splits a chunk of data into records.
 
         Arguments:
@@ -185,7 +201,14 @@ class Record(_Record):
             yield record
 
     @classmethod
-    def parse_record(cls, line: str) -> Sequence['Record']:
+    def parse_record(
+        cls: Type['Record'],
+        line: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> 'Record':
+        del args, kwargs
+
         line = str(line).strip()
         match = cls.REGEX.match(line)
         if not match:
@@ -212,7 +235,14 @@ class Record(_Record):
         return record
 
     @classmethod
-    def build_standalone(cls, data_records: RecordSeq) -> Iterator['Record']:
+    def build_standalone(
+        cls: Type['Record'],
+        data_records: RecordSeq,
+        *args: Any,
+        **kwargs: Any,
+    ) -> Iterator['Record']:
+        del args, kwargs
+
         checksum = 0
         for record in data_records:
             yield record
@@ -222,7 +252,10 @@ class Record(_Record):
         yield record
 
     @classmethod
-    def readdress(cls, records: RecordSeq) -> None:
+    def readdress(
+        cls: Type['Record'],
+        records: RecordSeq,
+    ) -> None:
         offset = 0
         for record in records:
             if record.address is None:
@@ -230,7 +263,10 @@ class Record(_Record):
             offset = record.address + len(record.data or b'')
 
     @classmethod
-    def read_records(cls, stream: IO) -> RecordSeq:
+    def read_records(
+        cls: Type['Record'],
+        stream: IO,
+    ) -> RecordSeq:
         text = stream.read()
         stx = text.index('\x02')
         etx = text.index('\x03')
@@ -238,7 +274,11 @@ class Record(_Record):
         return super().read_records(io.StringIO(text))
 
     @classmethod
-    def write_records(cls, stream: IO, records: RecordSeq) -> None:
+    def write_records(
+        cls: Type['Record'],
+        stream: IO,
+        records: RecordSeq,
+    ) -> None:
         stream.write('\x02')
         super().write_records(stream, records)
         stream.write('\x03')

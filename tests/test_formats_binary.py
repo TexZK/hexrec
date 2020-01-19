@@ -10,11 +10,13 @@ from hexrec.formats.binary import Tag
 BYTES = bytes(range(256))
 HEXBYTES = bytes(range(16))
 
+
 # ============================================================================
 
 @pytest.fixture
 def tmppath(tmpdir):
     return Path(str(tmpdir))
+
 
 @pytest.fixture(scope='module')
 def datadir(request):
@@ -22,9 +24,11 @@ def datadir(request):
     assert os.path.isdir(str(dir_path))
     return dir_path
 
+
 @pytest.fixture
 def datapath(datadir):
     return Path(str(datadir))
+
 
 # ============================================================================
 
@@ -34,6 +38,7 @@ def read_text(path):
         data = file.read()
     data = data.replace('\r\n', '\n').replace('\r', '\n')  # normalize
     return data
+
 
 # ============================================================================
 
@@ -46,6 +51,7 @@ def test_normalize_whitespace():
     ans_out = normalize_whitespace('abc\tdef')
     assert ans_ref == ans_out
 
+
 # ============================================================================
 
 class TestTag:
@@ -53,6 +59,7 @@ class TestTag:
     def test_is_data(self):
         for tag in range(256):
             assert Tag.is_data(tag)
+
 
 # ============================================================================
 

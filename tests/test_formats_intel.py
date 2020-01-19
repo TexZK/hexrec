@@ -10,11 +10,13 @@ from hexrec.formats.intel import Tag
 BYTES = bytes(range(256))
 HEXBYTES = bytes(range(16))
 
+
 # ============================================================================
 
 @pytest.fixture
 def tmppath(tmpdir):
     return Path(str(tmpdir))
+
 
 @pytest.fixture(scope='module')
 def datadir(request):
@@ -22,9 +24,11 @@ def datadir(request):
     assert os.path.isdir(str(dir_path))
     return dir_path
 
+
 @pytest.fixture
 def datapath(datadir):
     return Path(str(datadir))
+
 
 # ============================================================================
 
@@ -35,15 +39,17 @@ def read_text(path):
     data = data.replace('\r\n', '\n').replace('\r', '\n')  # normalize
     return data
 
+
 # ============================================================================
 
 class TestTag:
 
     def test_is_data(self):
-        DATA_INTS = {0}
+        tags = {0}
         for tag in Tag:
-            assert Tag.is_data(tag) == (tag in DATA_INTS), tag
-            assert Tag.is_data(int(tag)) == (tag in DATA_INTS), tag
+            assert Tag.is_data(tag) == (tag in tags), tag
+            assert Tag.is_data(int(tag)) == (tag in tags), tag
+
 
 # ============================================================================
 
@@ -90,7 +96,8 @@ class TestRecord:
         record = Record.build_data(0x1234, b'Hello, World!')
         record.count += 1
         record.update_checksum()
-        with pytest.raises(ValueError): record.check()
+        with pytest.raises(ValueError):
+            record.check()
 
     def test_build_data_doctest(self):
         ans_out = str(Record.build_data(0x1234, b'Hello, World!'))
@@ -180,9 +187,9 @@ class TestRecord:
         ans_ref = [
             Record(0, Tag.EXTENDED_LINEAR_ADDRESS, b'\x124'),
             Record(0x12345678, Tag.DATA,
-                        b'\x00\x01\x02\x03\x04\x05\x06\x07'),
+                   b'\x00\x01\x02\x03\x04\x05\x06\x07'),
             Record(0x12345680, Tag.DATA,
-                        b'\x08\t\n\x0b\x0c\r\x0e\x0f'),
+                   b'\x08\t\n\x0b\x0c\r\x0e\x0f'),
             Record(0, Tag.EXTENDED_LINEAR_ADDRESS, b'\x00\x00'),
             Record(0, Tag.START_LINEAR_ADDRESS, b'\x124Vx'),
             Record(0, Tag.END_OF_FILE, b''),
@@ -190,10 +197,10 @@ class TestRecord:
         assert ans_out == ans_ref
 
         ans_out = list(Record.split(HEXBYTES, address=0x0000FFF8,
-                                         start=0x0000FFF8))
+                                    start=0x0000FFF8))
         ans_ref = [
             Record(0xFFF8, Tag.DATA,
-                        b'\x00\x01\x02\x03\x04\x05\x06\x07'),
+                   b'\x00\x01\x02\x03\x04\x05\x06\x07'),
             Record(0, Tag.EXTENDED_LINEAR_ADDRESS, b'\x00\x01'),
             Record(0x10000, Tag.DATA, b'\x08\t\n\x0b\x0c\r\x0e\x0f'),
             Record(0, Tag.EXTENDED_LINEAR_ADDRESS, b'\x00\x00'),
@@ -203,7 +210,7 @@ class TestRecord:
         assert ans_out == ans_ref
 
         ans_out = list(Record.split(HEXBYTES, address=0x0000FFF8,
-                                         align=False))
+                                    align=False))
         assert ans_out == ans_ref
 
     def test_build_standalone(self):
@@ -258,7 +265,7 @@ class TestRecord:
         Record.readdress(ans_out)
         ans_ref = [
             Record(0x00007650, Tag.EXTENDED_SEGMENT_ADDRESS,
-                        b'\x07\x65'),
+                   b'\x07\x65'),
             Record(0x00008650, Tag.DATA, b'Hello, World!'),
         ]
         assert ans_out == ans_ref

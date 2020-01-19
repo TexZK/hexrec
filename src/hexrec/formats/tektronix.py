@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 import enum
 import re
-from typing import ByteString
+from typing import Any
 from typing import Iterator
 from typing import Optional
+from typing import Type
 from typing import Union
 
 from ..records import Record as _Record
 from ..records import RecordSeq
 from ..records import Tag as _Tag
+from ..utils import AnyBytes
 from ..utils import chop
 from ..utils import hexlify
 from ..utils import sum_bytes
@@ -21,7 +23,10 @@ class Tag(_Tag):
     TERMINATOR = 8
 
     @classmethod
-    def is_data(cls, value: Union[int, 'Tag']) -> bool:
+    def is_data(
+        cls: Type['Tag'],
+        value: Union[int, 'Tag'],
+    ) -> bool:
         r""":obj:`bool`: `value` is a data record tag."""
         return value == cls.DATA
 
@@ -47,14 +52,18 @@ class Record(_Record):
     EXTENSIONS = ('.tek',)
     """Automatically supported file extensions."""
 
-    def __init__(self, address: int,
-                 tag: Tag,
-                 data: ByteString,
-                 checksum: Union[int, type(Ellipsis)] = Ellipsis) -> None:
-
+    def __init__(
+        self: 'Record',
+        address: int,
+        tag: Tag,
+        data: AnyBytes,
+        checksum: Union[int, type(Ellipsis)] = Ellipsis,
+    ) -> None:
         super().__init__(address, self.TAG_TYPE(tag), data, checksum)
 
-    def __str__(self) -> str:
+    def __str__(
+        self: 'Record',
+    ) -> str:
         self.check()
         text = (f'%'
                 f'{self.count:02X}'
@@ -65,11 +74,15 @@ class Record(_Record):
                 f'{hexlify(self.data)}')
         return text
 
-    def compute_count(self) -> int:
+    def compute_count(
+        self: 'Record',
+    ) -> int:
         count = 9 + (len(self.data) * 2)
         return count
 
-    def compute_checksum(self) -> int:
+    def compute_checksum(
+        self: 'Record',
+    ) -> int:
         text = (f'{self.count:02X}'
                 f'{self.tag:01X}'
                 f'8'
@@ -78,7 +91,9 @@ class Record(_Record):
         checksum = sum_bytes(int(c, 16) for c in text) & 0xFF
         return checksum
 
-    def check(self) -> None:
+    def check(
+        self: 'Record',
+    ) -> None:
         super().check()
         tag = self.TAG_TYPE(self.tag)
 
@@ -89,7 +104,12 @@ class Record(_Record):
             raise ValueError('count error')
 
     @classmethod
-    def parse_record(cls, line: str) -> 'Record':
+    def parse_record(
+        cls: Type['Record'],
+        line: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> 'Record':
         line = str(line).strip()
         match = cls.REGEX.match(line)
         if not match:
@@ -109,7 +129,11 @@ class Record(_Record):
         return record
 
     @classmethod
-    def build_data(cls, address: int, data: ByteString) -> 'Record':
+    def build_data(
+        cls: Type['Record'],
+        address: int,
+        data: AnyBytes,
+    ) -> 'Record':
         r"""Builds a data record.
 
         Arguments:
@@ -127,7 +151,10 @@ class Record(_Record):
         return record
 
     @classmethod
-    def build_terminator(cls, start: int) -> 'Record':
+    def build_terminator(
+        cls: Type['Record'],
+        start: int,
+    ) -> 'Record':
         r"""Builds a terminator record.
 
         Arguments:
@@ -144,13 +171,15 @@ class Record(_Record):
         return record
 
     @classmethod
-    def split(cls, data: ByteString,
-              address: int = 0,
-              columns: int = 16,
-              align: bool = True,
-              standalone: bool = True,
-              start: Optional[int] = None) \
-            -> Iterator['Record']:
+    def split(
+        cls: Type['Record'],
+        data: AnyBytes,
+        address: int = 0,
+        columns: int = 16,
+        align: bool = True,
+        standalone: bool = True,
+        start: Optional[int] = None,
+    ) -> Iterator['Record']:
         r"""Splits a chunk of data into records.
 
         Arguments:
@@ -190,9 +219,13 @@ class Record(_Record):
             yield cls.build_terminator(address if start is None else start)
 
     @classmethod
-    def build_standalone(cls, data_records: RecordSeq,
-                         start: Optional[int] = None) \
-            -> Iterator['Record']:
+    def build_standalone(
+        cls: Type['Record'],
+        data_records: RecordSeq,
+        *args: Any,
+        start: Optional[int] = None,
+        **kwargs: Any,
+    ) -> Iterator['Record']:
         r"""Makes a sequence of data records standalone.
 
         Arguments:
@@ -204,6 +237,8 @@ class Record(_Record):
         Yields:
             :obj:`Record`: Records for a standalone record file.
         """
+        del args, kwargs
+
         for record in data_records:
             yield record
 
@@ -215,7 +250,10 @@ class Record(_Record):
         yield cls.build_terminator(start)
 
     @classmethod
-    def check_sequence(cls, records: RecordSeq) -> None:
+    def check_sequence(
+        cls: Type['Record'],
+        records: RecordSeq,
+    ) -> None:
         super().check_sequence(records)
 
         if len(records) < 1:

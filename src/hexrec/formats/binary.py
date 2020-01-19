@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 import enum
 from typing import Any
-from typing import ByteString
 from typing import Optional
 from typing import Sequence
+from typing import Type
 from typing import Union
 
 from ..records import Record as _Record
 from ..records import Tag as _Tag
+from ..utils import AnyBytes
 from ..utils import chop
 from ..utils import hexlify
 from ..utils import unhexlify
@@ -18,7 +19,10 @@ class Tag(_Tag):
     """Hexadecimal record tag."""
 
     @classmethod
-    def is_data(cls, value: Union[int, 'Tag']) -> bool:
+    def is_data(
+        cls: Type['Tag'],
+        value: Union[int, 'Tag'],
+    ) -> bool:
         r""":obj:`bool`: `value` is a data record tag."""
         return True
 
@@ -29,19 +33,27 @@ class Record(_Record):
 
     EXTENSIONS = ('.bin', '.dat', '.raw')
 
-    def __init__(self, address: int,
-                 tag: Tag,
-                 data: ByteString,
-                 checksum: Union[int, type(Ellipsis)] = Ellipsis) -> None:
+    def __init__(
+        self: 'Record',
+        address: int,
+        tag: Optional[Tag],
+        data: AnyBytes,
+        checksum: Union[int, type(Ellipsis)] = Ellipsis,
+    ) -> None:
+        super().__init__(address, tag, data, checksum)
 
-        super().__init__(address, None, data, checksum)
-
-    def __str__(self) -> str:
+    def __str__(
+        self: 'Record',
+    ) -> str:
         text = hexlify(self.data)
         return text
 
     @classmethod
-    def build_data(cls, address: int, data: ByteString) -> 'Record':
+    def build_data(
+        cls: Type['Record'],
+        address: int,
+        data: AnyBytes,
+    ) -> 'Record':
         r"""Builds a data record.
 
         Example:
@@ -54,7 +66,12 @@ class Record(_Record):
         return record
 
     @classmethod
-    def parse_record(cls, line: str) -> Sequence['Record']:
+    def parse_record(
+        cls: Type['Record'],
+        line: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> 'Record':
         r"""Parses a hexadecimal record line.
 
         Warning:
@@ -68,28 +85,36 @@ class Record(_Record):
             Record(address=0x00000000, tag=0, count=13,
                    data=b'Hello, World!', checksum=0x69)
         """
+        del args, kwargs
         line = str(line).strip()
         data = unhexlify(line)
         return cls.unmarshal(data)
 
-    def marshal(self) -> ByteString:
+    def marshal(
+        self: 'Record',
+    ) -> AnyBytes:
         return self.data
 
     @classmethod
-    def unmarshal(cls, data: ByteString,
-                  *args: Any,
-                  **kwargs: Any) -> 'Record':
-
+    def unmarshal(
+        cls: Type['Record'],
+        data: AnyBytes,
+        *args: Any,
+        **kwargs: Any,
+    ) -> 'Record':
         address = kwargs.get('address', 0)
         record = cls.build_data(address, data)
         return record
 
     @classmethod
-    def split(cls, data: ByteString,
-              address: int = 0,
-              columns: Optional[int] = None,
-              align: bool = True,
-              standalone: bool = True) -> Sequence['Record']:
+    def split(
+        cls: Type['Record'],
+        data: AnyBytes,
+        address: int = 0,
+        columns: Optional[int] = None,
+        align: bool = True,
+        standalone: bool = True,
+    ) -> Sequence['Record']:
         r"""Splits a chunk of data into records.
 
         Arguments:

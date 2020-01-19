@@ -3,6 +3,7 @@ import pytest
 
 from hexrec.blocks import *
 
+
 # ============================================================================
 
 def test_chop_blocks_doctest():
@@ -11,21 +12,24 @@ def test_chop_blocks_doctest():
     assert ans_out == ans_ref
 
     ans_out = list(chop_blocks('ABCDEFG', 4, 3, 10))
-    ans_ref= [(13, 'A'), (14, 'BCDE'), (18, 'FG')]
+    ans_ref = [(13, 'A'), (14, 'BCDE'), (18, 'FG')]
     assert ans_out == ans_ref
+
 
 # ============================================================================
 
 def test_overlap_doctest():
-    assert overlap((1, 'ABCD'), (5, 'xyz')) == False
-    assert overlap((1, 'ABCD'), (3, 'xyz')) == True
+    assert not overlap((1, 'ABCD'), (5, 'xyz'))
+    assert overlap((1, 'ABCD'), (3, 'xyz'))
+
 
 # ============================================================================
 
 def test_sequence_doctest():
-    assert check_sequence([(1, 'ABC'), (6, 'xyz')]) == True
-    assert check_sequence([(1, 'ABC'), (2, 'xyz')]) == False
-    assert check_sequence([(6, 'ABC'), (1, 'xyz')]) == False
+    assert check_sequence([(1, 'ABC'), (6, 'xyz')])
+    assert not check_sequence([(1, 'ABC'), (2, 'xyz')])
+    assert not check_sequence([(6, 'ABC'), (1, 'xyz')])
+
 
 # ============================================================================
 
@@ -35,6 +39,7 @@ def test_sorting_doctest():
     ans_out = list(blocks)
     ans_out.sort(key=sorting)
     assert ans_out == ans_ref
+
 
 # ============================================================================
 
@@ -48,6 +53,7 @@ def test_locate_at_doctest():
 def test_locate_at():
     assert locate_at((), 1) is None
 
+
 # ============================================================================
 
 def test_locate_start_doctest():
@@ -59,6 +65,7 @@ def test_locate_start_doctest():
 
 def test_locate_start():
     assert locate_start((), 1) == 0
+
 
 # ============================================================================
 
@@ -72,6 +79,7 @@ def test_locate_endex_doctest():
 def test_locate_endex():
     assert locate_endex((), 1) == 0
 
+
 # ============================================================================
 
 def test_shift_doctest():
@@ -79,6 +87,7 @@ def test_shift_doctest():
     ans_ref = [(0, 'ABCD'), (6, 'xyz')]
     ans_out = shift(blocks, -1)
     assert ans_out == ans_ref
+
 
 # ============================================================================
 
@@ -122,6 +131,7 @@ def test_read():
     assert read([], 3, None) == []
     assert read([], None, 3) == []
 
+
 # ============================================================================
 
 def test_clear_doctest():
@@ -145,6 +155,7 @@ def test_clear():
     assert clear([], 3, None) == []
     assert clear([], None, 3) == []
 
+
 # ============================================================================
 
 def test_delete_doctest():
@@ -162,6 +173,7 @@ def test_delete():
     ans_ref = []
     ans_out = delete(blocks, None, None)
     assert ans_out == ans_ref
+
 
 # ============================================================================
 
@@ -185,6 +197,7 @@ def test_insert():
     ans_out = insert(blocks, (6, '$'))
     assert ans_out == ans_ref
 
+
 # ============================================================================
 
 def test_write_doctest():
@@ -199,6 +212,7 @@ def test_write():
     ans_ref = blocks
     ans_out = write(blocks, (3, ''))
     assert ans_out == ans_ref
+
 
 # ============================================================================
 
@@ -219,7 +233,8 @@ def test_fill_doctest():
 
 
 def test_fill():
-    with pytest.raises(ValueError): fill([])
+    with pytest.raises(ValueError):
+        fill([])
 
     blocks = [(1, 'ABC'), (6, 'xyz')]
 
@@ -230,6 +245,7 @@ def test_fill():
     ans_ref = [(1, '########')]
     ans_out = fill(blocks, pattern=('#' * 64), join=''.join)
     assert ans_out == ans_ref
+
 
 # ============================================================================
 
@@ -254,7 +270,8 @@ def test_flood_doctest():
 
 
 def test_flood():
-    with pytest.raises(ValueError): flood([])
+    with pytest.raises(ValueError):
+        flood([])
 
     blocks = [(1, 'ABC'), (6, 'xyz')]
 
@@ -265,6 +282,7 @@ def test_flood():
     ans_ref = [(1, 'ABC'), (4, '##'), (6, 'xyz')]
     ans_out = flood(blocks, pattern=('#' * 64), join=''.join)
     assert ans_out == ans_ref
+
 
 # ============================================================================
 
@@ -280,6 +298,7 @@ def test_merge():
     ans_ref = [(0, 'Hello,'), (7, 'World!'), (15, '$')]
     ans_out = merge(blocks, join=''.join)
     assert ans_out == ans_ref
+
 
 # ============================================================================
 
@@ -318,6 +337,7 @@ def test_collapse():
     ans_out = collapse(blocks)
     assert ans_out == ans_ref
 
+
 # ============================================================================
 
 def test_union_doctest():
@@ -334,6 +354,7 @@ def test_union_doctest():
     ans_out = union(blocks1, blocks2, join=''.join)
     assert ans_out == ans_ref
 
+
 # ============================================================================
 
 class TestSparseItems:
@@ -344,32 +365,30 @@ class TestSparseItems:
         assert obj.items_type == str
         assert obj.items_join == ''.join
         assert obj.autofill is None
-        assert obj.automerge == True
+        assert obj.automerge
 
         with pytest.raises(ValueError):
             Memory(items='ABC', blocks=[(0, 'abc')], items_type=str)
 
-        obj = Memory(items='ABC', start=1,
-                          items_type=str)
+        obj = Memory(items='ABC', start=1, items_type=str)
         assert obj.blocks == [(1, 'ABC')]
 
-        obj = Memory(blocks=[(1, 'ABC')], automerge=False,
-                          items_type=str)
+        obj = Memory(blocks=[(1, 'ABC')], automerge=False, items_type=str)
         assert obj.blocks == [(1, 'ABC')]
 
     def test___str__doctest(self):
         memory = Memory(items_type=str)
         memory.blocks = [(1, 'ABC'), (7, 'xyz')]
         ans_out = str(memory)
-        ans_ref= 'ABCxyz'
+        ans_ref = 'ABCxyz'
         assert ans_out == ans_ref
 
     def test___bool__(self):
         obj = Memory(items_type=str)
-        assert bool(obj) == False
+        assert not bool(obj)
 
         obj.blocks = [(1, 'ABC')]
-        assert bool(obj) == True
+        assert bool(obj)
 
     def test___eq__(self):
         obj1 = Memory(items_type=str)
@@ -387,7 +406,7 @@ class TestSparseItems:
 
         obj1 = Memory(items_type=str)
         obj1.blocks = [(0, 'ABC'), (7, 'xyz')]
-        assert (obj1 == 'ABC') == False
+        assert obj1 != 'ABC'
 
     def test___iter__(self):
         obj = Memory(items_type=str)
@@ -438,7 +457,7 @@ class TestSparseItems:
         assert obj.blocks == [(1, 'ABC'), (5, '$xyz')]
 
         obj = Memory(items_type=list, items_join=''.join,
-                          automerge=False)
+                     automerge=False)
         obj += []
         assert obj.blocks == []
 
@@ -472,14 +491,15 @@ class TestSparseItems:
         obj.blocks = [(1, 'ABC'), (7, 'xyz'), (11, 'ABC')]
         assert obj.index('B') == 2
         assert obj.index('y') == 8
-        with pytest.raises(ValueError): obj.index('$')
+        with pytest.raises(ValueError):
+            obj.index('$')
 
     def test___contains___doctest(self):
         memory = Memory(items_type=str)
         memory.blocks = [(1, 'ABC'), (5, '123'), (9, 'xyz')]
-        assert ('23' in memory) == True
-        assert ('y' in memory) == True
-        assert ('$' in memory) == False
+        assert '23' in memory
+        assert 'y' in memory
+        assert '$' not in memory
 
     def test_count_doctest(self):
         memory = Memory(items_type=str)
@@ -500,14 +520,16 @@ class TestSparseItems:
         assert memory[-2] == 'y'
         assert memory[:3] == 'AB'
         assert memory[-2:] == 'yz'
-        with pytest.raises(ValueError): memory[3:10]
+        with pytest.raises(ValueError):
+            _ = memory[3:10]
 
         assert memory[3:10:'.'] == 'CD.$.xy'
 
         assert memory[memory.endex] == ''
 
         assert memory[3:10:3] == 'C$y'
-        with pytest.raises(ValueError): memory[3:10:2]
+        with pytest.raises(ValueError):
+            _ = memory[3:10:2]
 
     def test___getitem__(self):
         memory = Memory(items_type=str, autofill='.')
@@ -549,7 +571,8 @@ class TestSparseItems:
         memory = Memory(items='ABC', items_type=str)
         memory[1] = None
         assert memory.blocks == [(0, 'A'), (2, 'C')]
-        with pytest.raises(ValueError): memory[0] = 'xyz'
+        with pytest.raises(ValueError):
+            memory[0] = 'xyz'
 
     def test___delitem___doctest(self):
         memory = Memory(items_type=str)
@@ -580,8 +603,8 @@ class TestSparseItems:
         assert memory.blocks == [(0, '$')]
 
         memory = Memory(items_type=list, items_join=''.join)
-        memory.append(3)
-        assert memory.blocks == [(0, 3)]
+        memory.append([3])
+        assert memory.blocks == [(0, [3])]
 
     def test_append(self):
         memory = Memory(items_type=str)
@@ -621,7 +644,8 @@ class TestSparseItems:
     def test_find_doctest(self):
         blocks = [(1, 'ABCD'), (7, 'xyz')]
         assert find(blocks, 'yz', -1, 15) == 8
-        with pytest.raises(ValueError): find(blocks, '$')
+        with pytest.raises(ValueError):
+            find(blocks, '$')
 
     def test_read(self):
         obj = Memory(items_type=str)
@@ -678,7 +702,8 @@ class TestSparseItems:
 
     def test_pop(self):
         memory = Memory(items_type=str)
-        with pytest.raises(IndexError): memory.pop()
+        with pytest.raises(IndexError):
+            memory.pop()
 
         memory = Memory(items_type=str, automerge=False)
         memory.blocks = [(5, 'ABC'), (9, 'xyz')]
@@ -691,7 +716,8 @@ class TestSparseItems:
         assert memory.blocks == [(1, 'ABC'), (5, '1'), (7, 'xyz')]
         memory.remove('y')
         assert memory.blocks == [(1, 'ABC'), (5, '1'), (7, 'xz')]
-        with pytest.raises(ValueError): memory.remove('$')
+        with pytest.raises(ValueError):
+            memory.remove('$')
 
     def test_remove(self):
         memory = Memory(items_type=str, automerge=False)
