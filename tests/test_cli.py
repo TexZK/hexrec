@@ -13,7 +13,6 @@ from hexrec.cli import *
 from hexrec.formats.intel import Record as IntelRecord
 from hexrec.formats.motorola import Record as MotorolaRecord
 
-
 # ============================================================================
 
 @pytest.fixture

@@ -3,7 +3,6 @@ import pytest
 
 from hexrec.blocks import *
 
-
 # ============================================================================
 
 def test_chop_blocks_doctest():

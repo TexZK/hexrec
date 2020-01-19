@@ -1,16 +1,11 @@
 # -*- coding: utf-8 -*-
 import argparse
 import glob
-import io
-import os
-import sys
 from pathlib import Path
 
 import pytest
 
-from hexrec.utils import parse_int
 from hexrec.xxd import *
-
 
 # ============================================================================
 
