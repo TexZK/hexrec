@@ -14,6 +14,7 @@ hexrec.records
       convert_records
       find_corrupted_records
       find_record_type
+      find_record_type_name
       get_data_records
       load_blocks
       load_memory
@@ -34,15 +35,8 @@ hexrec.records
 
    .. autosummary::
    
-      BinaryRecord
-      BinaryTag
-      IntelRecord
-      IntelTag
-      MotorolaRecord
-      MotorolaTag
       Record
-      TektronixRecord
-      TektronixTag
+      Tag
    
    
 

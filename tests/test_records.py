@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import io
 import os
 from pathlib import Path
 
@@ -34,7 +35,6 @@ from hexrec.records import save_memory
 from hexrec.records import save_records
 
 BYTES = bytes(range(256))
-HEXBYTES = bytes(range(16))
 
 
 # ============================================================================
@@ -619,6 +619,158 @@ class TestRecord:
 
     def test_readdress(self):
         pass
+
+    def test_read_blocks___doctest__(self):
+        blocks = [(0, b'abc'), (16, b'def')]
+        stream = io.StringIO()
+        MotorolaRecord.write_blocks(stream, blocks)
+        stream.seek(0, io.SEEK_SET)
+        ans_out = MotorolaRecord.read_blocks(stream)
+        ans_ref = blocks
+        assert ans_out == ans_ref
+
+    def test_write_blocks___doctest__(self):
+        blocks = [(0, b'abc'), (16, b'def')]
+        stream = io.StringIO()
+        MotorolaRecord.write_blocks(stream, blocks)
+        ans_out = stream.getvalue()
+        ans_ref = ('S0030000FC\n'
+                   'S1060000616263D3\n'
+                   'S1060010646566BA\n'
+                   'S5030002FA\n'
+                   'S9030000FC\n')
+        assert ans_out == ans_ref
+
+    def test_load_blocks___doctest__(self, tmppath):
+        path = str(tmppath / 'load_blocks.mot')
+        with open(path, 'wt') as f:
+            f.write('S0030000FC\n')
+            f.write('S1060000616263D3\n')
+            f.write('S1060010646566BA\n')
+            f.write('S5030002FA\n')
+            f.write('S9030000FC\n')
+        ans_out = MotorolaRecord.load_blocks(path)
+        ans_ref = [(0, b'abc'), (16, b'def')]
+        assert ans_out == ans_ref
+
+    def test_save_blocks___doctest__(self, tmppath):
+        path = str(tmppath / 'save_blocks.mot')
+        blocks = [(0, b'abc'), (16, b'def')]
+        MotorolaRecord.save_blocks(path, blocks)
+        with open(path, 'rt') as f:
+            ans_out = f.read()
+        ans_ref = ('S0030000FC\n'
+                   'S1060000616263D3\n'
+                   'S1060010646566BA\n'
+                   'S5030002FA\n'
+                   'S9030000FC\n')
+        assert ans_out == ans_ref
+
+    def test_read_memory___doctest__(self):
+        blocks = [(0, b'abc'), (16, b'def')]
+        stream = io.StringIO()
+        MotorolaRecord.write_blocks(stream, blocks)
+        stream.seek(0, io.SEEK_SET)
+        memory = MotorolaRecord.read_memory(stream)
+        ans_out = memory.blocks
+        ans_ref = [(0, b'abc'), (16, b'def')]
+        assert ans_out == ans_ref
+
+    def test_write_memory___doctest__(self):
+        memory = Memory(blocks=[(0, b'abc'), (16, b'def')])
+        stream = io.StringIO()
+        MotorolaRecord.write_memory(stream, memory)
+        ans_out = stream.getvalue()
+        ans_ref = ('S0030000FC\n'
+                   'S1060000616263D3\n'
+                   'S1060010646566BA\n'
+                   'S5030002FA\n'
+                   'S9030000FC\n')
+        assert ans_out == ans_ref
+
+    def test_load_memory___doctest__(self, tmppath):
+        path = str(tmppath / 'load_memory.mot')
+        with open(path, 'wt') as f:
+            f.write('S0030000FC\n')
+            f.write('S1060000616263D3\n')
+            f.write('S1060010646566BA\n')
+            f.write('S5030002FA\n')
+            f.write('S9030000FC\n')
+        memory = MotorolaRecord.load_memory(path)
+        ans_out = memory.blocks
+        ans_ref = [(0, b'abc'), (16, b'def')]
+        assert ans_out == ans_ref
+
+    def test_save_memory___doctest__(self, tmppath):
+        path = str(tmppath / 'save_memory.mot')
+        blocks = [(0, b'abc'), (16, b'def')]
+        MotorolaRecord.save_blocks(path, blocks)
+        with open(path, 'rt') as f:
+            ans_out = f.read()
+        ans_ref = ('S0030000FC\n'
+                   'S1060000616263D3\n'
+                   'S1060010646566BA\n'
+                   'S5030002FA\n'
+                   'S9030000FC\n')
+        assert ans_out == ans_ref
+
+    def test_read_records___doctest__(self):
+        blocks = [(0, b'abc'), (16, b'def')]
+        stream = io.StringIO()
+        MotorolaRecord.write_blocks(stream, blocks)
+        stream.seek(0, io.SEEK_SET)
+        records = MotorolaRecord.read_records(stream)
+        ans_out = list(map(str, records))
+        ans_ref = ['S0030000FC',
+                   'S1060000616263D3',
+                   'S1060010646566BA',
+                   'S5030002FA',
+                   'S9030000FC']
+        assert ans_out == ans_ref
+
+    def test_write_records___doctest__(self):
+        blocks = [(0, b'abc'), (16, b'def')]
+        records = blocks_to_records(blocks, MotorolaRecord)
+        stream = io.StringIO()
+        MotorolaRecord.write_records(stream, records)
+        ans_out = stream.getvalue()
+        ans_ref = ('S0030000FC\n'
+                   'S1060000616263D3\n'
+                   'S1060010646566BA\n'
+                   'S5030002FA\n'
+                   'S9030000FC\n')
+        assert ans_out == ans_ref
+
+    def test_load_records___doctest__(self, tmppath):
+        path = str(tmppath / 'load_records.mot')
+        with open(path, 'wt') as f:
+            f.write('S0030000FC\n')
+            f.write('S1060000616263D3\n')
+            f.write('S1060010646566BA\n')
+            f.write('S5030002FA\n')
+            f.write('S9030000FC\n')
+        records = MotorolaRecord.load_records(path)
+        ans_out = list(map(str, records))
+        ans_ref = ['S0030000FC',
+                   'S1060000616263D3',
+                   'S1060010646566BA',
+                   'S5030002FA',
+                   'S9030000FC']
+        assert ans_out == ans_ref
+
+    def test_save_records___doctest__(self, tmppath):
+        path = str(tmppath / 'save_records.mot')
+        blocks = [(0, b'abc'), (16, b'def')]
+        records = blocks_to_records(blocks, MotorolaRecord)
+        MotorolaRecord.save_records(path, records)
+        with open(path, 'rt') as f:
+            ans_out = f.read()
+        ans_ref = ('S0030000FC\n'
+                   'S1060000616263D3\n'
+                   'S1060010646566BA\n'
+                   'S5030002FA\n'
+                   'S9030000FC\n')
+        assert ans_out == ans_ref
 
 
 # ============================================================================

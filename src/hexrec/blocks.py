@@ -1446,12 +1446,11 @@ class Memory:
         automerge: bool = True,
     ) -> None:
 
-        self.blocks = None
         if items_type is None:
-            items_type = bytes
+            items_type: Type[Item] = bytes
 
         if items_join is None:
-            items_join = items_type().join
+            items_join: ItemJoiner = items_type().join
 
         if items is not None and blocks is not None:
             raise ValueError('cannot construct from both items and blocks')

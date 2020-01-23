@@ -739,12 +739,12 @@ class Record:
     def __init__(
         self: 'Record',
         address: int,
-        tag: Optional[Tag],
+        tag: Optional[Union[Tag, int]],
         data: AnyBytes,
         checksum: Optional[Union[int, type(Ellipsis)]] = Ellipsis,
     ) -> None:
         self.address: int = address
-        self.tag: Optional[Tag] = tag
+        self.tag: Optional[Union[Tag, int]] = tag
         self.data: AnyBytes = data
         self.checksum: Optional[Union[int, type(Ellipsis)]] = None
         self.count: int = -1  # invalidate
@@ -1312,6 +1312,16 @@ class Record:
 
         Returns:
             :obj:`list`: Sequence of parsed blocks.
+
+        Example:
+            >>> import io
+            >>> from hexrec.formats.motorola import Record as MotorolaRecord
+            >>> blocks = [(0, b'abc'), (16, b'def')]
+            >>> stream = io.StringIO()
+            >>> MotorolaRecord.write_blocks(stream, blocks)
+            >>> _ = stream.seek(0, io.SEEK_SET)
+            >>> MotorolaRecord.read_blocks(stream)
+            [(0, b'abc'), (16, b'def')]
         """
         records = cls.read_records(stream)
         cls.readdress(records)
@@ -1343,6 +1353,15 @@ class Record:
                 :meth:`Record.build_standalone`.
             build_kwargs (dict): Keyword arguments for
                 :meth:`Record.build_standalone`.
+
+        Example:
+            >>> import io
+            >>> from hexrec.formats.motorola import Record as MotorolaRecord
+            >>> blocks = [(0, b'abc'), (16, b'def')]
+            >>> stream = io.StringIO()
+            >>> MotorolaRecord.write_blocks(stream, blocks)
+            >>> stream.getvalue()
+            'S0030000FC\nS1060000616263D3\nS1060010646566BA\nS5030002FA\nS9030000FC\n'
         """
         records = blocks_to_records(blocks, cls,
                                     split_args, split_kwargs,
@@ -1363,6 +1382,17 @@ class Record:
 
         Returns:
             :obj:`list`: Sequence of parsed records.
+
+        Example:
+            >>> from hexrec.formats.motorola import Record as MotorolaRecord
+            >>> with open('load_blocks.mot', 'wt') as f:
+            ...     f.write('S0030000FC\n')
+            ...     f.write('S1060000616263D3\n')
+            ...     f.write('S1060010646566BA\n')
+            ...     f.write('S5030002FA\n')
+            ...     f.write('S9030000FC\n')
+            >>> MotorolaRecord.load_blocks('load_blocks.mot')
+            [(0, b'abc'), (16, b'def')]
         """
         with cls._open_input(path) as stream:
             blocks = cls.read_blocks(stream)
@@ -1383,6 +1413,14 @@ class Record:
             path (:obj:`str`): Path of the record file to save.
             blocks (list): Sequence of blocks to store. Sequence generators
                 supported.
+
+        Example:
+            >>> from hexrec.formats.motorola import Record as MotorolaRecord
+            >>> blocks = [(0, b'abc'), (16, b'def')]
+            >>> MotorolaRecord.save_blocks('save_blocks.mot', blocks)
+            >>> with open('save_blocks.mot', 'rt') as f: text = f.read()
+            >>> text
+            'S0030000FC\nS1060000616263D3\nS1060010646566BA\nS5030002FA\nS9030000FC\n'
         """
         with cls._open_output(path) as stream:
             cls.write_blocks(stream, blocks)
@@ -1402,6 +1440,17 @@ class Record:
 
         Returns:
             :obj:`Memory`: Loaded virtual memory.
+
+        Example:
+            >>> import io
+            >>> from hexrec.formats.motorola import Record as MotorolaRecord
+            >>> blocks = [(0, b'abc'), (16, b'def')]
+            >>> stream = io.StringIO()
+            >>> MotorolaRecord.write_blocks(stream, blocks)
+            >>> _ = stream.seek(0, io.SEEK_SET)
+            >>> memory = MotorolaRecord.read_memory(stream)
+            >>> memory.blocks
+            [(0, b'abc'), (16, b'def')]
         """
         blocks = cls.read_blocks(stream)
         memory = Memory()
@@ -1422,13 +1471,23 @@ class Record:
 
         Arguments:
             stream (stream): Output stream of the records to write.
-            memory (:obj:`Memory'): Virtual memory to save.
+            memory (:obj:`Memory`): Virtual memory to save.
             split_args (list): Positional arguments for :meth:`Record.split`.
             split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
             build_args (list): Positional arguments for
                 :meth:`Record.build_standalone`.
             build_kwargs (dict): Keyword arguments for
                 :meth:`Record.build_standalone`.
+
+        Example:
+            >>> import io
+            >>> from hexrec.blocks import Memory
+            >>> from hexrec.formats.motorola import Record as MotorolaRecord
+            >>> memory = Memory(blocks=[(0, b'abc'), (16, b'def')])
+            >>> stream = io.StringIO()
+            >>> MotorolaRecord.write_memory(stream, memory)
+            >>> stream.getvalue()
+            'S0030000FC\nS1060000616263D3\nS1060010646566BA\nS5030002FA\nS9030000FC\n'
         """
         del split_args, split_kwargs, build_args, build_kwargs
         cls.write_blocks(stream, memory.blocks)
@@ -1445,6 +1504,18 @@ class Record:
 
         Returns:
             :obj:`Memory`: Loaded virtual memory.
+
+        Example:
+            >>> from hexrec.formats.motorola import Record as MotorolaRecord
+            >>> with open('load_blocks.mot', 'wt') as f:
+            ...     f.write('S0030000FC\n')
+            ...     f.write('S1060000616263D3\n')
+            ...     f.write('S1060010646566BA\n')
+            ...     f.write('S5030002FA\n')
+            ...     f.write('S9030000FC\n')
+            >>> memory = MotorolaRecord.load_memory('load_blocks.mot')
+            >>> memory.blocks
+            [(0, b'abc'), (16, b'def')]
         """
         with cls._open_input(path) as stream:
             memory = cls.read_memory(stream)
@@ -1461,6 +1532,15 @@ class Record:
         Arguments:
             path (:obj:`str`): Path of the record file to save.
             memory (:obj:`Memory`): Sparse data to save.
+
+        Example:
+            >>> from hexrec.blocks import Memory
+            >>> from hexrec.formats.motorola import Record as MotorolaRecord
+            >>> memory = Memory(blocks=[(0, b'abc'), (16, b'def')])
+            >>> MotorolaRecord.save_memory('save_memory.mot', memory)
+            >>> with open('save_memory.mot', 'rt') as f: text = f.read()
+            >>> text
+            'S0030000FC\nS1060000616263D3\nS1060010646566BA\nS5030002FA\nS9030000FC\n'
         """
         with cls._open_output(path) as stream:
             cls.write_memory(stream, memory)
@@ -1484,6 +1564,26 @@ class Record:
 
         Returns:
             :obj:`list`: Sequence of parsed records.
+
+        Example:
+            >>> import io
+            >>> from hexrec.formats.motorola import Record as MotorolaRecord
+            >>> blocks = [(0, b'abc'), (16, b'def')]
+            >>> stream = io.StringIO()
+            >>> MotorolaRecord.write_blocks(stream, blocks)
+            >>> _ = stream.seek(0, io.SEEK_SET)
+            >>> records = MotorolaRecord.read_records(stream)
+            >>> records  #doctest: +NORMALIZE_WHITESPACE
+            [Record(address=0x00000000, tag=<Tag.HEADER: 0>, count=3,
+                    data=b'', checksum=0xFC),
+             Record(address=0x00000000, tag=<Tag.DATA_16: 1>, count=6,
+                    data=b'abc', checksum=0xD3),
+             Record(address=0x00000010, tag=<Tag.DATA_16: 1>, count=6,
+                    data=b'def', checksum=0xBA),
+             Record(address=0x00000000, tag=<Tag.COUNT_16: 5>, count=3,
+                    data=b'\x00\x02', checksum=0xFA),
+             Record(address=0x00000000, tag=<Tag.START_16: 9>, count=3,
+                    data=b'', checksum=0xFC)]
         """
         if isinstance(cls.LINE_SEP, (bytes, bytearray)):
             records = [cls.unmarshal(stream.read())]
@@ -1505,6 +1605,17 @@ class Record:
             stream (stream): Output stream of the records to write.
             records (list): Sequence of records to store. Sequence generators
                 supported.
+
+        Example:
+            >>> import io
+            >>> from hexrec.formats.motorola import Record as MotorolaRecord
+            >>> from hexrec.records import blocks_to_records
+            >>> blocks = [(0, b'abc'), (16, b'def')]
+            >>> records = blocks_to_records(blocks, MotorolaRecord)
+            >>> stream = io.StringIO()
+            >>> MotorolaRecord.write_records(stream, records)
+            >>> stream.getvalue()
+            'S0030000FC\nS1060000616263D3\nS1060010646566BA\nS5030002FA\nS9030000FC\n'
         """
         for record in records:
             stream.write(record.marshal())
@@ -1525,6 +1636,27 @@ class Record:
 
         Returns:
             :obj:`list`: Sequence of parsed records.
+
+        Example:
+            >>> from hexrec.formats.motorola import Record as MotorolaRecord
+            >>> with open('load_records.mot', 'wt') as f:
+            ...     f.write('S0030000FC\n')
+            ...     f.write('S1060000616263D3\n')
+            ...     f.write('S1060010646566BA\n')
+            ...     f.write('S5030002FA\n')
+            ...     f.write('S9030000FC\n')
+            >>> records = MotorolaRecord.load_records('load_records.mot')
+            >>> records  #doctest: +NORMALIZE_WHITESPACE
+            [Record(address=0x00000000, tag=<Tag.HEADER: 0>, count=3,
+                    data=b'', checksum=0xFC),
+             Record(address=0x00000000, tag=<Tag.DATA_16: 1>, count=6,
+                    data=b'abc', checksum=0xD3),
+             Record(address=0x00000010, tag=<Tag.DATA_16: 1>, count=6,
+                    data=b'def', checksum=0xBA),
+             Record(address=0x00000000, tag=<Tag.COUNT_16: 5>, count=3,
+                    data=b'\x00\x02', checksum=0xFA),
+             Record(address=0x00000000, tag=<Tag.START_16: 9>, count=3,
+                    data=b'', checksum=0xFC)]
         """
         with cls._open_input(path) as stream:
             records = cls.read_records(stream)
@@ -1545,6 +1677,16 @@ class Record:
             path (:obj:`str`): Path of the record file to save.
             records (list): Sequence of records to store. Sequence generators
                 supported.
+
+        Example:
+            >>> from hexrec.formats.motorola import Record as MotorolaRecord
+            >>> from hexrec.records import blocks_to_records
+            >>> blocks = [(0, b'abc'), (16, b'def')]
+            >>> records = blocks_to_records(blocks, MotorolaRecord)
+            >>> MotorolaRecord.save_records('save_records.mot', records)
+            >>> with open('save_records.mot', 'rt') as f: text = f.read()
+            >>> text
+            'S0030000FC\nS1060000616263D3\nS1060010646566BA\nS5030002FA\nS9030000FC\n'
         """
         with cls._open_output(path) as stream:
             cls.write_records(stream, records)
@@ -1573,6 +1715,11 @@ def find_record_type_name(
 
     Raises:
         KeyError: Unsupported extension.
+
+    Example:
+        >>> from hexrec.records import find_record_type_name
+        >>> find_record_type_name('dummy.mot')
+        'motorola'
     """
     ext = os.path.splitext(file_path)[1].lower()
     for name, record_type in RECORD_TYPES.items():
@@ -1599,6 +1746,11 @@ def find_record_type(
 
     Raises:
         KeyError: Unsupported extension.
+
+    Example:
+        >>> from hexrec.records import find_record_type_name
+        >>> find_record_type('dummy.mot').__name__
+        'MotorolaRecord'
     """
     type_name = find_record_type_name(file_path)
     record_type = RECORD_TYPES[type_name]

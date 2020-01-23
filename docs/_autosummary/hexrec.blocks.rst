@@ -37,7 +37,7 @@ hexrec.blocks
 
    .. autosummary::
    
-      SparseItems
+      Memory
    
    
 

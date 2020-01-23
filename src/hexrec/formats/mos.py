@@ -19,7 +19,7 @@ class Record(_Record):
     r"""MOS Technology record file.
 
     See:
-        `<https://srecord.sourceforge.net/man/man5/srec_mos_tech.html>`_
+        `<http://srecord.sourceforge.net/man/man5/srec_mos_tech.html>`_
 
     """
 

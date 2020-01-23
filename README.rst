@@ -20,7 +20,7 @@ Overview
     :target: https://readthedocs.org/projects/hexrec
     :alt: Documentation Status
 
-.. |travis| image:: https://travis-ci.org/TexZK/hexrec.svg?branch=master
+.. |travis| image:: https://api.travis-ci.org/TexZK/hexrec.svg?branch=master
     :alt: Travis-CI Build Status
     :target: https://travis-ci.org/TexZK/hexrec
 
@@ -32,7 +32,7 @@ Overview
     :alt: Requirements Status
     :target: https://requires.io/github/TexZK/hexrec/requirements/?branch=master
 
-.. |codecov| image:: https://codecov.io/github/TexZK/hexrec/coverage.svg?branch=master
+.. |codecov| image:: https://codecov.io/gh/TexZK/hexrec/branch/master/graphs/badge.svg?branch=master
     :alt: Coverage Status
     :target: https://codecov.io/github/TexZK/hexrec
 

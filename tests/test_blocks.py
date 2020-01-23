@@ -356,7 +356,7 @@ def test_union_doctest():
 
 # ============================================================================
 
-class TestSparseItems:
+class TestMemory:
 
     def test___init__(self):
         obj = Memory(items_type=str)
