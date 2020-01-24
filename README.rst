@@ -304,7 +304,7 @@ for a *DOS* prompt).
 Installation
 ============
 
-From PIP:
+From PIP (might not be the latest version found on *github*):
 
 .. code-block:: sh
 
