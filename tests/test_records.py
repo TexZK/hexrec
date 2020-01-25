@@ -21,6 +21,7 @@ from hexrec.records import blocks_to_records
 from hexrec.records import convert_file
 from hexrec.records import convert_records
 from hexrec.records import find_corrupted_records
+from hexrec.records import find_record_type
 from hexrec.records import find_record_type_name
 from hexrec.records import get_data_records
 from hexrec.records import load_blocks
@@ -591,12 +592,10 @@ class TestRecord:
         data_records2 = list(BinaryRecord.build_standalone(records))
         assert data_records == data_records2
 
-        with pytest.raises(NotImplementedError,
-                           match='args reserved for overriding'):
+        with pytest.raises(ValueError, match='unexpected positional arg'):
             next(BinaryRecord.build_standalone((), Ellipsis))
 
-        with pytest.raises(NotImplementedError,
-                           match='kwargs reserved for overriding'):
+        with pytest.raises(ValueError, match='unexpected keyword arg'):
             next(BinaryRecord.build_standalone((), _=Ellipsis))
 
     def test_check_sequence(self):
@@ -775,6 +774,10 @@ class TestRecord:
 
 # ============================================================================
 
+def test_find_record_type_name___doctest__():
+    assert find_record_type_name('dummy.mot') == 'motorola'
+
+
 def test_find_record_type_name():
     for name, record_type in RECORD_TYPES.items():
         for ext in record_type.EXTENSIONS:
@@ -783,3 +786,9 @@ def test_find_record_type_name():
 
     with pytest.raises(KeyError):
         find_record_type_name('filename.invalid')
+
+
+# ============================================================================
+
+def test_find_record_type___doctest__():
+    assert find_record_type('dummy.mot') is MotorolaRecord

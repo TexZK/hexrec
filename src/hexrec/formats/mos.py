@@ -36,6 +36,7 @@ from ..records import Record as _Record
 from ..records import RecordSeq
 from ..records import Tag
 from ..utils import AnyBytes
+from ..utils import check_empty_args_kwargs
 from ..utils import chop
 from ..utils import hexlify
 from ..utils import unhexlify
@@ -229,7 +230,8 @@ class Record(_Record):
         *args: Any,
         **kwargs: Any,
     ) -> 'Record':
-        del args, kwargs
+        check_empty_args_kwargs(args, kwargs)
+
         line = str(line).strip()
         match = cls.REGEX.match(line)
         if not match:
@@ -263,7 +265,7 @@ class Record(_Record):
         Yields:
             :obj:`Record`: Records for a standalone record file.
         """
-        del args, kwargs
+        check_empty_args_kwargs(args, kwargs)
 
         record_count = 0
         for record in data_records:

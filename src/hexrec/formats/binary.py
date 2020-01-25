@@ -35,6 +35,7 @@ from typing import Union
 from ..records import Record as _Record
 from ..records import Tag as _Tag
 from ..utils import AnyBytes
+from ..utils import check_empty_args_kwargs
 from ..utils import chop
 from ..utils import hexlify
 from ..utils import unhexlify
@@ -111,7 +112,8 @@ class Record(_Record):
             Record(address=0x00000000, tag=0, count=13,
                    data=b'Hello, World!', checksum=0x69)
         """
-        del args, kwargs
+        check_empty_args_kwargs(args, kwargs)
+
         line = str(line).strip()
         data = unhexlify(line)
         return cls.unmarshal(data)
@@ -126,9 +128,11 @@ class Record(_Record):
         cls: Type['Record'],
         data: AnyBytes,
         *args: Any,
+        address: int = 0,
         **kwargs: Any,
     ) -> 'Record':
-        address = kwargs.get('address', 0)
+        check_empty_args_kwargs(args, kwargs)
+
         record = cls.build_data(address, data)
         return record
 

@@ -40,6 +40,7 @@ from ..records import RecordSeq
 from ..records import Tag as _Tag
 from ..records import get_data_records
 from ..utils import AnyBytes
+from ..utils import check_empty_args_kwargs
 from ..utils import chop
 from ..utils import expmsg
 from ..utils import hexlify
@@ -403,7 +404,8 @@ class Record(_Record):
         *args: Any,
         **kwargs: Any,
     ) -> 'Record':
-        del args, kwargs
+        check_empty_args_kwargs(args, kwargs)
+
         line = str(line).strip()
         match = cls.REGEX.match(line)
         if not match:

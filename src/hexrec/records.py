@@ -78,6 +78,7 @@ from .blocks import Memory
 from .blocks import merge
 from .blocks import union
 from .utils import AnyBytes
+from .utils import check_empty_args_kwargs
 from .utils import do_overlap
 from .utils import sum_bytes
 
@@ -1172,7 +1173,7 @@ class Record:
         self: 'Record',
         *args: Any,
         **kwargs: Any,
-    ) -> str:
+    ) -> Union[bytes, bytearray, str]:
         r"""Marshals a record for output.
 
         Arguments:
@@ -1182,12 +1183,14 @@ class Record:
         Returns:
             :obj:`object`: Data for output.
         """
+        check_empty_args_kwargs(args, kwargs)
+
         return str(self)
 
     @classmethod
     def unmarshal(
         cls: Type['Record'],
-        data: AnyBytes,
+        data: Union[AnyBytes, str],
         *args: Any,
         **kwargs: Any,
     ) -> 'Record':
@@ -1201,6 +1204,8 @@ class Record:
         Returns:
             :obj:`Record`: Unmarshaled record.
         """
+        check_empty_args_kwargs(args, kwargs)
+
         return cls.parse_record(data, *args, **kwargs)
 
     @classmethod
@@ -1220,6 +1225,8 @@ class Record:
         Note:
             This method must be overridden.
         """
+        check_empty_args_kwargs(args, kwargs)
+
         raise NotImplementedError('method must be overriden')
 
     @classmethod
@@ -1240,10 +1247,7 @@ class Record:
         Yields:
             :obj:`Record`: Records for a standalone record file.
         """
-        if args:
-            raise NotImplementedError('args reserved for overriding')
-        if kwargs:
-            raise NotImplementedError('kwargs reserved for overriding')
+        check_empty_args_kwargs(args, kwargs)
 
         yield from data_records
 
@@ -1337,7 +1341,7 @@ class Record:
         split_kwargs: Optional[Mapping[str, Any]] = None,
         build_args: Optional[Sequence[Any]] = None,
         build_kwargs: Optional[Mapping[str, Any]] = None,
-    ) -> None:  # TODO: example
+    ) -> None:
         r"""Writes blocks to a stream.
 
         Each block of the `blocks` sequence is converted into a record via
@@ -1364,14 +1368,16 @@ class Record:
             'S0030000FC\nS1060000616263D3\nS1060010646566BA\nS5030002FA\nS9030000FC\n'
         """
         records = blocks_to_records(blocks, cls,
-                                    split_args, split_kwargs,
-                                    build_args, build_kwargs)
+                                    split_args=split_args,
+                                    split_kwargs=split_kwargs,
+                                    build_args=build_args,
+                                    build_kwargs=build_kwargs)
         cls.write_records(stream, records)
 
     @classmethod
     def load_blocks(
         cls: Type['Record'], path: str,
-    ) -> BlockSeq:  # TODO: example
+    ) -> BlockSeq:
         r"""Loads blocks from a file.
 
         Each line of the input file is parsed via :meth:`parse_block`,
@@ -1403,7 +1409,11 @@ class Record:
         cls: Type['Record'],
         path: str,
         blocks: BlockSeq,
-    ) -> None:  # TODO: example
+        split_args: Optional[Sequence[Any]] = None,
+        split_kwargs: Optional[Mapping[str, Any]] = None,
+        build_args: Optional[Sequence[Any]] = None,
+        build_kwargs: Optional[Mapping[str, Any]] = None,
+    ) -> None:
         r"""Saves blocks to a file.
 
         Each block of the `blocks` sequence is converted into a record via
@@ -1413,6 +1423,12 @@ class Record:
             path (:obj:`str`): Path of the record file to save.
             blocks (list): Sequence of blocks to store. Sequence generators
                 supported.
+            split_args (list): Positional arguments for :meth:`Record.split`.
+            split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
+            build_args (list): Positional arguments for
+                :meth:`Record.build_standalone`.
+            build_kwargs (dict): Keyword arguments for
+                :meth:`Record.build_standalone`.
 
         Example:
             >>> from hexrec.formats.motorola import Record as MotorolaRecord
@@ -1423,14 +1439,16 @@ class Record:
             'S0030000FC\nS1060000616263D3\nS1060010646566BA\nS5030002FA\nS9030000FC\n'
         """
         with cls._open_output(path) as stream:
-            cls.write_blocks(stream, blocks)
+            cls.write_blocks(stream, blocks,
+                             split_args=split_args, split_kwargs=split_kwargs,
+                             build_args=build_args, build_kwargs=build_kwargs)
             stream.flush()
 
     @classmethod
     def read_memory(
         cls: Type['Record'],
         stream: IO,
-    ) -> Memory:  # TODO: example
+    ) -> Memory:
         r"""Reads a virtual memory from a stream.
 
         Read blocks from the input stream into the returned sequence.
@@ -1466,7 +1484,7 @@ class Record:
         split_kwargs: Optional[Mapping[str, Any]] = None,
         build_args: Optional[Sequence[Any]] = None,
         build_kwargs: Optional[Mapping[str, Any]] = None,
-    ) -> None:  # TODO: example
+    ) -> None:
         r"""Writes a virtual memory to a stream.
 
         Arguments:
@@ -1489,14 +1507,15 @@ class Record:
             >>> stream.getvalue()
             'S0030000FC\nS1060000616263D3\nS1060010646566BA\nS5030002FA\nS9030000FC\n'
         """
-        del split_args, split_kwargs, build_args, build_kwargs
-        cls.write_blocks(stream, memory.blocks)
+        cls.write_blocks(stream, memory.blocks,
+                         split_args=split_args, split_kwargs=split_kwargs,
+                         build_args=build_args, build_kwargs=build_kwargs)
 
     @classmethod
     def load_memory(
         cls: Type['Record'],
         path: str,
-    ) -> Memory:  # TODO: example
+    ) -> Memory:
         r"""Loads a virtual memory from a file.
 
         Arguments:
@@ -1526,12 +1545,22 @@ class Record:
         cls: Type['Record'],
         path: str,
         memory: Memory,
-    ) -> None:  # TODO: example
+        split_args: Optional[Sequence[Any]] = None,
+        split_kwargs: Optional[Mapping[str, Any]] = None,
+        build_args: Optional[Sequence[Any]] = None,
+        build_kwargs: Optional[Mapping[str, Any]] = None,
+    ) -> None:
         r"""Saves a virtual memory to a file.
 
         Arguments:
             path (:obj:`str`): Path of the record file to save.
             memory (:obj:`Memory`): Sparse data to save.
+            split_args (list): Positional arguments for :meth:`Record.split`.
+            split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
+            build_args (list): Positional arguments for
+                :meth:`Record.build_standalone`.
+            build_kwargs (dict): Keyword arguments for
+                :meth:`Record.build_standalone`.
 
         Example:
             >>> from hexrec.blocks import Memory
@@ -1543,14 +1572,16 @@ class Record:
             'S0030000FC\nS1060000616263D3\nS1060010646566BA\nS5030002FA\nS9030000FC\n'
         """
         with cls._open_output(path) as stream:
-            cls.write_memory(stream, memory)
+            cls.write_memory(stream, memory,
+                             split_args=split_args, split_kwargs=split_kwargs,
+                             build_args=build_args, build_kwargs=build_kwargs)
             stream.flush()
 
     @classmethod
     def read_records(
         cls: Type['Record'],
         stream: IO,
-    ) -> RecordList:  # TODO: example
+    ) -> RecordList:
         r"""Reads records from a stream.
 
         For text files, each line of the input file is parsed via
@@ -1596,7 +1627,7 @@ class Record:
         cls: Type['Record'],
         stream: IO,
         records: RecordSeq,
-    ) -> None:  # TODO: example
+    ) -> None:
         r"""Saves records to a stream.
 
         Each record of the `records` sequence is stored into the output file.
@@ -1625,7 +1656,7 @@ class Record:
     def load_records(
         cls: Type['Record'],
         path: str,
-    ) -> RecordList:  # TODO: example
+    ) -> RecordList:
         r"""Loads records from a file.
 
         Each line of the input file is parsed via :meth:`parse`, and
@@ -1667,7 +1698,7 @@ class Record:
         cls: Type['Record'],
         path: str,
         records: RecordSeq,
-    ):  # TODO: example
+    ):
         r"""Saves records to a file.
 
         Each record of the `records` sequence is converted into text via
@@ -1701,7 +1732,7 @@ RECORD_TYPES: Mapping[str, Type[Record]] = {
 
 def find_record_type_name(
     file_path: str,
-) -> str:  # TODO: example
+) -> str:
     r"""Finds the record type name.
 
     Checks if the extension of `file_path` is a know record type, and returns
@@ -1732,7 +1763,7 @@ def find_record_type_name(
 
 def find_record_type(
     file_path: str,
-) -> Type[Record]:  # TODO: example
+) -> Type[Record]:
     r"""Finds the record type class.
 
     Checks if the extension of `file_path` is a know record type, and returns

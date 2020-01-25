@@ -53,6 +53,21 @@ PARSE_INT_FAIL: Mapping[Any, Type[BaseException]] = {
 
 # ============================================================================
 
+def test_check_empty_args_kwargs():
+    check_empty_args_kwargs([], {})
+    check_empty_args_kwargs(None, {})
+    check_empty_args_kwargs([], None)
+    check_empty_args_kwargs(None, None)
+
+    with pytest.raises(ValueError, match='unexpected positional argument'):
+        check_empty_args_kwargs([Ellipsis], {})
+
+    with pytest.raises(ValueError, match='unexpected keyword argument'):
+        check_empty_args_kwargs([], {'_': Ellipsis})
+
+
+# ============================================================================
+
 def test_expmsg_doctest():
     ans_out = expmsg(1, 2, 'different')
     ans_ref = 'different\nactual:   1\nexpected: 2'

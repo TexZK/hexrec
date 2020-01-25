@@ -55,6 +55,30 @@ INT_REGEX = re.compile(r'^\s*(?P<sign>[+-]?)\s*'
                        r'(?P<scale>[km]?)\s*$')
 
 
+def check_empty_args_kwargs(
+    args: Optional[Sequence[Any]],
+    kwargs: Optional[Mapping[Any, Any]],
+) -> None:
+    r"""Checks for empty positional and keyword arguments.
+
+    Both `args` and `kwargs` must be either ``None`` or equivalent to
+    ``False``.
+    If the check is not satisfied, a :obj:`ValueError` exception is raised.
+
+    Arguments:
+        args (list): List of unexpected positional arguments, or ``Null``.
+        kwargs (dict): List of unexpected keyword arguments, or ``Null``.
+
+    Raises:
+        ValueError: Condition not satisfied.
+    """
+    if args:
+        raise ValueError('unexpected positional argument(s)')
+    if kwargs:
+        raise ValueError('unexpected keyword argument(s): '
+                         f'{", ".join(kwargs.keys())}')
+
+
 def expmsg(
     actual: Any,
     expected: Any,
