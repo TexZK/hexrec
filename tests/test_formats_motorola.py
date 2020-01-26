@@ -255,7 +255,7 @@ class TestRecord:
             [],
             tag=Tag.DATA_32,
             header=b'Hello, World!',
-            start=0
+            start=0,
         ))
         ans_ref = [
             Record(0, Tag.HEADER, b'Hello, World!'),
@@ -391,6 +391,20 @@ class TestRecord:
         records.append(Record(0, Tag._RESERVED, b''))
         with pytest.raises(ValueError, match='sequence length error'):
             Record.check_sequence(records)
+
+    def test_get_metadata_doctest(self):
+        pass  # TODO
+
+    def test_get_metadata(self):
+        records = list(Record.split(BYTES, header=b'header', start=0x1234))
+        ans_out = Record.get_metadata(records)
+        ans_ref = {
+            'header': b'header',
+            'columns': 16,
+            'count': 16,
+            'start': 0x1234,
+        }
+        assert ans_out == ans_ref
 
     def test_split_doctest(self):
         pass  # TODO

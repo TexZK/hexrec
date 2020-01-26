@@ -921,7 +921,7 @@ class Record:
     def __lt__(
         self: 'Record',
         other: 'Record',
-    ):
+    ) -> bool:
         r"""Less-than comparison.
 
         Returns:
@@ -1238,12 +1238,47 @@ class Record:
         return cls.parse_record(data, *args, **kwargs)
 
     @classmethod
+    def get_metadata(
+        cls: 'Record',
+        records: RecordSequence,
+    ) -> Mapping[str, Any]:
+        r"""Retrieves metadata from records.
+
+        Metadata is specific of each record type.
+        The most common metadata are:
+
+        * `columns`: maximum data columns per line.
+        * `start`: program execution start address.
+        * `count`: some count of record lines.
+        * `header`: some header data.
+
+        When no such information is found, its keyword is either skipped or
+        its value is ``None``.
+
+        Arguments:
+            records (:obj:`Record`): Records to scan for metadata.
+
+        Returns:
+            dict: Collected metadata.
+        """
+        columns = 0
+
+        for record in records:
+            if record.is_data():
+                columns = max(columns, len(record.data or b''))
+
+        metadata = {
+            'columns': columns,
+        }
+        return metadata
+
+    @classmethod
     def split(
         cls: Type['Record'],
         data: AnyBytes,
         *args: Any,
         **kwargs: Any,
-    ) -> None:  # Sequence[Record]
+    ) -> None:  # Iterator[Record]
         r"""Splits a chunk of data into records.
 
         Arguments:

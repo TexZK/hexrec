@@ -27,8 +27,8 @@
 
 import enum
 from typing import Any
+from typing import Iterator
 from typing import Optional
-from typing import Sequence
 from typing import Type
 from typing import Union
 
@@ -144,7 +144,7 @@ class Record(_Record):
         columns: Optional[int] = None,
         align: bool = True,
         standalone: bool = True,
-    ) -> Sequence['Record']:
+    ) -> Iterator['Record']:
         r"""Splits a chunk of data into records.
 
         Arguments:

@@ -591,6 +591,20 @@ class TestRecord:
         with pytest.raises(NotImplementedError):
             Record.parse_record('')
 
+    def test_get_metadata_doctest(self):
+        pass  # TODO
+
+    def test_get_metadata(self):
+        ans_out = Record.get_metadata([])
+        ans_ref = dict(columns=0)
+        assert ans_out == ans_ref
+
+        data = bytes(range(256))
+        records = list(MotorolaRecord.split(data))
+        ans_out = Record.get_metadata(records)
+        ans_ref = dict(columns=16)
+        assert ans_out == ans_ref
+
     def test_split(self):
         with pytest.raises(NotImplementedError):
             Record.split(b'')

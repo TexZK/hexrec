@@ -30,8 +30,8 @@ import re
 import struct
 from typing import Any
 from typing import Iterator
+from typing import Mapping
 from typing import Optional
-from typing import Sequence
 from typing import Type
 from typing import Union
 
@@ -353,16 +353,13 @@ class Record(_Record):
             >>> str(Record.build_terminator(0x1234))
             'S9031234B6'
 
-            >>> str(Record.build_terminator(0x1234,
-            ...                                     Tag.DATA_16))
+            >>> str(Record.build_terminator(0x1234, Tag.DATA_16))
             'S9031234B6'
 
-            >>> str(Record.build_terminator(0x123456,
-            ...                                     Tag.DATA_24))
+            >>> str(Record.build_terminator(0x123456, Tag.DATA_24))
             'S8041234565F'
 
-            >>> str(Record.build_terminator(0x12345678,
-            ...                                     Tag.DATA_32))
+            >>> str(Record.build_terminator(0x12345678, Tag.DATA_32))
             'S70512345678E6'
         """
         tag = cls.TAG_TYPE(cls.MATCHING_TAG.index(int(last_data_tag)))
@@ -472,17 +469,16 @@ class Record(_Record):
     def check_sequence(
         cls: Type['Record'],
         records: RecordSequence,
-        overlap: bool = True,
     ) -> None:
         super().check_sequence(records)
 
         unpack = struct.unpack
-#        last_data = None
         first_tag = None
         data_count = 0
         it = iter(records)
         header_found = False
         count_found = False
+        record_index = -1
 
         while True:
             try:
@@ -490,11 +486,12 @@ class Record(_Record):
             except StopIteration:
                 record = None
                 break
+            record_index += 1
 
             record_tag = int(record.tag)
 
             if record_tag == 0:
-                if header_found:
+                if header_found or record_index:
                     raise ValueError('header error')
 
                 header_found = True
@@ -507,10 +504,6 @@ class Record(_Record):
                     raise ValueError(expmsg(record_tag, 'in (1, 2, 3)',
                                             'tag error'))
 
-#                if overlap and record.overlaps(last_data):
-#                    raise ValueError('overlapping records')
-
-#                last_data = record
                 data_count += 1
 
             elif record_tag == 5:
@@ -559,6 +552,54 @@ class Record(_Record):
             raise ValueError('sequence length error')
 
     @classmethod
+    def get_metadata(
+        cls: 'Record',
+        records: RecordSequence,
+    ) -> Mapping[str, Any]:
+        r"""Retrieves metadata from records.
+
+        Collected metadata:
+
+        * `columns`: maximum data columns per line found, or ``None``.
+        * `start`: program execution start address found, or ``None``.
+        * `count`: last `count` record found, or ``None``.
+        * `header`: last `header` record data found, or ``None``.
+
+        Arguments:
+            records (:obj:`Record`): Records to scan for metadata.
+
+        Returns:
+            dict: Collected metadata.
+        """
+        header = None
+        columns = 0
+        count = None
+        start = None
+
+        for record in records:
+            tag = record.tag
+
+            if tag == 0:
+                header = record.data
+
+            elif tag in (5, 6) and record.data:
+                count = int.from_bytes(record.data, 'big')
+
+            elif tag in (7, 8, 9):
+                start = record.address
+
+            else:
+                columns = max(columns, len(record.data or b''))
+
+        metadata = {
+            'header': header,
+            'columns': columns,
+            'count': count,
+            'start': start,
+        }
+        return metadata
+
+    @classmethod
     def split(
         cls: Type['Record'],
         data: AnyBytes,
@@ -569,7 +610,7 @@ class Record(_Record):
         start: Optional[int] = None,
         tag: Optional[Tag] = None,
         header: AnyBytes = b'',
-    ) -> Sequence['Record']:
+    ) -> Iterator['Record']:
         r"""Splits a chunk of data into records.
 
         Arguments:
