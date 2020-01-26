@@ -112,6 +112,7 @@ True
 
 """
 from typing import Callable
+from typing import Collection
 from typing import Iterable
 from typing import Iterator
 from typing import List
@@ -134,7 +135,9 @@ ItemSeq = Union[Sequence[Item], AnyBytes, Sequence[int], str]
 ItemJoiner = Callable[[Iterable[ItemSeq]], ItemSeq]
 
 Block = Tuple[int, ItemSeq]
-BlockSeq = Sequence[Block]
+BlockIterable = Iterable[Block]
+BlockCollection = Collection[Block]
+BlockSequence = Sequence[Block]
 BlockList = List[Block]
 
 
@@ -230,7 +233,7 @@ def overlap(
 
 
 def check_sequence(
-    blocks: BlockSeq,
+    blocks: BlockSequence,
 ) -> bool:
     r"""Checks if a sequence of blocks is valid.
 
@@ -349,7 +352,7 @@ def sorting(
 
 
 def locate_at(
-    blocks: BlockSeq,
+    blocks: BlockSequence,
     address: int,
 ) -> Optional[int]:
     r"""Locates the block enclosing an address.
@@ -407,7 +410,7 @@ def locate_at(
 
 
 def locate_start(
-    blocks: BlockSeq,
+    blocks: BlockSequence,
     address: int,
 ) -> int:
     r"""Locates the first block inside of an address range.
@@ -466,7 +469,7 @@ def locate_start(
 
 
 def locate_endex(
-    blocks: BlockSeq,
+    blocks: BlockSequence,
     address: int,
 ) -> int:
     r"""Locates the first block after an address range.
@@ -525,7 +528,7 @@ def locate_endex(
 
 
 def shift(
-    blocks: BlockSeq,
+    blocks: BlockSequence,
     amount: int,
 ) -> BlockList:
     r"""Shifts the address of blocks.
@@ -554,7 +557,7 @@ def shift(
 
 
 def find(
-    blocks: BlockSeq,
+    blocks: BlockSequence,
     value: ItemSeq,
     start: int = None,
     endex: int = None,
@@ -605,7 +608,7 @@ def find(
 
 
 def read(
-    blocks: BlockSeq,
+    blocks: BlockSequence,
     start: Optional[int],
     endex: Optional[int],
     pattern: Optional[ItemSeq] = b'\0',
@@ -709,7 +712,7 @@ def read(
 
 
 def clear(
-    blocks: BlockSeq,
+    blocks: BlockSequence,
     start: Optional[int],
     endex: Optional[int],
 ) -> BlockList:
@@ -800,7 +803,7 @@ def clear(
 
 
 def delete(
-    blocks: BlockSeq,
+    blocks: BlockSequence,
     start: Optional[int],
     endex: Optional[int],
 ) -> BlockList:
@@ -889,7 +892,7 @@ def delete(
 
 
 def insert(
-    blocks: BlockSeq,
+    blocks: BlockSequence,
     inserted: Block,
 ) -> BlockList:
     r"""Inserts a block into a sequence.
@@ -959,7 +962,7 @@ def insert(
 
 
 def write(
-    blocks: BlockSeq,
+    blocks: BlockSequence,
     written: Block,
 ) -> BlockList:
     r"""Writes a block onto a sequence.
@@ -1000,7 +1003,7 @@ def write(
 
 
 def fill(
-    blocks: BlockSeq,
+    blocks: BlockSequence,
     start: Optional[int] = None,
     endex: Optional[int] = None,
     pattern: ItemSeq = b'\0',
@@ -1081,7 +1084,7 @@ def fill(
 
 
 def flood(
-    blocks: BlockSeq,
+    blocks: BlockSequence,
     start: Optional[int] = None,
     endex: Optional[int] = None,
     pattern: ItemSeq = b'\0',
@@ -1188,7 +1191,7 @@ def flood(
 
 
 def merge(
-    blocks: BlockSeq,
+    blocks: BlockSequence,
     join: Optional[ItemJoiner] = None,
 ) -> BlockList:
     r"""Merges touching blocks.
@@ -1255,7 +1258,7 @@ def merge(
 
 
 def collapse(
-    blocks: BlockSeq,
+    blocks: BlockSequence,
 ) -> BlockList:
     r"""Collapses blocks of items.
 
@@ -1335,7 +1338,7 @@ def collapse(
 
 
 def union(
-    *blocks_list: BlockSeq,
+    *blocks_list: BlockSequence,
     join: Optional[ItemJoiner] = None,
 ) -> BlockList:
     r"""Performs the union of multiple block lists.
@@ -1620,7 +1623,7 @@ class Memory:
 
     def __add__(
         self: 'Memory',
-        value: Union['Memory', ItemSeq, BlockSeq],
+        value: Union['Memory', ItemSeq, BlockSequence],
     ) -> 'Memory':
         r"""Concatenates items.
 
@@ -1643,7 +1646,7 @@ class Memory:
 
     def __iadd__(
         self: 'Memory',
-        value: Union['Memory', ItemSeq, BlockSeq],
+        value: Union['Memory', ItemSeq, BlockSequence],
     ) -> 'Memory':
         r"""Concatenates items.
 

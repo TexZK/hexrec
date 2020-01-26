@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
 
-
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
@@ -40,7 +39,7 @@ if not on_rtd:  # only set the theme if we're building docs locally
     html_theme = 'sphinx_rtd_theme'
 
 html_use_smartypants = True
-html_last_updated_fmt = '%b %d, %Y'
+html_last_updated_fmt = '%Y-%m-%d'
 html_split_index = False
 html_sidebars = {
    '**': ['searchbox.html', 'globaltoc.html', 'sourcelink.html'],
@@ -58,9 +57,11 @@ autodoc_inherit_docstrings = False
 autodoc_member_order = 'bysource'
 autosummary_generate = True
 
+napoleon_google_docstring = True
 napoleon_numpy_docstring = False
+napoleon_include_init_with_doc = False
 napoleon_use_ivar = True
 napoleon_use_rtype = False
-napoleon_use_param = False
+napoleon_use_param = True
 napoleon_include_private_with_doc = True
 napoleon_include_special_with_doc = True

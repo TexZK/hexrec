@@ -35,7 +35,7 @@ from typing import Type
 from typing import Union
 
 from ..records import Record as _Record
-from ..records import RecordSeq
+from ..records import RecordSequence
 from ..records import Tag
 from ..utils import AnyBytes
 from ..utils import check_empty_args_kwargs
@@ -264,7 +264,7 @@ class Record(_Record):
     @classmethod
     def build_standalone(
         cls: Type['Record'],
-        data_records: RecordSeq,
+        data_records: RecordSequence,
         *args: Any,
         **kwargs: Any,
     ) -> Iterator['Record']:
@@ -281,7 +281,7 @@ class Record(_Record):
     @classmethod
     def readdress(
         cls: Type['Record'],
-        records: RecordSeq,
+        records: RecordSequence,
     ) -> None:
         offset = 0
         for record in records:
@@ -293,7 +293,7 @@ class Record(_Record):
     def read_records(
         cls: Type['Record'],
         stream: IO,
-    ) -> RecordSeq:
+    ) -> RecordSequence:
         text = stream.read()
         stx = text.index('\x02')
         etx = text.index('\x03')
@@ -304,7 +304,7 @@ class Record(_Record):
     def write_records(
         cls: Type['Record'],
         stream: IO,
-        records: RecordSeq,
+        records: RecordSequence,
     ) -> None:
         stream.write('\x02')
         super().write_records(stream, records)

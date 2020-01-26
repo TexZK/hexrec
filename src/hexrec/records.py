@@ -62,6 +62,8 @@ import enum
 import os
 from typing import IO
 from typing import Any
+from typing import Collection
+from typing import Iterable
 from typing import Iterator
 from typing import List
 from typing import Mapping
@@ -73,7 +75,8 @@ from typing import Union
 import pkg_resources
 from click import open_file
 
-from .blocks import BlockSeq
+from .blocks import BlockIterable
+from .blocks import BlockSequence
 from .blocks import Memory
 from .blocks import merge
 from .blocks import union
@@ -82,12 +85,14 @@ from .utils import check_empty_args_kwargs
 from .utils import do_overlap
 from .utils import sum_bytes
 
-RecordSeq = Sequence['Record']
+RecordIterable = Iterable['Record']
+RecordCollection = Collection['Record']
+RecordSequence = Sequence['Record']
 RecordList = List['Record']
 
 
 def get_data_records(
-    records: RecordSeq,
+    records: RecordIterable,
 ) -> RecordList:
     r"""Extracts data records.
 
@@ -110,8 +115,32 @@ def get_data_records(
     return data_records
 
 
+def get_max_data_length(
+    data_records: RecordIterable,
+) -> Optional[int]:
+    r"""Extracts data records.
+
+    Arguments:
+        data_records(:obj:`list` of :obj:`Record`): Sequence of data records.
+
+    Returns:
+        :obj:`int`: Maximum data count found; ``0`` by default.
+
+    Example:
+        >>> from hexrec.blocks import chop_blocks
+        >>> from hexrec.formats.motorola import Record as MotorolaRecord
+        >>> data = bytes(range(100))
+        >>> blocks = list(chop_blocks(data, 16))
+        >>> records = blocks_to_records(blocks, MotorolaRecord)
+        >>> get_max_data_length(records))
+        16
+    """
+    length = max(len(record.data or b'') for record in data_records)
+    return length
+
+
 def find_corrupted_records(
-    records: RecordSeq,
+    records: RecordIterable,
 ) -> List[int]:
     r"""Finds corrupted records.
 
@@ -141,8 +170,8 @@ def find_corrupted_records(
 
 
 def records_to_blocks(
-    records: RecordSeq,
-) -> BlockSeq:
+    records: RecordIterable,
+) -> BlockSequence:
     r"""Converts records to blocks.
 
     Extracts all the data records, collapses them in the order they compare in
@@ -171,7 +200,7 @@ def records_to_blocks(
 
 
 def blocks_to_records(
-    blocks: BlockSeq,
+    blocks: BlockIterable,
     record_type: Type['Record'],
     split_args: Optional[Sequence[Any]] = None,
     split_kwargs: Optional[Mapping[str, Any]] = None,
@@ -221,7 +250,7 @@ def blocks_to_records(
 
 
 def merge_records(
-    data_records: Sequence[RecordSeq],
+    data_records: Sequence[RecordSequence],
     input_types: Optional[Sequence[type]] = None,
     output_type: Optional[Type['Record']] = None,
     split_args: Optional[Sequence[Any]] = None,
@@ -290,7 +319,7 @@ def merge_records(
 
 
 def convert_records(
-    records: RecordSeq,
+    records: RecordSequence,
     input_type: Optional[Type['Record']] = None,
     output_type: Optional[Type['Record']] = None,
     split_args: Optional[Sequence[Any]] = None,
@@ -335,15 +364,13 @@ def convert_records(
         >>> converted == motorola
         True
     """
-    records = list(records)
-
     if input_type is None:
         input_type = type(records[0])
     if output_type is None:
         output_type = input_type
 
-    records = [r for r in records if r.is_data()]
-    output_records = merge_records([records], [input_type], output_type,
+    data_records = [r for r in records if r.is_data()]
+    output_records = merge_records([data_records], [input_type], output_type,
                                    split_args, split_kwargs,
                                    build_args, build_kwargs)
     return output_records
@@ -484,7 +511,7 @@ def load_records(
 
 def save_records(
     path: str,
-    records: RecordSeq,
+    records: RecordSequence,
     output_type: Optional[Type['Record']] = None,
     split_args: Optional[Sequence[Any]] = None,
     split_kwargs: Optional[Mapping[str, Any]] = None,
@@ -535,8 +562,7 @@ def load_blocks(
         :obj:`list` of block: Blocks loaded from `path`.
 
     Example:
-        >>> blocks = [(offset, bytes(range(offset, offset + 16)))
-        ...           for offset in range(0, 256, 16)]
+        >>> blocks = [(n, bytes(range(n, n + 16))) for n in range(0, 256, 16)]
         >>> save_blocks('bytes.mot', blocks)
         >>> load_blocks('bytes.mot') == blocks
         True
@@ -550,7 +576,7 @@ def load_blocks(
 
 def save_blocks(
     path: str,
-    blocks: BlockSeq,
+    blocks: BlockSequence,
     record_type: Optional[Type['Record']] = None,
     split_args: Optional[Sequence[Any]] = None,
     split_kwargs: Optional[Mapping[str, Any]] = None,
@@ -562,8 +588,6 @@ def save_blocks(
     Arguments:
         path (:obj:`str`): Path of the output file.
         blocks (:obj:`list` of block): Sequence of blocks to save.
-        records (:obj:`list` of block): Sequence of non-overlapping blocks,
-            sorted by start address.
         record_type (:class:`Record`): Explicit record type.
             If ``None``, it is guessed from the file extension.
         split_args (list): Positional arguments for :meth:`Record.split`.
@@ -574,8 +598,7 @@ def save_blocks(
             :meth:`Record.build_standalone`.
 
     Example:
-        >>> blocks = [(offset, bytes(range(offset, offset + 16)))
-        ...           for offset in range(0, 256, 16)]
+        >>> blocks = [(n, bytes(range(n, n + 16))) for n in range(0, 256, 16)]
         >>> save_blocks('bytes.hex', blocks)
         >>> load_blocks('bytes.hex') == blocks
         True
@@ -583,7 +606,11 @@ def save_blocks(
     if record_type is None:
         record_type = find_record_type(path)
 
-    record_type.save_blocks(path, blocks)
+    record_type.save_blocks(path, blocks,
+                            split_args=split_args,
+                            split_kwargs=split_kwargs,
+                            build_args=build_args,
+                            build_kwargs=build_kwargs)
 
 
 def load_memory(
@@ -601,8 +628,7 @@ def load_memory(
         :obj:`Memory`: Virtual memory holding data from `path`.
 
     Example:
-        >>> blocks = [(offset, bytes(range(offset, offset + 16)))
-        ...           for offset in range(0, 256, 16)]
+        >>> blocks = [(n, bytes(range(n, n + 16))) for n in range(0, 256, 16)]
         >>> memory = Memory(blocks=blocks)
         >>> save_memory('bytes.mot', memory)
         >>> load_memory('bytes.mot') == memory
@@ -633,8 +659,7 @@ def save_memory(
         split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
 
     Example:
-        >>> blocks = [(offset, bytes(range(offset, offset + 16)))
-        ...           for offset in range(0, 256, 16)]
+        >>> blocks = [(n, bytes(range(n, n + 16))) for n in range(0, 256, 16)]
         >>> memory = Memory(blocks=blocks)
         >>> save_memory('bytes.hex', memory)
         >>> load_memory('bytes.hex') == memory
@@ -643,7 +668,9 @@ def save_memory(
     if record_type is None:
         record_type = find_record_type(path)
 
-    record_type.save_memory(path, memory)
+    record_type.save_memory(path, memory,
+                            split_args=split_args,
+                            split_kwargs=split_kwargs)
 
 
 def save_chunk(
@@ -671,8 +698,10 @@ def save_chunk(
         >>> load_blocks('bytes.mot') == [(0x12345678, data)]
         True
     """
-    save_blocks(path, [(address, chunk)], record_type,
-                split_args, split_kwargs)
+    save_blocks(path, [(address, chunk)],
+                record_type=record_type,
+                split_args=split_args,
+                split_kwargs=split_kwargs)
 
 
 class Tag(enum.IntEnum):
@@ -1214,7 +1243,7 @@ class Record:
         data: AnyBytes,
         *args: Any,
         **kwargs: Any,
-    ) -> Sequence['Record']:
+    ) -> None:  # Sequence[Record]
         r"""Splits a chunk of data into records.
 
         Arguments:
@@ -1222,17 +1251,19 @@ class Record:
             args (:obj:`tuple`): Further positional arguments for overriding.
             kwargs (:obj:`dict`): Further keyword arguments for overriding.
 
+        Returns:
+            list: List of records.
+
         Note:
             This method must be overridden.
         """
         check_empty_args_kwargs(args, kwargs)
-
         raise NotImplementedError('method must be overriden')
 
     @classmethod
     def build_standalone(
         cls: Type['Record'],
-        data_records: RecordSeq,
+        data_records: RecordSequence,
         *args: Any,
         **kwargs: Any,
     ) -> Iterator['Record']:
@@ -1254,7 +1285,7 @@ class Record:
     @classmethod
     def check_sequence(
         cls: Type['Record'],
-        records: RecordSeq,
+        records: RecordSequence,
     ) -> None:
         r"""Consistency check of a sequence of records.
 
@@ -1282,7 +1313,7 @@ class Record:
     @classmethod
     def readdress(
         cls: Type['Record'],
-        records: RecordSeq,
+        records: RecordSequence,
     ) -> None:
         r"""Converts to flat addressing.
 
@@ -1306,7 +1337,7 @@ class Record:
     def read_blocks(
         cls: Type['Record'],
         stream: IO,
-    ) -> BlockSeq:  # TODO: example
+    ) -> BlockSequence:
         r"""Reads blocks from a stream.
 
         Read blocks from the input stream into the returned sequence.
@@ -1336,7 +1367,7 @@ class Record:
     def write_blocks(
         cls: Type['Record'],
         stream: IO,
-        blocks: BlockSeq,
+        blocks: BlockSequence,
         split_args: Optional[Sequence[Any]] = None,
         split_kwargs: Optional[Mapping[str, Any]] = None,
         build_args: Optional[Sequence[Any]] = None,
@@ -1377,7 +1408,7 @@ class Record:
     @classmethod
     def load_blocks(
         cls: Type['Record'], path: str,
-    ) -> BlockSeq:
+    ) -> BlockSequence:
         r"""Loads blocks from a file.
 
         Each line of the input file is parsed via :meth:`parse_block`,
@@ -1408,7 +1439,7 @@ class Record:
     def save_blocks(
         cls: Type['Record'],
         path: str,
-        blocks: BlockSeq,
+        blocks: BlockSequence,
         split_args: Optional[Sequence[Any]] = None,
         split_kwargs: Optional[Mapping[str, Any]] = None,
         build_args: Optional[Sequence[Any]] = None,
@@ -1626,7 +1657,7 @@ class Record:
     def write_records(
         cls: Type['Record'],
         stream: IO,
-        records: RecordSeq,
+        records: RecordSequence,
     ) -> None:
         r"""Saves records to a stream.
 
@@ -1697,7 +1728,7 @@ class Record:
     def save_records(
         cls: Type['Record'],
         path: str,
-        records: RecordSeq,
+        records: RecordSequence,
     ):
         r"""Saves records to a file.
 

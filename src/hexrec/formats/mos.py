@@ -33,7 +33,7 @@ from typing import Type
 from typing import Union
 
 from ..records import Record as _Record
-from ..records import RecordSeq
+from ..records import RecordSequence
 from ..records import Tag
 from ..utils import AnyBytes
 from ..utils import check_empty_args_kwargs
@@ -252,7 +252,7 @@ class Record(_Record):
     @classmethod
     def build_standalone(
         cls: Type['Record'],
-        data_records: RecordSeq,
+        data_records: RecordSequence,
         *args: Any,
         **kwargs: Any,
     ) -> Iterator['Record']:
@@ -277,7 +277,7 @@ class Record(_Record):
     @classmethod
     def check_sequence(
         cls: Type['Record'],
-        records: RecordSeq,
+        records: RecordSequence,
     ) -> None:
         super().check_sequence(records)
 

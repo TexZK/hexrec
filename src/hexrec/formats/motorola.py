@@ -36,7 +36,7 @@ from typing import Type
 from typing import Union
 
 from ..records import Record as _Record
-from ..records import RecordSeq
+from ..records import RecordSequence
 from ..records import Tag as _Tag
 from ..records import get_data_records
 from ..utils import AnyBytes
@@ -425,7 +425,7 @@ class Record(_Record):
     @classmethod
     def build_standalone(
         cls: Type['Record'],
-        data_records: RecordSeq,
+        data_records: RecordSequence,
         start: Optional[int] = None,
         tag: Optional[Tag] = None,
         header: AnyBytes = b'',
@@ -471,7 +471,7 @@ class Record(_Record):
     @classmethod
     def check_sequence(
         cls: Type['Record'],
-        records: RecordSeq,
+        records: RecordSequence,
         overlap: bool = True,
     ) -> None:
         super().check_sequence(records)
@@ -623,7 +623,7 @@ class Record(_Record):
     @classmethod
     def fix_tags(
         cls: Type['Record'],
-        records: RecordSeq,
+        records: RecordSequence,
     ) -> None:
         r"""Fix record tags.
 

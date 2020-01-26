@@ -24,6 +24,7 @@ from hexrec.records import find_corrupted_records
 from hexrec.records import find_record_type
 from hexrec.records import find_record_type_name
 from hexrec.records import get_data_records
+from hexrec.records import get_max_data_length
 from hexrec.records import load_blocks
 from hexrec.records import load_memory
 from hexrec.records import load_records
@@ -76,6 +77,16 @@ def test_get_data_records_doctest():
     blocks = list(chop_blocks(data, 16))
     records = blocks_to_records(blocks, MotorolaRecord)
     assert all(r.is_data() for r in get_data_records(records))
+
+
+# ============================================================================
+
+def test_get_max_data_length_doctest():
+    data = bytes(range(256))
+    blocks = list(chop_blocks(data, 16))
+    records = blocks_to_records(blocks, MotorolaRecord)
+    data_records = get_data_records(records)
+    assert get_max_data_length(data_records) == 16
 
 
 # ============================================================================
@@ -619,7 +630,7 @@ class TestRecord:
     def test_readdress(self):
         pass
 
-    def test_read_blocks___doctest__(self):
+    def test_read_blocks_doctest(self):
         blocks = [(0, b'abc'), (16, b'def')]
         stream = io.StringIO()
         MotorolaRecord.write_blocks(stream, blocks)
@@ -628,7 +639,7 @@ class TestRecord:
         ans_ref = blocks
         assert ans_out == ans_ref
 
-    def test_write_blocks___doctest__(self):
+    def test_write_blocks_doctest(self):
         blocks = [(0, b'abc'), (16, b'def')]
         stream = io.StringIO()
         MotorolaRecord.write_blocks(stream, blocks)
@@ -640,7 +651,7 @@ class TestRecord:
                    'S9030000FC\n')
         assert ans_out == ans_ref
 
-    def test_load_blocks___doctest__(self, tmppath):
+    def test_load_blocks_doctest(self, tmppath):
         path = str(tmppath / 'load_blocks.mot')
         with open(path, 'wt') as f:
             f.write('S0030000FC\n')
@@ -652,7 +663,7 @@ class TestRecord:
         ans_ref = [(0, b'abc'), (16, b'def')]
         assert ans_out == ans_ref
 
-    def test_save_blocks___doctest__(self, tmppath):
+    def test_save_blocks_doctest(self, tmppath):
         path = str(tmppath / 'save_blocks.mot')
         blocks = [(0, b'abc'), (16, b'def')]
         MotorolaRecord.save_blocks(path, blocks)
@@ -665,7 +676,7 @@ class TestRecord:
                    'S9030000FC\n')
         assert ans_out == ans_ref
 
-    def test_read_memory___doctest__(self):
+    def test_read_memory_doctest(self):
         blocks = [(0, b'abc'), (16, b'def')]
         stream = io.StringIO()
         MotorolaRecord.write_blocks(stream, blocks)
@@ -675,7 +686,7 @@ class TestRecord:
         ans_ref = [(0, b'abc'), (16, b'def')]
         assert ans_out == ans_ref
 
-    def test_write_memory___doctest__(self):
+    def test_write_memory_doctest(self):
         memory = Memory(blocks=[(0, b'abc'), (16, b'def')])
         stream = io.StringIO()
         MotorolaRecord.write_memory(stream, memory)
@@ -687,7 +698,7 @@ class TestRecord:
                    'S9030000FC\n')
         assert ans_out == ans_ref
 
-    def test_load_memory___doctest__(self, tmppath):
+    def test_load_memory_doctest(self, tmppath):
         path = str(tmppath / 'load_memory.mot')
         with open(path, 'wt') as f:
             f.write('S0030000FC\n')
@@ -700,7 +711,7 @@ class TestRecord:
         ans_ref = [(0, b'abc'), (16, b'def')]
         assert ans_out == ans_ref
 
-    def test_save_memory___doctest__(self, tmppath):
+    def test_save_memory_doctest(self, tmppath):
         path = str(tmppath / 'save_memory.mot')
         blocks = [(0, b'abc'), (16, b'def')]
         MotorolaRecord.save_blocks(path, blocks)
@@ -713,7 +724,7 @@ class TestRecord:
                    'S9030000FC\n')
         assert ans_out == ans_ref
 
-    def test_read_records___doctest__(self):
+    def test_read_records_doctest(self):
         blocks = [(0, b'abc'), (16, b'def')]
         stream = io.StringIO()
         MotorolaRecord.write_blocks(stream, blocks)
@@ -727,7 +738,7 @@ class TestRecord:
                    'S9030000FC']
         assert ans_out == ans_ref
 
-    def test_write_records___doctest__(self):
+    def test_write_records_doctest(self):
         blocks = [(0, b'abc'), (16, b'def')]
         records = blocks_to_records(blocks, MotorolaRecord)
         stream = io.StringIO()
@@ -740,7 +751,7 @@ class TestRecord:
                    'S9030000FC\n')
         assert ans_out == ans_ref
 
-    def test_load_records___doctest__(self, tmppath):
+    def test_load_records_doctest(self, tmppath):
         path = str(tmppath / 'load_records.mot')
         with open(path, 'wt') as f:
             f.write('S0030000FC\n')
@@ -757,7 +768,7 @@ class TestRecord:
                    'S9030000FC']
         assert ans_out == ans_ref
 
-    def test_save_records___doctest__(self, tmppath):
+    def test_save_records_doctest(self, tmppath):
         path = str(tmppath / 'save_records.mot')
         blocks = [(0, b'abc'), (16, b'def')]
         records = blocks_to_records(blocks, MotorolaRecord)
@@ -774,7 +785,7 @@ class TestRecord:
 
 # ============================================================================
 
-def test_find_record_type_name___doctest__():
+def test_find_record_type_name_doctest():
     assert find_record_type_name('dummy.mot') == 'motorola'
 
 
@@ -790,5 +801,5 @@ def test_find_record_type_name():
 
 # ============================================================================
 
-def test_find_record_type___doctest__():
+def test_find_record_type_doctest():
     assert find_record_type('dummy.mot') is MotorolaRecord
