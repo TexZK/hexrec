@@ -10,6 +10,7 @@ hexrec.utils
    .. autosummary::
    
       bitlify
+      check_empty_args_kwargs
       chop
       columnize
       columnize_lists

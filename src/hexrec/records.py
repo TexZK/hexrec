@@ -787,16 +787,16 @@ class Record:
 
     __slots__ = ('tag', 'count', 'address', 'data', 'checksum')
 
-    TAG_TYPE = Tag
+    TAG_TYPE: Type[Tag] = Tag
     r"""Associated Python class for tags."""
 
-    LINE_SEP = '\n'
+    LINE_SEP: Union[bytes, str] = '\n'
     r"""Separator between record lines.
 
     If subclass of :obj:`bytes`, it is considered as a binary file.
     """
 
-    EXTENSIONS = ()
+    EXTENSIONS: Sequence[str] = ()
     r"""File extensions typically mapped to this record type."""
 
     def __repr__(
