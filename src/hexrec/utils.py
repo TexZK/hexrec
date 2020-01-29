@@ -30,6 +30,7 @@ r"""Generic utility functions.
 import binascii
 import re
 from typing import Any
+from typing import AnyStr
 from typing import ByteString
 from typing import Callable
 from typing import Iterable
@@ -66,8 +67,11 @@ def check_empty_args_kwargs(
     If the check is not satisfied, a :obj:`ValueError` exception is raised.
 
     Arguments:
-        args (list): List of unexpected positional arguments, or ``Null``.
-        kwargs (dict): List of unexpected keyword arguments, or ``Null``.
+        args (list):
+            List of unexpected positional arguments, or ``Null``.
+
+        kwargs (dict):
+            List of unexpected keyword arguments, or ``Null``.
 
     Raises:
         ValueError: Condition not satisfied.
@@ -87,12 +91,17 @@ def expmsg(
     r"""Builds an expectation messages.
 
     Arguments:
-        actual: Actual value.
-        expected: Expected value.
-        msg (:obj:`str`): Text message.
+        actual:
+            Actual value.
+
+        expected:
+            Expected value.
+
+        msg (str):
+            Text message.
 
     Returns:
-        :obj:`str`: Formatted expectation message.
+        str: Formatted expectation message.
 
     Example:
         >>> expmsg(1, 2, 'different')
@@ -111,7 +120,8 @@ def parse_int(
     r"""Parses an integer.
 
     Arguments:
-        value: A generic object to convert to integer.
+        value:
+            A generic object to convert to integer.
             In case `value` is a :obj:`str` (case-insensitive), it can be
             either prefixed with ``0x`` or postfixed with ``h`` to convert
             from an hexadecimal representation, or prefixed with ``0b`` from
@@ -187,12 +197,17 @@ def chop(
     Iterates through the vector grouping its items into windows.
 
     Arguments:
-        vector (list): Vector to chop.
-        window (:obj:`int`): Window length.
-        align_base (:obj:`int`): Offset of the first window.
+        vector (items):
+            Vector to chop.
+
+        window (int):
+            Window length.
+
+        align_base (int):
+            Offset of the first window.
 
     Yields:
-        list: `vector` slices of up to `window` elements.
+        list or items: `vector` slices of up to `window` elements.
 
     Examples:
         >>> list(chop('ABCDEFG', 2))
@@ -221,10 +236,10 @@ def chop(
 
 
 def columnize(
-    line: str,
+    line: AnyStr,
     width: int,
-    sep: str = '',
-    newline: str = '\n',
+    sep: AnyStr = '',
+    newline: AnyStr = '\n',
     window: int = 1,
 ) -> str:
     r"""Splits and wraps a line into columns.
@@ -234,11 +249,20 @@ def columnize(
     separated by a given separator string.
 
     Arguments:
-        line (:obj:`str`): Line of text to columnize.
-        width (:obj:`int`): Maximum line width.
-        sep (:obj:`str`): Column separator string.
-        newline (:obj:`str`): Line separator string.
-        window (:obj:`int`): Splitted column length.
+        line (str):
+            Line of text to columnize.
+
+        width (int):
+            Maximum line width.
+
+        sep (str):
+            Column separator string.
+
+        newline (str):
+            Line separator string.
+
+        window (int):
+            Splitted column length.
 
     Returns:
         str: A wrapped and columnized text.
@@ -273,12 +297,18 @@ def columnize_lists(
     size, collected into a nested :obj:`list`.
 
     Arguments:
-        vector (list): Vector to columnize.
-        width (:obj:`int`): Maximum line width.
-        window (:obj:`int`): Splitted column length.
+        vector (items):
+            Vector to columnize.
+
+        width (int):
+            Maximum line width.
+
+        window (int):
+            Splitted column length.
 
     Returns:
-        list: The vector wrapped and columnized into list-of-lists.
+        list or list of items: The vector wrapped and columnized into
+        list-of-lists.
 
     Example:
         >>> columnize_lists('ABCDEFG', 5, window=2)
@@ -302,12 +332,20 @@ def bitlify(
     columnized as per :func:`columnize`.
 
     Arguments:
-        data (:obj:`bytes`): Byte data. Sequence generator supported if
-            `width` is not ``None``.
-        width (:obj:`int`): Maximum line width, or ``None``.
-        sep (:obj:`str`): Column separator string.
-        newline (:obj:`str`): Line separator string.
-        window (:obj:`int`): Splitted column length.
+        data (bytes):
+            Byte data. Sequence generator supported if `width` is not ``None``.
+
+        width (int):
+            Maximum line width, or ``None``.
+
+        sep (str):
+            Column separator string.
+
+        newline (str):
+            Line separator string.
+
+        window (int):
+            Splitted column length.
 
     Returns:
         str: A wrapped and columnized binary representation of the data.
@@ -328,8 +366,9 @@ def unbitlify(
     r"""Converts a binary text line into bytes.
 
     Arguments:
-        binstr (:obj:`str`): A binary text line. Whitespace is removed, and
-            the resulting total length must be a multiple of 8.
+        binstr (str):
+            A binary text line. Whitespace is removed, and the resulting
+            total length must be a multiple of 8.
 
     Returns:
         bytes: Text converted into byte data.
@@ -357,12 +396,23 @@ def hexlify(
     columnized as per :func:`columnize`.
 
     Arguments:
-        data (:obj:`bytes`): Byte data.
-        width (:obj:`int`): Maximum line width, or ``None``.
-        sep (:obj:`str`): Column separator string.
-        newline (:obj:`str`): Line separator string.
-        window (:obj:`int`): Splitted column length.
-        upper (:obj:`bool`): Uppercase hexadecimal digits.
+        data (bytes):
+            Byte data.
+
+        width (int):
+            Maximum line width, or ``None``.
+
+        sep (str):
+            Column separator string.
+
+        newline (str):
+            Line separator string.
+
+        window (int):
+            Splitted column length.
+
+        upper (bool):
+            Uppercase hexadecimal digits.
 
     Returns:
         str: A wrapped and columnized hexadecimal representation of the data.
@@ -391,8 +441,9 @@ def unhexlify(
     r"""Converts a hexadecimal text line into bytes.
 
     Arguments:
-        hexstr (:obj:`str`): A hexadecimal text line. Whitespace is removed,
-            and the resulting total length must be a multiple of 2.
+        hexstr (str):
+            A hexadecimal text line. Whitespace is removed, and the resulting
+            total length must be a multiple of 2.
 
     Returns:
         bytes: Text converted into byte data.
@@ -417,10 +468,17 @@ def hexlify_lists(
     splits ans columnize as per :func:`columnize_lists`.
 
     Arguments:
-        data (:obj:`bytes`): Byte data.
-        width (:obj:`int`): Maximum line width, or ``None``.
-        window (:obj:`int`): Splitted column length.
-        upper (:obj:`bool`): Uppercase hexadecimal digits.
+        data (bytes):
+            Byte data.
+
+        width (int):
+            Maximum line width, or ``None``.
+
+        window (int):
+            Splitted column length.
+
+        upper (bool):
+            Uppercase hexadecimal digits.
 
     Returns:
         list: The hexadecimal text wrapped and columnized into list-of-lists.
@@ -451,7 +509,7 @@ def hexlify_lists(
 
 
 def humanize_ascii(
-    data: ByteString,
+    data: Union[ByteString, Iterable[int]],
     replace: str = '.',
 ) -> str:
     r"""ASCII for human readers.
@@ -460,9 +518,11 @@ def humanize_ascii(
     characters with a generic placeholder.
 
     Arguments:
-        data (:obj:`bytes`): Byte data. Sequence generator supported.
-        replace (:obj:`str`): String replacement of non-human-readable
-            characters.
+        data (bytes):
+            Byte data. Sequence generator supported.
+
+        replace (str):
+            String replacement of non-human-readable characters.
 
     Returns:
         str: ASCII representation with only human-readable characters.
@@ -476,7 +536,7 @@ def humanize_ascii(
 
 
 def humanize_ebcdic(
-    data: ByteString,
+    data: Union[ByteString, Iterable[int]],
     replace: str = '.',
 ) -> str:
     r"""EBCDIC for human readers.
@@ -485,9 +545,11 @@ def humanize_ebcdic(
     characters with a generic placeholder.
 
     Arguments:
-        data (:obj:`bytes`): Byte data.
-        replace (:obj:`str`): String replacement of non-human-readable
-            characters.
+        data (bytes):
+            Byte data.
+
+        replace (str):
+            String replacement of non-human-readable characters.
 
     Returns:
         str: EBCDIC representation with only human-readable characters.
@@ -502,18 +564,16 @@ def humanize_ebcdic(
 
 
 def sum_bytes(
-    data: Union[ByteString, str, Iterable[int]],
+    data: Union[AnyStr, Iterable[int]],
 ) -> int:
     r"""Sums bytes.
 
-    Supports both Python 2.7 and Python 3.
-
     Arguments:
-        data (:obj:`bytes` or :obj:`str`): Data bytes. Actually supports any
+        data (bytes or str): Data bytes. Actually supports any
             sequence with integers in it.
 
     Returns:
-        :obj:`int`: The sum of all items in `data`.
+        int: The sum of all items in `data`.
 
     Examples:
         >>> sum_bytes(bytes(bytearray(range(16))))
@@ -537,16 +597,23 @@ def do_overlap(
     r"""Do ranges overlap?
 
     Arguments:
-        start1 (:obj:`int`): Inclusive start index of the first range.
-        endex1 (:obj:`int`): Exclusive end index of the first range.
-        start2 (:obj:`int`): Inclusive start index of the second range.
-        endex2 (:obj:`int`): Exclusive end index of the second range.
+        start1 (int):
+            Inclusive start index of the first range.
 
-    Note:
-        Start and end of each range are sorted before the final comparison.
+        endex1 (int):
+            Exclusive end index of the first range.
+
+        start2 (int):
+            Inclusive start index of the second range.
+
+        endex2 (int):
+            Exclusive end index of the second range.
 
     Returns:
         bool: Ranges do overlap.
+
+    Note:
+        Start and end of each range are sorted before the final comparison.
 
     Examples:
         >>> do_overlap(0, 4, 4, 8)
@@ -575,11 +642,14 @@ def straighten_index(
     """Wraps negative vector index.
 
     Arguments:
-        index (:obj:`int`): Vector index, or ``None``.
-        length (:obj:`int`): Vector length.
+        index (int):
+            Vector index, or ``None``.
+
+        length (int):
+            Vector length, or ``None``.
 
     Returns:
-        :obj:`int`: Wrapped vector index.
+        int: Wrapped vector index.
 
     Examples:
         >>> straighten_index(3, 7)
@@ -618,13 +688,20 @@ def straighten_slice(
     """Wraps negative slice indices.
 
     Arguments:
-        start (:obj:`int`): :attr:`slice.start` index, or ``None``.
-        stop (:obj:`int`): :attr:`slice.stop` index, or ``None``.
-        step (:obj:`int`): :attr:`slice.step` value, or ``None``.
-        length (:obj:`int`): Exclusive end of the virtual range to wrap.
+        start (int):
+            :attr:`slice.start` index, or ``None``.
+
+        stop (int):
+            :attr:`slice.stop` index, or ``None``.
+
+        step (int):
+            :attr:`slice.step` value, or ``None``.
+
+        length (int):
+            Exclusive end of the virtual range to wrap, or ``None``.
 
     Returns:
-        :obj:`slice`: Wrapped slice.
+        tuple of int: Wrapped slice parameters.
 
     Examples:
         >>> straighten_slice(3, 5, 1, 7)
@@ -675,11 +752,14 @@ def wrap_index(
     """Wraps vector index into a window.
 
     Arguments:
-        index (:obj:`int`): Vector index, or ``None``.
-        length (:obj:`int`): Vector length, or ``None``.
+        index (int):
+            Vector index, or ``None``.
+
+        length (int):
+            Vector length, or ``None``.
 
     Returns:
-        :obj:`int`: Wrapped vector index.
+        int: Wrapped vector index.
 
     Examples:
         >>> straighten_index(3, 7)
@@ -716,13 +796,20 @@ def wrap_slice(
     """Wraps slice indices into a window.
 
     Arguments:
-        start (:obj:`int`): :attr:`slice.start` index, or ``None``.
-        stop (:obj:`int`): :attr:`slice.stop` index, or ``None``.
-        step (:obj:`int`): :attr:`slice.step` value, or ``None``.
-        length (:obj:`int`): Exclusive end of the virtual range to wrap.
+        start (int):
+            :attr:`slice.start` index, or ``None``.
+
+        stop (int):
+            :attr:`slice.stop` index, or ``None``.
+
+        step (int):
+            :attr:`slice.step` value, or ``None``.
+
+        length (int):
+            Exclusive end of the virtual range to wrap, or ``None``.
 
     Returns:
-        :obj:`slice`: Wrapped slice.
+        tuple of int: Wrapped slice parameters.
 
     Examples:
         >>> wrap_slice(3, 5, 1, 7)
@@ -778,10 +865,17 @@ def makefill(
     r"""Builds a filling pattern.
 
     Arguments:
-        pattern (items): A non-null pattern of items to repeat for filling.
-        start (:obj:`int`): Inclusive start offset within the pattern.
-        endex (:obj:`int`): Exclusive end offset within the pattern.
-        join (callable): A function to join a sequence of items.
+        pattern (items):
+            A non-null pattern of items to repeat for filling.
+
+        start (int):
+            Inclusive start offset within the pattern.
+
+        endex (int):
+            Exclusive end offset within the pattern.
+
+        join (callable):
+            A function to join a sequence of items.
 
     Returns:
         items: Repeated pattern for filling.

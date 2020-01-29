@@ -1,7 +1,7 @@
 Changelog
 =========
 
-0.1.1 (TODO)
+0.2.0 (TODO)
 ------------------
 
 * Added support for current Python versions (3.8, PyPy 3)

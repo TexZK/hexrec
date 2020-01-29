@@ -97,10 +97,11 @@ def get_data_records(
     r"""Extracts data records.
 
     Arguments:
-        records(:obj:`list` of :obj:`Record`): Sequence of records.
+        records(list of records):
+            Sequence of records.
 
     Returns:
-        :obj:`list` of :obj:`Record`: Sequence of data records.
+        list of records: Sequence of data records.
 
     Example:
         >>> from hexrec.blocks import chop_blocks
@@ -121,10 +122,11 @@ def get_max_data_length(
     r"""Extracts data records.
 
     Arguments:
-        data_records(:obj:`list` of :obj:`Record`): Sequence of data records.
+        data_records (list of records):
+            Sequence of data records.
 
     Returns:
-        :obj:`int`: Maximum data count found; ``0`` by default.
+        int: Maximum data count found; ``0`` by default.
 
     Example:
         >>> from hexrec.blocks import chop_blocks
@@ -145,10 +147,11 @@ def find_corrupted_records(
     r"""Finds corrupted records.
 
     Arguments:
-        records(:obj:`list` of :obj:`Record`): Sequence of records.
+        records (list of records):
+            Sequence of records.
 
     Returns:
-        :obj:`list` of :obj:`int`: Sequence of corrupted record indices.
+        list of int: Sequence of corrupted record indices.
 
     Example:
         >>> from hexrec.formats.motorola import Record as MotorolaRecord
@@ -179,11 +182,11 @@ def records_to_blocks(
     Returns sequence of non-contiguous blocks, sorted by start address.
 
     Arguments:
-        records (:obj:`list` of :obj:`Record`): Sequence of records to
-            convert to blocks. Sequence generators supported.
+        records (list of records):
+            Sequence of records to convert to blocks.
 
     Returns:
-        :obj:`list` of block: Blocks holding data from `records`.
+        list of blocks: Blocks holding data from `records`.
 
     Example:
         >>> from hexrec.blocks import chop_blocks, merge
@@ -210,18 +213,26 @@ def blocks_to_records(
     r"""Converts blocks to records.
 
     Arguments:
-        blocks (:obj:`list` of block): A sequence of non-contiguous blocks,
-            sorted by start address.
-        record_type (:class:`Record`): Output record type.
-        split_args (list): Positional arguments for :meth:`Record.split`.
-        split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
-        build_args (list): Positional arguments for
-            :meth:`Record.build_standalone`.
-        build_kwargs (dict): Keyword arguments for
-            :meth:`Record.build_standalone`.
+        blocks (list of blocks):
+            A sequence of non-contiguous blocks, sorted by start address.
+
+        record_type (type):
+            Output record type.
+
+        split_args (list):
+            Positional arguments for :meth:`Record.split`.
+
+        split_kwargs (dict):
+            Keyword arguments for :meth:`Record.split`.
+
+        build_args (list):
+            Positional arguments for :meth:`Record.build_standalone`.
+
+        build_kwargs (dict):
+            Keyword arguments for :meth:`Record.build_standalone`.
 
     Returns:
-        :obj:`list` of :obj:`Record`: Records holding data from `blocks`.
+        list of records: Records holding data from `blocks`.
 
     Example:
         >>> from hexrec.blocks import chop_blocks, merge
@@ -264,23 +275,35 @@ def merge_records(
     overlapping data of the previous sequences.
 
     Arguments:
-        data_records: A vector of *data* record sequences. If `input_types` is
-            not ``None``, sequence generators are supported for the vector and
-            its nested sequences.
-        input_types: Selects the record type for each of the sequences
-            in `data_records`. ``None`` will choose that of the first
-            element of the (indexable) sequence.
-        output_type: Selects the output record type. ``None`` will choose that
-            of the first `input_types`.
-        split_args (list): Positional arguments for :meth:`Record.split`.
-        split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
-        build_args (list): Positional arguments for
-            :meth:`Record.build_standalone`.
-        build_kwargs (dict): Keyword arguments for
-            :meth:`Record.build_standalone`.
+        data_records (list of records):
+            A vector of *data* record sequences.
+            If `input_types` is not ``None``, sequence generators are
+            supported for the vector and its nested sequences.
+
+        input_types (list of types):
+            Selects the record type for each of the sequences in
+            `data_records`.
+            ``None`` will choose that of the first element of the (indexable)
+            sequence.
+
+        output_type (type):
+            Selects the output record type.
+            ``None`` will choose that of the first `input_types`.
+
+        split_args (list):
+            Positional arguments for :meth:`Record.split`.
+
+        split_kwargs (dict):
+            Keyword arguments for :meth:`Record.split`.
+
+        build_args (list):
+            Positional arguments for :meth:`Record.build_standalone`.
+
+        build_kwargs (dict):
+            Keyword arguments for :meth:`Record.build_standalone`.
 
     Returns:
-        :obj:`list` of :obj:`Record`: Merged records.
+        list of records: Merged records.
 
     Example:
         >>> from hexrec.blocks import chop_blocks, merge
@@ -330,22 +353,33 @@ def convert_records(
     r"""Converts records to another type.
 
     Arguments:
-        records (list): A sequence of :class:`Record` elements.
+        records (list of records):
+            A sequence of :class:`Record` elements.
             Sequence generators supported if `input_type` is specified.
-        input_type (:class:`Record`): explicit type of `records` elements.
+
+        input_type (type):
+            Explicit type of `records` elements.
             If ``None``, it is taken from the first element of the (indexable)
             `records` sequence.
-        output_type (:class:`Record`): explicit output type. If ``None``, it
-            is reassigned as `input_type`.
-        split_args (list): Positional arguments for :meth:`Record.split`.
-        split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
-        build_args (list): Positional arguments for
-            :meth:`Record.build_standalone`.
-        build_kwargs (dict): Keyword arguments for
-            :meth:`Record.build_standalone`.
+
+        output_type (type):
+            Explicit output type.
+            If ``None``, it is reassigned as `input_type`.
+
+        split_args (list):
+            Positional arguments for :meth:`Record.split`.
+
+        split_kwargs (dict):
+            Keyword arguments for :meth:`Record.split`.
+
+        build_args (list):
+            Positional arguments for :meth:`Record.build_standalone`.
+
+        build_kwargs (dict):
+            Keyword arguments for :meth:`Record.build_standalone`.
 
     Returns:
-        :obj:`list` of :obj:`Record`: Converted records.
+        list of records: Converted records.
 
     Examples:
         >>> from hexrec.formats.intel import Record as IntelRecord
@@ -396,19 +430,32 @@ def merge_files(
         to :meth:`Record.build_standalone`.
 
     Arguments:
-        input_files (list): A sequence of file paths to merge.
-        output_file (:obj:`str`): Path of the output file. It can target an
+        input_files (list of str):
+            A sequence of file paths to merge.
+
+        output_file (str): Path of the output file. It can target an
             input file.
-        input_types: Selects the record type for each of the sequences
-            in `data_records`. ``None`` will guess from file extension.
-        output_type: Selects the output record type. ``None`` will guess from
-            file extension.
-        split_args (list): Positional arguments for :meth:`Record.split`.
-        split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
-        build_args (list): Positional arguments for
-            :meth:`Record.build_standalone`.
-        build_kwargs (dict): Keyword arguments for
-            :meth:`Record.build_standalone`.
+
+        input_types (list of types):
+            Selects the record type for each of the sequences in
+            `data_records`.
+            ``None`` will guess from file extension.
+
+        output_type (type):
+            Selects the output record type.
+            ``None`` will guess from file extension.
+
+        split_args (list):
+            Positional arguments for :meth:`Record.split`.
+
+        split_kwargs (dict):
+            Keyword arguments for :meth:`Record.split`.
+
+        build_args (list):
+            Positional arguments for :meth:`Record.build_standalone`.
+
+        build_kwargs (dict):
+            Keyword arguments for :meth:`Record.build_standalone`.
 
     Example:
         >>> merge_files(['merge1.mot', 'merge2.hex'], 'merged.tek')
@@ -457,18 +504,31 @@ def convert_file(
         to :meth:`Record.build_standalone`.
 
     Arguments:
-        input_file (:obj:`str`): Path of the input file.
-        output_file (:obj:`str`): Path of the output file.
-        input_type (:class:`Record`): Explicit input record type.
+        input_file (str):
+            Path of the input file.
+
+        output_file (str):
+            Path of the output file.
+
+        input_type (type):
+            Explicit input record type.
             If ``None``, it is guessed from the file extension.
-        output_type (:class:`Record`): Explicit output record type.
+
+        output_type (type):
+            Explicit output record type.
             If ``None``, it is guessed from the file extension.
-        split_args (list): Positional arguments for :meth:`Record.split`.
-        split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
-        build_args (list): Positional arguments for
-            :meth:`Record.build_standalone`.
-        build_kwargs (dict): Keyword arguments for
-            :meth:`Record.build_standalone`.
+
+        split_args (list):
+            Positional arguments for :meth:`Record.split`.
+
+        split_kwargs (dict):
+            Keyword arguments for :meth:`Record.split`.
+
+        build_args (list):
+            Positional arguments for :meth:`Record.build_standalone`.
+
+        build_kwargs (dict):
+            Keyword arguments for :meth:`Record.build_standalone`.
 
     Example:
         >>> from hexrec.formats.intel import Record as IntelRecord
@@ -491,8 +551,11 @@ def load_records(
     r"""Loads records from a record file.
 
     Arguments:
-        path (:obj:`str`): Path of the input file.
-        record_type (:class:`Record`): Explicit record type.
+        path (str):
+            Path of the input file.
+
+        record_type (type):
+            Explicit record type.
             If ``None``, it is guessed from the file extension.
 
     Example:
@@ -519,12 +582,21 @@ def save_records(
     r"""Saves records to a record file.
 
     Arguments:
-        path (:obj:`str`): Path of the output file.
-        records (list): Sequence of records to save.
-        output_type (:class:`Record`): Output record type.
+        path (str):
+            Path of the output file.
+
+        records (list of records):
+            Sequence of records to save.
+
+        output_type (type):
+            Output record type.
             If ``None``, it is guessed from the file extension.
-        split_args (list): Positional arguments for :meth:`Record.split`.
-        split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
+
+        split_args (list):
+            Positional arguments for :meth:`Record.split`.
+
+        split_kwargs (dict):
+            Keyword arguments for :meth:`Record.split`.
 
     Example:
         >>> from hexrec.formats.intel import Record as IntelRecord
@@ -554,12 +626,15 @@ def load_blocks(
     r"""Loads blocks from a record file.
 
     Arguments:
-        path (:obj:`str`): Path of the input file.
-        record_type (:class:`Record`): Explicit record type.
+        path (str):
+            Path of the input file.
+
+        record_type (type):
+            Explicit record type.
             If ``None``, it is guessed from the file extension.
 
     Returns:
-        :obj:`list` of block: Blocks loaded from `path`.
+        list of blocks: Blocks loaded from `path`.
 
     Example:
         >>> blocks = [(n, bytes(range(n, n + 16))) for n in range(0, 256, 16)]
@@ -586,16 +661,27 @@ def save_blocks(
     r"""Saves blocks to a record file.
 
     Arguments:
-        path (:obj:`str`): Path of the output file.
-        blocks (:obj:`list` of block): Sequence of blocks to save.
-        record_type (:class:`Record`): Explicit record type.
+        path (str):
+            Path of the output file.
+
+        blocks (list of blocks):
+            Sequence of blocks to save.
+
+        record_type (type):
+            Explicit record type.
             If ``None``, it is guessed from the file extension.
-        split_args (list): Positional arguments for :meth:`Record.split`.
-        split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
-        build_args (list): Positional arguments for
-            :meth:`Record.build_standalone`.
-        build_kwargs (dict): Keyword arguments for
-            :meth:`Record.build_standalone`.
+
+        split_args (list):
+            Positional arguments for :meth:`Record.split`.
+
+        split_kwargs (dict):
+            Keyword arguments for :meth:`Record.split`.
+
+        build_args (list):
+            Positional arguments for :meth:`Record.build_standalone`.
+
+        build_kwargs (dict):
+            Keyword arguments for :meth:`Record.build_standalone`.
 
     Example:
         >>> blocks = [(n, bytes(range(n, n + 16))) for n in range(0, 256, 16)]
@@ -620,8 +706,11 @@ def load_memory(
     r"""Loads a virtual memory from a file.
 
     Arguments:
-        path (:obj:`str`): Path of the input file.
-        record_type (:class:`Record`): Explicit record type.
+        path (str):
+            Path of the input file.
+
+        record_type (type):
+            Explicit record type.
             If ``None``, it is guessed from the file extension.
 
     Returns:
@@ -651,12 +740,21 @@ def save_memory(
     r"""Saves a virtual memory to a record file.
 
     Arguments:
-        path (:obj:`str`): Path of the output file.
-        memory (:obj:`Memory`): A virtual memory.
-        record_type (:class:`Record`): Explicit record type.
+        path (str):
+            Path of the output file.
+
+        memory (:obj:`Memory`):
+            A virtual memory.
+
+        record_type (type):
+            Explicit record type.
             If ``None``, it is guessed from the file extension.
-        split_args (list): Positional arguments for :meth:`Record.split`.
-        split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
+
+        split_args (list):
+            Positional arguments for :meth:`Record.split`.
+
+        split_kwargs (dict):
+            Keyword arguments for :meth:`Record.split`.
 
     Example:
         >>> blocks = [(n, bytes(range(n, n + 16))) for n in range(0, 256, 16)]
@@ -684,13 +782,24 @@ def save_chunk(
     r"""Saves a data chunk to a record file.
 
     Arguments:
-        path (:obj:`str`): Path of the output file.
-        chunk (:obj:`bytes`): A chunk of data.
-        address (:obj:`int`): Address of the data chunk.
-        record_type (:class:`Record`): Explicit record type.
+        path (str):
+            Path of the output file.
+
+        chunk (bytes):
+            A chunk of data.
+
+        address (int):
+            Address of the data chunk.
+
+        record_type (type):
+            Explicit record type.
             If ``None``, it is guessed from the file extension.
-        split_args (list): Positional arguments for :meth:`Record.split`.
-        split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
+
+        split_args (list):
+            Positional arguments for :meth:`Record.split`.
+
+        split_kwargs (dict):
+            Keyword arguments for :meth:`Record.split`.
 
     Example:
         >>> data = bytes(range(256))
@@ -712,7 +821,7 @@ class Tag(enum.IntEnum):
         cls: Type['Tag'],
         value: Optional[Union[int, 'Tag']],
     ) -> bool:
-        r""":obj:`bool`: `value` is a data record tag."""
+        r"""bool: `value` is a data record tag."""
         del cls, value
         return True  # by default, all records are data records
 
@@ -727,23 +836,39 @@ class Record:
     Please refer to the actual subclass for more details.
 
     Attributes:
-        address (:obj:`int`): Tells where its `data` starts in the memory
-            addressing space, or an address with a special meaning.
-        tag (:obj:`int`): Defines the logical meaning of the `address` and
-            `data` fields.
-        data (:obj:`bytes`): Byte data as required by the `tag`.
-        count (:obj:`int`): Counts its fields as required by the
-            :class:`Record` subclass implementation.
-        checksum (:obj:`int`): Computes the checksum as required by most
-            :class:`Record` implementations.
+        address (int):
+            Tells where its `data` starts in the memory addressing space,
+            or an address with a special meaning.
+
+        tag (int):
+            Defines the logical meaning of the `address` and `data` fields.
+
+        data (bytes):
+            Byte data as required by the `tag`.
+
+        count (int):
+            Counts its fields as required by the :class:`Record` subclass
+            implementation.
+
+        checksum (int):
+            Computes the checksum as required by most :class:`Record`
+            implementations.
 
     Arguments:
-        address (:obj:`int`): Record `address` field.
-        tag (:obj:`int`): Record `tag` field.
-        data (:obj:`bytes`): Record `data` field.
-        checksum (:obj:`int` or ``None`` or ``Ellipsis``): Record
-            `checksum` field. ``Ellipsis`` makes the constructor compute
-            its actual value automatically. ``None`` assigns ``None``.
+        address (int):
+            Record `address` field.
+
+        tag (int):
+            Record `tag` field.
+
+        data (bytes):
+            Record `data` field.
+
+        checksum (int):
+            Record `checksum` field.
+            ``Ellipsis`` makes the constructor compute its actual value
+            automatically.
+            ``None`` assigns ``None``.
 
     Examples:
         >>> from hexrec.formats.binary import Record as BinaryRecord
@@ -821,7 +946,7 @@ class Record:
         requirements.
 
         Returns:
-            :obj:`str`: A printable text representation of the record.
+            str: A printable text representation of the record.
 
         Examples:
             >>> from hexrec.formats.binary import Record as BinaryRecord
@@ -848,7 +973,7 @@ class Record:
         r"""Equality comparison.
 
         Returns:
-            :obj:`bool`: The `address`, `tag`, and `data` fields are equal.
+            bool: The `address`, `tag`, and `data` fields are equal.
 
         Examples:
             >>> from hexrec.formats.binary import Record as BinaryRecord
@@ -888,7 +1013,7 @@ class Record:
         Useful to make the record hashable although it is a mutable class.
 
         Returns:
-            :obj:`int`: Hash of the :class:`Record` fields.
+            int: Hash of the :class:`Record` fields.
 
         Warning:
             Be careful with hashable mutable objects!
@@ -925,7 +1050,7 @@ class Record:
         r"""Less-than comparison.
 
         Returns:
-            :obj:`bool`: `address` less than `other`'s.
+            bool: `address` less than `other`'s.
 
         Examples:
             >>> from hexrec.formats.binary import Record as BinaryRecord
@@ -951,10 +1076,7 @@ class Record:
         *special* record.
 
         Returns:
-            :obj:`bool`: The record contains plain binary data.
-
-        Note:
-            This method must be overridden.
+            bool: The record contains plain binary data.
 
         Examples:
             >>> from hexrec.formats.binary import Record as BinaryRecord
@@ -991,7 +1113,7 @@ class Record:
         r"""Computes the count.
 
         Returns:
-            :obj:`bool`: `count` field value based on the current fields.
+            bool: `count` field value based on the current fields.
 
         Examples:
             >>> from hexrec.formats.binary import Record as BinaryRecord
@@ -1032,7 +1154,7 @@ class Record:
         r"""Computes the checksum.
 
         Returns:
-            :obj:`int`: `checksum` field value based on the current fields.
+            int: `checksum` field value based on the current fields.
 
         Examples:
             >>> from hexrec.formats.binary import Record as BinaryRecord
@@ -1070,7 +1192,7 @@ class Record:
     def _get_checksum(
         self: 'Record',
     ) -> Optional[int]:
-        r""":obj:`int`: The `checksum` field itself if not ``None``, the
+        r"""int: The `checksum` field itself if not ``None``, the
             value computed by :meth:`compute_count` otherwise.
         """
         if self.checksum is None:
@@ -1114,8 +1236,12 @@ class Record:
         This record and another have overlapping `data`, when both `address`
         fields are not ``None``.
 
+        Arguments:
+            other (record):
+                Record to compare with `self`.
+
         Returns:
-            :obj:`bool`: Overlapping.
+            bool: Overlapping.
 
         Examples:
             >>> from hexrec.formats.binary import Record as BinaryRecord
@@ -1146,7 +1272,8 @@ class Record:
         r"""Opens a file for input.
 
         Arguments:
-            path (:obj:`str`): File path.
+            path (str):
+                File path.
 
         Returns:
             stream: An input stream handle.
@@ -1165,7 +1292,8 @@ class Record:
         r"""Opens a file for output.
 
         Arguments:
-            path (:obj:`str`): File path.
+            path (str):
+                File path.
 
         Returns:
             stream: An output stream handle.
@@ -1186,12 +1314,17 @@ class Record:
         r"""Parses a record from a text line.
 
         Arguments:
-            line (:obj:`str`): Record line to parse.
-            args (:obj:`tuple`): Further positional arguments for overriding.
-            kwargs (:obj:`dict`): Further keyword arguments for overriding.
+            line (str):
+                Record line to parse.
+
+            args (tuple):
+                Further positional arguments for overriding.
+
+            kwargs (dict):
+                Further keyword arguments for overriding.
 
         Returns:
-            :obj:`Record`: Parsed record.
+            record: Parsed record.
 
         Note:
             This method must be overridden.
@@ -1206,11 +1339,14 @@ class Record:
         r"""Marshals a record for output.
 
         Arguments:
-            args (:obj:`tuple`): Further positional arguments for overriding.
-            kwargs (:obj:`dict`): Further keyword arguments for overriding.
+            args (tuple):
+                Further positional arguments for overriding.
+
+            kwargs (dict):
+                Further keyword arguments for overriding.
 
         Returns:
-            :obj:`object`: Data for output.
+            bytes or str: Data for output, according to the file type.
         """
         check_empty_args_kwargs(args, kwargs)
 
@@ -1226,12 +1362,17 @@ class Record:
         r"""Unmarshals a record from input.
 
         Arguments:
-            data (object): Input data, according to the file type.
-            args (:obj:`tuple`): Further positional arguments for overriding.
-            kwargs (:obj:`dict`): Further keyword arguments for overriding.
+            data (bytes or str):
+                Input data, according to the file type.
+
+            args (tuple):
+                Further positional arguments for overriding.
+
+            kwargs (dict):
+                Further keyword arguments for overriding.
 
         Returns:
-            :obj:`Record`: Unmarshaled record.
+            record: Unmarshaled record.
         """
         check_empty_args_kwargs(args, kwargs)
 
@@ -1256,7 +1397,8 @@ class Record:
         its value is ``None``.
 
         Arguments:
-            records (:obj:`Record`): Records to scan for metadata.
+            records (list of records):
+                Records to scan for metadata.
 
         Returns:
             dict: Collected metadata.
@@ -1282,9 +1424,14 @@ class Record:
         r"""Splits a chunk of data into records.
 
         Arguments:
-            data (:obj:`bytes`): Byte data to split.
-            args (:obj:`tuple`): Further positional arguments for overriding.
-            kwargs (:obj:`dict`): Further keyword arguments for overriding.
+            data (bytes):
+                Byte data to split.
+
+            args (tuple):
+                Further positional arguments for overriding.
+
+            kwargs (dict):
+                Further keyword arguments for overriding.
 
         Returns:
             list: List of records.
@@ -1305,13 +1452,17 @@ class Record:
         r"""Makes a sequence of data records standalone.
 
         Arguments:
-            data_records (:obj:`list` of :class:`Record`): A sequence of data
-                records.
-            args (:obj:`tuple`): Further positional arguments for overriding.
-            kwargs (:obj:`dict`): Further keyword arguments for overriding.
+            data_records (list of records):
+                Sequence of data records.
+
+            args (tuple):
+                Further positional arguments for overriding.
+
+            kwargs (dict):
+                Further keyword arguments for overriding.
 
         Yields:
-            :obj:`Record`: Records for a standalone record file.
+            record: Records for a standalone record file.
         """
         check_empty_args_kwargs(args, kwargs)
 
@@ -1324,8 +1475,12 @@ class Record:
     ) -> None:
         r"""Consistency check of a sequence of records.
 
+        Arguments:
+            records (list of records):
+                Sequence of records.
+
         Raises:
-            :obj:`ValueError` a field is inconsistent.
+            :obj:`ValueError`: A field is inconsistent.
         """
         last = None
         record_endex = 0
@@ -1363,8 +1518,9 @@ class Record:
             their previous value.
 
         Arguments:
-            records (list): Sequence of records to be converted to *flat*
-                addressing, in-place. Sequence generators supported.
+            records (list):
+                Sequence of records to be converted to *flat* addressing,
+                in-place.
         """
         pass
 
@@ -1378,10 +1534,11 @@ class Record:
         Read blocks from the input stream into the returned sequence.
 
         Arguments:
-            stream (stream): Input stream of the blocks to read.
+            stream (stream):
+                Input stream of the blocks to read.
 
         Returns:
-            :obj:`list`: Sequence of parsed blocks.
+            list of blocks: Sequence of parsed blocks.
 
         Example:
             >>> import io
@@ -1414,15 +1571,23 @@ class Record:
         :meth:`build_data` and written to the output stream.
 
         Arguments:
-            stream (stream): Output stream of the records to write.
-            blocks (list): Sequence of records to store. Sequence generators
-                supported.
-            split_args (list): Positional arguments for :meth:`Record.split`.
-            split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
-            build_args (list): Positional arguments for
-                :meth:`Record.build_standalone`.
-            build_kwargs (dict): Keyword arguments for
-                :meth:`Record.build_standalone`.
+            stream (stream):
+                Output stream of the records to write.
+
+            blocks (list of blocks):
+                Sequence of records to store.
+
+            split_args (list):
+                Positional arguments for :meth:`Record.split`.
+
+            split_kwargs (dict):
+                Keyword arguments for :meth:`Record.split`.
+
+            build_args (list):
+                Positional arguments for :meth:`Record.build_standalone`.
+
+            build_kwargs (dict):
+                Keyword arguments for :meth:`Record.build_standalone`.
 
         Example:
             >>> import io
@@ -1450,10 +1615,11 @@ class Record:
         and collected into the returned sequence.
 
         Arguments:
-            path (:obj:`str`): Path of the record file to load.
+            path (str):
+                Path of the record file to load.
 
         Returns:
-            :obj:`list`: Sequence of parsed records.
+            list of records: Sequence of parsed records.
 
         Example:
             >>> from hexrec.formats.motorola import Record as MotorolaRecord
@@ -1486,15 +1652,23 @@ class Record:
         :meth:`build_data` and written to the output file.
 
         Arguments:
-            path (:obj:`str`): Path of the record file to save.
-            blocks (list): Sequence of blocks to store. Sequence generators
-                supported.
-            split_args (list): Positional arguments for :meth:`Record.split`.
-            split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
-            build_args (list): Positional arguments for
-                :meth:`Record.build_standalone`.
-            build_kwargs (dict): Keyword arguments for
-                :meth:`Record.build_standalone`.
+            path (str):
+                Path of the record file to save.
+
+            blocks (list of blocks):
+                Sequence of blocks to store.
+
+            split_args (list):
+                Positional arguments for :meth:`Record.split`.
+
+            split_kwargs (dict):
+                Keyword arguments for :meth:`Record.split`.
+
+            build_args (list):
+                Positional arguments for :meth:`Record.build_standalone`.
+
+            build_kwargs (dict):
+                Keyword arguments for :meth:`Record.build_standalone`.
 
         Example:
             >>> from hexrec.formats.motorola import Record as MotorolaRecord
@@ -1520,7 +1694,8 @@ class Record:
         Read blocks from the input stream into the returned sequence.
 
         Arguments:
-            stream (stream): Input stream of the blocks to read.
+            stream (stream):
+                Input stream of the blocks to read.
 
         Returns:
             :obj:`Memory`: Loaded virtual memory.
@@ -1554,14 +1729,23 @@ class Record:
         r"""Writes a virtual memory to a stream.
 
         Arguments:
-            stream (stream): Output stream of the records to write.
-            memory (:obj:`Memory`): Virtual memory to save.
-            split_args (list): Positional arguments for :meth:`Record.split`.
-            split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
-            build_args (list): Positional arguments for
-                :meth:`Record.build_standalone`.
-            build_kwargs (dict): Keyword arguments for
-                :meth:`Record.build_standalone`.
+            stream (stream):
+                Output stream of the records to write.
+
+            memory (:obj:`Memory`):
+                Virtual memory to save.
+
+            split_args (list):
+                Positional arguments for :meth:`Record.split`.
+
+            split_kwargs (dict):
+                Keyword arguments for :meth:`Record.split`.
+
+            build_args (list):
+                Positional arguments for :meth:`Record.build_standalone`.
+
+            build_kwargs (dict):
+                Keyword arguments for :meth:`Record.build_standalone`.
 
         Example:
             >>> import io
@@ -1585,7 +1769,8 @@ class Record:
         r"""Loads a virtual memory from a file.
 
         Arguments:
-            path (:obj:`str`): Path of the record file to load.
+            path (str):
+                Path of the record file to load.
 
         Returns:
             :obj:`Memory`: Loaded virtual memory.
@@ -1619,14 +1804,23 @@ class Record:
         r"""Saves a virtual memory to a file.
 
         Arguments:
-            path (:obj:`str`): Path of the record file to save.
-            memory (:obj:`Memory`): Sparse data to save.
-            split_args (list): Positional arguments for :meth:`Record.split`.
-            split_kwargs (dict): Keyword arguments for :meth:`Record.split`.
-            build_args (list): Positional arguments for
-                :meth:`Record.build_standalone`.
-            build_kwargs (dict): Keyword arguments for
-                :meth:`Record.build_standalone`.
+            path (str):
+                Path of the record file to save.
+
+            memory (:obj:`Memory`):
+                Virtual memory to store.
+
+            split_args (list):
+                Positional arguments for :meth:`Record.split`.
+
+            split_kwargs (dict):
+                Keyword arguments for :meth:`Record.split`.
+
+            build_args (list):
+                Positional arguments for :meth:`Record.build_standalone`.
+
+            build_kwargs (dict):
+                Keyword arguments for :meth:`Record.build_standalone`.
 
         Example:
             >>> from hexrec.blocks import Memory
@@ -1657,10 +1851,11 @@ class Record:
         single record.
 
         Arguments:
-            stream (stream): Input stream of the records to read.
+            stream (stream):
+                Input stream of the records to read.
 
         Returns:
-            :obj:`list`: Sequence of parsed records.
+            list of records: Sequence of parsed records.
 
         Example:
             >>> import io
@@ -1699,9 +1894,11 @@ class Record:
         Each record of the `records` sequence is stored into the output file.
 
         Arguments:
-            stream (stream): Output stream of the records to write.
-            records (list): Sequence of records to store. Sequence generators
-                supported.
+            stream (stream):
+                Output stream of the records to write.
+
+            records (list of records):
+                Sequence of records to store.
 
         Example:
             >>> import io
@@ -1729,10 +1926,11 @@ class Record:
         collected into the returned sequence.
 
         Arguments:
-            path (:obj:`str`): Path of the record file to load.
+            path (str):
+                Path of the record file to load.
 
         Returns:
-            :obj:`list`: Sequence of parsed records.
+            list of records: Sequence of parsed records.
 
         Example:
             >>> from hexrec.formats.motorola import Record as MotorolaRecord
@@ -1771,9 +1969,11 @@ class Record:
         :func:`str`, and stored into the output text file.
 
         Arguments:
-            path (:obj:`str`): Path of the record file to save.
-            records (list): Sequence of records to store. Sequence generators
-                supported.
+            path (str):
+                Path of the record file to save.
+
+            records (list):
+                Sequence of records to store.
 
         Example:
             >>> from hexrec.formats.motorola import Record as MotorolaRecord
@@ -1805,13 +2005,14 @@ def find_record_type_name(
     its mapped name.
 
     Arguments:
-        file_path (:obj:`str`): File path to get the file extension from.
+        file_path (str):
+            File path to get the file extension from.
 
     Returns:
-        :obj:`str`: Record type name.
+        str: Record type name.
 
     Raises:
-        KeyError: Unsupported extension.
+        :obj:`KeyError`: Unsupported extension.
 
     Example:
         >>> from hexrec.records import find_record_type_name
@@ -1836,13 +2037,14 @@ def find_record_type(
     its mapped type class.
 
     Arguments:
-        file_path (:obj:`str`): File path to get the file extension from.
+        file_path (str):
+            File path to get the file extension from.
 
     Returns:
-        :obj:`str`: Record type class.
+        str: Record type class.
 
     Raises:
-        KeyError: Unsupported extension.
+        :obj:`KeyError`: Unsupported extension.
 
     Example:
         >>> from hexrec.records import find_record_type_name

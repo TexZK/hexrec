@@ -87,7 +87,7 @@ class Tag(_Tag):
         cls: Type['Tag'],
         value: Union[int, 'Tag'],
     ) -> bool:
-        r""":obj:`bool`: `value` is a data record tag."""
+        r"""bool: `value` is a data record tag."""
         return 1 <= value <= 3
 
 
@@ -187,13 +187,14 @@ class Record(_Record):
         supported address.
 
         Arguments:
-            endex (:obj:`int`): Exclusive end address of the data.
+            endex (int):
+                Exclusive end address of the data.
 
         Returns:
-            :obj:`Tag`: Fitting data tag.
+            tag: Fitting data tag.
 
         Raises:
-            :obj:`ValueError` Address overflow.
+            :obj:`ValueError`: Address overflow.
 
         Examples:
             >>> Record.fit_data_tag(0x00000000)
@@ -238,13 +239,14 @@ class Record(_Record):
         r"""Fits the record count tag.
 
         Arguments:
-            record_count (:obj:`int`): Record count.
+            record_count (int):
+                Record count.
 
         Returns:
-            :obj:`Tag`: Fitting record count tag.
+            tag: Fitting record count tag.
 
         Raises:
-            :obj:`ValueError` Count overflow.
+            :obj:`ValueError`: Count overflow.
 
         Examples:
             >>> Record.fit_count_tag(0x0000000)
@@ -277,10 +279,11 @@ class Record(_Record):
         r"""Builds a header record.
 
         Arguments:
-            data (:obj:`bytes`): Header string data.
+            data (bytes):
+                Header string data.
 
         Returns:
-            :obj:`Record`: Header record.
+            record: Header record.
 
         Example:
             >>> str(Record.build_header(b'Hello, World!'))
@@ -298,16 +301,21 @@ class Record(_Record):
         r"""Builds a data record.
 
         Arguments:
-            address (:obj:`int`): Record start address.
-            data (:obj:`bytes`): Some program data.
-            tag (:obj:`Tag`): Data tag record.
+            address (int):
+                Record start address.
+
+            data (bytes):
+                Some program data.
+
+            tag (tag):
+                Data tag record.
                 If ``None``, automatically selects the fitting one.
 
         Returns:
-            :obj:`Record`: Data record.
+            record: Data record.
 
         Raises:
-            :obj:`ValueError` Tag error.
+            :obj:`ValueError`: Tag error.
 
         Examples:
             >>> str(Record.build_data(0x1234, b'Hello, World!'))
@@ -343,11 +351,14 @@ class Record(_Record):
         r"""Builds a terminator record.
 
         Arguments:
-            start (:obj:`int`): Program start address.
-            last_data_tag (:obj:`Tag`): Last data record tag to match.
+            start (int):
+                Program start address.
+
+            last_data_tag (tag):
+                Last data record tag to match.
 
         Returns:
-            :obj:`Record`: Terminator record.
+            record: Terminator record.
 
         Examples:
             >>> str(Record.build_terminator(0x1234))
@@ -374,13 +385,14 @@ class Record(_Record):
         r"""Builds a count record.
 
         Arguments:
-            record_count (:obj:`int`): Record count.
+            record_count (int):
+                Record count.
 
         Returns:
-            :obj:`Record`: Count record.
+            record: Count record.
 
         Raises:
-            :obj:`ValueError` Count error.
+            :obj:`ValueError`: Count error.
 
         Examples:
              >>> str(Record.build_count(0x1234))
@@ -430,16 +442,22 @@ class Record(_Record):
         r"""Makes a sequence of data records standalone.
 
         Arguments:
-            data_records (:obj:`list` of :class:`Record`): A sequence of data
-                records.
-            start (:obj:`int`): Program start address.
+            data_records (list of records):
+                A sequence of data records.
+
+            start (int):
+                Program start address.
                 If ``None``, it is assigned the minimum data record address.
-            tag (:obj:`Tag`): Data tag record.
+
+            tag (tag):
+                Data tag record.
                 If ``None``, automatically selects the fitting one.
-            header (:obj:`bytes`): Header byte data.
+
+            header (bytes):
+                Header byte data.
 
         Yields:
-            :obj:`Record`: Records for a standalone record file.
+            record: Records for a standalone record file.
         """
         address = 0
         count = 0
@@ -566,7 +584,8 @@ class Record(_Record):
         * `header`: last `header` record data found, or ``None``.
 
         Arguments:
-            records (:obj:`Record`): Records to scan for metadata.
+            records (list of records):
+                Records to scan for metadata.
 
         Returns:
             dict: Collected metadata.
@@ -614,26 +633,40 @@ class Record(_Record):
         r"""Splits a chunk of data into records.
 
         Arguments:
-            data (:obj:`bytes`): Byte data to split.
-            address (:obj:`int`): Start address of the first data record being
-                split.
-            columns (:obj:`int`): Maximum number of columns per data record.
+            data (bytes):
+                Byte data to split.
+
+            address (int):
+                Start address of the first data record being split.
+
+            columns (int):
+                Maximum number of columns per data record.
                 If ``None``, the whole `data` is put into a single record.
                 Maximum of 128 columns.
-            align (:obj:`bool`): Aligns record addresses to the column length.
-            standalone (:obj:`bool`): Generates a sequence of records that can
-                be saved as a standlone record file.
-            start (:obj:`int`): Program start address.
+
+            align (bool):
+                Aligns record addresses to the column length.
+
+            standalone (bool):
+                Generates a sequence of records that can be saved as a
+                standalone record file.
+
+            start (int):
+                Program start address.
                 If ``None``, it is assigned the minimum data record address.
-            tag (:obj:`Tag`): Data tag record.
+
+            tag (tag):
+                Data tag record.
                 If ``None``, automatically selects the fitting one.
-            header (:obj:`bytes`): Header byte data.
+
+            header (bytes):
+                Header byte data.
 
         Yields:
-            :obj:`Record`: Data split into records.
+            record: Data split into records.
 
         Raises:
-            :obj:`ValueError` Address, size, or column overflow.
+            :obj:`ValueError`: Address, size, or column overflow.
         """
         if not 0 <= address < (1 << 32):
             raise ValueError('address overflow')
@@ -673,8 +706,9 @@ class Record(_Record):
         Operates in-place.
 
         Arguments:
-            records (:obj:`list` of :obj:`Record`): A sequence of
-                records. Must be in-line mutable.
+            records (list of records):
+                A sequence of records.
+                Must be in-line mutable.
         """
         if records:
             max_address = max(record.address + len(record.data)

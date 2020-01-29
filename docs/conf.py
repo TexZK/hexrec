@@ -9,6 +9,7 @@ extensions = [
     'sphinx.ext.extlinks',
     'sphinx.ext.ifconfig',
     'sphinx.ext.napoleon',
+    'sphinx_autodoc_typehints',
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
     'sphinx_click.ext',
@@ -21,10 +22,10 @@ if os.getenv('SPELLCHECK'):
 source_suffix = '.rst'
 master_doc = 'index'
 project = 'hexrec'
-year = '2019'
+year = '2020'
 author = 'Andrea Zoppi'
 copyright = '{0}, {1}'.format(year, author)
-version = release = '0.1.0'
+version = release = '0.2.0'
 
 pygments_style = 'trac'
 templates_path = ['.']
@@ -53,9 +54,10 @@ autodoc_default_flags = [
     'private-members',
     'show-inheritance',
 ]
-autodoc_inherit_docstrings = False
+autodoc_inherit_docstrings = True
 autodoc_member_order = 'bysource'
 autosummary_generate = True
+autosummary_generate_overwrite = True
 
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False

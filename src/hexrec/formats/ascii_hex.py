@@ -147,11 +147,14 @@ class Record(_Record):
         r"""Builds a data record.
 
         Arguments:
-            address (:obj:`int`): Record address, or ``None``.
-            data (:obj:`bytes`): Record data, or ``None``.
+            address (int):
+                Record address, or ``None``.
+
+            data (bytes):
+                Record data, or ``None``.
 
         Returns:
-            :obj:`Record`: A data record.
+            record: A data record.
 
         Examples:
             >>> Record.build_data(0x1234, b'Hello, World!')
@@ -183,21 +186,29 @@ class Record(_Record):
         r"""Splits a chunk of data into records.
 
         Arguments:
-            data (:obj:`bytes`): Byte data to split.
-            address (:obj:`int`): Start address of the first data record being
-                split.
-            columns (:obj:`int`): Maximum number of columns per data record.
+            data (bytes):
+                Byte data to split.
+
+            address (int):
+                Start address of the first data record being split.
+
+            columns (int):
+                Maximum number of columns per data record.
                 If ``None``, the whole `data` is put into a single record.
                 Maximum of 128 columns.
-            align (:obj:`bool`): Aligns record addresses to the column length.
-            standalone (:obj:`bool`): Generates a sequence of records that can
-                be saved as a standlone record file.
+
+            align (bool):
+                Aligns record addresses to the column length.
+
+            standalone (bool):
+                Generates a sequence of records that can be saved as a
+                standalone record file.
 
         Yields:
-            :obj:`Record`: Data split into records.
+            record: Data split into records.
 
         Raises:
-            :obj:`ValueError` Address, size, or column overflow.
+            :obj:`ValueError`: Address, size, or column overflow.
         """
         if not 0 <= address < (1 << 16):
             raise ValueError('address overflow')

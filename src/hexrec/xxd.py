@@ -94,11 +94,14 @@ def humanize(
     r"""Translates bytes to a human-readable representation.
 
     Arguments:
-        chunk (:obj:`bytes`): A chunk of bytes.
-        charset (:obj:`list`): A mapping from byte (index) to character.
+        chunk (bytes):
+            A chunk of bytes.
+
+        charset (list of chr):
+            A mapping from byte (index) to character.
 
     Returns:
-        :obj:`str`: Human-readable byte string.
+        str: Human-readable byte string.
     """
     return ''.join(charset[b] for b in chunk)
 
@@ -109,8 +112,10 @@ def parse_seek(
     r"""Parses the seek option string.
 
     Argument:
-        value (:obj:`str` or ``None``): The value to convert. It is converted
-            to :obj:`str` before processing. ``None`` equals zero.
+        value (str):
+            The value to convert.
+            It is converted to :obj:`str` before processing.
+            ``None`` equals zero.
 
     Returns:
         tuple: ``(sign_string, unsigned_value)``.
@@ -149,36 +154,43 @@ def xxd(
     r"""Emulation of the xxd utility core.
 
     Arguments:
-        infile (:obj:`str` or :obj:`bytes` or ``None``): Input data.
+        infile (str or bytes):
+            Input data.
             If :obj:`str`, it is considered as the input file path.
             If :obj:`bytes`, it is the input byte chunk.
             If ``None`` or ``'-'``, it reads from the standard input.
 
-        outfile (:obj:`str` or :obj:`bytes` or ``None``): Output data.
+        outfile (str or bytes):
+            Output data.
             If :obj:`str`, it is considered as the output file path.
             If :obj:`bytes`, it is the output byte chunk.
             If ``None`` or ``'-'``, it writes to the standard output.
 
-        autoskip (:obj:`bool`): Toggles autoskip. A single ``'*'`` replaces
-            null lines.
+        autoskip (bool):
+            Toggles autoskip. A single ``'*'`` replaces null lines.
 
-        bits (:obj:`bool`): Switches to bits (binary digits) dump, rather than
-            hexdump. This option writes octets as eight digits of '1' and '0'
-            instead of a normal hexadecimal dump. Each line is preceded by a
-            line number in hexadecimal and followed by an ASCII (or EBCDIC)
-            representation. The argument switches ``revert``, ``postscript``,
-            ``include`` do not work with this mode.
+        bits (bool):
+            Switches to bits (binary digits) dump, rather than hexdump.
+            This option writes octets as eight digits of '1' and '0' instead
+            of a normal hexadecimal dump.
+            Each line is preceded by a line number in hexadecimal and
+            followed by an ASCII (or EBCDIC) representation.
+            The argument switches ``revert``, ``postscript``, ``include`` do
+            not work with this mode.
 
-        cols (:obj:`int`): Formats ``cols`` octets per line. Max 256.
+        cols (int):
+            Formats ``cols`` octets per line. Max 256.
             Defaults: normal 16, ``include`` 12, ``postscript`` 30, ``bits`` 6.
 
-        ebcdic (:obj:`bool`): Changes the character encoding in the right-hand
-            column from ASCII to EBCDIC.
+        ebcdic (bool):
+            Changes the character encoding in the right-hand column from
+            ASCII to EBCDIC.
             This does not change the hexadecimal representation.
             The option is meaningless in combinations with ``revert``,
             ``postscript`` or ``include``.
 
-        endian (:obj:`bool`): Switches to little-endian hexdump.
+        endian (bool):
+            Switches to little-endian hexdump.
             This option treats  byte groups as words in little-endian byte
             order.
             The default grouping of 4 bytes may be changed using ``groupsize``.
@@ -187,39 +199,47 @@ def xxd(
             The switches ``revert``, ``postscript``, ``include`` do not work
             with this mode.
 
-        groupsize (:obj:`int`): Separates the output of every ``groupsize``
+        groupsize (int):
+            Separates the output of every ``groupsize``
             bytes (two hex characters or eight bit-digits each) by a whitespace.
             Specify ``groupsize`` 0 to suppress grouping.
             ``groupsize`` defaults to 2 in normal mode, 4 in little-endian mode
             and 1 in bits mode. Grouping does not apply to ``postscript`` or
             ``include``.
 
-        include (:obj:`bool`): Output in C include file style.
+        include (bool):
+            Output in C include file style.
             A complete static array definition is written (named after the
             input file), unless reading from standard input.
 
-        length (:obj:`int`): Stops after writing ``length`` octets.
+        length (int):
+            Stops after writing ``length`` octets.
 
-        offset (:obj:`int`): Adds ``offset`` to the displayed file position.
+        offset (int):
+            Adds ``offset`` to the displayed file position.
 
-        postscript (:obj:`bool`): Outputs in postscript continuous hexdump
-            style. Also known as plain hexdump style.
+        postscript (bool):
+            Outputs in postscript continuous hexdump style.
+            Also known as plain hexdump style.
 
-        quadword (:obj:`bool`): Uses 64-bit addressing.
+        quadword (bool):
+            Uses 64-bit addressing.
 
-        revert (:obj:`bool`): Reverse operation: convert (or patch) hexdump
-            into binary. If not writing to standard output, it writes into its
-            output file without truncating it.
+        revert (bool):
+            Reverse operation: convert (or patch) hexdump into binary.
+            If not writing to standard output, it writes into its output file
+            without truncating it.
             Use the combination ``revert`` and ``postscript`` to read plain
             hexadecimal dumps without line number information and without a
-            particular column layout. Additional Whitespace and line breaks are
-            allowed anywhere.
+            particular column layout.
+            Additional Whitespace and line breaks are allowed anywhere.
 
-        oseek (:obj:`int`): When used after ``revert`` reverts with ``offset``
-            added to file positions found in hexdump.
+        oseek (int):
+            When used after ``revert`` reverts with ``offset`` added to file
+            positions found in hexdump.
 
-        iseek (:obj:`int` or :obj:`str`): Starts at ``iseej`` bytes absolute
-            (or relative) input offset.
+        iseek (int or str):
+            Starts at ``iseej`` bytes absolute (or relative) input offset.
             Without ``iseek`` option, it starts at the current file position.
             The prefix is used to compute the offset.
             ``+`` indicates that the seek is relative to the current input
@@ -229,10 +249,11 @@ def xxd(
             ``+-`` indicates that the seek should be that many characters
             before the current stdin file position.
 
-        upper_all (:obj:`bool`): Uses upper case hex letters on address and
-            data.
+        upper_all (bool):
+            Uses upper case hex letters on address and data.
 
-        upper (:obj:`bool`): Uses upper case hex letters on data only.
+        upper (bool):
+            Uses upper case hex letters on data only.
 
     Returns:
         stream: The handle to the output stream.

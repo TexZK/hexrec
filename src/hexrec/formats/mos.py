@@ -141,8 +141,15 @@ class Record(_Record):
     ) -> 'Record':
         r"""Builds a data record.
 
+        Arguments:
+            address (int):
+                Record address.
+
+            data (bytes):
+                Record data.
+
         Returns:
-            :obj:`Record`: A data record.
+            record: Data record.
 
         Example:
             >>> Record.build_data(0x1234, b'Hello, World!')
@@ -161,11 +168,15 @@ class Record(_Record):
         r"""Builds a terminator record.
 
         The terminator record holds the number of data records in the
-        `address` fiels.
+        `address` fields.
         Also the `checksum` field is actually set to the record count.
 
+        Arguments:
+            record_count (int):
+                Number of previous records.
+
         Returns:
-            :obj:`Record`: A terminator record
+            record: A terminator record.
 
         Example:
             >>> Record.build_data(0x1234, b'Hello, World!')
@@ -188,21 +199,29 @@ class Record(_Record):
         r"""Splits a chunk of data into records.
 
         Arguments:
-            data (:obj:`bytes`): Byte data to split.
-            address (:obj:`int`): Start address of the first data record being
-                split.
-            columns (:obj:`int`): Maximum number of columns per data record.
+            data (bytes):
+                Byte data to split.
+
+            address (int):
+                Start address of the first data record being split.
+
+            columns (int):
+                Maximum number of columns per data record.
                 If ``None``, the whole `data` is put into a single record.
                 Maximum of 128 columns.
-            align (:obj:`bool`): Aligns record addresses to the column length.
-            standalone (:obj:`bool`): Generates a sequence of records that can
-                be saved as a standlone record file.
+
+            align (bool):
+                Aligns record addresses to the column length.
+
+            standalone (bool):
+                Generates a sequence of records that can be saved as a
+                standalone record file.
 
         Yields:
-            :obj:`Record`: Data split into records.
+            record: Data split into records.
 
         Raises:
-            :obj:`ValueError` Address, size, or column overflow.
+            :obj:`ValueError`: Address, size, or column overflow.
         """
         if not 0 <= address < (1 << 16):
             raise ValueError('address overflow')
@@ -259,11 +278,11 @@ class Record(_Record):
         r"""Makes a sequence of data records standalone.
 
         Arguments:
-            data_records (:obj:`list` of :class:`Record`): A sequence of data
-                records.
+            data_records (list of records):
+                A sequence of data records.
 
         Yields:
-            :obj:`Record`: Records for a standalone record file.
+            record: Records for a standalone record file.
         """
         check_empty_args_kwargs(args, kwargs)
 

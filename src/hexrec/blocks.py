@@ -31,10 +31,15 @@ Blocks are a useful way to describe sparse linear data, for example strings,
 chunks of bytes, lists, and so on.
 In the case of strings, a string itself is a contiguous block of items
 (*i.e.* characters).
+
 The audience of this module are most importantly those who have to manage
 sparse blocks of bytes, where a very broad addressing space (*e.g.* 4 GiB)
 is used only in some sparse parts (*e.g.* physical memory addressing in a
 microcontroller).
+
+This module also provides the :obj:`Memory` class, which is a handy wrapper
+around blocks, giving the user the flexibility of most operations of a
+:obj:`bytearray` on sparse byte-like chunks.
 
 A `block` is a tuple ``(start, items)`` where `start` is the start address and
 `items` is the container of items (e.g. :obj:`bytes`, :obj:`str`,
@@ -131,10 +136,10 @@ from .utils import straighten_index
 from .utils import straighten_slice
 
 Item = TypeVar('Item')
-ItemSeq = Union[Sequence[Item], AnyBytes, Sequence[int], str]
-ItemJoiner = Callable[[Iterable[ItemSeq]], ItemSeq]
+ItemSequence = Union[Sequence[Item], AnyBytes, Sequence[int], str]
+ItemJoiner = Callable[[Iterable[ItemSequence]], ItemSequence]
 
-Block = Tuple[int, ItemSeq]
+Block = Tuple[int, ItemSequence]
 BlockIterable = Iterable[Block]
 BlockCollection = Collection[Block]
 BlockSequence = Sequence[Block]
@@ -142,7 +147,7 @@ BlockList = List[Block]
 
 
 def chop_blocks(
-    items: ItemSeq,
+    items: ItemSequence,
     window: int,
     align_base: int = 0,
     start: int = 0,
@@ -152,13 +157,20 @@ def chop_blocks(
     Iterates through the vector grouping its items into windows.
 
     Arguments:
-        items (items): Sequence of items to chop.
-        window (:obj:`int`): Window length.
-        align_base (:obj:`int`): Offset of the first window.
-        start (:obj:`int`): Start address.
+        items (items):
+            Sequence of items to chop.
+
+        window (int):
+            Window length.
+
+        align_base (int):
+            Offset of the first window.
+
+        start (int):
+            Start address.
 
     Yields:
-        list: `items` slices of up to `window` elements.
+        items: `items` slices of up to `window` elements.
 
     Examples:
         +---+---+---+---+---+---+---+---+---+
@@ -194,11 +206,14 @@ def overlap(
     r"""Checks if two blocks do overlap.
 
     Arguments:
-        block1 (block): A block.
-        block2 (block): A block.
+        block1 (block):
+            A block.
+
+        block2 (block):
+            Another block.
 
     Returns:
-        :obj:`bool`: The blocks do overlap.
+        bool: The blocks do overlap.
 
     Examples:
         +---+---+---+---+---+---+---+---+---+---+
@@ -233,18 +248,18 @@ def overlap(
 
 
 def check_sequence(
-    blocks: BlockSequence,
+    blocks: BlockIterable,
 ) -> bool:
     r"""Checks if a sequence of blocks is valid.
 
     Checks that the sequence is ordered and non-overlapping.
 
     Arguments:
-        blocks (:obj:`list` of block): A sequence of blocks.
-            Sequence generators supported.
+        blocks (list of blocks):
+            A sequence of blocks.
 
     Returns:
-        :obj:`bool`: Valid sequence.
+        bool: Valid sequence.
 
     Examples:
         +---+---+---+---+---+---+---+---+---+---+
@@ -303,10 +318,11 @@ def sorting(
     the start address to them.
 
     Arguments:
-        block (block): Block under examination.
+        block (block):
+            Block under examination.
 
     Returns:
-        :obj:`int`. The start address of the block.
+        int: The start address of the block.
 
     Example:
         For reference:
@@ -360,12 +376,14 @@ def locate_at(
     Returns the index of the block enclosing the given address.
 
     Arguments:
-        blocks (:obj:`list` of block): A fast indexable sequence of
-            non-overlapping blocks, sorted by address.
-        address (:obj:`int`): Address of the target item.
+        blocks (list of blocks):
+            Sequence of non-overlapping blocks, sorted by address.
+
+        address (int):
+            Address of the target item.
 
     Returns:
-        :obj:`int`: Block index if found, ``None`` otherwise.
+        int: Block index if found, ``None`` otherwise.
 
     Example:
         +---+---+---+---+---+---+---+---+---+---+---+---+
@@ -419,12 +437,14 @@ def locate_start(
     or equal to `address`.
 
     Arguments:
-        blocks (:obj:`list` of block): A fast indexable sequence of
-            non-overlapping blocks, sorted by address.
-        address (:obj:`int`): Inclusive start address of the scanned range.
+        blocks (list of blocks):
+            Sequence of non-overlapping blocks, sorted by address.
+
+        address (int):
+            Inclusive start address of the scanned range.
 
     Returns:
-        :obj:`int`: First block index since `address`.
+        int: First block index since `address`.
 
     Example:
         +---+---+---+---+---+---+---+---+---+---+---+---+
@@ -478,12 +498,14 @@ def locate_endex(
     equal to `address`.
 
     Arguments:
-        blocks (:obj:`list` of block): A fast indexable sequence of
-            non-overlapping blocks, sorted by address.
-        address (:obj:`int`): Exclusive end address of the scanned range.
+        blocks (list of blocks):
+            Sequence of non-overlapping blocks, sorted by address.
+
+        address (int):
+            Exclusive end address of the scanned range.
 
     Returns:
-        :obj:`int`: First block index after `address`.
+        int: First block index after `address`.
 
     Example:
         +---+---+---+---+---+---+---+---+---+---+---+---+
@@ -534,11 +556,14 @@ def shift(
     r"""Shifts the address of blocks.
 
     Arguments:
-        blocks (:obj:`list` of block): Sequence of blocks to shift.
-        amount (:obj:`int`): Signed amount of address shifting.
+        blocks (list of blocks):
+            Sequence of blocks to shift.
+
+        amount (int):
+            Signed amount of address shifting.
 
     Returns:
-        :obj:`list` or block: A new list with shifted blocks.
+        list of blocks: A new list with shifted blocks.
 
     Example:
         +---+---+---+---+---+---+---+---+---+---+
@@ -558,23 +583,29 @@ def shift(
 
 def find(
     blocks: BlockSequence,
-    value: ItemSeq,
+    value: ItemSequence,
     start: int = None,
     endex: int = None,
 ) -> int:
     r"""Finds the address of a substring.
 
     Arguments:
-        blocks (:obj:`list` of block): A fast indexable sequence of
-            non-overlapping blocks, sorted by address.
-        value (:obj:`list` of items): Substring to find.
-        start (:obj:`int`): Inclusive start of the searched range.
+        blocks (list of blocks):
+            Sequence of non-overlapping blocks, sorted by address.
+
+        value (items):
+            Substring to find.
+
+        start (int):
+            Inclusive start of the searched range.
             If ``None``, the global inclusive start address is considered.
-        endex (:obj:`int`): Exclusive end of the searched range.
+
+        endex (int):
+            Exclusive end of the searched range.
             If ``None``, the global exclusive end address is considered.
 
     Returns:
-        :obj:`int`: The address of the first substring equal to `value`.
+        int: The address of the first substring equal to `value`.
 
     Raises:
         :obj:`ValueError` Item not found
@@ -611,26 +642,33 @@ def read(
     blocks: BlockSequence,
     start: Optional[int],
     endex: Optional[int],
-    pattern: Optional[ItemSeq] = b'\0',
+    pattern: Optional[ItemSequence] = b'\0',
     join: ItemJoiner = b''.join,
 ) -> BlockList:
     r"""Selects blocks from a range.
 
     Arguments:
-        blocks (:obj:`list` of block): A fast indexable sequence of
-            non-overlapping blocks, sorted by address.
-        start (:obj:`int`): Inclusive start of the extracted range.
+        blocks (list of blocks):
+            Sequence of non-overlapping blocks, sorted by address.
+
+        start (int):
+            Inclusive start of the extracted range.
             If ``None``, the global inclusive start address is considered
             (i.e. that of the first block).
-        endex (:obj:`int`): Exclusive end of the extracted range.
+
+        endex (int):
+            Exclusive end of the extracted range.
             If ``None``, the global exclusive end address is considered
             (i.e. that of the last block).
-        pattern (items): Pattern of items to fill the emptiness, if not null.
-        join (callable): A function to join a sequence of items, if `pattern`
-            is not null.
+
+        pattern (items):
+            Pattern of items to fill the emptiness, if not null.
+
+        join (callable):
+            A function to join a sequence of items, if `pattern` is not null.
 
     Returns:
-        :obj:`list` of block: A new list of blocks as per `blocks`.
+        list of blocks: A new list of blocks as per `blocks`.
 
     Example:
         +---+---+---+---+---+---+---+---+---+---+---+
@@ -719,17 +757,21 @@ def clear(
     r"""Clears a range.
 
     Arguments:
-        blocks (:obj:`list` of block): A fast indexable sequence of
-            non-overlapping blocks, sorted by address.
-        start (:obj:`int`): Inclusive start of the cleared range.
+        blocks (list of blocks):
+            Sequence of non-overlapping blocks, sorted by address.
+
+        start (int):
+            Inclusive start of the cleared range.
             If ``None``, the global inclusive start address is considered
             (i.e. that of the first block).
-        endex (:obj:`int`): Exclusive end of the cleared range.
+
+        endex (int):
+            Exclusive end of the cleared range.
             If ``None``, the global exclusive end address is considered
             (i.e. that of the last block).
 
     Returns:
-        :obj:`list` of block: A new list of blocks as per `blocks`.
+        list of blocks: A new list of blocks as per `blocks`.
 
     Example:
         +---+---+---+---+---+---+---+---+---+---+---+
@@ -810,17 +852,21 @@ def delete(
     r"""Deletes a range.
 
     Arguments:
-        blocks (:obj:`list` of block): A fast indexable sequence of
-            non-overlapping blocks, sorted by address.
-        start (:obj:`int`): Inclusive start of the deleted range.
+        blocks (list of blocks):
+            Sequence of non-overlapping blocks, sorted by address.
+
+        start (int):
+            Inclusive start of the deleted range.
             If ``None``, the global inclusive start address is considered
             (i.e. that of the first block).
-        endex (:obj:`int`): Exclusive end of the deleted range.
+
+        endex (int):
+            Exclusive end of the deleted range.
             If ``None``, the global exclusive end address is considered
             (i.e. that of the last block).
 
     Returns:
-        :obj:`list` of block: A new list of blocks as per `blocks`.
+        list of blocks: A new list of blocks as per `blocks`.
 
     Example:
         +---+---+---+---+---+---+---+---+---+---+---+
@@ -901,12 +947,14 @@ def insert(
     address by the length of the inserted block.
 
     Arguments:
-        blocks (:obj:`list` of block): A fast indexable sequence of
-            non-overlapping blocks, sorted by address.
-        inserted (block): Block to insert.
+        blocks (list of blocks):
+            Sequence of non-overlapping blocks, sorted by address.
+
+        inserted (block):
+            Block to insert.
 
     Returns:
-        :obj:`list` of block: Non-overlapping blocks, sorted by start address.
+        list of blocks: Non-overlapping blocks, sorted by start address.
 
     Example:
         +---+---+---+---+---+---+---+---+---+---+---+---+
@@ -968,12 +1016,14 @@ def write(
     r"""Writes a block onto a sequence.
 
     Arguments:
-        blocks (:obj:`list` of block): A fast indexable sequence of
-            non-overlapping blocks, sorted by address.
-        written (block): Block to write.
+        blocks (list of blocks):
+            Sequence of non-overlapping blocks, sorted by address.
+
+        written (block):
+            Block to write.
 
     Returns:
-        :obj:`list` of block: Non-overlapping blocks, sorted by start address.
+        list of blocks: Non-overlapping blocks, sorted by start address.
 
     Example:
         +---+---+---+---+---+---+---+---+---+---+
@@ -1006,25 +1056,33 @@ def fill(
     blocks: BlockSequence,
     start: Optional[int] = None,
     endex: Optional[int] = None,
-    pattern: ItemSeq = b'\0',
+    pattern: ItemSequence = b'\0',
     join: ItemJoiner = b''.join,
 ) -> BlockList:
     r"""Overwrites a range with a pattern.
 
     Arguments:
-        blocks (:obj:`list` of block): A fast indexable sequence of
-            non-overlapping blocks, sorted by address.
-        pattern (items): Pattern of items to fill the emptiness.
-        start (:obj:`int`): Inclusive start of the filled range.
+        blocks (list of blocks):
+            Sequence of non-overlapping blocks, sorted by address.
+
+        pattern (items):
+            Pattern of items to fill the emptiness.
+
+        start (int):
+            Inclusive start of the filled range.
             If ``None``, the global inclusive start address is considered
             (i.e. that of the first block).
-        endex (:obj:`int`): Exclusive end of the filled range.
+
+        endex (int):
+            Exclusive end of the filled range.
             If ``None``, the global exclusive end address is considered
             (i.e. that of the last block).
-        join (callable): A function to join a sequence of items.
+
+        join (callable):
+            A function to join a sequence of items.
 
     Returns:
-        :obj:`list` of block: Sequence of blocks.
+        list of blocks: Sequence of blocks.
 
     Examples:
         +---+---+---+---+---+---+---+---+---+---+
@@ -1087,7 +1145,7 @@ def flood(
     blocks: BlockSequence,
     start: Optional[int] = None,
     endex: Optional[int] = None,
-    pattern: ItemSeq = b'\0',
+    pattern: ItemSequence = b'\0',
     flood_only: bool = False,
     join: ItemJoiner = b''.join,
 ) -> BlockList:
@@ -1097,20 +1155,30 @@ def flood(
     `flood_only` is ``False``.
 
     Arguments:
-        blocks (:obj:`list` of block): A fast indexable sequence of
-            non-overlapping blocks, sorted by address.
-        pattern (items): Pattern of items to fill the emptiness.
-        start (:obj:`int`): Inclusive start of the filled range.
+        blocks (list of blocks):
+            Sequence of non-overlapping blocks, sorted by address.
+
+        pattern (items):
+            Pattern of items to fill the emptiness.
+
+        start (int):
+            Inclusive start of the filled range.
             If ``None``, the global inclusive start address is considered
             (i.e. that of the first block).
-        endex (:obj:`int`): Exclusive end of the filled range.
+
+        endex (int):
+            Exclusive end of the filled range.
             If ``None``, the global exclusive end address is considered
             (i.e. that of the last block).
-        flood_only (:obj:`bool`): Returns only the filling blocks.
-        join (callable): A function to join a sequence of items.
+
+        flood_only (bool):
+            Returns only the filling blocks.
+
+        join (callable):
+            A function to join a sequence of items.
 
     Returns:
-        :obj:`list` of block: Filling blocks.
+        list of blocks: Filling blocks.
 
     Example:
         +---+---+---+---+---+---+---+---+---+---+
@@ -1191,19 +1259,21 @@ def flood(
 
 
 def merge(
-    blocks: BlockSequence,
+    blocks: BlockIterable,
     join: Optional[ItemJoiner] = None,
 ) -> BlockList:
     r"""Merges touching blocks.
 
     Arguments:
-        blocks (:obj:`list` of block): A sequence of non-overlapping blocks,
-            sorted by address. Sequence generators supported.
-        join (callable): A function to join a sequence of items.
-            If ``None``, defaults to ``b''.join``.
+        blocks (list of blocks):
+            Sequence of non-overlapping blocks, sorted by address.
+
+        join (callable):
+            A function to join a sequence of items.
+            If ``None``, defaults to ``bytes().join``.
 
     Returns:
-        :obj:`list` of block: Non-overlapping blocks, sorted by address.
+        list of blocks: Non-overlapping blocks, sorted by address.
 
     Example:
         +---+---+---+---+---+---+---+---+---+---+---+---+---+
@@ -1258,7 +1328,7 @@ def merge(
 
 
 def collapse(
-    blocks: BlockSequence,
+    blocks: BlockIterable,
 ) -> BlockList:
     r"""Collapses blocks of items.
 
@@ -1266,11 +1336,11 @@ def collapse(
     does not overlap with the following ones.
 
     Arguments:
-        blocks (:obj:`list` of block): A sequence of blocks.
-            Sequence generators supported.
+        blocks (list of blocks):
+            A sequence of blocks. No address ordering required.
 
     Returns:
-        :obj:`list` of block: A new list of non-overlapping blocks.
+        list of blocks: A new list of non-overlapping blocks.
 
     Example:
         +---+---+---+---+---+---+---+---+---+---+
@@ -1338,7 +1408,7 @@ def collapse(
 
 
 def union(
-    *blocks_list: BlockSequence,
+    *blocks_list: BlockIterable,
     join: Optional[ItemJoiner] = None,
 ) -> BlockList:
     r"""Performs the union of multiple block lists.
@@ -1347,13 +1417,15 @@ def union(
     block list, in the order such sequences are.
 
     Arguments:
-        blocks_list (:obj:`list` of :obj:`list` of block): Multiple sequences
-            of blocks. Sequence generators supported.
-        join (callable): A function to join a sequence of items.
-            If ``None``, defaults to ``b''.join``.
+        blocks_list (list of blocks):
+            Multiple sequences of blocks.
+
+        join (callable):
+            A function to join a sequence of items.
+            If ``None``, defaults to ``bytes().join``.
 
     Returns:
-        :obj:`list` of block: A new list of non-overlapping blocks.
+        list of blocks: A new list of non-overlapping blocks.
 
     Example:
         +---+---+---+---+---+---+---+---+---+---+
@@ -1396,37 +1468,59 @@ def union(
 
 
 class Memory:
-    r"""Sparse item blocks manager.
+    r"""Virtual memory.
 
-    This is an helper class to emulate a virtual space with sparse blocks of
-    items, for example a virtual memory of :class:`str` blocks.
+    This class is a handy wrapper around `blocks`, so that it can behave mostly
+    like a :obj:`bytearray`, but on sparse chunks of data.
+    Please look at examples of each method to get a glimpse of the features of
+    this class.
 
     Attributes:
-        blocks (:obj:`list` of block): A sequence of non-overlapping blocks,
-            sorted by address.
-        items_type (class): Type of the items stored into blocks.
+        blocks (list of blocks):
+            A sequence of non-overlapping blocks, sorted by address.
+
+        items_type (type):
+            Type of the items stored into blocks.
             Defaults to :obj:`bytes` if ``None``.
-        items_join (callable): A function to join a sequence of items.
+
+        items_join (callable):
+            A function to join a sequence of items.
             Defaults to ``items_type().join`` if ``None``.
-        autofill (items): Pattern for automatic flood, or ``None``.
-        automerge (:obj:`bool`): Automatically merges touching blocks after
-            operations that can alter attribute :attr:`blocks`.
+
+        autofill (items):
+            Pattern of items for automatic flood, or ``None``.
+
+        automerge (bool):
+            Automatically merges touching blocks after operations that can
+            alter attribute :attr:`blocks`.
 
     Arguments:
-        items (iterable): An iterable to build the initial items block, by
-            passing it to `items_type` as a constructor.
-        start (:obj:`int`): Start address of the initial block, built if
-            `items` is not ``None``.
-        blocks (:obj:`list` of block): A sequence of non-overlapping blocks,
-            sorted by address. The :attr:`blocks` attribute is assigned a
-            shallow copy.
-        items_type (class): see attribute :attr:`items_type`.
-        items_join (callable): see attribute :attr:`items_join`.
-        autofill (items): Pattern for automatic flood, or ``None``.
-        automerge (:obj:`bool`): see attribute :attr:`automerge`.
+        items (items):
+            An iterable to build the initial items block, by passing it to
+            `items_type` as a constructor.
+
+        start (int):
+            Start address of the initial block, built if `items` is not
+            ``None``.
+
+        blocks (list of blocks):
+            A sequence of non-overlapping blocks, sorted by address.
+            The :attr:`blocks` attribute is assigned a shallow copy.
+
+        items_type (type):
+            see attribute :attr:`items_type`.
+
+        items_join (callable):
+            see attribute :attr:`items_join`.
+
+        autofill (items):
+            see attribute :attr:`autofill`.
+
+        automerge (bool):
+            see attribute :attr:`automerge`.
 
     Raises:
-        :obj:`ValueError` Both `items` and `blocks` are not ``None``.
+        :obj:`ValueError`: Both `items` and `blocks` are not ``None``.
 
     Examples:
         >>> memory = Memory()
@@ -1436,18 +1530,23 @@ class Memory:
         >>> memory = Memory('Hello, World!', 5)
         >>> memory.blocks
         [(5, 'Hello, World!')]
-
     """
     def __init__(
         self: 'Memory',
-        items: Optional[ItemSeq] = None,
+        items: Optional[ItemSequence] = None,
         start: int = 0,
         blocks: Optional[BlockList] = None,
-        items_type: Optional[type] = None,
+        items_type: Optional[Type[Item]] = None,
         items_join: Optional[ItemJoiner] = None,
-        autofill: Optional[ItemSeq] = None,
+        autofill: Optional[ItemSequence] = None,
         automerge: bool = True,
     ) -> None:
+        # Invalidate attributes to make type hinting happier
+        self.blocks: BlockList = []
+        self.items_type: Type[Item] = items_type
+        self.items_join: ItemJoiner = items_join
+        self.autofill: Optional[ItemSequence] = autofill
+        self.automerge: bool = automerge
 
         if items_type is None:
             items_type: Type[Item] = bytes
@@ -1461,10 +1560,8 @@ class Memory:
         if items:
             items = items_type(items)
             blocks = [(start, items)]
-
         elif blocks:
             blocks = list(blocks)
-
         else:
             blocks = []
 
@@ -1474,7 +1571,7 @@ class Memory:
         self.blocks: BlockList = blocks
         self.items_type: Type[Item] = items_type
         self.items_join: ItemJoiner = items_join
-        self.autofill: Optional[ItemSeq] = autofill
+        self.autofill: Optional[ItemSequence] = autofill
         self.automerge: bool = automerge
 
     def __str__(
@@ -1486,7 +1583,7 @@ class Memory:
         Emptiness around blocks is ignored.
 
         Returns:
-            :obj:`str`: String representation.
+            str: String representation.
 
         Example:
             +---+---+---+---+---+---+---+---+---+---+---+
@@ -1508,7 +1605,7 @@ class Memory:
         r"""Has any items.
 
         Returns:
-            :obj:`bool`: Has any items.
+            bool: Has any items.
 
         Examples:
             >>> memory = Memory()
@@ -1523,12 +1620,12 @@ class Memory:
 
     def __eq__(
         self: 'Memory',
-        other: Union['Memory', Sequence[ItemSeq], ItemSeq],
+        other: Union['Memory', Sequence[ItemSequence], ItemSequence],
     ) -> bool:
         r"""Equality comparison.
 
         Arguments:
-            other (:obj:`Memory`, or :obj:`list` of items, or items):
+            other (Memory):
                 Data to compare with `self`.
                 If it is an instance of `Memory`, all of its blocks must
                 match.
@@ -1538,7 +1635,7 @@ class Memory:
                 equal if also starts at 0.
 
         Returns:
-            :obj:`bool`: `self` is equal to `other`.
+            bool: `self` is equal to `other`.
 
         Examples:
             >>> items = 'Hello, World!'
@@ -1579,8 +1676,8 @@ class Memory:
         r"""Iterates over all the items.
 
         Yields:
-            item: All the single items collected from all the :attr:`blocks`.
-                Emptiness around blocks is ignored.
+            items: All the single items collected from all the :attr:`blocks`.
+            Emptiness around blocks is ignored.
 
         Example:
             +---+---+---+---+---+---+---+---+---+---+---+
@@ -1603,8 +1700,8 @@ class Memory:
         r"""Iterates over all the items, in reverse.
 
         Yields:
-            item: All the single items collected from all the :attr:`blocks`,
-                in reverse order. Emptiness around blocks is ignored.
+            items: All the single items collected from all the :attr:`blocks`,
+            in reverse order. Emptiness around blocks is ignored.
 
         Example:
             +---+---+---+---+---+---+---+---+---+---+---+
@@ -1623,18 +1720,18 @@ class Memory:
 
     def __add__(
         self: 'Memory',
-        value: Union['Memory', ItemSeq, BlockSequence],
+        value: Union['Memory', ItemSequence, BlockSequence],
     ) -> 'Memory':
         r"""Concatenates items.
 
         Arguments:
-            value (:obj:`Memory` or items or :obj:`list` of block):
-                ItemSeq to append at the end of the current virtual space.
+            value (items):
+                Items to append at the end of the current virtual space.
                 If instance of :class:`list`, it is interpreted as a sequence
                 of non-overlapping blocks, sorted by start address.
 
         Returns:
-            :obj:`Memory`: A new space with the items concatenated.
+            A new memory with the items concatenated.
         """
         cls = type(self)
         result = cls(automerge=self.automerge,
@@ -1646,18 +1743,18 @@ class Memory:
 
     def __iadd__(
         self: 'Memory',
-        value: Union['Memory', ItemSeq, BlockSequence],
+        value: Union['Memory', ItemSequence, BlockSequence],
     ) -> 'Memory':
         r"""Concatenates items.
 
         Arguments:
-            value (:obj:`Memory` or items or :obj:`list` of block):
-                ItemSeq to append at the end of the current virtual space.
+            value (items):
+                Items to append at the end of the current virtual space.
                 If instance of :class:`list`, it is interpreted as a sequence
                 of non-overlapping blocks, sorted by start address.
 
         Returns:
-            :obj:`SpraseItems`: `self`.
+            `self`.
         """
         blocks = self.blocks
 
@@ -1698,10 +1795,11 @@ class Memory:
         appended at the current virtual space end (i.e. :attr:`endex`).
 
         Arguments:
-            times (:obj:`int`): Times to repeat the sequence of items.
+            times (int):
+                Times to repeat the sequence of items.
 
         Returns:
-            :obj:`Memory`: A new space with the items repeated.
+            Memory: A new space with the items repeated.
         """
         cls = type(self)
         result = cls(automerge=self.automerge,
@@ -1721,10 +1819,11 @@ class Memory:
         appended at the current virtual space end (i.e. :attr:`endex`).
 
         Arguments:
-            times (:obj:`int`): Times to repeat the sequence of items.
+            times (int):
+                Times to repeat the sequence of items.
 
         Returns:
-            :obj:`SpraseItems`: `self`.
+            Memory: `self`.
         """
         blocks = self.blocks
         repeated = []
@@ -1751,7 +1850,7 @@ class Memory:
         (:attr:`endex` - :attr:`start`).
 
         Returns:
-            :obj:`int`: Length of the stored items.
+            int: Length of the stored items.
         """
         return self.endex - self.start
 
@@ -1764,16 +1863,21 @@ class Memory:
         r"""Index of an item.
 
         Arguments:
-            value (item): Value to find.
-            start (:obj:`int`): Inclusive start of the searched range.
+            value (items):
+                Value to find.
+
+            start (int):
+                Inclusive start of the searched range.
                 If ``None``, the global inclusive start address is considered
                 (i.e. :attr:`start`).
-            endex (:obj:`int`): Exclusive end of the searched range.
+
+            endex (int):
+                Exclusive end of the searched range.
                 If ``None``, the global exclusive end address is considered
                 (i.e. :attr:`endex`).
 
         Returns:
-            :obj:`int`: The index of the first item equal to `value`.
+            int: The index of the first item equal to `value`.
 
         Raises:
             :obj:`ValueError` Item not found
@@ -1791,10 +1895,11 @@ class Memory:
         r"""Checks if some value is contained.
 
         Arguments:
-            value (item): Value to find.
+            value (items):
+                Value to find.
 
         Returns:
-            :obj:`bool`: Values is contained.
+            bool: Values is contained.
 
         Example:
             +---+---+---+---+---+---+---+---+---+---+---+---+
@@ -1826,10 +1931,11 @@ class Memory:
         r"""Counts items.
 
         Arguments:
-            value (item): Reference value to count.
+            value (items):
+                Reference value to count.
 
         Returns:
-            :obj:`int`: The number of items equal to `value`.
+            int: The number of items equal to `value`.
 
         Example:
             +---+---+---+---+---+---+---+---+---+---+---+---+
@@ -1848,11 +1954,12 @@ class Memory:
     def __getitem__(
         self: 'Memory',
         key: Union[slice, int],
-    ) -> ItemSeq:
+    ) -> ItemSequence:
         r"""Reads data.
 
         Arguments:
-            key (:obj:`slice` or :obj:`int`): Selection range or address.
+            key (slice or int):
+                Selection range or address.
                 If it is a :obj:`slice` with `step` instance of
                 :attr:`items_type`, then it is interpreted as the fill
                 pattern.
@@ -1953,13 +2060,16 @@ class Memory:
     def __setitem__(
         self: 'Memory',
         key: Union[slice, int],
-        value: Optional[ItemSeq],
+        value: Optional[ItemSequence],
     ) -> None:
         r"""Writes data.
 
         Arguments:
-            key (:obj:`slice` or :obj:`int`): Selection range or address.
-            value (items): ItemSeq to write at the selection address.
+            key (slice or int):
+                Selection range or address.
+
+            value (items):
+                Items to write at the selection address.
                 If `value` is null, the range is cleared.
 
         Note:
@@ -2085,7 +2195,8 @@ class Memory:
         r"""Deletes data.
 
         Arguments:
-            key (:obj:`slice` or :obj:`int`): Deletion range or address.
+            key (slice or int):
+                Deletion range or address.
 
         Note:
             This method is not optimized for a :class:`slice` with its `step`
@@ -2174,12 +2285,13 @@ class Memory:
 
     def append(
         self: 'Memory',
-        value: ItemSeq,
+        value: ItemSequence,
     ) -> None:
         r"""Appends some items.
 
         Arguments:
-            value (items): Items to append.
+            value (items):
+                Items to append.
 
         Note:
             Appending a single item requires `value` to be of
@@ -2209,14 +2321,14 @@ class Memory:
 
     def extend(
         self: 'Memory',
-        items: ItemSeq,
+        items: ItemSequence,
     ) -> None:
         r"""Concatenates items.
 
         Equivalent to ``self += items``.
 
         Arguments:
-            items (:obj:`Memory` or items or :obj:`list` of block):
+            items (items):
                 Items to append at the end of the current virtual space.
                 If instance of :class:`list`, it is interpreted as a sequence
                 of non-overlapping blocks, sorted by start address.
@@ -2232,7 +2344,7 @@ class Memory:
         :attr:`blocks`.
 
         Returns:
-            :obj:`int`: The inclusive start address, or 0.
+            int: The inclusive start address, or 0.
 
         Examples:
             >>> Memory().start
@@ -2268,7 +2380,7 @@ class Memory:
         :attr:`blocks`.
 
         Returns:
-            :obj:`int`: The eclusive end address, or 0.
+            int: The exclusive end address, or 0.
 
         Examples:
             >>> Memory().endex
@@ -2302,7 +2414,8 @@ class Memory:
         r"""Shifts the items.
 
         Arguments:
-            amount (:obj:`int`): Signed amount of address shifting.
+            amount (int):
+                Signed amount of address shifting.
 
         See Also:
             :func:`shift`
@@ -2329,22 +2442,27 @@ class Memory:
         self: 'Memory',
         start: Optional[int],
         endex: Optional[int],
-        pattern: Optional[ItemSeq] = None,
-    ) -> ItemSeq:
+        pattern: Optional[ItemSequence] = None,
+    ) -> ItemSequence:
         r"""Selects items from a range.
 
         Arguments:
-            start (:obj:`int`): Inclusive start of the extracted range.
+            start (int):
+                Inclusive start of the extracted range.
                 If ``None``, the global inclusive start address is considered
                 (i.e. :attr:`start`).
-            endex (:obj:`int`): Exclusive end of the extracted range.
+
+            endex (int):
+                Exclusive end of the extracted range.
                 If ``None``, the global exclusive end address is considered
                 (i.e. :attr:`endex`).
-            pattern (items): Pattern of items to fill the emptiness.
+
+            pattern (items):
+                Pattern of items to fill the emptiness.
                 If ``None``, the :attr:`autofill` attribute is used.
 
         Returns:
-            items: ItemSeq from the selected range.
+            items: Items from the selected range.
         """
         return self[start:endex:pattern]
 
@@ -2352,18 +2470,23 @@ class Memory:
         self: 'Memory',
         start: Optional[int],
         endex: Optional[int],
-        pattern: Optional[ItemSeq] = None,
+        pattern: Optional[ItemSequence] = None,
     ) -> None:
         r"""Keeps data within a range.
 
         Arguments:
-            start (:obj:`int`): Inclusive start of the selected range.
+            start (int):
+                Inclusive start of the selected range.
                 If ``None``, the global inclusive start address is considered
                 (i.e. :attr:`start`).
-            endex (:obj:`int`): Exclusive end of the selected range.
+
+            endex (int):
+                Exclusive end of the selected range.
                 If ``None``, the global exclusive end address is considered
                 (i.e. :attr:`endex`).
-            pattern (items): Pattern of items to fill the emptiness.
+
+            pattern (items):
+                Pattern of items to fill the emptiness.
                 If ``None``, the :attr:`autofill` attribute is used.
 
         See Also:
@@ -2400,10 +2523,13 @@ class Memory:
         r"""Clears a range.
 
         Arguments:
-            start (:obj:`int`): Inclusive start of the extracted range.
+            start (int):
+                Inclusive start of the extracted range.
                 If ``None``, the global inclusive start address is considered
                 (i.e. :attr:`start`).
-            endex (:obj:`int`): Exclusive end of the extracted range.
+
+            endex (int):
+                Exclusive end of the extracted range.
                 If ``None``, the global exclusive end address is considered
                 (i.e. :attr:`endex`).
 
@@ -2441,10 +2567,13 @@ class Memory:
         r"""Deletes a range.
 
         Arguments:
-            start (:obj:`int`): Inclusive start of the extracted range.
+            start (int):
+                Inclusive start of the extracted range.
                 If ``None``, the global inclusive start address is considered
                 (i.e. :attr:`start`).
-            endex (:obj:`int`): Exclusive end of the extracted range.
+
+            endex (int):
+                Exclusive end of the extracted range.
                 If ``None``, the global exclusive end address is considered
                 (i.e. :attr:`endex`).
 
@@ -2475,14 +2604,14 @@ class Memory:
         r"""Retrieves an item and deletes it.
 
         Arguments:
-            address (:obj:`int`): Address of the item to remove; ``None``
-                means the last one.
+            address (int):
+                Address of the item to remove; ``None`` means the last one.
 
         Returns:
-            items: The item at `address` if existing, null otherwise.
+            item: The item at `address` if existing, null otherwise.
 
         Raises:
-            IndexError: Pop from empty blocks.
+            :obj:`IndexError`: Pop from empty blocks.
 
         Example:
             +---+---+---+---+---+---+---+---+---+
@@ -2548,17 +2677,18 @@ class Memory:
 
     def remove(
         self: 'Memory',
-        value: ItemSeq,
+        value: ItemSequence,
     ) -> None:
         r"""Removes some data.
 
         Finds the first occurrence of `value` and deletes it.
 
         Arguments:
-            value (items): Sequence of items to remove.
+            value (items):
+                Sequence of items to remove.
 
         Raises:
-            :obj:`ValueError` Item not found.
+            :obj:`ValueError`: Item not found.
 
         Example:
             +---+---+---+---+---+---+---+---+---+---+---+---+---+
@@ -2596,7 +2726,7 @@ class Memory:
     def insert(
         self: 'Memory',
         address: int,
-        items: ItemSeq,
+        items: ItemSequence,
     ) -> None:
         r"""Inserts data.
 
@@ -2604,8 +2734,11 @@ class Memory:
         the length of the inserted block.
 
         Arguments:
-            address (:obj:`int`): Address of the block to insert.
-            items (items): Items of the block to insert.
+            address (int):
+                Address of the block to insert.
+
+            items (items):
+                Items of the block to insert.
 
         See Also:
             :func:`insert`
@@ -2636,13 +2769,16 @@ class Memory:
     def write(
         self: 'Memory',
         address: int,
-        items: ItemSeq,
+        items: ItemSequence,
     ) -> None:
         r"""Writes data.
 
         Arguments:
-            address (:obj:`int`): Address of the block to write.
-            items (items): Items of the block to write.
+            address (int):
+                Address of the block to write.
+
+            items (items):
+                Items of the block to write.
 
         See Also:
             :func:`write`
@@ -2674,18 +2810,23 @@ class Memory:
         self: 'Memory',
         start: Optional[int] = None,
         endex: Optional[int] = None,
-        pattern: Optional[ItemSeq] = None,
+        pattern: Optional[ItemSequence] = None,
     ) -> None:
         r"""Overwrites a range with a pattern.
 
         Arguments:
-            start (:obj:`int`): Inclusive start of the filled range.
+            start (int):
+                Inclusive start of the filled range.
                 If ``None``, the global inclusive start address is considered
                 (i.e. that of the first block).
-            endex (:obj:`int`): Exclusive end of the filled range.
+
+            endex (int):
+                Exclusive end of the filled range.
                 If ``None``, the global exclusive end address is considered
                 (i.e. that of the last block).
-            pattern (items): Pattern of items to fill the range.
+
+            pattern (items):
+                Pattern of items to fill the range.
                 If ``None``, the :attr:`autofill` attribute is used.
 
         See Also:
@@ -2752,18 +2893,23 @@ class Memory:
         self: 'Memory',
         start: Optional[int] = None,
         endex: Optional[int] = None,
-        pattern: Optional[ItemSeq] = None,
+        pattern: Optional[ItemSequence] = None,
     ) -> None:
         r"""Fills emptiness between non-touching blocks.
 
         Arguments:
-            start (:obj:`int`): Inclusive start of the filled range.
+            start (int):
+                Inclusive start of the filled range.
                 If ``None``, the global inclusive start address is considered
                 (i.e. that of the first block).
-            endex (:obj:`int`): Exclusive end of the filled range.
+
+            endex (int):
+                Exclusive end of the filled range.
                 If ``None``, the global exclusive end address is considered
                 (i.e. that of the last block).
-            pattern (items): Pattern of items to fill the emptiness.
+
+            pattern (items):
+                Pattern of items to fill the emptiness.
                 If ``None``, the :attr:`autofill` attribute is used.
 
         See Also:

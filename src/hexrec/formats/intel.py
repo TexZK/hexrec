@@ -73,7 +73,7 @@ class Tag(_Tag):
         cls: Type['Tag'],
         value: Union[int, 'Tag'],
     ) -> bool:
-        r""":obj:`bool`: `value` is a data record tag."""
+        r"""bool: `value` is a data record tag."""
         return value == cls.DATA
 
 
@@ -160,11 +160,14 @@ class Record(_Record):
         r"""Builds a data record.
 
         Arguments:
-            address (:obj:`int`): Record start address.
-            data (:obj:`bytes`): Some program data.
+            address (int):
+                Record address.
+
+            data (bytes):
+                Record data.
 
         Returns:
-            :obj:`Record`: Data record.
+            record: Data record.
 
         Example:
             >>> str(Record.build_data(0x1234, b'Hello, World!'))
@@ -181,11 +184,12 @@ class Record(_Record):
         r"""Builds an extended segment address record.
 
         Arguments:
-            address (:obj:`int`): Extended segment address.
+            address (int):
+                Extended segment address.
                 The 20 least significant bits are ignored.
 
         Returns:
-            :obj:`Record`: Extended segment address record.
+            record: Extended segment address record.
 
         Example:
             >>> str(Record.build_extended_segment_address(0x12345678))
@@ -206,13 +210,14 @@ class Record(_Record):
         r"""Builds an start segment address record.
 
         Arguments:
-            address (:obj:`int`): Start segment address.
+            address (int):
+                Start segment address.
 
         Returns:
-            :obj:`Record`: Start segment address record.
+            record: Start segment address record.
 
         Raises:
-            :obj:`ValueError` Address overflow.
+            :obj:`ValueError`: Address overflow.
 
         Example:
             >>> str(Record.build_start_segment_address(0x12345678))
@@ -232,7 +237,7 @@ class Record(_Record):
         r"""Builds an end-of-file record.
 
         Returns:
-            :obj:`Record`: End-of-file record.
+            record: End-of-file record.
 
         Example:
             >>> str(Record.build_end_of_file())
@@ -249,14 +254,15 @@ class Record(_Record):
         r"""Builds an extended linear address record.
 
         Arguments:
-            address (:obj:`int`): Extended linear address.
-            The 16 least significant bits are ignored.
+            address (int):
+                Extended linear address.
+                The 16 least significant bits are ignored.
 
         Returns:
-            :obj:`Record`: Extended linear address record.
+            record: Extended linear address record.
 
         Raises:
-            :obj:`ValueError` Address overflow.
+            :obj:`ValueError`: Address overflow.
 
         Example:
             >>> str(Record.build_extended_linear_address(0x12345678))
@@ -278,13 +284,14 @@ class Record(_Record):
         r"""Builds an start linear address record.
 
         Arguments:
-            address (:obj:`int`): Start linear address.
+            address (int):
+                Start linear address.
 
         Returns:
-            :obj:`Record`: Start linear address record.
+            record: Start linear address record.
 
         Raises:
-            :obj:`ValueError` Address overflow.
+            :obj:`ValueError`: Address overflow.
 
         Example:
             >>> str(Record.build_start_linear_address(0x12345678))
@@ -310,23 +317,33 @@ class Record(_Record):
         r"""Splits a chunk of data into records.
 
         Arguments:
-            data (:obj:`bytes`): Byte data to split.
-            address (:obj:`int`): Start address of the first data record being
-                split.
-            columns (:obj:`int`): Maximum number of columns per data record.
+            data (bytes):
+                Byte data to split.
+
+            address (int):
+                Start address of the first data record being split.
+
+            columns (int):
+                Maximum number of columns per data record.
                 If ``None``, the whole `data` is put into a single record.
                 Maximum of 255 columns.
-            align (:obj:`bool`): Aligns record addresses to the column length.
-            standalone (:obj:`bool`): Generates a sequence of records that can
-                be saved as a standlone record file.
-            start (:obj:`int`): Program start address.
+
+            align (bool):
+                Aligns record addresses to the column length.
+
+            standalone (bool):
+                Generates a sequence of records that can be saved as a
+                standalone record file.
+
+            start (int):
+                Program start address.
                 If ``None``, it is assigned the minimum data record address.
 
         Yields:
-            :obj:`Record`: Data split into records.
+            record: Data split into records.
 
         Raises:
-            :obj:`ValueError` Address, size, or column overflow.
+            :obj:`ValueError`: Address, size, or column overflow.
         """
         if not 0 <= address < (1 << 32):
             raise ValueError('address overflow')
@@ -380,13 +397,15 @@ class Record(_Record):
         r"""Makes a sequence of data records standalone.
 
         Arguments:
-            data_records (:obj:`list` of :class:`Record`): A sequence of data
-                records.
-            start (:obj:`int`): Program start address.
+            data_records (list of records):
+                A sequence of data records.
+
+            start (int):
+                Program start address.
                 If ``None``, it is assigned the minimum data record address.
 
         Yields:
-            :obj:`Record`: Records for a standalone record file.
+            record: Records for a standalone record file.
         """
         check_empty_args_kwargs(args, kwargs)
 
@@ -415,10 +434,11 @@ class Record(_Record):
         # An end-of-file record.
 
         Arguments:
-            start (:obj:`int`): Program start address.
+            start (int):
+                Program start address.
 
         Returns:
-            :obj:`list` of :obj:`Record`: Termination sequence.
+            list of records: Termination sequence.
 
         Example:
             >>> list(map(str, Record.terminate(0x12345678)))
@@ -445,8 +465,9 @@ class Record(_Record):
             their previous value.
 
         Arguments:
-            records (list): Sequence of records to be converted to *flat*
-                addressing, in-place. Sequence generators supported.
+            records (list of records):
+                Sequence of records to be converted to *flat* addressing,
+                in-place.
 
         Example:
             >>> records = [

@@ -54,7 +54,7 @@ class Tag(_Tag):
         cls: Type['Tag'],
         value: Union[int, 'Tag'],
     ) -> bool:
-        r""":obj:`bool`: `value` is a data record tag."""
+        r"""bool: `value` is a data record tag."""
         return value == cls.DATA
 
 
@@ -166,11 +166,14 @@ class Record(_Record):
         r"""Builds a data record.
 
         Arguments:
-            address (:obj:`int`): Record start address.
-            data (:obj:`bytes`): Some program data.
+            address (int):
+                Record address.
+
+            data (bytes):
+                Record data.
 
         Returns:
-            :obj:`Record`: Data record.
+            record: Data record.
 
         Example:
             >>> str(Record.build_data(0x12345678, b'Hello, World!'))
@@ -187,10 +190,11 @@ class Record(_Record):
         r"""Builds a terminator record.
 
         Arguments:
-            start (:obj:`int`): Program start address.
+            start (int):
+                Program start address.
 
         Returns:
-            :obj:`Record`: Terminator record.
+            record: Terminator record.
 
         Example:
             >>> str(Record.build_terminator(0x12345678))
@@ -212,23 +216,33 @@ class Record(_Record):
         r"""Splits a chunk of data into records.
 
         Arguments:
-            data (:obj:`bytes`): Byte data to split.
-            address (:obj:`int`): Start address of the first data record being
-                split.
-            columns (:obj:`int`): Maximum number of columns per data record.
+            data (bytes):
+                Byte data to split.
+
+            address (int):
+                Start address of the first data record being split.
+
+            columns (int):
+                Maximum number of columns per data record.
                 If ``None``, the whole `data` is put into a single record.
                 Maximum of 128 columns.
-            align (:obj:`bool`): Aligns record addresses to the column length.
-            standalone (:obj:`bool`): Generates a sequence of records that can
-                be saved as a standlone record file.
-            start (:obj:`int`): Program start address.
+
+            align (bool):
+                Aligns record addresses to the column length.
+
+            standalone (bool):
+                Generates a sequence of records that can be saved as a
+                standalone record file.
+
+            start (int):
+                Program start address.
                 If ``None``, it is assigned the minimum data record address.
 
         Yields:
-            :obj:`Record`: Data split into records.
+            record: Data split into records.
 
         Raises:
-            :obj:`ValueError` Address, size, or column overflow.
+            :obj:`ValueError`: Address, size, or column overflow.
         """
         if not 0 <= address < (1 << 32):
             raise ValueError('address overflow')
@@ -258,13 +272,15 @@ class Record(_Record):
         r"""Makes a sequence of data records standalone.
 
         Arguments:
-            data_records (:obj:`list` of :class:`Record`): A sequence of data
-                records.
-            start (:obj:`int`): Program start address.
+            data_records (list of record):
+                A sequence of data records.
+
+            start (int):
+                Program start address.
                 If ``None``, it is assigned the minimum data record address.
 
         Yields:
-            :obj:`Record`: Records for a standalone record file.
+            record: Records for a standalone record file.
         """
         check_empty_args_kwargs(args, kwargs)
 

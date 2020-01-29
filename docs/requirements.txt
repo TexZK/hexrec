@@ -1,5 +1,6 @@
 sphinx>=1.7
 sphinx-rtd-theme
 sphinx-click
+sphinx-autodoc-typehints
 twine>=1.12
 -e .

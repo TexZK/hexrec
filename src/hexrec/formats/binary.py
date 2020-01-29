@@ -50,7 +50,7 @@ class Tag(_Tag):
         cls: Type['Tag'],
         value: Union[int, 'Tag'],
     ) -> bool:
-        r""":obj:`bool`: `value` is a data record tag."""
+        r"""bool: `value` is a data record tag."""
         return True
 
 
@@ -83,6 +83,16 @@ class Record(_Record):
     ) -> 'Record':
         r"""Builds a data record.
 
+        Arguments:
+            address (int):
+                Data address.
+
+            data (bytes):
+                Record data.
+
+        Returns:
+            record: Data record.
+
         Example:
             >>> Record.build_data(0x1234, b'Hello, World!')
             ... #doctest: +NORMALIZE_WHITESPACE
@@ -100,6 +110,13 @@ class Record(_Record):
         **kwargs: Any,
     ) -> 'Record':
         r"""Parses a hexadecimal record line.
+
+        Arguments:
+            line (str):
+                Text line to parse.
+
+        Returns:
+            record: Parsed record.
 
         Warning:
             Since it parses raw hex data, it is not possible to set address
@@ -148,20 +165,28 @@ class Record(_Record):
         r"""Splits a chunk of data into records.
 
         Arguments:
-            data (:obj:`bytes`): Byte data to split.
-            address (:obj:`int`): Start address of the first data record being
-                split.
-            columns (:obj:`int`): Maximum number of columns per data record.
+            data (bytes):
+                Byte data to split.
+
+            address (int):
+                Start address of the first data record being split.
+
+            columns (int):
+                Maximum number of columns per data record.
                 If ``None``, the whole `data` is put into a single record.
-            align (:obj:`int`): Byte Alignment of record start addresses.
-            standalone (:obj:`bool`): Generates a sequence of records that can
-                be saved as a standlone record file.
+
+            align (int):
+                Byte Alignment of record start addresses.
+
+            standalone (bool):
+                Generates a sequence of records that can be saved as a
+                standalone record file.
 
         Yields:
-            :obj:`MotorolaRecord`: Data split into records.
+            record: Data split into records.
 
         Raises:
-            :obj:`ValueError` Address or size overflow.
+            :obj:`ValueError`: Address or size overflow.
         """
         if not 0 <= address < (1 << 32):
             raise ValueError('address overflow')
