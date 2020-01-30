@@ -30,6 +30,7 @@ import re
 from typing import Any
 from typing import Iterator
 from typing import Optional
+from typing import Sequence
 from typing import Type
 from typing import Union
 
@@ -64,20 +65,54 @@ class Record(_Record):
     See:
         `<https://en.wikipedia.org/wiki/Tektronix_extended_HEX>`_
 
+    Attributes:
+        address (int):
+            Tells where its `data` starts in the memory addressing space,
+            or an address with a special meaning.
+
+        tag (int):
+            Defines the logical meaning of the `address` and `data` fields.
+
+        data (bytes):
+            Byte data as required by the `tag`.
+
+        count (int):
+            Counts its fields as required by the :class:`Record` subclass
+            implementation.
+
+        checksum (int):
+            Computes the checksum as required by most :class:`Record`
+            implementations.
+
+    Arguments:
+        address (int):
+            Record `address` field.
+
+        tag (int):
+            Record `tag` field.
+
+        data (bytes):
+            Record `data` field.
+
+        checksum (int):
+            Record `checksum` field.
+            ``Ellipsis`` makes the constructor compute its actual value
+            automatically.
+            ``None`` assigns ``None``.
     """
 
-    TAG_TYPE = Tag
-    """Associated Python class for tags."""
+    TAG_TYPE: Optional[Type[Tag]] = Tag
+    r"""Associated Python class for tags."""
 
     REGEX = re.compile(r'^%(?P<count>[0-9A-Fa-f]{2})'
                        r'(?P<tag>[68])'
                        r'(?P<checksum>[0-9A-Fa-f]{2})'
                        r'8(?P<address>[0-9A-Fa-f]{8})'
                        r'(?P<data>([0-9A-Fa-f]{2}){,255})$')
-    """Regular expression for parsing a record text line."""
+    r"""Regular expression for parsing a record text line."""
 
-    EXTENSIONS = ('.tek',)
-    """Automatically supported file extensions."""
+    EXTENSIONS: Sequence[str] = ('.tek',)
+    r"""File extensions typically mapped to this record type."""
 
     def __init__(
         self: 'Record',

@@ -32,6 +32,7 @@ from typing import Any
 from typing import Iterator
 from typing import Mapping
 from typing import Optional
+from typing import Sequence
 from typing import Type
 from typing import Union
 
@@ -50,37 +51,37 @@ from ..utils import unhexlify
 
 @enum.unique
 class Tag(_Tag):
-    """Motorola S-record tag."""
+    r"""Motorola S-record tag."""
 
     HEADER = 0
-    """Header string. Optional."""
+    r"""Header string. Optional."""
 
     DATA_16 = 1
-    """16-bit address data record."""
+    r"""16-bit address data record."""
 
     DATA_24 = 2
-    """24-bit address data record."""
+    r"""24-bit address data record."""
 
     DATA_32 = 3
-    """32-bit address data record."""
+    r"""32-bit address data record."""
 
     _RESERVED = 4
-    """Reserved tag."""
+    r"""Reserved tag."""
 
     COUNT_16 = 5
-    """16-bit record count. Optional."""
+    r"""16-bit record count. Optional."""
 
     COUNT_24 = 6
-    """24-bit record count. Optional."""
+    r"""24-bit record count. Optional."""
 
     START_32 = 7
-    """32-bit start address. Terminates :attr:`DATA_32`."""
+    r"""32-bit start address. Terminates :attr:`DATA_32`."""
 
     START_24 = 8
-    """24-bit start address. Terminates :attr:`DATA_24`."""
+    r"""24-bit start address. Terminates :attr:`DATA_24`."""
 
     START_16 = 9
-    """16-bit start address. Terminates :attr:`DATA_16`."""
+    r"""16-bit start address. Terminates :attr:`DATA_16`."""
 
     @classmethod
     def is_data(
@@ -96,22 +97,57 @@ class Record(_Record):
 
     See:
         `<https://en.wikipedia.org/wiki/SREC_(file_format)>`_
+
+    Attributes:
+        address (int):
+            Tells where its `data` starts in the memory addressing space,
+            or an address with a special meaning.
+
+        tag (int):
+            Defines the logical meaning of the `address` and `data` fields.
+
+        data (bytes):
+            Byte data as required by the `tag`.
+
+        count (int):
+            Counts its fields as required by the :class:`Record` subclass
+            implementation.
+
+        checksum (int):
+            Computes the checksum as required by most :class:`Record`
+            implementations.
+
+    Arguments:
+        address (int):
+            Record `address` field.
+
+        tag (int):
+            Record `tag` field.
+
+        data (bytes):
+            Record `data` field.
+
+        checksum (int):
+            Record `checksum` field.
+            ``Ellipsis`` makes the constructor compute its actual value
+            automatically.
+            ``None`` assigns ``None``.
     """
 
-    TAG_TYPE = Tag
-    """Associated Python class for tags."""
+    TAG_TYPE: Optional[Type[Tag]] = Tag
+    r"""Associated Python class for tags."""
 
     TAG_TO_ADDRESS_LENGTH = (2, 2, 3, 4, None, None, None, 4, 3, 2)
-    """Maps a tag to its address byte length, if available."""
+    r"""Maps a tag to its address byte length, if available."""
 
     MATCHING_TAG = (None, None, None, None, None, None, None, 3, 2, 1)
-    """Maps the terminator tag to its mathing data tag."""
+    r"""Maps the terminator tag to its mathing data tag."""
 
     REGEX = re.compile(r'^S[0-9]([0-9A-Fa-f]{2}){4,140}$')
-    """Regular expression for parsing a record text line."""
+    r"""Regular expression for parsing a record text line."""
 
-    EXTENSIONS = ('.mot', '.s19', '.s28', '.s37', '.srec', '.exo')
-    """Automatically supported file extensions."""
+    EXTENSIONS: Sequence[str] = ('.mot', '.s19', '.s28', '.s37', '.srec', '.exo')
+    r"""File extensions typically mapped to this record type."""
 
     def __init__(
         self: 'Record',

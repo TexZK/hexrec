@@ -28,7 +28,7 @@ copyright = '{0}, {1}'.format(year, author)
 version = release = '0.2.0'
 
 pygments_style = 'trac'
-templates_path = ['.']
+templates_path = ['_templates']
 extlinks = {
     'issue': ('https://github.com/TexZK/hexrec/issues/%s', '#'),
     'pr': ('https://github.com/TexZK/hexrec/pull/%s', 'PR #'),
@@ -46,6 +46,8 @@ html_sidebars = {
    '**': ['searchbox.html', 'globaltoc.html', 'sourcelink.html'],
 }
 html_short_title = '%s-%s' % (project, version)
+html_static_path = ['_static']
+html_style = 'css/my_theme.css'
 
 autoclass_content = 'both'
 autodoc_default_flags = [
@@ -67,3 +69,5 @@ napoleon_use_rtype = False
 napoleon_use_param = True
 napoleon_include_private_with_doc = True
 napoleon_include_special_with_doc = True
+
+typehints_document_rtype = False

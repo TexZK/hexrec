@@ -125,8 +125,8 @@ holding record data.
 
 However, the ``hexrec.records`` module is actually an user-friendly interface
 over ``hexrec.blocks``, which manages sparse blocks of data.
-It also provides a handy wrapper to work with sparse byte chunks with an API
-akin to ``bytearray``.
+It also provides the handy wrapper class ``hexrec.blocks.Memory`` to work
+with sparse byte chunks with an API akin to ``bytearray``.
 
 The ``hexrec.utils`` module provides some miscellaneous utility stuff.
 
@@ -143,11 +143,22 @@ maintainable, following some naive pythonic *K.I.S.S.* approach by choice.
 
 This is mainly a library to create and manage sparse blocks of binary data,
 not made to edit binary data chunks directly.
-Please consider faster native pythonic ways to create and edit your binary data
-chunks (``bytes``, ``bytearray``, ``struct``, ...).
+Please consider faster native pythonic ways to create and edit your binary
+data chunks (``bytes``, ``bytearray``, ``struct``, ...).
 Algorithms can be very slow if misused (this is Python anyway), but they are
 fast enough for the vast majority of operations made on the memory of a
 microcontroller-based embedded system.
+
+
++------------------------------------------------------+
+|                      hexrec.cli                      |
++--------------+---------------------------------------+
+|  hexrec.xxd  |                                       |
++--------------+----------------------+----------------+
+|              | hexrec.blocks.Memory | hexrec.records |
+| hexrec.utils +----------------------+----------------+
+|              |            hexrec.blocks              |
++--------------+---------------------------------------+
 
 
 Examples
@@ -189,7 +200,7 @@ This example shows how to merge a bootloader, an executable, and some
 configuration data into a single file, in the order they are listed.
 
 >>> import hexrec.records as hr
->>> input_files = ['bootloader.hex', 'executable.mot', 'configuration.s19']
+>>> input_files = [u'bootloader.hex', 'executable.mot', 'configuration.s19']
 >>> hr.merge_files(input_files, 'merged.srec')
 
 This can also be done by running the `hexrec` package as a command line tool:
@@ -214,7 +225,7 @@ For the sake of simplicity, the data structure consists of 4096 random values
 >>> for index in range(100):
 >>>     values = [random.random() for _ in range(4096)]
 >>>     data = struct.pack('<4096f', *values)
->>>     hr.save_chunk('dataset_%02d.mot' % index, data, 0xDA7A0000)
+>>>     hr.save_chunk(f'dataset_{index:02d}.mot', data, 0xDA7A0000)
 
 
 Write a CRC
@@ -320,11 +331,11 @@ From source:
 Development
 ===========
 
-To run the all tests run:
+To run the all the tests:
 
 .. code-block:: sh
 
-    $ tox
+    $ tox --skip-missing-interpreters
 
 
 Note, to combine the coverage data from all the tox environments run:

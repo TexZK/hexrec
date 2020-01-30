@@ -912,7 +912,7 @@ class Record:
 
     __slots__ = ('tag', 'count', 'address', 'data', 'checksum')
 
-    TAG_TYPE: Type[Tag] = Tag
+    TAG_TYPE: Optional[Type[Tag]] = Tag
     r"""Associated Python class for tags."""
 
     LINE_SEP: Union[bytes, str] = '\n'

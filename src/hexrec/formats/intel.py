@@ -48,25 +48,25 @@ from ..utils import unhexlify
 
 @enum.unique
 class Tag(_Tag):
-    """Intel HEX tag."""
+    r"""Intel HEX tag."""
 
     DATA = 0
-    """Binary data."""
+    r"""Binary data."""
 
     END_OF_FILE = 1
-    """End of file."""
+    r"""End of file."""
 
     EXTENDED_SEGMENT_ADDRESS = 2
-    """Extended segment address."""
+    r"""Extended segment address."""
 
     START_SEGMENT_ADDRESS = 3
-    """Start segment address."""
+    r"""Start segment address."""
 
     EXTENDED_LINEAR_ADDRESS = 4
-    """Extended linear address."""
+    r"""Extended linear address."""
 
     START_LINEAR_ADDRESS = 5
-    """Start linear address."""
+    r"""Start linear address."""
 
     @classmethod
     def is_data(
@@ -82,20 +82,55 @@ class Record(_Record):
 
     See:
         `<https://en.wikipedia.org/wiki/Intel_HEX>`_
+
+    Attributes:
+        address (int):
+            Tells where its `data` starts in the memory addressing space,
+            or an address with a special meaning.
+
+        tag (int):
+            Defines the logical meaning of the `address` and `data` fields.
+
+        data (bytes):
+            Byte data as required by the `tag`.
+
+        count (int):
+            Counts its fields as required by the :class:`Record` subclass
+            implementation.
+
+        checksum (int):
+            Computes the checksum as required by most :class:`Record`
+            implementations.
+
+    Arguments:
+        address (int):
+            Record `address` field.
+
+        tag (int):
+            Record `tag` field.
+
+        data (bytes):
+            Record `data` field.
+
+        checksum (int):
+            Record `checksum` field.
+            ``Ellipsis`` makes the constructor compute its actual value
+            automatically.
+            ``None`` assigns ``None``.
     """
 
-    TAG_TYPE = Tag
-    """Associated Python class for tags."""
+    TAG_TYPE: Optional[Type[Tag]] = Tag
+    r"""Associated Python class for tags."""
 
     REGEX = re.compile(r'^:(?P<count>[0-9A-Fa-f]{2})'
                        r'(?P<offset>[0-9A-Fa-f]{4})'
                        r'(?P<tag>[0-9A-Fa-f]{2})'
                        r'(?P<data>([0-9A-Fa-f]{2}){,255})'
                        r'(?P<checksum>[0-9A-Fa-f]{2})$')
-    """Regular expression for parsing a record text line."""
+    r"""Regular expression for parsing a record text line."""
 
-    EXTENSIONS = ('.hex', '.ihex', '.mcs')
-    """Automatically supported file extensions."""
+    EXTENSIONS: Sequence[str] = ('.hex', '.ihex', '.mcs')
+    r"""Automatically supported file extensions."""
 
     def __init__(
         self: 'Record',

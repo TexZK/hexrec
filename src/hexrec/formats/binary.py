@@ -29,6 +29,7 @@ import enum
 from typing import Any
 from typing import Iterator
 from typing import Optional
+from typing import Sequence
 from typing import Type
 from typing import Union
 
@@ -43,7 +44,7 @@ from ..utils import unhexlify
 
 @enum.unique
 class Tag(_Tag):
-    """Hexadecimal record tag."""
+    r"""Hexadecimal record tag."""
 
     @classmethod
     def is_data(
@@ -55,10 +56,57 @@ class Tag(_Tag):
 
 
 class Record(_Record):
+    r"""Binary record type.
 
-    LINE_SEP = b''
+    This record type is actually just a container for binary data.
 
-    EXTENSIONS = ('.bin', '.dat', '.raw')
+    Attributes:
+        address (int):
+            Tells where its `data` starts in the memory addressing space,
+            or an address with a special meaning.
+
+        tag (int):
+            Defines the logical meaning of the `address` and `data` fields.
+
+        data (bytes):
+            Byte data as required by the `tag`.
+
+        count (int):
+            Counts its fields as required by the :class:`Record` subclass
+            implementation.
+
+        checksum (int):
+            Computes the checksum as required by most :class:`Record`
+            implementations.
+
+    Arguments:
+        address (int):
+            Record `address` field.
+
+        tag (int):
+            Record `tag` field.
+
+        data (bytes):
+            Record `data` field.
+
+        checksum (int):
+            Record `checksum` field.
+            ``Ellipsis`` makes the constructor compute its actual value
+            automatically.
+            ``None`` assigns ``None``.
+    """
+
+    TAG_TYPE: Optional[Type[Tag]] = Tag
+    r"""Associated Python class for tags."""
+
+    LINE_SEP: Union[bytes, str] = b''
+    r"""Separator between record lines.
+
+    If subclass of :obj:`bytes`, it is considered as a binary file.
+    """
+
+    EXTENSIONS: Sequence[str] = ('.bin', '.dat', '.raw')
+    r"""File extensions typically mapped to this record type."""
 
     def __init__(
         self: 'Record',
