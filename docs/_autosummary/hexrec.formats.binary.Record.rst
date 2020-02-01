@@ -53,6 +53,7 @@ hexrec.formats.binary.Record
    
       ~Record.EXTENSIONS
       ~Record.LINE_SEP
+      ~Record.TAG_TYPE
       ~Record.address
       ~Record.checksum
       ~Record.count

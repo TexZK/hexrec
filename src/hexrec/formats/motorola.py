@@ -25,6 +25,12 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+r"""Motorola S-record format.
+
+See Also:
+    `<https://en.wikipedia.org/wiki/SREC_(file_format)>`_
+"""
+
 import enum
 import re
 import struct
@@ -94,9 +100,6 @@ class Tag(_Tag):
 
 class Record(_Record):
     r"""Motorola S-record.
-
-    See:
-        `<https://en.wikipedia.org/wiki/SREC_(file_format)>`_
 
     Attributes:
         address (int):
@@ -660,7 +663,7 @@ class Record(_Record):
         data: AnyBytes,
         address: int = 0,
         columns: int = 16,
-        align: bool = True,
+        align: Union[int, type(Ellipsis)] = Ellipsis,
         standalone: bool = True,
         start: Optional[int] = None,
         tag: Optional[Tag] = None,
@@ -680,8 +683,9 @@ class Record(_Record):
                 If ``None``, the whole `data` is put into a single record.
                 Maximum of 128 columns.
 
-            align (bool):
-                Aligns record addresses to the column length.
+            align (int):
+                Aligns record addresses to such number.
+                If ``Ellipsis``, its value is resolved after `columns`.
 
             standalone (bool):
                 Generates a sequence of records that can be saved as a
@@ -710,6 +714,8 @@ class Record(_Record):
             raise ValueError('size overflow')
         if not 0 < columns < 128:
             raise ValueError('column overflow')
+        if align is Ellipsis:
+            align = columns
 
         if start is None:
             start = address
@@ -720,7 +726,7 @@ class Record(_Record):
         if standalone:
             yield cls.build_header(header)
 
-        skip = (address % columns) if align else 0
+        skip = (address % align) if align else 0
         for chunk in chop(data, columns, skip):
             yield cls.build_data(address, chunk, tag)
             count += 1

@@ -25,6 +25,12 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+r"""ASCII-hex format.
+
+See Also:
+    `<http://srecord.sourceforge.net/man/man5/srec_ascii_hex.html>`_
+"""
+
 import io
 import re
 from typing import IO
@@ -45,10 +51,7 @@ from ..utils import unhexlify
 
 
 class Record(_Record):
-    r"""ASCII-hex record file.
-
-    See:
-        `<http://srecord.sourceforge.net/man/man5/srec_ascii_hex.html>`_
+    r"""ASCII-hex record.
 
     Attributes:
         address (int):
@@ -215,7 +218,7 @@ class Record(_Record):
         data: AnyBytes,
         address: int = 0,
         columns: int = 16,
-        align: bool = True,
+        align: Union[int, type(Ellipsis)] = Ellipsis,
         standalone: bool = True,
     ) -> Iterator['Record']:
         r"""Splits a chunk of data into records.
@@ -232,8 +235,9 @@ class Record(_Record):
                 If ``None``, the whole `data` is put into a single record.
                 Maximum of 128 columns.
 
-            align (bool):
-                Aligns record addresses to the column length.
+            align (int):
+                Aligns record addresses to such number.
+                If ``Ellipsis``, its value is resolved after `columns`.
 
             standalone (bool):
                 Generates a sequence of records that can be saved as a
@@ -251,8 +255,10 @@ class Record(_Record):
             raise ValueError('size overflow')
         if not 0 < columns < (1 << 8):
             raise ValueError('column overflow')
+        if align is Ellipsis:
+            align = columns
 
-        align_base = (address % columns) if align else 0
+        align_base = (address % align) if align else 0
         offset = address
         checksum = 0
 

@@ -133,7 +133,7 @@ The ``hexrec.utils`` module provides some miscellaneous utility stuff.
 ``hexrec.xxd`` is an emulation of the ``xxd`` command line utility delivered
 by ``vim``.
 
-The package can also be run as a command line tool, by running the `hexrec`
+The package can also be run as a command line tool, by running the ``hexrec``
 package itself (``python -m hexrec``), providing some record file  utilities.
 You can also create your own standalone executable, or download a precompiled
 one from the ``pyinstaller`` folder.
@@ -218,7 +218,8 @@ need to test the current executable with some data stored in EEPROM.
 We lack the software tool to generate such data, and even worse we need to test
 100 configurations.
 For the sake of simplicity, the data structure consists of 4096 random values
-(0 to 1) of ``float`` type, stored in little-endian at address ``0xDA7A0000``.
+(0 to 1) of ``float`` type, stored in little-endian at the address
+``0xDA7A0000``.
 
 >>> import struct, random
 >>> import hexrec.records as hr

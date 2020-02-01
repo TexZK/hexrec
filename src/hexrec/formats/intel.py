@@ -25,6 +25,12 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+r"""Intel HEX format.
+
+See Also:
+    `<https://en.wikipedia.org/wiki/Intel_HEX>`_
+"""
+
 import enum
 import re
 import struct
@@ -79,9 +85,6 @@ class Tag(_Tag):
 
 class Record(_Record):
     r"""Intel HEX record.
-
-    See:
-        `<https://en.wikipedia.org/wiki/Intel_HEX>`_
 
     Attributes:
         address (int):
@@ -345,7 +348,7 @@ class Record(_Record):
         data: AnyBytes,
         address: int = 0,
         columns: int = 16,
-        align: bool = True,
+        align: Union[int, type(Ellipsis)] = Ellipsis,
         standalone: bool = True,
         start: Optional[int] = None,
     ) -> Iterator['Record']:
@@ -363,8 +366,9 @@ class Record(_Record):
                 If ``None``, the whole `data` is put into a single record.
                 Maximum of 255 columns.
 
-            align (bool):
-                Aligns record addresses to the column length.
+            align (int):
+                Aligns record addresses to such number.
+                If ``Ellipsis``, its value is resolved after `columns`.
 
             standalone (bool):
                 Generates a sequence of records that can be saved as a
@@ -386,10 +390,12 @@ class Record(_Record):
             raise ValueError('size overflow')
         if not 0 < columns < 255:
             raise ValueError('column overflow')
-
+        if align is Ellipsis:
+            align = columns
         if start is None:
             start = address
-        align_base = (address % columns) if align else 0
+
+        align_base = (address % align) if align else 0
         address_old = 0
 
         for chunk in chop(data, columns, align_base):

@@ -138,6 +138,16 @@ class TestRecord:
         ]
         assert ans_out == ans_ref
 
+        ans_out = list(Record.split(HEXBYTES, standalone=False,
+                                    address=7, columns=5, align=3))
+        ans_ref = [
+            Record.build_data(7, HEXBYTES[:4]),
+            Record.build_data(11, HEXBYTES[4:9]),
+            Record.build_data(16, HEXBYTES[9:14]),
+            Record.build_data(21, HEXBYTES[14:]),
+        ]
+        assert ans_out == ans_ref
+
     def test_build_standalone(self):
         ans_out = list(Record.build_standalone([], start=0))
         ans_ref = [Record(0, Tag.TERMINATOR, b'')]

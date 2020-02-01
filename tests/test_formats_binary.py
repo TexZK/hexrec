@@ -5,7 +5,6 @@ from pathlib import Path
 import pytest
 
 from hexrec.formats.binary import Record
-from hexrec.formats.binary import Tag
 
 BYTES = bytes(range(256))
 HEXBYTES = bytes(range(16))
@@ -54,15 +53,6 @@ def test_normalize_whitespace():
 
 # ============================================================================
 
-class TestTag:
-
-    def test_is_data(self):
-        for tag in range(256):
-            assert Tag.is_data(tag)
-
-
-# ============================================================================
-
 class TestRecord:
 
     def test_build_data_doctest(self):
@@ -84,6 +74,47 @@ class TestRecord:
         ''')
         assert ans_out == ans_ref
 
+    def test_is_data(self):
+        assert Record.build_data(0, b'').is_data()
+
+    def test_check(self):
+        with pytest.raises(ValueError):
+            Record(-1, None, b'Hello, World!').check()
+
+        record = Record(0, None, b'')
+        record.data = None
+        with pytest.raises(ValueError):
+            record.check()
+
+        record = Record(0, None, b'Hello, World!')
+        record.checksum = None
+        record.check()
+
+        record = Record(0, None, b'Hello, World!')
+        record.checksum = -1
+        with pytest.raises(ValueError):
+            record.check()
+
+        record = Record(0, None, b'Hello, World!')
+        record.checksum = 256
+        with pytest.raises(ValueError):
+            record.check()
+
+        record = Record(0, None, b'')
+        record.checksum ^= 0xFF
+        with pytest.raises(ValueError):
+            record.check()
+
+        record = Record(0, None, b'')
+        record.tag = -1
+        with pytest.raises(ValueError):
+            record.check()
+
+        record = Record(0, None, b'')
+        record.count = -1
+        with pytest.raises(ValueError):
+            record.check()
+
     def test_split(self):
         with pytest.raises(ValueError):
             list(Record.split(b'', -1))
@@ -101,6 +132,16 @@ class TestRecord:
         ans_out = list(Record.split(BYTES, columns=8))
         ans_ref = [Record.build_data(offset, BYTES[offset:(offset + 8)])
                    for offset in range(0, 256, 8)]
+        assert ans_out == ans_ref
+
+        ans_out = list(Record.split(HEXBYTES, standalone=False,
+                                    address=7, columns=5, align=3))
+        ans_ref = [
+            Record.build_data(7, HEXBYTES[:4]),
+            Record.build_data(11, HEXBYTES[4:9]),
+            Record.build_data(16, HEXBYTES[9:14]),
+            Record.build_data(21, HEXBYTES[14:]),
+        ]
         assert ans_out == ans_ref
 
     def test_load_records(self, datapath):

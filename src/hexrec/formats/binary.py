@@ -25,6 +25,11 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+r"""Binary format.
+
+This format is actually used to hold binary chunks of raw data (`bytes`).
+"""
+
 import enum
 from typing import Any
 from typing import Iterator
@@ -42,21 +47,8 @@ from ..utils import hexlify
 from ..utils import unhexlify
 
 
-@enum.unique
-class Tag(_Tag):
-    r"""Hexadecimal record tag."""
-
-    @classmethod
-    def is_data(
-        cls: Type['Tag'],
-        value: Union[int, 'Tag'],
-    ) -> bool:
-        r"""bool: `value` is a data record tag."""
-        return True
-
-
 class Record(_Record):
-    r"""Binary record type.
+    r"""Binary record.
 
     This record type is actually just a container for binary data.
 
@@ -96,7 +88,7 @@ class Record(_Record):
             ``None`` assigns ``None``.
     """
 
-    TAG_TYPE: Optional[Type[Tag]] = Tag
+    TAG_TYPE: Optional[Type[_Tag]] = None
     r"""Associated Python class for tags."""
 
     LINE_SEP: Union[bytes, str] = b''
@@ -111,7 +103,7 @@ class Record(_Record):
     def __init__(
         self: 'Record',
         address: int,
-        tag: Optional[Tag],
+        tag: Optional[_Tag],
         data: AnyBytes,
         checksum: Union[int, type(Ellipsis)] = Ellipsis,
     ) -> None:
@@ -122,6 +114,39 @@ class Record(_Record):
     ) -> str:
         text = hexlify(self.data)
         return text
+
+    def is_data(
+        self: 'Record',
+    ) -> bool:
+        del self
+        return True
+
+    def check(
+        self: 'Record',
+    ) -> None:
+        r"""Performs consistency checks.
+
+        Raises:
+            :obj:`ValueError`: a field is inconsistent.
+        """
+        if not 0 <= self.address:
+            raise ValueError('address overflow')
+
+        if self.tag is not None:
+            raise ValueError('tag error')
+
+        if self.data is None:
+            raise ValueError('no data')
+
+        if self.count != len(self.data):
+            raise ValueError('count error')
+
+        if self.checksum is not None:
+            if not 0x00 <= self.checksum <= 0xFF:
+                raise ValueError('checksum overflow')
+
+            if self.checksum != self.compute_checksum():
+                raise ValueError('checksum error')
 
     @classmethod
     def build_data(
@@ -207,7 +232,7 @@ class Record(_Record):
         data: AnyBytes,
         address: int = 0,
         columns: Optional[int] = None,
-        align: bool = True,
+        align: Union[int, type(Ellipsis)] = Ellipsis,
         standalone: bool = True,
     ) -> Iterator['Record']:
         r"""Splits a chunk of data into records.
@@ -224,7 +249,8 @@ class Record(_Record):
                 If ``None``, the whole `data` is put into a single record.
 
             align (int):
-                Byte Alignment of record start addresses.
+                Aligns record addresses to such number.
+                If ``Ellipsis``, its value is resolved after `columns`.
 
             standalone (bool):
                 Generates a sequence of records that can be saved as a
@@ -240,11 +266,13 @@ class Record(_Record):
             raise ValueError('address overflow')
         if not 0 <= address + len(data) <= (1 << 32):
             raise ValueError('size overflow')
+        if align is Ellipsis:
+            align = columns
 
         if columns is None:
             yield cls.build_data(address, data)
         else:
-            align_base = (address % columns) if align else 0
+            align_base = (address % align) if align else 0
             for chunk in chop(data, columns, align_base):
                 yield cls.build_data(address, chunk)
                 address += len(chunk)

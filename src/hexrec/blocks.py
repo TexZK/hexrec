@@ -1754,7 +1754,7 @@ class Memory:
                 of non-overlapping blocks, sorted by start address.
 
         Returns:
-            `self`.
+            :obj:`Memory` - `self`.
         """
         blocks = self.blocks
 
@@ -1799,7 +1799,7 @@ class Memory:
                 Times to repeat the sequence of items.
 
         Returns:
-            Memory: A new space with the items repeated.
+            :obj:`Memory`: A new space with the items repeated.
         """
         cls = type(self)
         result = cls(automerge=self.automerge,
@@ -1823,7 +1823,7 @@ class Memory:
                 Times to repeat the sequence of items.
 
         Returns:
-            Memory: `self`.
+            :obj:`Memory`: `self`.
         """
         blocks = self.blocks
         repeated = []
@@ -1975,6 +1975,9 @@ class Memory:
             This method is not optimized for a :class:`slice` where its `step`
             is an :obj:`int` different from 1.
 
+        See Also:
+            :meth:`Memory.read`
+
         Example:
             +---+---+---+---+---+---+---+---+---+---+---+
             | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10|
@@ -2079,6 +2082,10 @@ class Memory:
         Note:
             This method is not optimized for a :class:`slice` where its `step`
             is an :obj:`int` different from 1.
+
+        See Also:
+            :meth:`Memory.write`
+            :meth:`Memory.clear`
 
         Examples:
             +---+---+---+---+---+---+---+---+---+
@@ -2202,6 +2209,9 @@ class Memory:
             This method is not optimized for a :class:`slice` with its `step`
             different from either ``None`` or 1.
 
+        See Also:
+            :meth:`Memory.delete`
+
         Examples:
             +---+---+---+---+---+---+---+---+---+---+---+---+
             | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10| 11|
@@ -2227,8 +2237,7 @@ class Memory:
             |   |[A | B | C]|[y | z]|   |   |   |   |   |   |
             +---+---+---+---+---+---+---+---+---+---+---+---+
 
-            >>> memory = Memory(items_type=str,
-            ...                      automerge=False)
+            >>> memory = Memory(items_type=str, automerge=False)
             >>> memory.blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
             >>> del memory[4:9]
             >>> memory.blocks
@@ -2445,6 +2454,8 @@ class Memory:
         pattern: Optional[ItemSequence] = None,
     ) -> ItemSequence:
         r"""Selects items from a range.
+
+        Equivalent to ``self[start:endex:pattern]``.
 
         Arguments:
             start (int):

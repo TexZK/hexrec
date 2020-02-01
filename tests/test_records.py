@@ -551,6 +551,16 @@ class TestRecord:
         with pytest.raises(ValueError):
             record.check()
 
+        record = Record(0, None, b'')
+        record.tag = -1
+        with pytest.raises(ValueError):
+            record.check()
+
+        record = Record(0, None, b'')
+        record.count = -1
+        with pytest.raises(ValueError):
+            record.check()
+
     def test__get_checksum(self):
         record = BinaryRecord(0, None, b'Hello, World!')
         assert hex(record._get_checksum()) == '0x69'
