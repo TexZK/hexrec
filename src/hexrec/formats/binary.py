@@ -30,7 +30,6 @@ r"""Binary format.
 This format is actually used to hold binary chunks of raw data (`bytes`).
 """
 
-import enum
 from typing import Any
 from typing import Iterator
 from typing import Optional
