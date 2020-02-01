@@ -1,7 +1,7 @@
 Changelog
 =========
 
-0.2.0 (TODO)
+0.2.0 (2020-02-01)
 ------------------
 
 * Added support for current Python versions (3.8, PyPy 3)
