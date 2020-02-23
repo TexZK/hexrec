@@ -2025,8 +2025,10 @@ class Memory:
                 step = self.autofill
 
             if isinstance(step, self.items_type):
-                blocks = read(blocks, start, endex, step, self.items_join)
-                blocks = flood(blocks, pattern=step, join=self.items_join)
+                blocks = read(blocks, start, endex, step,
+                              join=self.items_join)
+                blocks = flood(blocks, start, endex, step,
+                               join=self.items_join)
                 items = self.items_join(items for _, items in blocks)
                 return items
 
