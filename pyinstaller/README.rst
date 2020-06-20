@@ -12,6 +12,10 @@ Installation
 Make sure that ``pyinstaller`` is called by a Python environment where
 ``hexrec`` was successfully installed.
 
+
+Anaconda 3 / Windows
+--------------------
+
 For example, with Anaconda Prompt:
 
 .. code-block:: sh
@@ -22,24 +26,25 @@ For example, with Anaconda Prompt:
     $ cd PATH_TO_HEXREC_SOURCE_ROOT
     $ python setup.py install
 
+Note that ``pyinstaller`` might generate broken executables depending on the
+installed packages. You can try with the developmental version for an updated
+codebase instead of the default package:
+
+.. code-block:: sh
+
+    $ pip install https://github.com/pyinstaller/pyinstaller/tarball/develop
+
 
 Generation
 ==========
 
-Example command line to create a standalone executable for Windows:
+Example command line to create a standalone executable:
 
 .. code-block:: sh
 
     $ cd PATH_TO_HEXREC_SOURCE_ROOT
     $ cd pyinstaller
-    $ pyinstaller -n hexrec --onefile --distpath=win-x86 hexrec_cli.py
+    $ pyinstaller hexrec.spec
 
-This will generate ``hexrec.exe`` in the ``win-x86`` subfolder.
-
-
-Disclaimer
-==========
-
-All the generated executables files found in the subdirectories of this
-repository may be outdated with respect to the actual source code, and are only
-provided as-is for example purposes, although they should work properly.
+This will generate ``hexrec`` (``hexrec.exe`` under Windows) in the ``dist``
+subfolder.
