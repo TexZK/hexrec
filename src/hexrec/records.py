@@ -1990,10 +1990,39 @@ class Record:
             stream.flush()
 
 
-RECORD_TYPES: Mapping[str, Type[Record]] = {
-    entry_point.name: entry_point.load()
+RECORD_TYPES: Mapping[str, Type[Record]] = {}
+r"""Registered record types."""
+
+
+# Workaround to always regsister official record types.
+# Using a function to avoid namespace cluttering.
+def __register_default_record_types():
+    global RECORD_TYPES
+
+    from hexrec.formats.ascii_hex import Record
+    RECORD_TYPES['ascii_hex'] = Record
+
+    from hexrec.formats.binary import Record
+    RECORD_TYPES['binary'] = Record
+
+    from hexrec.formats.intel import Record
+    RECORD_TYPES['intel'] = Record
+
+    from hexrec.formats.mos import Record
+    RECORD_TYPES['mos'] = Record
+
+    from hexrec.formats.motorola import Record
+    RECORD_TYPES['motorola'] = Record
+
+    from hexrec.formats.tektronix import Record
+    RECORD_TYPES['tektronix'] = Record
+
+
+__register_default_record_types()
+RECORD_TYPES.update(
+    (entry_point.name, entry_point.load())
     for entry_point in pkg_resources.iter_entry_points('hexrec_types')
-}
+)
 
 
 def find_record_type_name(

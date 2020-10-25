@@ -1,7 +1,18 @@
-hexrec.xxd
+﻿hexrec.xxd
 ==========
 
 .. automodule:: hexrec.xxd
+
+   
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      HUMAN_ASCII
+      HUMAN_EBCDIC
+   
+   
 
    
    
@@ -22,3 +33,6 @@ hexrec.xxd
    
    
    
+
+
+

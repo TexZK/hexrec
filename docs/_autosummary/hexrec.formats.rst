@@ -1,4 +1,4 @@
-hexrec.formats
+﻿hexrec.formats
 ==============
 
 .. automodule:: hexrec.formats
@@ -14,3 +14,10 @@ hexrec.formats
    
    
    
+
+   
+   
+   
+
+
+

@@ -1,7 +1,11 @@
-hexrec.formats.ascii\_hex
+﻿hexrec.formats.ascii\_hex
 =========================
 
 .. automodule:: hexrec.formats.ascii_hex
+
+   
+   
+   
 
    
    
@@ -20,3 +24,6 @@ hexrec.formats.ascii\_hex
    
    
    
+
+
+

@@ -1,7 +1,11 @@
-hexrec.blocks
+﻿hexrec.blocks
 =============
 
 .. automodule:: hexrec.blocks
+
+   
+   
+   
 
    
    
@@ -44,3 +48,6 @@ hexrec.blocks
    
    
    
+
+
+

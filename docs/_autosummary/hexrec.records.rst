@@ -1,7 +1,17 @@
-hexrec.records
+﻿hexrec.records
 ==============
 
 .. automodule:: hexrec.records
+
+   
+   
+   .. rubric:: Module Attributes
+
+   .. autosummary::
+   
+      RECORD_TYPES
+   
+   
 
    
    
@@ -44,3 +54,6 @@ hexrec.records
    
    
    
+
+
+

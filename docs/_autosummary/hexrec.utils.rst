@@ -1,7 +1,11 @@
-hexrec.utils
+﻿hexrec.utils
 ============
 
 .. automodule:: hexrec.utils
+
+   
+   
+   
 
    
    
@@ -39,3 +43,6 @@ hexrec.utils
    
    
    
+
+
+
