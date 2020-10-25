@@ -25,7 +25,7 @@ project = 'hexrec'
 year = '2020'
 author = 'Andrea Zoppi'
 copyright = '{0}, {1}'.format(year, author)
-version = release = '0.2.1'
+version = release = '0.2.2'
 
 pygments_style = 'trac'
 templates_path = ['_templates']
@@ -71,3 +71,4 @@ napoleon_include_private_with_doc = True
 napoleon_include_special_with_doc = True
 
 typehints_document_rtype = False
+
