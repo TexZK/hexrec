@@ -937,6 +937,79 @@ def delete(
     return result
 
 
+def reserve(
+    blocks: BlockSequence,
+    address: int,
+    length: int,
+) -> BlockList:
+    r"""Inserts some reserved space into a sequence.
+
+    Inserts reserved space into a sequence, moving existing items after the
+    insertion address by the reserved length.
+
+    Arguments:
+        blocks (list of blocks):
+            Sequence of non-overlapping blocks, sorted by address.
+
+        address (int):
+            Start address of the reserved space.
+
+        length (int):
+            Reserved space to insert.
+
+    Returns:
+        list of blocks: Non-overlapping blocks, sorted by start address.
+
+    Example:
+        +---+---+---+---+---+---+---+---+---+---+---+---+
+        | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10| 11|
+        +===+===+===+===+===+===+===+===+===+===+===+===+
+        |[A | B | C | D]|   |   |[x | y | z]|   |   |   |
+        +---+---+---+---+---+---+---+---+---+---+---+---+
+        |[A | B | C | D]|   |   |[x | y]|   [z]|   |[$]|
+        +---+---+---+---+---+---+---+---+---+---+---+---+
+
+        >>> blocks = [(0, 'ABCD'), (6, 'xyz')]
+        >>> blocks = reserve(blocks, 10, 1)
+        >>> blocks = reserve(blocks, 8, 1)
+        >>> blocks
+        [(0, 'ABCD'), (6, 'xy'), (9, 'z')]
+    """
+    inserted_start = address
+    inserted_length = length
+    inserted_endex = inserted_start + inserted_length
+
+    if length <= 0:
+        return list(blocks)
+
+    pivot_index = locate_at(blocks, inserted_start)
+
+    if pivot_index is None:
+        pivot_index = locate_endex(blocks, inserted_start)
+        blocks_before = blocks[:pivot_index]
+        blocks_after = blocks[pivot_index:]
+        blocks_inside = []
+
+    else:
+        blocks_before = blocks[:pivot_index]
+        blocks_after = blocks[(pivot_index + 1):]
+        pivot_start, pivot_items = blocks[pivot_index]
+
+        if pivot_start == inserted_start:
+            blocks_inside = [(pivot_start + inserted_length, pivot_items)]
+        else:
+            offset = inserted_start - pivot_start
+            blocks_inside = [(pivot_start, pivot_items[:offset]),
+                             (inserted_endex, pivot_items[offset:])]
+
+    blocks_after = shift(blocks_after, inserted_length)
+    result = []
+    result.extend(blocks_before)
+    result.extend(blocks_inside)
+    result.extend(blocks_after)
+    return result
+
+
 def insert(
     blocks: BlockSequence,
     inserted: Block,
@@ -2731,6 +2804,49 @@ class Memory:
         blocks = self.blocks
         address = find(blocks, value)
         blocks = delete(blocks, address, address + len(value))
+
+        if self.automerge:
+            blocks = merge(blocks, join=self.items_join)
+
+        self.blocks = blocks
+
+    def reserve(
+        self: 'Memory',
+        address: int,
+        length: int,
+    ) -> None:
+        r"""Inserts reserved space.
+
+        Inserts reserved space, moving existing items after the insertion
+        address by the length of the inserted block.
+
+        Arguments:
+            address (int):
+                Address of the reserved space to insert.
+
+            length (int):
+                Length of the reserved space.
+
+        See Also:
+            :func:`reserve`
+
+        Example:
+            +---+---+---+---+---+---+---+---+---+---+---+---+---+
+            | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10| 11| 12|
+            +===+===+===+===+===+===+===+===+===+===+===+===+===+
+            |   |[A | B | C]|   |   |[x | y | z]|   |   |   |   |
+            +---+---+---+---+---+---+---+---+---+---+---+---+---+
+            |   |[A | B | C]|   |[1 | 2 | 3]|   |[x | y | z]|   |
+            +---+---+---+---+---+---+---+---+---+---+---+---+---+
+
+            >>> memory = Memory(items_type=str)
+            >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
+            >>> memory.reserve(5, 3)
+            >>> memory.blocks
+            [(1, 'ABC'), (9, 'xyz')]
+        """
+        blocks = self.blocks
+        blocks = reserve(blocks, address, length)
 
         if self.automerge:
             blocks = merge(blocks, join=self.items_join)

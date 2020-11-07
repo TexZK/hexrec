@@ -176,6 +176,29 @@ def test_delete():
 
 # ============================================================================
 
+def test_reserve_doctest():
+    blocks = [(0, 'ABCD'), (6, 'xyz')]
+    ans_ref = [(0, 'ABCD'), (6, 'xy'), (9, 'z')]
+    ans_out = list(blocks)
+    ans_out = reserve(ans_out, 10, 1)
+    ans_out = reserve(ans_out, 8, 1)
+    assert ans_out == ans_ref
+
+
+def test_reserve():
+    blocks = [(0, 'ABCD'), (6, 'xyz')]
+
+    ans_ref = blocks
+    ans_out = reserve(blocks, 10, 0)
+    assert ans_out == ans_ref
+
+    ans_ref = [(0, 'ABCD'), (7, 'xyz')]
+    ans_out = reserve(blocks, 6, 1)
+    assert ans_out == ans_ref
+
+
+# ============================================================================
+
 def test_insert_doctest():
     blocks = [(0, 'ABCD'), (6, 'xyz')]
     ans_ref = [(0, 'ABCD'), (6, 'xy'), (8, '1'), (9, 'z'), (11, '$')]
@@ -723,6 +746,23 @@ class TestMemory:
         memory.blocks = [(1, 'ABC'), (5, '123'), (9, 'xyz')]
         memory.remove('23')
         assert memory.blocks == [(1, 'ABC'), (5, '1'), (7, 'xyz')]
+
+    def test_reserve_doctest(self):
+        memory = Memory(items_type=str)
+        memory.blocks = [(1, 'ABC'), (6, 'xyz')]
+        memory.reserve(5, 3)
+        assert memory.blocks == [(1, 'ABC'), (9, 'xyz')]
+
+    def test_reserve(self):
+        obj = Memory(items_type=str)
+        obj.blocks = [(1, 'ABCD'), (7, 'xyz')]
+        obj.reserve(7, 1)
+        assert obj.blocks == [(1, 'ABCD'), (8, 'xyz')]
+
+        obj = Memory(items_type=str, automerge=False)
+        obj.blocks = [(1, 'ABCD'), (7, 'xyz')]
+        obj.reserve(6, 1)
+        assert obj.blocks == [(1, 'ABCD'), (8, 'xyz')]
 
     def test_insert_doctest(self):
         memory = Memory(items_type=str)
