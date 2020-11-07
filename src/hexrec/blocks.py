@@ -964,14 +964,14 @@ def insert(
         +---+---+---+---+---+---+---+---+---+---+---+---+
         |[A | B | C | D]|   |   |[x | y | z]|   |[$]|   |
         +---+---+---+---+---+---+---+---+---+---+---+---+
-        |[A]|[1]|[B | C | D]|   |   |[x | y | z]|   |[$]|
+        |[A | B | C | D]|   |   |[x | y]|[1]|[z]|   |[$]|
         +---+---+---+---+---+---+---+---+---+---+---+---+
 
         >>> blocks = [(0, 'ABCD'), (6, 'xyz')]
         >>> blocks = insert(blocks, (10, '$'))
-        >>> blocks = insert(blocks, (1, '1'))
+        >>> blocks = insert(blocks, (8, '1'))
         >>> blocks
-        [(0, 'A'), (1, '1'), (2, 'BCD'), (7, 'xyz'), (11, '$')]
+        [(0, 'ABCD'), (6, 'xy'), (8, '1'), (9, 'z'), (11, '$')]
     """
     inserted_start, inserted_items = inserted
     inserted_length = len(inserted_items)
@@ -997,9 +997,10 @@ def insert(
             blocks_inside = [(inserted_start, inserted_items),
                              (pivot_start + inserted_length, pivot_items)]
         else:
-            blocks_inside = [(pivot_start, pivot_items[:inserted_length]),
+            offset = inserted_start - pivot_start
+            blocks_inside = [(pivot_start, pivot_items[:offset]),
                              (inserted_start, inserted_items),
-                             (inserted_endex, pivot_items[inserted_length:])]
+                             (inserted_endex, pivot_items[offset:])]
 
     blocks_after = shift(blocks_after, inserted_length)
     result = []

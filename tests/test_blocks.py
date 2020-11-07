@@ -178,10 +178,10 @@ def test_delete():
 
 def test_insert_doctest():
     blocks = [(0, 'ABCD'), (6, 'xyz')]
-    ans_ref = [(0, 'A'), (1, '1'), (2, 'BCD'), (7, 'xyz'), (11, '$')]
+    ans_ref = [(0, 'ABCD'), (6, 'xy'), (8, '1'), (9, 'z'), (11, '$')]
     ans_out = list(blocks)
     ans_out = insert(ans_out, (10, '$'))
-    ans_out = insert(ans_out, (1, '1'))
+    ans_out = insert(ans_out, (8, '1'))
     assert ans_out == ans_ref
 
 
