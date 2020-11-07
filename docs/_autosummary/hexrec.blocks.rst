@@ -28,6 +28,7 @@
       merge
       overlap
       read
+      reserve
       shift
       sorting
       union

@@ -1,4 +1,4 @@
-hexrec.blocks.Memory
+﻿hexrec.blocks.Memory
 ====================
 
 .. currentmodule:: hexrec.blocks
@@ -28,6 +28,7 @@ hexrec.blocks.Memory
       ~Memory.pop
       ~Memory.read
       ~Memory.remove
+      ~Memory.reserve
       ~Memory.reverse
       ~Memory.shift
       ~Memory.write

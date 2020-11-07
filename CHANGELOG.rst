@@ -1,6 +1,13 @@
 Changelog
 =========
 
+0.2.3 (2020-11-08)
+------------------
+
+* Fixed insertion bug
+* Added empty space reservation
+
+
 0.2.2 (2020-10-25)
 ------------------
 
