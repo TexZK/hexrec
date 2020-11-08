@@ -1,18 +1,13 @@
 Changelog
 =========
 
-0.2.3 (2020-11-08)
-------------------
-
-* Fixed insertion bug
-* Added empty space reservation
-
-
-0.2.2 (2020-10-25)
+0.2.2 (2020-11-08)
 ------------------
 
 * Added workaround to register default record types
 * Added support for Python 3.9
+* Fixed insertion bug
+* Added empty space reservation
 
 
 0.2.1 (2020-03-05)
