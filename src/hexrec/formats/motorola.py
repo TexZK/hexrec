@@ -146,7 +146,7 @@ class Record(_Record):
     MATCHING_TAG = (None, None, None, None, None, None, None, 3, 2, 1)
     r"""Maps the terminator tag to its mathing data tag."""
 
-    REGEX = re.compile(r'^S[0-9]([0-9A-Fa-f]{2}){4,140}$')
+    REGEX = re.compile(r'^S[0-9]([0-9A-Fa-f]{2}){4,256}$')
     r"""Regular expression for parsing a record text line."""
 
     EXTENSIONS: Sequence[str] = ('.mot', '.s19', '.s28', '.s37', '.srec', '.exo')
@@ -712,7 +712,7 @@ class Record(_Record):
             raise ValueError('address overflow')
         if not 0 <= address + len(data) <= (1 << 32):
             raise ValueError('size overflow')
-        if not 0 < columns < 128:
+        if not 0 < columns < 256:
             raise ValueError('column overflow')
         if align is Ellipsis:
             align = columns
