@@ -1,33 +1,40 @@
 Changelog
 =========
 
+0.2.3 (2021-11-XX)
+------------------
+
+* Removed dependency of legacy pathlib package; using Python's own module instead.
+* Added support for Python 3.10.
+
+
 0.2.2 (2020-11-08)
 ------------------
 
-* Added workaround to register default record types
-* Added support for Python 3.9
-* Fixed insertion bug
-* Added empty space reservation
+* Added workaround to register default record types.
+* Added support for Python 3.9.
+* Fixed insertion bug.
+* Added empty space reservation.
 
 
 0.2.1 (2020-03-05)
 ------------------
 
-* Fixed flood with empty span
+* Fixed flood with empty span.
 
 
 0.2.0 (2020-02-01)
 ------------------
 
-* Added support for current Python versions (3.8, PyPy 3)
-* Removed support for old Python versions (< 3.6, PyPy 2)
+* Added support for current Python versions (3.8, PyPy 3).
+* Removed support for old Python versions (< 3.6, PyPy 2).
 * Major refactoring to allow an easier integration of new record formats.
 
 
 0.1.0 (2019-08-13)
 ------------------
 
-* Added support for Python 3.7
+* Added support for Python 3.7.
 
 
 0.0.4 (2018-12-22)
@@ -60,5 +67,5 @@ Changelog
 ------------------
 
 * First release on PyPI.
-* Added frist drafts to manage record files.
+* Added first drafts to manage record files.
 * Added first emulation of xxd.

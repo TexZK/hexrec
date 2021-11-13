@@ -200,7 +200,7 @@ This example shows how to merge a bootloader, an executable, and some
 configuration data into a single file, in the order they are listed.
 
 >>> import hexrec.records as hr
->>> input_files = [u'bootloader.hex', 'executable.mot', 'configuration.s19']
+>>> input_files = ['bootloader.hex', 'executable.mot', 'configuration.s19']
 >>> hr.merge_files(input_files, 'merged.srec')
 
 This can also be done by running the `hexrec` package as a command line tool:

@@ -21,7 +21,7 @@ def read(*names, **kwargs):
 
 setup(
     name='hexrec',
-    version='0.2.2',
+    version='0.2.3',
     license='BSD 2-Clause License',
     description='Library to handle hexadecimal record files',
     long_description='%s\n%s' % (
@@ -51,6 +51,7 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy',
         'Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator',
