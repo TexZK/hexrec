@@ -62,7 +62,6 @@ setup(
     ],
     install_requires=[
         'click',
-        'pathlib',
     ],
     extras_require={
     },
