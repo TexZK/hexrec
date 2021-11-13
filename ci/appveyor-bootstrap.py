@@ -18,14 +18,14 @@ BASE_URL = "https://www.python.org/ftp/python/"
 GET_PIP_URL = "https://bootstrap.pypa.io/get-pip.py"
 GET_PIP_PATH = "C:\get-pip.py"
 URLS = {
-    ("3.6", "64"): BASE_URL + "3.6.12/python-3.6.15-amd64.exe",
-    ("3.6", "32"): BASE_URL + "3.6.12/python-3.6.15.exe",
+    ("3.6", "64"): BASE_URL + "3.6.15/python-3.6.15-amd64.exe",
+    ("3.6", "32"): BASE_URL + "3.6.15/python-3.6.15.exe",
     ("3.7", "64"): BASE_URL + "3.7.9/python-3.7.9-amd64.exe",
     ("3.7", "32"): BASE_URL + "3.7.9/python-3.7.9.exe",
-    ("3.8", "64"): BASE_URL + "3.8.6/python-3.8.9-amd64.exe",
-    ("3.8", "32"): BASE_URL + "3.8.6/python-3.8.9.exe",
-    ("3.9", "64"): BASE_URL + "3.9.0/python-3.9.8-amd64.exe",
-    ("3.9", "32"): BASE_URL + "3.9.0/python-3.9.8.exe",
+    ("3.8", "64"): BASE_URL + "3.8.9/python-3.8.9-amd64.exe",
+    ("3.8", "32"): BASE_URL + "3.8.9/python-3.8.9.exe",
+    ("3.9", "64"): BASE_URL + "3.9.8/python-3.9.8-amd64.exe",
+    ("3.9", "32"): BASE_URL + "3.9.8/python-3.9.8.exe",
     ("3.10", "64"): BASE_URL + "3.10.0/python-3.10.0-amd64.exe",
     ("3.10", "32"): BASE_URL + "3.10.0/python-3.10.0.exe",
 }
