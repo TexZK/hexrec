@@ -16,7 +16,7 @@ except ImportError:
 
 BASE_URL = "https://www.python.org/ftp/python/"
 GET_PIP_URL = "https://bootstrap.pypa.io/get-pip.py"
-GET_PIP_PATH = "C:\get-pip.py"
+GET_PIP_PATH = "C:\\get-pip.py"
 URLS = {
     ("3.6", "64"): BASE_URL + "3.6.15/python-3.6.15-amd64.exe",
     ("3.6", "32"): BASE_URL + "3.6.15/python-3.6.15.exe",
@@ -56,6 +56,7 @@ def download_file(url, path):
 def install_python(version, arch, home):
     print("Installing Python", version, "for", arch, "bit architecture to", home)
     if exists(home):
+        print("Python directory already existing:", home)
         return
 
     path = download_python(version, arch)

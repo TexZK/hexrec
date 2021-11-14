@@ -22,10 +22,10 @@ if os.getenv('SPELLCHECK'):
 source_suffix = '.rst'
 master_doc = 'index'
 project = 'hexrec'
-year = '2020'
+year = '2021'
 author = 'Andrea Zoppi'
 copyright = '{0}, {1}'.format(year, author)
-version = release = '0.2.2'
+version = release = '0.2.3'
 
 pygments_style = 'trac'
 templates_path = ['_templates']
@@ -71,4 +71,3 @@ napoleon_include_private_with_doc = True
 napoleon_include_special_with_doc = True
 
 typehints_document_rtype = False
-

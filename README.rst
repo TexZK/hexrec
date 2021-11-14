@@ -10,7 +10,7 @@ Overview
     * - docs
       - |docs|
     * - tests
-      - | |travis| |appveyor| |requires|
+      - | |gh_actions| |appveyor| |requires|
         | |codecov|
     * - package
       - | |version| |wheel| |supported-versions| |supported-implementations|
@@ -20,9 +20,9 @@ Overview
     :target: https://readthedocs.org/projects/hexrec
     :alt: Documentation Status
 
-.. |travis| image:: https://api.travis-ci.org/TexZK/hexrec.svg?branch=master
-    :alt: Travis-CI Build Status
-    :target: https://travis-ci.org/TexZK/hexrec
+.. |gh_actions| image:: https://github.com/TexZK/hexrec/workflows/Tests/badge.svg
+    :alt: GitHub Actions Status
+    :target: https://github.com/TexZK/hexrec
 
 .. |appveyor| image:: https://ci.appveyor.com/api/projects/status/github/TexZK/hexrec?branch=master&svg=true
     :alt: AppVeyor Build Status
