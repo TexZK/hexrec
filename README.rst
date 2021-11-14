@@ -10,7 +10,7 @@ Overview
     * - docs
       - |docs|
     * - tests
-      - | |gh_actions| |appveyor| |requires|
+      - | |gh_actions| |requires|
         | |codecov|
     * - package
       - | |version| |wheel| |supported-versions| |supported-implementations|
@@ -23,10 +23,6 @@ Overview
 .. |gh_actions| image:: https://github.com/TexZK/hexrec/workflows/CI/badge.svg
     :alt: GitHub Actions Status
     :target: https://github.com/TexZK/hexrec
-
-.. |appveyor| image:: https://ci.appveyor.com/api/projects/status/github/TexZK/hexrec?branch=master&svg=true
-    :alt: AppVeyor Build Status
-    :target: https://ci.appveyor.com/project/TexZK/hexrec
 
 .. |requires| image:: https://requires.io/github/TexZK/hexrec/requirements.svg?branch=master
     :alt: Requirements Status
