@@ -20,7 +20,7 @@ Overview
     :target: https://readthedocs.org/projects/hexrec
     :alt: Documentation Status
 
-.. |gh_actions| image:: https://github.com/TexZK/hexrec/workflows/Tests/badge.svg
+.. |gh_actions| image:: https://github.com/TexZK/hexrec/workflows/CI/badge.svg
     :alt: GitHub Actions Status
     :target: https://github.com/TexZK/hexrec
 
