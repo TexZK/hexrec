@@ -22,11 +22,11 @@ jobs:
           - windows-latest  # windows-2019
 
         python-version:
-          - py-3.6
-          - py-3.7
-          - py-3.8
-          - py-3.9
-          - py-3.10
+          - 3.6
+          - 3.7
+          - 3.8
+          - 3.9
+          - '3.10'
           - pypy-3.6
           - pypy-3.7
 
