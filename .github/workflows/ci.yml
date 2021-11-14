@@ -44,7 +44,7 @@ jobs:
         run: tox
 
       - name: Upload coverage.xml
-        if: ${{ matrix.platform == 'ubuntu-latest' && matrix.python-version == 'py-3.9' }}
+        if: ${{ matrix.platform == 'ubuntu-latest' && matrix.python-version == 3.9 }}
         uses: actions/upload-artifact@v2
         with:
           name: hexrec-coverage
@@ -52,5 +52,5 @@ jobs:
           if-no-files-found: error
 
       - name: Upload coverage.xml to codecov
-        if: ${{ matrix.platform == 'ubuntu-latest' && matrix.python-version == 'py-3.9' }}
+        if: ${{ matrix.platform == 'ubuntu-latest' && matrix.python-version == 3.9 }}
         uses: codecov/codecov-action@v1
