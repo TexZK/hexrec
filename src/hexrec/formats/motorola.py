@@ -140,13 +140,16 @@ class Record(_Record):
     TAG_TYPE: Optional[Type[Tag]] = Tag
     r"""Associated Python class for tags."""
 
-    TAG_TO_ADDRESS_LENGTH = (2, 2, 3, 4, None, None, None, 4, 3, 2)
+    TAG_TO_ADDRESS_LENGTH: Sequence[Optional[int]] = (2, 2, 3, 4, None, None, None, 4, 3, 2)
     r"""Maps a tag to its address byte length, if available."""
 
-    MATCHING_TAG = (None, None, None, None, None, None, None, 3, 2, 1)
-    r"""Maps the terminator tag to its mathing data tag."""
+    TAG_TO_COLUMN_SIZE: Sequence[Optional[int]] = (None, 252, 251, 250, None, None, None, None, None, None)
+    r"""Maps a tag to its maximum column size, if available."""
 
-    REGEX = re.compile(r'^S[0-9]([0-9A-Fa-f]{2}){4,140}$')
+    MATCHING_TAG: Sequence[Optional[int]] = (None, None, None, None, None, None, None, 3, 2, 1)
+    r"""Maps the terminator tag to its matching data tag."""
+
+    REGEX = re.compile(r'^S[0-9]([0-9A-Fa-f]{2}){4,264}$')
     r"""Regular expression for parsing a record text line."""
 
     EXTENSIONS: Sequence[str] = ('.mot', '.s19', '.s28', '.s37', '.srec', '.exo')
@@ -197,7 +200,7 @@ class Record(_Record):
     def compute_checksum(
         self: 'Record',
     ) -> int:
-        checksum = sum_bytes(struct.pack('BL', self.count, self.address))
+        checksum = sum_bytes(struct.pack('HL', self.count, self.address))
         checksum += sum_bytes(self.data)
         checksum = (checksum & 0xFF) ^ 0xFF
         return checksum
@@ -461,7 +464,9 @@ class Record(_Record):
 
         tag = cls.TAG_TYPE(int(line[1:2]))
         count = int(line[2:4], 16)
-        assert 2 * count == len(line) - (2 + 2)
+        if 2 * count != len(line) - 4:
+            raise ValueError('count error')
+
         address_length = cls.TAG_TO_ADDRESS_LENGTH[tag] or 0
         address = int('0' + line[4:(4 + 2 * address_length)], 16)
         data = unhexlify(line[(4 + 2 * address_length):-2])
@@ -681,7 +686,7 @@ class Record(_Record):
             columns (int):
                 Maximum number of columns per data record.
                 If ``None``, the whole `data` is put into a single record.
-                Maximum of 128 columns.
+                Maximum columns: 252 for `S1`, 251 for `S2`, 250 for `S3`.
 
             align (int):
                 Aligns record addresses to such number.
@@ -712,21 +717,22 @@ class Record(_Record):
             raise ValueError('address overflow')
         if not 0 <= address + len(data) <= (1 << 32):
             raise ValueError('size overflow')
-        if not 0 < columns < 128:
-            raise ValueError('column overflow')
         if align is Ellipsis:
             align = columns
-
         if start is None:
             start = address
         if tag is None:
             tag = cls.fit_data_tag(address + len(data))
-        count = 0
+
+        max_columns = cls.TAG_TO_COLUMN_SIZE[tag]
+        if not 0 < columns <= max_columns:
+            raise ValueError('column overflow')
 
         if standalone:
             yield cls.build_header(header)
 
         skip = (address % align) if align else 0
+        count = 0
         for chunk in chop(data, columns, skip):
             yield cls.build_data(address, chunk, tag)
             count += 1

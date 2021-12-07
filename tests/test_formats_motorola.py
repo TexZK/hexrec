@@ -105,25 +105,32 @@ class TestRecord:
         record = Record.build_header(b'')
         record.address = 1
         record.update_checksum()
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match='address error'):
             record.check()
 
         record = Record.build_count(0x1234)
         record.address = 1
         record.update_checksum()
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match='address error'):
             record.check()
 
         record = Record.build_count(0x123456)
         record.address = 1
         record.update_checksum()
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match='address error'):
+            record.check()
+
+        record = Record.build_data(0, bytearray(252))
+        record.data.append(1)
+        record.update_count()
+        record.update_checksum()
+        with pytest.raises(ValueError, match='count overflow'):
             record.check()
 
         record = Record.build_data(0, b'Hello, World!')
         record.count += 1
         record.update_checksum()
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match='count error'):
             record.check()
 
     def test_fit_data_tag_doctest(self):
@@ -217,6 +224,14 @@ class TestRecord:
             with pytest.raises(ValueError):
                 Record.build_data(0x1234, b'Hello, World!', tag=tag)
 
+    def test_build_data_max_columns(self):
+        for tag in (1, 2, 3):
+            tag = Tag(tag)
+            max_columns = Record.TAG_TO_COLUMN_SIZE[tag]
+            record = Record.build_data(0x1234, bytes(max_columns), tag=tag)
+            assert len(record.data) == max_columns
+            assert record.count == 255
+
     def test_build_terminator_doctest(self):
         ans_out = str(Record.build_terminator(0x1234))
         ans_ref = 'S9031234B6'
@@ -247,8 +262,11 @@ class TestRecord:
         pass  # TODO
 
     def test_parse_record(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match='regex error'):
             Record.parse_record('Hello, World!')
+
+        with pytest.raises(ValueError, match='count error'):
+            Record.parse_record('S1FF0000FF')
 
     def test_build_standalone(self):
         ans_out = list(Record.build_standalone(
@@ -420,7 +438,16 @@ class TestRecord:
             list(Record.split(BYTES, address=((1 << 32) - 128)))
 
         with pytest.raises(ValueError):
-            list(Record.split(BYTES, columns=129))
+            list(Record.split(BYTES, columns=257))
+
+        with pytest.raises(ValueError):
+            list(Record.split(BYTES, columns=253, tag=Record.TAG_TYPE.DATA_16))
+
+        with pytest.raises(ValueError):
+            list(Record.split(BYTES, columns=252, tag=Record.TAG_TYPE.DATA_24))
+
+        with pytest.raises(ValueError):
+            list(Record.split(BYTES, columns=251, tag=Record.TAG_TYPE.DATA_32))
 
         ans_out = list(Record.split(HEXBYTES, header=b'Hello, World!',
                                     start=0, tag=Tag.DATA_16))
