@@ -63,6 +63,7 @@ setup(
     ],
     install_requires=[
         'click',
+        'Deprecated',
     ],
     extras_require={
     },

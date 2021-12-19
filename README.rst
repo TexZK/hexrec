@@ -243,7 +243,7 @@ The rest of the data is left untouched.
 >>> import hexrec.records as hr
 >>> import hexrec.blocks as hb
 >>> blocks = hr.load_blocks('data_original.hex')
->>> data = hb.read(blocks, 0x1000, 0x3FFC)
+>>> data = hb.crop(blocks, 0x1000, 0x3FFC)
 >>> crc = binascii.crc32(data) & 0xFFFFFFFF  # remove sign
 >>> blocks = hb.write(blocks, 0x3FFC, struct.pack('>L', crc))
 >>> hr.save_blocks('data_crc.srec', blocks)

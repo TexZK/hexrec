@@ -128,6 +128,8 @@ from typing import Type
 from typing import TypeVar
 from typing import Union
 
+from deprecated import deprecated
+
 from .utils import AnyBytes
 from .utils import chop
 from .utils import do_overlap
@@ -638,6 +640,7 @@ def find(
         raise ValueError('item not found')
 
 
+@deprecated
 def read(
     blocks: BlockSequence,
     start: Optional[int],
@@ -695,6 +698,68 @@ def read(
         >>> read(blocks, 3, None, None)
         [(3, 'CD'), (6, '$'), (8, 'xyz')]
         >>> read(blocks, 5, 6, None)
+        []
+    """
+    return crop(blocks, start, endex, pattern, join)
+
+
+def crop(
+    blocks: BlockSequence,
+    start: Optional[int],
+    endex: Optional[int],
+    pattern: Optional[ItemSequence] = b'\0',
+    join: ItemJoiner = b''.join,
+) -> BlockList:
+    r"""Selects blocks from a range.
+
+    Arguments:
+        blocks (list of blocks):
+            Sequence of non-overlapping blocks, sorted by address.
+
+        start (int):
+            Inclusive start of the extracted range.
+            If ``None``, the global inclusive start address is considered
+            (i.e. that of the first block).
+
+        endex (int):
+            Exclusive end of the extracted range.
+            If ``None``, the global exclusive end address is considered
+            (i.e. that of the last block).
+
+        pattern (items):
+            Pattern of items to fill the emptiness, if not null.
+
+        join (callable):
+            A function to join a sequence of items, if `pattern` is not null.
+
+    Returns:
+        list of blocks: A new list of blocks as per `blocks`.
+
+    Example:
+        +---+---+---+---+---+---+---+---+---+---+---+
+        | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10|
+        +===+===+===+===+===+===+===+===+===+===+===+
+        |   |[A | B | C | D]|   |[$]|   |[x | y | z]|
+        +---+---+---+---+---+---+---+---+---+---+---+
+        |   |   |   |[C | D]|   |[$]|   |[x | y]|   |
+        +---+---+---+---+---+---+---+---+---+---+---+
+        |   |   |   |[C | D]|[#]|[$]|[#]|[x | y]|   |
+        +---+---+---+---+---+---+---+---+---+---+---+
+        |   |[A | B | C | D]|   |[$]|   |[x | y]|   |
+        +---+---+---+---+---+---+---+---+---+---+---+
+        |   |   |   |[C | D]|   |[$]|   |[x | y | z]|
+        +---+---+---+---+---+---+---+---+---+---+---+
+
+        >>> blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
+        >>> crop(blocks, 3, 10, None)
+        [(3, 'CD'), (6, '$'), (8, 'xy')]
+        >>> crop(blocks, 3, 10, '#', ''.join)
+        [(3, 'CD'), (5, '#'), (6, '$'), (7, '#'), (8, 'xy')]
+        >>> crop(blocks, None, 10, None)
+        [(1, 'ABCD'), (6, '$'), (8, 'xy')]
+        >>> crop(blocks, 3, None, None)
+        [(3, 'CD'), (6, '$'), (8, 'xyz')]
+        >>> crop(blocks, 5, 6, None)
         []
     """
     if start is None:
@@ -2099,7 +2164,7 @@ class Memory:
                 step = self.autofill
 
             if isinstance(step, self.items_type):
-                blocks = read(blocks, start, endex, step,
+                blocks = crop(blocks, start, endex, step,
                               join=self.items_join)
                 blocks = flood(blocks, start, endex, step,
                                join=self.items_join)
@@ -2421,6 +2486,57 @@ class Memory:
         self.__iadd__(items)
 
     @property
+    def contiguous(self: 'Memory') -> bool:
+        r"""Contains contiguous data.
+
+        The memory is considered to have contiguous data if there is no empty
+        space between blocks.
+
+        Returns:
+            bool: Contiguous data.
+
+        Examples:
+            >>> Memory().contiguous
+            True
+
+            ~~~
+
+            +---+---+---+---+---+---+---+---+---+
+            | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+            +===+===+===+===+===+===+===+===+===+
+            |   |[A | B | C]|[x | y | z]|   |   |
+            +---+---+---+---+---+---+---+---+---+
+
+            >>> memory = Memory(items_type=str)
+            >>> memory.blocks = [(1, 'ABC'), (4, 'xyz')]
+            >>> memory.contiguous
+            True
+
+            ~~~
+
+            +---+---+---+---+---+---+---+---+---+
+            | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+            +===+===+===+===+===+===+===+===+===+
+            |   |[A | B | C]|   |[x | y | z]|   |
+            +---+---+---+---+---+---+---+---+---+
+
+            >>> memory.blocks = [(1, 'ABC'), (5, 'xyz')]
+            >>> memory.contiguous
+            False
+        """
+        blocks = self.blocks
+
+        if blocks:
+            endex = blocks[0][0]
+
+            for start, items in blocks:
+                if endex != start:
+                    return False
+                endex = start + len(items)
+
+        return True
+
+    @property
     def start(self: 'Memory') -> int:
         r"""Inclusive start address.
 
@@ -2492,6 +2608,39 @@ class Memory:
         else:
             return 0
 
+    @property
+    def span(self: 'Memory') -> Tuple[int, int]:
+        r"""Memory address span.
+
+        Returns:
+            tuple: A :obj:`tuple` holding :attr:`start` and :attr:`endex`.
+
+        Examples:
+            >>> Memory().span
+            (0, 0)
+
+            ~~~
+
+            +---+---+---+---+---+---+---+---+---+
+            | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
+            +===+===+===+===+===+===+===+===+===+
+            |   |[A | B | C]|   |[x | y | z]|   |
+            +---+---+---+---+---+---+---+---+---+
+
+            >>> memory = Memory(items_type=str)
+            >>> memory.blocks = [(1, 'ABC'), (5, 'xyz')]
+            >>> memory.span
+            (1, 8)
+        """
+        blocks = self.blocks
+
+        if blocks:
+            first = blocks[0][0]
+            start, items = blocks[-1]
+            return first, start + len(items)
+        else:
+            return 0, 0
+
     def shift(
         self: 'Memory',
         amount: int,
@@ -2523,7 +2672,38 @@ class Memory:
         blocks = shift(blocks, amount)
         self.blocks = blocks
 
+    @deprecated(reason='Use extract() instead')
     def read(
+        self: 'Memory',
+        start: Optional[int],
+        endex: Optional[int],
+        pattern: Optional[ItemSequence] = None,
+    ) -> ItemSequence:
+        r"""Selects items from a range.
+
+        Equivalent to ``self[start:endex:pattern]``.
+
+        Arguments:
+            start (int):
+                Inclusive start of the extracted range.
+                If ``None``, the global inclusive start address is considered
+                (i.e. :attr:`start`).
+
+            endex (int):
+                Exclusive end of the extracted range.
+                If ``None``, the global exclusive end address is considered
+                (i.e. :attr:`endex`).
+
+            pattern (items):
+                Pattern of items to fill the emptiness.
+                If ``None``, the :attr:`autofill` attribute is used.
+
+        Returns:
+            items: Items from the selected range.
+        """
+        return self.extract(start, endex, pattern)
+
+    def extract(
         self: 'Memory',
         start: Optional[int],
         endex: Optional[int],
@@ -2553,6 +2733,7 @@ class Memory:
         """
         return self[start:endex:pattern]
 
+    @deprecated(reason='Use crop() instead')
     def cut(
         self: 'Memory',
         start: Optional[int],
@@ -2594,8 +2775,51 @@ class Memory:
             >>> memory.blocks
             [(6, 'BC'), (9, 'x')]
         """
+        self.crop(start, endex, pattern)
+
+    def crop(
+        self: 'Memory',
+        start: Optional[int],
+        endex: Optional[int],
+        pattern: Optional[ItemSequence] = None,
+    ) -> None:
+        r"""Keeps data within a range.
+
+        Arguments:
+            start (int):
+                Inclusive start of the selected range.
+                If ``None``, the global inclusive start address is considered
+                (i.e. :attr:`start`).
+
+            endex (int):
+                Exclusive end of the selected range.
+                If ``None``, the global exclusive end address is considered
+                (i.e. :attr:`endex`).
+
+            pattern (items):
+                Pattern of items to fill the emptiness.
+                If ``None``, the :attr:`autofill` attribute is used.
+
+        See Also:
+            :func:`read`
+
+        Example:
+            +---+---+---+---+---+---+---+---+---+
+            | 4 | 5 | 6 | 7 | 8 | 9 | 10| 11| 12|
+            +===+===+===+===+===+===+===+===+===+
+            |   |[A | B | C]|   |[x | y | z]|   |
+            +---+---+---+---+---+---+---+---+---+
+            |   |   |[B | C]|   |[x]|   |   |   |
+            +---+---+---+---+---+---+---+---+---+
+
+            >>> memory = Memory(items_type=str)
+            >>> memory.blocks = [(5, 'ABC'), (9, 'xyz')]
+            >>> memory.crop(6, 10)
+            >>> memory.blocks
+            [(6, 'BC'), (9, 'x')]
+        """
         blocks = self.blocks
-        blocks = read(blocks, start, endex, pattern, self.items_join)
+        blocks = crop(blocks, start, endex, pattern, self.items_join)
 
         if self.automerge:
             blocks = merge(blocks, join=self.items_join)

@@ -41,6 +41,7 @@ Why does this file exist, and why not put this in __main__?
 
   Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
+import sys
 from typing import Optional
 from typing import Tuple
 from typing import Type
@@ -57,8 +58,6 @@ from .records import merge_files as _merge_files
 from .records import save_memory as _save_memory
 from .utils import parse_int as _parse_int
 from .xxd import xxd as _xxd
-
-# ----------------------------------------------------------------------------
 
 
 class BasedIntParamType(click.ParamType):
@@ -93,8 +92,8 @@ FILE_PATH_OUT = click.Path(dir_okay=False, allow_dash=True, writable=True)
 
 RECORD_FORMAT_CHOICE = click.Choice(list(sorted(_RECORD_TYPES.keys())))
 
-# ----------------------------------------------------------------------------
 
+# ----------------------------------------------------------------------------
 
 def find_types(
     input_format: Optional[str],
@@ -244,7 +243,7 @@ By default it applies till the end of the data contents.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
-def cut(
+def crop(
     input_format: str,
     output_format: str,
     value: int,
@@ -265,7 +264,63 @@ def cut(
                                          infile, outfile)
 
     m = _load_memory(infile, record_type=input_type)
-    m.cut(start, endex)
+    m.crop(start, endex)
+    if value is not None:
+        m.flood(start, endex, bytes([value]))
+    _save_memory(outfile, m, record_type=output_type)
+
+
+# ----------------------------------------------------------------------------
+
+@main.command()
+@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
+Forces the input file format.
+Required for the standard input.
+""")
+@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
+Forces the output file format.
+By default it is that of the input file.
+""")
+@click.option('-v', '--value', type=BYTE_INT, help="""
+Byte value used to flood the address range.
+By default, no flood is performed.
+""")
+@click.option('-s', '--start', type=BASED_INT, help="""
+Inclusive start address. Negative values are referred to the end of the data.
+By default it applies from the start of the data contents.
+""")
+@click.option('-e', '--endex', type=BASED_INT, help="""
+Exclusive end address. Negative values are referred to the end of the data.
+By default it applies till the end of the data contents.
+""")
+@click.argument('infile', type=FILE_PATH_IN)
+@click.argument('outfile', type=FILE_PATH_OUT)
+def cut(
+    input_format: str,
+    output_format: str,
+    value: int,
+    start: int,
+    endex: int,
+    infile: str,
+    outfile: str,
+) -> None:
+    r"""Selects data from an address range.
+
+    DEPRECATED: Use the `crop` command instead.
+
+    ``INFILE`` is the path of the input file.
+    Set to ``-`` to read from standard input; input format required.
+
+    ``OUTFILE`` is the path of the output file.
+    Set to ``-`` to write to standard output.
+    """
+    print('DEPRECATED: Use the `crop` command instead.', file=sys.stderr)
+
+    input_type, output_type = find_types(input_format, output_format,
+                                         infile, outfile)
+
+    m = _load_memory(infile, record_type=input_type)
+    m.crop(start, endex)
     if value is not None:
         m.flood(start, endex, bytes([value]))
     _save_memory(outfile, m, record_type=output_type)

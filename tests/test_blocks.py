@@ -5,6 +5,7 @@ from hexrec.blocks import *
 
 # ============================================================================
 
+
 def test_chop_blocks_doctest():
     ans_out = list(chop_blocks('ABCDEFG', 2, start=10))
     ans_ref = [(10, 'AB'), (12, 'CD'), (14, 'EF'), (16, 'G')]
@@ -129,6 +130,49 @@ def test_read():
     assert read([], None, None) == []
     assert read([], 3, None) == []
     assert read([], None, 3) == []
+
+
+# ============================================================================
+
+def test_crop_doctest():
+    blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
+
+    ans_ref = [(3, 'CD'), (6, '$'), (8, 'xy')]
+    ans_out = crop(blocks, 3, 10, None)
+    assert ans_out == ans_ref
+
+    ans_ref = [(3, 'CD'), (5, '#'), (6, '$'), (7, '#'), (8, 'xy')]
+    ans_out = crop(blocks, 3, 10, '#', ''.join)
+    assert ans_out == ans_ref
+
+    ans_ref = [(1, 'ABCD'), (6, '$'), (8, 'xy')]
+    ans_out = crop(blocks, None, 10, None)
+    assert ans_out == ans_ref
+
+    ans_ref = [(3, 'CD'), (6, '$'), (8, 'xyz')]
+    ans_out = crop(blocks, 3, None, None)
+    assert ans_out == ans_ref
+
+    ans_ref = []
+    ans_out = crop(blocks, 5, 6, None)
+    assert ans_out == ans_ref
+
+
+def test_crop():
+    blocks = [(1, 'ABCD')]
+    ans_ref = [(2, 'BC')]
+    ans_out = crop(blocks, 2, 4)
+    assert ans_out == ans_ref
+
+    blocks = [(2, 'BC')]
+    ans_ref = blocks
+    ans_out = crop(blocks, None, None)
+    assert ans_out == ans_ref
+
+    assert crop(blocks, 3, -3) == []
+    assert crop([], None, None) == []
+    assert crop([], 3, None) == []
+    assert crop([], None, 3) == []
 
 
 # ============================================================================
@@ -639,6 +683,18 @@ class TestMemory:
         obj.extend('ABC')
         assert obj.blocks == [(0, 'ABC')]
 
+    def test_contiguous_doctest(self):
+        memory = Memory()
+        assert memory.contiguous
+
+        memory = Memory(items_type=str)
+        memory.blocks = [(1, 'ABC'), (4, 'xyz')]
+        assert memory.contiguous
+
+        memory = Memory(items_type=str)
+        memory.blocks = [(1, 'ABC'), (5, 'xyz')]
+        assert not memory.contiguous
+
     def test_start_doctest(self):
         memory = Memory(items_type=str)
         memory.blocks = [(1, 'ABC'), (5, 'xyz')]
@@ -652,6 +708,14 @@ class TestMemory:
         memory = Memory(items_type=str)
         memory.blocks = [(1, 'ABC'), (5, 'xyz')]
         assert memory.endex == 8
+
+    def test_span_doctest(self):
+        memory = Memory()
+        assert memory.span == (0 ,0)
+
+        memory = Memory(items_type=str)
+        memory.blocks = [(1, 'ABC'), (5, 'xyz')]
+        assert memory.span == (1, 8)
 
     def test_endex(self):
         memory = Memory(items_type=str)
@@ -674,6 +738,11 @@ class TestMemory:
         obj.blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
         assert obj.read(3, 10, '.') == 'CD.$.xy'
 
+    def test_extract(self):
+        obj = Memory(items_type=str)
+        obj.blocks = [(1, 'ABCD'), (6, '$'), (8, 'xyz')]
+        assert obj.extract(3, 10, '.') == 'CD.$.xy'
+
     def test_cut_doctest(self):
         memory = Memory(items_type=str)
         memory.blocks = [(5, 'ABC'), (9, 'xyz')]
@@ -684,6 +753,18 @@ class TestMemory:
         obj = Memory(items_type=str, automerge=False)
         obj.blocks = [(5, 'ABC'), (9, 'xyz')]
         obj.cut(6, 10)
+        assert obj.blocks == [(6, 'BC'), (9, 'x')]
+
+    def test_crop_doctest(self):
+        memory = Memory(items_type=str)
+        memory.blocks = [(5, 'ABC'), (9, 'xyz')]
+        memory.crop(memory.index('B'), memory.index('y'))
+        assert memory.blocks == [(6, 'BC'), (9, 'x')]
+
+    def test_crop(self):
+        obj = Memory(items_type=str, automerge=False)
+        obj.blocks = [(5, 'ABC'), (9, 'xyz')]
+        obj.crop(6, 10)
         assert obj.blocks == [(6, 'BC'), (9, 'x')]
 
     def test_clear_doctest(self):
