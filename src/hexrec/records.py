@@ -1420,7 +1420,7 @@ class Record:
         data: AnyBytes,
         *args: Any,
         **kwargs: Any,
-    ) -> None:  # Iterator[Record]
+    ) -> Iterator['Record']:
         r"""Splits a chunk of data into records.
 
         Arguments:
@@ -1440,7 +1440,7 @@ class Record:
             This method must be overridden.
         """
         check_empty_args_kwargs(args, kwargs)
-        raise NotImplementedError('method must be overriden')
+        yield from ()
 
     @classmethod
     def build_standalone(

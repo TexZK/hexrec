@@ -616,8 +616,7 @@ class TestRecord:
         assert ans_out == ans_ref
 
     def test_split(self):
-        with pytest.raises(NotImplementedError):
-            Record.split(b'')
+        assert not list(Record.split(b''))
 
     def test_build_standalone(self):
         data = bytes(range(256))
