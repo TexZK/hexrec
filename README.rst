@@ -25,11 +25,11 @@ Overview
     :alt: GitHub Actions Status
     :target: https://github.com/TexZK/hexrec
 
-.. |requires| image:: https://requires.io/github/TexZK/hexrec/requirements.svg?branch=master
+.. |requires| image:: https://requires.io/github/TexZK/hexrec/requirements.svg?branch=main
     :alt: Requirements Status
-    :target: https://requires.io/github/TexZK/hexrec/requirements/?branch=master
+    :target: https://requires.io/github/TexZK/hexrec/requirements/?branch=main
 
-.. |codecov| image:: https://codecov.io/gh/TexZK/hexrec/branch/master/graphs/badge.svg?branch=master
+.. |codecov| image:: https://codecov.io/gh/TexZK/hexrec/branch/main/graphs/badge.svg?branch=main
     :alt: Coverage Status
     :target: https://codecov.io/github/TexZK/hexrec
 

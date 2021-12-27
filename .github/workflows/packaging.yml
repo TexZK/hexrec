@@ -4,7 +4,7 @@ on:
   # Make sure packaging process is not broken
   push:
     branches:
-      - master
+      - main
   pull_request:
 
   # Make a package for release
