@@ -1,4 +1,4 @@
-hexrec.formats.mos.Record
+﻿hexrec.formats.mos.Record
 =========================
 
 .. currentmodule:: hexrec.formats.mos
@@ -52,14 +52,14 @@ hexrec.formats.mos.Record
 
    .. autosummary::
    
+      ~Record.tag
+      ~Record.count
+      ~Record.address
+      ~Record.data
+      ~Record.checksum
       ~Record.EXTENSIONS
       ~Record.LINE_SEP
       ~Record.REGEX
       ~Record.TAG_TYPE
-      ~Record.address
-      ~Record.checksum
-      ~Record.count
-      ~Record.data
-      ~Record.tag
    
    

@@ -17,9 +17,11 @@
       ~Memory.append
       ~Memory.clear
       ~Memory.count
+      ~Memory.crop
       ~Memory.cut
       ~Memory.delete
       ~Memory.extend
+      ~Memory.extract
       ~Memory.fill
       ~Memory.flood
       ~Memory.index
@@ -41,7 +43,9 @@
 
    .. autosummary::
    
+      ~Memory.contiguous
       ~Memory.endex
+      ~Memory.span
       ~Memory.start
    
    

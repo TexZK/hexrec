@@ -1,4 +1,4 @@
-hexrec.formats.tektronix.Record
+﻿hexrec.formats.tektronix.Record
 ===============================
 
 .. currentmodule:: hexrec.formats.tektronix
@@ -52,13 +52,13 @@ hexrec.formats.tektronix.Record
 
    .. autosummary::
    
+      ~Record.tag
+      ~Record.count
+      ~Record.address
+      ~Record.data
+      ~Record.checksum
       ~Record.EXTENSIONS
       ~Record.LINE_SEP
       ~Record.REGEX
-      ~Record.address
-      ~Record.checksum
-      ~Record.count
-      ~Record.data
-      ~Record.tag
    
    

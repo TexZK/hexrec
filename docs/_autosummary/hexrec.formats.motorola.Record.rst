@@ -1,4 +1,4 @@
-hexrec.formats.motorola.Record
+﻿hexrec.formats.motorola.Record
 ==============================
 
 .. currentmodule:: hexrec.formats.motorola
@@ -57,15 +57,16 @@ hexrec.formats.motorola.Record
 
    .. autosummary::
    
+      ~Record.tag
+      ~Record.count
+      ~Record.address
+      ~Record.data
+      ~Record.checksum
       ~Record.EXTENSIONS
       ~Record.LINE_SEP
       ~Record.MATCHING_TAG
       ~Record.REGEX
       ~Record.TAG_TO_ADDRESS_LENGTH
-      ~Record.address
-      ~Record.checksum
-      ~Record.count
-      ~Record.data
-      ~Record.tag
+      ~Record.TAG_TO_COLUMN_SIZE
    
    

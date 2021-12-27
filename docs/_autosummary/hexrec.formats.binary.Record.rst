@@ -1,4 +1,4 @@
-hexrec.formats.binary.Record
+﻿hexrec.formats.binary.Record
 ============================
 
 .. currentmodule:: hexrec.formats.binary
@@ -51,13 +51,13 @@ hexrec.formats.binary.Record
 
    .. autosummary::
    
+      ~Record.tag
+      ~Record.count
+      ~Record.address
+      ~Record.data
+      ~Record.checksum
       ~Record.EXTENSIONS
       ~Record.LINE_SEP
       ~Record.TAG_TYPE
-      ~Record.address
-      ~Record.checksum
-      ~Record.count
-      ~Record.data
-      ~Record.tag
    
    

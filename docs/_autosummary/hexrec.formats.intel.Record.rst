@@ -1,4 +1,4 @@
-hexrec.formats.intel.Record
+﻿hexrec.formats.intel.Record
 ===========================
 
 .. currentmodule:: hexrec.formats.intel
@@ -57,13 +57,13 @@ hexrec.formats.intel.Record
 
    .. autosummary::
    
+      ~Record.tag
+      ~Record.count
+      ~Record.address
+      ~Record.data
+      ~Record.checksum
       ~Record.EXTENSIONS
       ~Record.LINE_SEP
       ~Record.REGEX
-      ~Record.address
-      ~Record.checksum
-      ~Record.count
-      ~Record.data
-      ~Record.tag
    
    

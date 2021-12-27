@@ -13,8 +13,9 @@ Overview
       - | |gh_actions| |requires|
         | |codecov|
     * - package
-      - | |version| |wheel| |supported-versions| |supported-implementations|
-        | |commits-since|
+      - | |version| |wheel|
+        | |supported-versions|
+        | |supported-implementations|
 
 .. |docs| image:: https://readthedocs.org/projects/hexrec/badge/?style=flat
     :target: https://readthedocs.org/projects/hexrec
@@ -36,10 +37,6 @@ Overview
     :alt: PyPI Package latest release
     :target: https://pypi.org/project/hexrec/
 
-.. |commits-since| image:: https://img.shields.io/github/commits-since/TexZK/hexrec/v0.2.2.svg
-    :alt: Commits since latest release
-    :target: https://github.com/TexZK/hexrec/compare/v0.2.2...master
-
 .. |wheel| image:: https://img.shields.io/pypi/wheel/hexrec.svg
     :alt: PyPI Wheel
     :target: https://pypi.org/project/hexrec/
@@ -52,8 +49,8 @@ Overview
     :alt: Supported implementations
     :target: https://pypi.org/project/hexrec/
 
-
 .. end-badges
+
 
 Library to handle hexadecimal record files
 
@@ -333,21 +330,3 @@ To run the all the tests:
 .. code-block:: sh
 
     $ tox --skip-missing-interpreters
-
-
-Note, to combine the coverage data from all the tox environments run:
-
-.. list-table::
-    :widths: 10 90
-    :stub-columns: 1
-
-    - - Windows
-      - .. code-block:: sh
-
-            $ set PYTEST_ADDOPTS=--cov-append
-            $ tox
-
-    - - Other
-      - .. code-block:: sh
-
-            $ PYTEST_ADDOPTS=--cov-append tox

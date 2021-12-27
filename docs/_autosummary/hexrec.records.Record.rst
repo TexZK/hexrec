@@ -1,4 +1,4 @@
-hexrec.records.Record
+﻿hexrec.records.Record
 =====================
 
 .. currentmodule:: hexrec.records
@@ -50,12 +50,12 @@ hexrec.records.Record
 
    .. autosummary::
    
+      ~Record.tag
+      ~Record.count
+      ~Record.address
+      ~Record.data
+      ~Record.checksum
       ~Record.EXTENSIONS
       ~Record.LINE_SEP
-      ~Record.address
-      ~Record.checksum
-      ~Record.count
-      ~Record.data
-      ~Record.tag
    
    

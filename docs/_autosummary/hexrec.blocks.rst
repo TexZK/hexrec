@@ -17,6 +17,7 @@
       chop_blocks
       clear
       collapse
+      crop
       delete
       fill
       find
