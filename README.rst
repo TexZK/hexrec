@@ -315,11 +315,11 @@ From PIP (might not be the latest version found on *github*):
 
     $ pip install hexrec
 
-From source:
+From source root directory:
 
 .. code-block:: sh
 
-    $ python setup.py install
+    $ pip install .
 
 
 Development
@@ -329,4 +329,5 @@ To run the all the tests:
 
 .. code-block:: sh
 
+    $ pip install tox
     $ tox --skip-missing-interpreters
