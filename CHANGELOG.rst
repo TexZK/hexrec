@@ -1,11 +1,14 @@
 Changelog
 =========
 
-0.2.3 (2021-11-XX)
+0.2.3 (2021-12-30)
 ------------------
 
 * Removed dependency of legacy pathlib package; using Python's own module instead.
 * Added support for Python 3.10.
+* Fixed maximum SREC length.
+* Changed pattern offset behavior.
+* Some alignment to the ``bytesparse.Memory`` API; deprecated code marked as such.
 
 
 0.2.2 (2020-11-08)
