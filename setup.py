@@ -59,6 +59,7 @@ setup(
         'Topic :: Software Development :: Embedded Systems',
         'Topic :: Utilities',
     ],
+    python_requires='>=3.6',
     keywords=[
     ],
     install_requires=[
