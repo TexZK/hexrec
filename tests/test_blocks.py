@@ -285,7 +285,7 @@ def test_write():
 def test_fill_doctest():
     blocks = [(1, 'ABC'), (6, 'xyz')]
 
-    ans_ref = [(1, '23123123')]
+    ans_ref = [(1, '12312312')]
     ans_out = fill(blocks, pattern='123', join=''.join)
     assert ans_out == ans_ref
 
@@ -293,7 +293,7 @@ def test_fill_doctest():
     ans_out = fill(blocks, pattern='123', start=0, endex=5, join=''.join)
     assert ans_out == ans_ref
 
-    ans_ref = [(1, 'ABC'), (5, '31231')]
+    ans_ref = [(1, 'ABC'), (5, '12312')]
     ans_out = fill(blocks, pattern='123', start=5, endex=10, join=''.join)
     assert ans_out == ans_ref
 
@@ -318,11 +318,11 @@ def test_fill():
 def test_flood_doctest():
     blocks = [(1, 'ABC'), (6, 'xyz')]
 
-    ans_ref = [(1, 'ABC'), (4, '23'), (6, 'xyz')]
+    ans_ref = [(1, 'ABC'), (4, '12'), (6, 'xyz')]
     ans_out = flood(blocks, pattern='123', join=''.join)
     assert ans_out == ans_ref
 
-    ans_ref = [(4, '23')]
+    ans_ref = [(4, '12')]
     ans_out = flood(blocks, pattern='123', flood_only=True, join=''.join)
     assert ans_out == ans_ref
 
@@ -330,7 +330,7 @@ def test_flood_doctest():
     ans_out = flood(blocks, 0, 5, '123', join=''.join)
     assert ans_out == ans_ref
 
-    ans_ref = [(1, 'ABC'), (5, '3'), (6, 'xyz'), (9, '1')]
+    ans_ref = [(1, 'ABC'), (5, '1'), (6, 'xyz'), (9, '2')]
     ans_out = flood(blocks, 5, 10, '123', join=''.join)
     assert ans_out == ans_ref
 
@@ -885,12 +885,12 @@ class TestMemory:
         memory = Memory(items_type=str)
         memory.blocks = [(1, 'ABC'), (6, 'xyz')]
         memory.fill(pattern='123')
-        assert memory.blocks == [(1, '23123123')]
+        assert memory.blocks == [(1, '12312312')]
 
         memory = Memory(items_type=str, autofill='123')
         memory.blocks = [(1, 'ABC'), (6, 'xyz')]
         memory.fill()
-        assert memory.blocks == [(1, '23123123')]
+        assert memory.blocks == [(1, '12312312')]
 
         memory = Memory(items_type=str, autofill='123')
         memory.blocks = [(1, 'ABC'), (6, 'xyz')]
@@ -901,32 +901,32 @@ class TestMemory:
         memory = Memory(items_type=str, automerge=False)
         memory.blocks = [(1, 'ABC'), (6, 'xyz')]
         memory.fill(pattern='123')
-        assert memory.blocks == [(1, '23123123')]
+        assert memory.blocks == [(1, '12312312')]
 
     def test_flood_doctest(self):
         memory = Memory(items_type=str)
         memory.blocks = [(1, 'ABC'), (6, 'xyz')]
         memory.flood(pattern='123')
-        assert memory.blocks == [(1, 'ABC23xyz')]
+        assert memory.blocks == [(1, 'ABC12xyz')]
 
         memory = Memory(items_type=str, autofill='123')
         memory.blocks = [(1, 'ABC'), (6, 'xyz')]
         memory.flood()
-        assert memory.blocks == [(1, 'ABC23xyz')]
+        assert memory.blocks == [(1, 'ABC12xyz')]
 
     def test_flood(self):
         obj = Memory(items_type=str)
         obj.blocks = [(1, 'ABC'), (6, 'xyz')]
         obj.flood(pattern='123')
         ans_out = obj.blocks
-        ans_ref = [(1, 'ABC23xyz')]
+        ans_ref = [(1, 'ABC12xyz')]
         assert ans_out == ans_ref
 
         obj = Memory(items_type=str, automerge=False)
         obj.blocks = [(1, 'ABC'), (6, 'xyz')]
         obj.flood(pattern='123')
         ans_out = obj.blocks
-        ans_ref = [(1, 'ABC'), (4, '23'), (6, 'xyz')]
+        ans_ref = [(1, 'ABC'), (4, '12'), (6, 'xyz')]
         assert ans_out == ans_ref
 
     def test_merge_doctest(self):

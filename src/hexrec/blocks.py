@@ -1229,12 +1229,12 @@ def fill(
         +===+===+===+===+===+===+===+===+===+===+
         |   |[A | B | C]|   |   |[x | y | z]|   |
         +---+---+---+---+---+---+---+---+---+---+
-        |   |[2 | 3 | 1 | 2 | 3 | 1 | 2 | 3]|   |
+        |   |[1 | 2 | 3 | 1 | 2 | 3 | 1 | 2]|   |
         +---+---+---+---+---+---+---+---+---+---+
 
         >>> blocks = [(1, 'ABC'), (6, 'xyz')]
-        >>> flood(blocks, pattern='123', join=''.join)
-        [(1, 'ABC'), (4, '23'), (6, 'xyz')]
+        >>> fill(blocks, pattern='123', join=''.join)
+        [(1, '12312312')]
 
         ~~~
 
@@ -1247,7 +1247,7 @@ def fill(
         +---+---+---+---+---+---+---+---+---+---+
 
         >>> blocks = [(1, 'ABC'), (6, 'xyz')]
-        >>> flood(blocks, 0, 5, '123', join=''.join)
+        >>> fill(blocks, 0, 5, '123', join=''.join)
         [(0, '12312'), (6, 'xyz')]
 
         ~~~
@@ -1257,12 +1257,12 @@ def fill(
         +===+===+===+===+===+===+===+===+===+===+
         |   |[A | B | C]|   |   |[x | y | z]|   |
         +---+---+---+---+---+---+---+---+---+---+
-        |   |[A | B | C]|   |[3 | 1 | 2 | 3 | 1]|
+        |   |[A | B | C]|   |[1 | 2 | 3 | 1 | 2]|
         +---+---+---+---+---+---+---+---+---+---+
 
         >>> blocks = [(1, 'ABC'), (6, 'xyz')]
-        >>> flood(blocks, 5, 10, '123', join=''.join)
-        [(1, 'ABC'), (5, '31231')]
+        >>> fill(blocks, 5, 10, '123', join=''.join)
+        [(1, 'ABC'), (5, '12312')]
     """
     if start is None and endex is None and not blocks:
         raise ValueError('no blocks')
@@ -1275,7 +1275,7 @@ def fill(
     if start == endex:
         return list(blocks)
 
-    items = makefill(pattern, start, endex, join)
+    items = makefill(pattern, 0, max(0, endex - start), join)
     result = write(blocks, (start, items))
     return result
 
@@ -1325,22 +1325,22 @@ def flood(
         +===+===+===+===+===+===+===+===+===+===+
         |   |[A | B | C]|   |   |[x | y | z]|   |
         +---+---+---+---+---+---+---+---+---+---+
-        |   |[A | B | C]|[2 | 3]|[x | y | z]|   |
+        |   |[A | B | C]|[1 | 2]|[x | y | z]|   |
         +---+---+---+---+---+---+---+---+---+---+
         |[1]|[A | B | C]|[2]|   |[x | y | z]|   |
         +---+---+---+---+---+---+---+---+---+---+
-        |   |[A | B | C]|   |[3]|[x | y | z]|[1]|
+        |   |[A | B | C]|   |[1]|[x | y | z]|[2]|
         +---+---+---+---+---+---+---+---+---+---+
 
         >>> blocks = [(1, 'ABC'), (6, 'xyz')]
         >>> flood(blocks, pattern='123', join=''.join)
-        [(1, 'ABC'), (4, '23'), (6, 'xyz')]
+        [(1, 'ABC'), (4, '12'), (6, 'xyz')]
         >>> flood(blocks, pattern='123', fill_only=True, join=''.join)
         [(4, '23')]
         >>> flood(blocks, 0, 5, '123', join=''.join)
         [(0, '1'), (1, 'ABC'), (4, '2'), (6, 'xyz')]
         >>> flood(blocks, 5, 10, '123', join=''.join)
-        [(1, 'ABC'), (5, '3'), (6, 'xyz'), (9, '1')]
+        [(1, 'ABC'), (5, '1'), (6, 'xyz'), (9, '2')]
     """
     if start is None and endex is None and not blocks:
         raise ValueError('no blocks')
@@ -1371,8 +1371,8 @@ def flood(
         block_start, block_items = block
 
         if last_endex < block_start:
-            pattern_start = last_endex % pattern_length
-            pattern_endex = block_start - last_endex + pattern_start
+            pattern_start = (last_endex - start) % pattern_length
+            pattern_endex = pattern_start + block_start - last_endex
             items = makefill(pattern, pattern_start, pattern_endex, join=join)
             blocks_inside.append((last_endex, items))
 
@@ -1382,8 +1382,8 @@ def flood(
         last_endex = block_start + len(block_items)
 
     if last_endex < endex:
-        pattern_start = last_endex % pattern_length
-        pattern_endex = endex - last_endex + pattern_start
+        pattern_start = (last_endex - start) % pattern_length
+        pattern_endex = pattern_start + endex - last_endex
         items = makefill(pattern, pattern_start, pattern_endex, join)
         blocks_inside.append((last_endex, items))
 
@@ -3192,14 +3192,14 @@ class Memory:
             +===+===+===+===+===+===+===+===+===+===+
             |   |[A | B | C]|   |   |[x | y | z]|   |
             +---+---+---+---+---+---+---+---+---+---+
-            |   |[2 | 3 | 1 | 2 | 3 | 1 | 2 | 3]|   |
+            |   |[1 | 2 | 3 | 1 | 2 | 3 | 1 | 2]|   |
             +---+---+---+---+---+---+---+---+---+---+
 
             >>> memory = Memory(items_type=str)
             >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
             >>> memory.fill(pattern='123')
             >>> memory.blocks
-            [(1, '23123123')]
+            [(1, '12312312')]
 
             ~~~
 
@@ -3208,14 +3208,14 @@ class Memory:
             +===+===+===+===+===+===+===+===+===+===+
             |   |[A | B | C]|   |   |[x | y | z]|   |
             +---+---+---+---+---+---+---+---+---+---+
-            |   |[2 | 3 | 1 | 2 | 3 | 1 | 2 | 3]|   |
+            |   |[1 | 2 | 3 | 1 | 2 | 3 | 1 | 2]|   |
             +---+---+---+---+---+---+---+---+---+---+
 
             >>> memory = Memory(items_type=str, autofill='123')
             >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
             >>> memory.fill()
             >>> memory.blocks
-            [(1, '23123123')]
+            [(1, '12312312')]
 
             ~~~
 
@@ -3275,14 +3275,14 @@ class Memory:
             +===+===+===+===+===+===+===+===+===+===+
             |   |[A | B | C]|   |   |[x | y | z]|   |
             +---+---+---+---+---+---+---+---+---+---+
-            |   |[A | B | C | 2 | 3 | x | y | z]|   |
+            |   |[A | B | C | 1 | 2 | x | y | z]|   |
             +---+---+---+---+---+---+---+---+---+---+
 
             >>> memory = Memory(items_type=str)
             >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
             >>> memory.flood(pattern='123')
             >>> memory.blocks
-            [(1, 'ABC23xyz')]
+            [(1, 'ABC12xyz')]
 
             ~~~
 
@@ -3291,14 +3291,14 @@ class Memory:
             +===+===+===+===+===+===+===+===+===+===+
             |   |[A | B | C]|   |   |[x | y | z]|   |
             +---+---+---+---+---+---+---+---+---+---+
-            |   |[A | B | C | 2 | 3 | x | y | z]|   |
+            |   |[A | B | C | 1 | 2 | x | y | z]|   |
             +---+---+---+---+---+---+---+---+---+---+
 
             >>> memory = Memory(items_type=str, autofill='123')
             >>> memory.blocks = [(1, 'ABC'), (6, 'xyz')]
             >>> memory.flood()
             >>> memory.blocks
-            [(1, 'ABC23xyz')]
+            [(1, 'ABC12xyz')]
         """
         blocks = self.blocks
         if pattern is None:
