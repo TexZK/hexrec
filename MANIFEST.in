@@ -1,10 +1,8 @@
 graft .github
 graft docs
 graft src
-graft ci
 graft tests
 graft _static
-graft _templates
 graft pyinstaller
 
 include .coveragerc
