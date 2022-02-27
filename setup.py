@@ -63,6 +63,7 @@ setup(
     keywords=[
     ],
     install_requires=[
+        'bytesparse>=0.0.5',
         'click',
         'Deprecated',
     ],

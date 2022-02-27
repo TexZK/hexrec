@@ -235,6 +235,59 @@ def chop(
         yield vector[i:(i + window)]
 
 
+def chop_blocks(
+    items: AnyBytes,
+    window: int,
+    align_base: int = 0,
+    start: int = 0,
+) -> Iterator[Tuple[int, AnyBytes]]:
+    r"""Chops a sequence of items into blocks.
+
+    Iterates through the vector grouping its items into windows.
+
+    Arguments:
+        items (items):
+            Sequence of items to chop.
+
+        window (int):
+            Window length.
+
+        align_base (int):
+            Offset of the first window.
+
+        start (int):
+            Start address.
+
+    Yields:
+        items: `items` slices of up to `window` elements.
+
+    Examples:
+        +---+---+---+---+---+---+---+---+---+
+        | 9 | 10| 11| 12| 13| 14| 15| 16| 17|
+        +===+===+===+===+===+===+===+===+===+
+        |   |[A | B]|[C | D]|[E | F]|[G]|   |
+        +---+---+---+---+---+---+---+---+---+
+
+        >>> list(chop_blocks(b'ABCDEFG', 2, start=10))
+        [(10, b'AB'), (12, b'CD'), (14, b'EF'), (16, b'G')]
+
+        ~~~
+
+        +---+---+---+---+---+---+---+---+---+
+        | 12| 13| 14| 15| 16| 17| 18| 19| 20|
+        +===+===+===+===+===+===+===+===+===+
+        |   |[A]|[B | C | D | E]|[F | G]|   |
+        +---+---+---+---+---+---+---+---+---+
+
+        >>> list(chop_blocks(b'ABCDEFG', 4, 3, 10))
+        [(13, b'A'), (14, b'BCDE'), (18, b'FG')]
+    """
+    offset = start + align_base
+    for chunk in chop(items, window, align_base):
+        yield offset, chunk
+        offset += len(chunk)
+
+
 def columnize(
     line: AnyStr,
     width: int,

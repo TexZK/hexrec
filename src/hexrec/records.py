@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (c) 2013-2020, Andrea Zoppi
+# Copyright (c) 2013-2022, Andrea Zoppi
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -67,19 +67,19 @@ from typing import Iterable
 from typing import Iterator
 from typing import List
 from typing import Mapping
+from typing import MutableMapping
 from typing import Optional
 from typing import Sequence
 from typing import Type
 from typing import Union
 
 import pkg_resources
-from click import open_file
 
-from .blocks import BlockIterable
-from .blocks import BlockSequence
-from .blocks import Memory
-from .blocks import merge
-from .blocks import union
+from bytesparse import Memory
+from bytesparse import collapse_blocks
+from bytesparse.base import BlockSequence
+from bytesparse.base import ImmutableMemory
+from click import open_file
 from .utils import AnyBytes
 from .utils import check_empty_args_kwargs
 from .utils import do_overlap
@@ -104,7 +104,7 @@ def get_data_records(
         list of records: Sequence of data records.
 
     Example:
-        >>> from hexrec.blocks import chop_blocks
+        >>> from hexrec.utils import chop_blocks
         >>> from hexrec.formats.motorola import Record as MotorolaRecord
         >>> data = bytes(range(256))
         >>> blocks = list(chop_blocks(data, 16))
@@ -129,7 +129,7 @@ def get_max_data_length(
         int: Maximum data count found; ``0`` by default.
 
     Example:
-        >>> from hexrec.blocks import chop_blocks
+        >>> from hexrec.utils import chop_blocks
         >>> from hexrec.formats.motorola import Record as MotorolaRecord
         >>> data = bytes(range(100))
         >>> blocks = list(chop_blocks(data, 16))
@@ -189,21 +189,21 @@ def records_to_blocks(
         list of blocks: Blocks holding data from `records`.
 
     Example:
-        >>> from hexrec.blocks import chop_blocks, merge
+        >>> from hexrec.utils import chop_blocks
         >>> from hexrec.formats.motorola import Record as MotorolaRecord
         >>> data = bytes(range(256))
         >>> blocks = list(chop_blocks(data, 16))
         >>> records = blocks_to_records(blocks, MotorolaRecord)
-        >>> records_to_blocks(records) == merge(blocks)
+        >>> records_to_blocks(records) == collapse_blocks(blocks)
         True
     """
-    blocks = [(r.address, r.data) for r in get_data_records(records)]
-    blocks = merge(union(blocks))
+    blocks = [[r.address, r.data] for r in get_data_records(records)]
+    blocks = collapse_blocks(blocks)
     return blocks
 
 
 def blocks_to_records(
-    blocks: BlockIterable,
+    blocks: BlockSequence,
     record_type: Type['Record'],
     split_args: Optional[Sequence[Any]] = None,
     split_kwargs: Optional[Mapping[str, Any]] = None,
@@ -235,12 +235,13 @@ def blocks_to_records(
         list of records: Records holding data from `blocks`.
 
     Example:
-        >>> from hexrec.blocks import chop_blocks, merge
+        >>> from bytesparse import collapse_blocks
+        >>> from hexrec.utils import chop_blocks
         >>> from hexrec.formats.motorola import Record as MotorolaRecord
         >>> data = bytes(range(256))
         >>> blocks = list(chop_blocks(data, 16))
         >>> records = blocks_to_records(blocks, MotorolaRecord)
-        >>> records_to_blocks(records) == merge(blocks)
+        >>> records_to_blocks(records) == collapse_blocks(blocks)
         True
     """
     split_args = split_args or ()
@@ -306,7 +307,7 @@ def merge_records(
         list of records: Merged records.
 
     Example:
-        >>> from hexrec.blocks import chop_blocks, merge
+        >>> from hexrec.utils import chop_blocks
         >>> from hexrec.formats.intel import Record as IntelRecord
         >>> from hexrec.formats.motorola import Record as MotorolaRecord
         >>> data1 = bytes(range(0, 32))
@@ -332,12 +333,14 @@ def merge_records(
     if output_type is None:
         output_type = input_types[0]
 
-    blocks = merge(union(*[[(r.address, r.data) for r in records]
-                           for records in data_records]))
+    blocks = collapse_blocks([[[r.address, r.data] for r in records]
+                              for records in data_records])
 
     output_records = blocks_to_records(blocks, output_type,
-                                       split_args, split_kwargs,
-                                       build_args, build_kwargs)
+                                       split_args=split_args,
+                                       split_kwargs=split_kwargs,
+                                       build_args=build_args,
+                                       build_kwargs=build_kwargs)
     return output_records
 
 
@@ -1720,7 +1723,7 @@ class Record:
     def write_memory(
         cls: Type['Record'],
         stream: IO,
-        memory: Memory,
+        memory: ImmutableMemory,
         split_args: Optional[Sequence[Any]] = None,
         split_kwargs: Optional[Mapping[str, Any]] = None,
         build_args: Optional[Sequence[Any]] = None,
@@ -1749,7 +1752,7 @@ class Record:
 
         Example:
             >>> import io
-            >>> from hexrec.blocks import Memory
+            >>> from bytesparse import Memory
             >>> from hexrec.formats.motorola import Record as MotorolaRecord
             >>> memory = Memory(blocks=[(0, b'abc'), (16, b'def')])
             >>> stream = io.StringIO()
@@ -1757,7 +1760,7 @@ class Record:
             >>> stream.getvalue()
             'S0030000FC\nS1060000616263D3\nS1060010646566BA\nS5030002FA\nS9030000FC\n'
         """
-        cls.write_blocks(stream, memory.blocks,
+        cls.write_blocks(stream, memory.to_blocks(),
                          split_args=split_args, split_kwargs=split_kwargs,
                          build_args=build_args, build_kwargs=build_kwargs)
 
@@ -1823,7 +1826,7 @@ class Record:
                 Keyword arguments for :meth:`Record.build_standalone`.
 
         Example:
-            >>> from hexrec.blocks import Memory
+            >>> from bytesparse import Memory
             >>> from hexrec.formats.motorola import Record as MotorolaRecord
             >>> memory = Memory(blocks=[(0, b'abc'), (16, b'def')])
             >>> MotorolaRecord.save_memory('save_memory.mot', memory)
@@ -1990,7 +1993,7 @@ class Record:
             stream.flush()
 
 
-RECORD_TYPES: Mapping[str, Type[Record]] = {}
+RECORD_TYPES: MutableMapping[str, Type[Record]] = {}
 r"""Registered record types."""
 
 
