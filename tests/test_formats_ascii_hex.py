@@ -245,7 +245,7 @@ class TestRecord:
     def test_load_blocks(self, datapath):
         path_ref = datapath / 'bytes.ascii_hex'
         ans_out = list(Record.load_blocks(str(path_ref)))
-        ans_ref = [(0, BYTES)]
+        ans_ref = [[0, BYTES]]
         assert ans_out == ans_ref
 
     def test_load_records(self, datapath):

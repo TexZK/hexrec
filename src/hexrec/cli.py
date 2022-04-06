@@ -179,9 +179,9 @@ def clear(
     input_type, output_type = find_types(input_format, output_format,
                                          infile, outfile)
 
-    m = _load_memory(infile, record_type=input_type)
-    m.clear(start, endex)
-    _save_memory(outfile, m, record_type=output_type)
+    memory = _load_memory(infile, record_type=input_type)
+    memory.clear(start=start, endex=endex)
+    _save_memory(outfile, memory, record_type=output_type)
 
 
 # ----------------------------------------------------------------------------
@@ -263,11 +263,11 @@ def crop(
     input_type, output_type = find_types(input_format, output_format,
                                          infile, outfile)
 
-    m = _load_memory(infile, record_type=input_type)
-    m.crop(start, endex)
+    memory = _load_memory(infile, record_type=input_type)
+    memory.crop(start=start, endex=endex)
     if value is not None:
-        m.flood(start, endex, bytes([value]))
-    _save_memory(outfile, m, record_type=output_type)
+        memory.flood(start=start, endex=endex, pattern=value)
+    _save_memory(outfile, memory, record_type=output_type)
 
 
 # ----------------------------------------------------------------------------
@@ -319,11 +319,11 @@ def cut(
     input_type, output_type = find_types(input_format, output_format,
                                          infile, outfile)
 
-    m = _load_memory(infile, record_type=input_type)
-    m.crop(start, endex)
+    memory = _load_memory(infile, record_type=input_type)
+    memory.crop(start=start, endex=endex)
     if value is not None:
-        m.flood(start, endex, bytes([value]))
-    _save_memory(outfile, m, record_type=output_type)
+        memory.flood(start=start, endex=endex, pattern=value)
+    _save_memory(outfile, memory, record_type=output_type)
 
 
 # ----------------------------------------------------------------------------
@@ -366,9 +366,9 @@ def delete(
     input_type, output_type = find_types(input_format, output_format,
                                          infile, outfile)
 
-    m = _load_memory(infile, record_type=input_type)
-    m.delete(start, endex)
-    _save_memory(outfile, m, record_type=output_type)
+    memory = _load_memory(infile, record_type=input_type)
+    memory.delete(start=start, endex=endex)
+    _save_memory(outfile, memory, record_type=output_type)
 
 
 # ----------------------------------------------------------------------------
@@ -415,9 +415,9 @@ def fill(
     input_type, output_type = find_types(input_format, output_format,
                                          infile, outfile)
 
-    m = _load_memory(infile, record_type=input_type)
-    m.fill(start, endex, bytes([value]))
-    _save_memory(outfile, m, record_type=output_type)
+    memory = _load_memory(infile, record_type=input_type)
+    memory.fill(start=start, endex=endex, pattern=value)
+    _save_memory(outfile, memory, record_type=output_type)
 
 
 # ----------------------------------------------------------------------------
@@ -464,9 +464,9 @@ def flood(
     input_type, output_type = find_types(input_format, output_format,
                                          infile, outfile)
 
-    m = _load_memory(infile, record_type=input_type)
-    m.flood(start, endex, bytes([value]))
-    _save_memory(outfile, m, record_type=output_type)
+    memory = _load_memory(infile, record_type=input_type)
+    memory.flood(start=start, endex=endex, pattern=value)
+    _save_memory(outfile, memory, record_type=output_type)
 
 
 # ----------------------------------------------------------------------------
@@ -542,9 +542,9 @@ def reverse(
     input_type, output_type = find_types(input_format, output_format,
                                          infile, outfile)
 
-    m = _load_memory(infile, record_type=input_type)
-    m.reverse()
-    _save_memory(outfile, m, record_type=output_type)
+    memory = _load_memory(infile, record_type=input_type)
+    memory.reverse()
+    _save_memory(outfile, memory, record_type=output_type)
 
 
 # ----------------------------------------------------------------------------
@@ -581,9 +581,9 @@ def shift(
     input_type, output_type = find_types(input_format, output_format,
                                          infile, outfile)
 
-    m = _load_memory(infile, record_type=input_type)
-    m.shift(amount)
-    _save_memory(outfile, m, record_type=output_type)
+    memory = _load_memory(infile, record_type=input_type)
+    memory.shift(amount)
+    _save_memory(outfile, memory, record_type=output_type)
 
 
 # ----------------------------------------------------------------------------

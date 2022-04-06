@@ -5,9 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from hexrec.blocks import Memory
-from hexrec.blocks import chop_blocks
-from hexrec.blocks import merge
+from hexrec.records import Memory
+from hexrec.records import collapse_blocks
 from hexrec.formats.binary import Record as BinaryRecord
 from hexrec.formats.intel import Record as IntelRecord
 from hexrec.formats.intel import Tag as IntelTag
@@ -35,6 +34,7 @@ from hexrec.records import save_blocks
 from hexrec.records import save_chunk
 from hexrec.records import save_memory
 from hexrec.records import save_records
+from hexrec.utils import chop_blocks
 
 BYTES = bytes(range(256))
 
@@ -108,7 +108,7 @@ def test_records_to_blocks_doctest():
     data = bytes(range(256))
     blocks = list(chop_blocks(data, 16))
     records = blocks_to_records(blocks, MotorolaRecord)
-    ans_ref = merge(blocks)
+    ans_ref = collapse_blocks(blocks)
     ans_out = records_to_blocks(records)
     assert ans_ref == ans_out
 
@@ -119,7 +119,7 @@ def test_blocks_to_records_doctest():
     data = bytes(range(256))
     blocks = list(chop_blocks(data, 16))
     records = blocks_to_records(blocks, MotorolaRecord)
-    ans_ref = merge(blocks)
+    ans_ref = collapse_blocks(blocks)
     ans_out = records_to_blocks(records)
     assert ans_ref == ans_out
 
@@ -138,7 +138,7 @@ def test_merge_records_doctest():
     data_records2 = get_data_records(records2)
     merged_records = merge_records([data_records1, data_records2])
     merged_blocks = records_to_blocks(merged_records)
-    ans_ref = merge(blocks1 + blocks2)
+    ans_ref = collapse_blocks(blocks1 + blocks2)
     ans_out = merged_blocks
     assert ans_ref == ans_out
 
@@ -266,21 +266,21 @@ def test_save_records(tmppath):
 
 def test_load_blocks_doctest(tmppath):
     path = str(tmppath / 'bytes.mot')
-    blocks = [(offset, bytes(range(offset, offset + 16)))
+    blocks = [[offset, bytes(range(offset, offset + 16))]
               for offset in range(0, 256, 16)]
     save_blocks(path, blocks)
     ans_out = load_blocks(path)
-    ans_ref = merge(blocks)
+    ans_ref = collapse_blocks(blocks)
     assert ans_out == ans_ref
 
 
 def test_load_blocks(tmppath):
     path = str(tmppath / 'bytes.mot')
-    blocks = [(offset, bytes(range(offset, offset + 16)))
+    blocks = [[offset, bytes(range(offset, offset + 16))]
               for offset in range(0, 256, 16)]
     save_blocks(path, blocks)
     ans_out = load_blocks(path, MotorolaRecord)
-    ans_ref = merge(blocks)
+    ans_ref = collapse_blocks(blocks)
     assert ans_out == ans_ref
 
 
@@ -288,21 +288,21 @@ def test_load_blocks(tmppath):
 
 def test_save_blocks_doctest(tmppath):
     path = str(tmppath / 'bytes.hex')
-    blocks = [(offset, bytes(range(offset, offset + 16)))
+    blocks = [[offset, bytes(range(offset, offset + 16))]
               for offset in range(0, 256, 16)]
     save_blocks(path, blocks)
     ans_out = load_blocks(path)
-    ans_ref = merge(blocks)
+    ans_ref = collapse_blocks(blocks)
     assert ans_out == ans_ref
 
 
 def test_save_blocks(tmppath):
     path = str(tmppath / 'bytes.hex')
-    blocks = [(offset, bytes(range(offset, offset + 16)))
+    blocks = [[offset, bytes(range(offset, offset + 16))]
               for offset in range(0, 256, 16)]
     save_blocks(path, blocks, IntelRecord)
     ans_out = load_blocks(path)
-    ans_ref = merge(blocks)
+    ans_ref = collapse_blocks(blocks)
     assert ans_out == ans_ref
 
 
@@ -310,9 +310,10 @@ def test_save_blocks(tmppath):
 
 def test_load_memory_doctest(tmppath):
     path = str(tmppath / 'bytes.mot')
-    blocks = [(offset, bytes(range(offset, offset + 16)))
+    blocks = [[offset, bytes(range(offset, offset + 16))]
               for offset in range(0, 256, 16)]
-    sparse_items = Memory(blocks=blocks)
+    blocks = collapse_blocks(blocks)
+    sparse_items = Memory.from_blocks(blocks)
     save_memory(path, sparse_items)
     ans_out = load_memory(path)
     ans_ref = sparse_items
@@ -323,9 +324,10 @@ def test_load_memory_doctest(tmppath):
 
 def test_save_memory_doctest(tmppath):
     path = str(tmppath / 'bytes.hex')
-    blocks = [(offset, bytes(range(offset, offset + 16)))
+    blocks = [[offset, bytes(range(offset, offset + 16))]
               for offset in range(0, 256, 16)]
-    sparse_items = Memory(blocks=blocks)
+    blocks = collapse_blocks(blocks)
+    sparse_items = Memory.from_blocks(blocks)
     save_memory(path, sparse_items)
     ans_out = load_memory(path)
     ans_ref = sparse_items
@@ -339,7 +341,7 @@ def test_save_chunk_doctest(tmppath):
     data = bytes(range(256))
     save_chunk(path, data, 0x12345678)
     ans_out = load_blocks(path)
-    ans_ref = [(0x12345678, data)]
+    ans_ref = [[0x12345678, data]]
     assert ans_out == ans_ref
 
 
@@ -654,7 +656,7 @@ class TestRecord:
         pass
 
     def test_read_blocks_doctest(self):
-        blocks = [(0, b'abc'), (16, b'def')]
+        blocks = [[0, b'abc'], [16, b'def']]
         stream = io.StringIO()
         MotorolaRecord.write_blocks(stream, blocks)
         stream.seek(0, io.SEEK_SET)
@@ -663,7 +665,7 @@ class TestRecord:
         assert ans_out == ans_ref
 
     def test_write_blocks_doctest(self):
-        blocks = [(0, b'abc'), (16, b'def')]
+        blocks = [[0, b'abc'], [16, b'def']]
         stream = io.StringIO()
         MotorolaRecord.write_blocks(stream, blocks)
         ans_out = stream.getvalue()
@@ -683,12 +685,12 @@ class TestRecord:
             f.write('S5030002FA\n')
             f.write('S9030000FC\n')
         ans_out = MotorolaRecord.load_blocks(path)
-        ans_ref = [(0, b'abc'), (16, b'def')]
+        ans_ref = [[0, b'abc'], [16, b'def']]
         assert ans_out == ans_ref
 
     def test_save_blocks_doctest(self, tmppath):
         path = str(tmppath / 'save_blocks.mot')
-        blocks = [(0, b'abc'), (16, b'def')]
+        blocks = [[0, b'abc'], [16, b'def']]
         MotorolaRecord.save_blocks(path, blocks)
         with open(path, 'rt') as f:
             ans_out = f.read()
@@ -700,17 +702,17 @@ class TestRecord:
         assert ans_out == ans_ref
 
     def test_read_memory_doctest(self):
-        blocks = [(0, b'abc'), (16, b'def')]
+        blocks = [[0, b'abc'], [16, b'def']]
         stream = io.StringIO()
         MotorolaRecord.write_blocks(stream, blocks)
         stream.seek(0, io.SEEK_SET)
         memory = MotorolaRecord.read_memory(stream)
-        ans_out = memory.blocks
-        ans_ref = [(0, b'abc'), (16, b'def')]
+        ans_out = memory.to_blocks()
+        ans_ref = [[0, b'abc'], [16, b'def']]
         assert ans_out == ans_ref
 
     def test_write_memory_doctest(self):
-        memory = Memory(blocks=[(0, b'abc'), (16, b'def')])
+        memory = Memory.from_blocks([[0, b'abc'], [16, b'def']])
         stream = io.StringIO()
         MotorolaRecord.write_memory(stream, memory)
         ans_out = stream.getvalue()
@@ -730,13 +732,13 @@ class TestRecord:
             f.write('S5030002FA\n')
             f.write('S9030000FC\n')
         memory = MotorolaRecord.load_memory(path)
-        ans_out = memory.blocks
-        ans_ref = [(0, b'abc'), (16, b'def')]
+        ans_out = memory.to_blocks()
+        ans_ref = [[0, b'abc'], [16, b'def']]
         assert ans_out == ans_ref
 
     def test_save_memory_doctest(self, tmppath):
         path = str(tmppath / 'save_memory.mot')
-        blocks = [(0, b'abc'), (16, b'def')]
+        blocks = [[0, b'abc'], [16, b'def']]
         MotorolaRecord.save_blocks(path, blocks)
         with open(path, 'rt') as f:
             ans_out = f.read()
@@ -748,7 +750,7 @@ class TestRecord:
         assert ans_out == ans_ref
 
     def test_read_records_doctest(self):
-        blocks = [(0, b'abc'), (16, b'def')]
+        blocks = [[0, b'abc'], [16, b'def']]
         stream = io.StringIO()
         MotorolaRecord.write_blocks(stream, blocks)
         stream.seek(0, io.SEEK_SET)
@@ -762,7 +764,7 @@ class TestRecord:
         assert ans_out == ans_ref
 
     def test_write_records_doctest(self):
-        blocks = [(0, b'abc'), (16, b'def')]
+        blocks = [[0, b'abc'], [16, b'def']]
         records = blocks_to_records(blocks, MotorolaRecord)
         stream = io.StringIO()
         MotorolaRecord.write_records(stream, records)
@@ -793,7 +795,7 @@ class TestRecord:
 
     def test_save_records_doctest(self, tmppath):
         path = str(tmppath / 'save_records.mot')
-        blocks = [(0, b'abc'), (16, b'def')]
+        blocks = [[0, b'abc'], [16, b'def']]
         records = blocks_to_records(blocks, MotorolaRecord)
         MotorolaRecord.save_records(path, records)
         with open(path, 'rt') as f:

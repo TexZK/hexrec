@@ -240,7 +240,7 @@ def chop_blocks(
     window: int,
     align_base: int = 0,
     start: int = 0,
-) -> Iterator[Tuple[int, AnyBytes]]:
+) -> Iterator[List[Union[int, AnyBytes]]]:
     r"""Chops a sequence of items into blocks.
 
     Iterates through the vector grouping its items into windows.
@@ -269,7 +269,7 @@ def chop_blocks(
         +---+---+---+---+---+---+---+---+---+
 
         >>> list(chop_blocks(b'ABCDEFG', 2, start=10))
-        [(10, b'AB'), (12, b'CD'), (14, b'EF'), (16, b'G')]
+        [[10, b'AB'], [12, b'CD'], [14, b'EF'], [16, b'G']]
 
         ~~~
 
@@ -280,11 +280,11 @@ def chop_blocks(
         +---+---+---+---+---+---+---+---+---+
 
         >>> list(chop_blocks(b'ABCDEFG', 4, 3, 10))
-        [(13, b'A'), (14, b'BCDE'), (18, b'FG')]
+        [[13, b'A'], [14, b'BCDE'], [18, b'FG']]
     """
     offset = start + align_base
     for chunk in chop(items, window, align_base):
-        yield offset, chunk
+        yield [offset, chunk]
         offset += len(chunk)
 
 

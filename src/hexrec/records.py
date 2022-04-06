@@ -73,11 +73,13 @@ from typing import Sequence
 from typing import Type
 from typing import Union
 
-from bytesparse import Memory
-from bytesparse import collapse_blocks
+import click
+from bytesparse.base import BlockIterable
 from bytesparse.base import BlockSequence
 from bytesparse.base import ImmutableMemory
-from click import open_file
+from bytesparse import Memory
+from bytesparse import collapse_blocks
+
 from .utils import AnyBytes
 from .utils import check_empty_args_kwargs
 from .utils import do_overlap
@@ -188,6 +190,7 @@ def records_to_blocks(
 
     Example:
         >>> from hexrec.utils import chop_blocks
+        >>> from bytesparse import collapse_blocks
         >>> from hexrec.formats.motorola import Record as MotorolaRecord
         >>> data = bytes(range(256))
         >>> blocks = list(chop_blocks(data, 16))
@@ -233,8 +236,8 @@ def blocks_to_records(
         list of records: Records holding data from `blocks`.
 
     Example:
-        >>> from bytesparse import collapse_blocks
         >>> from hexrec.utils import chop_blocks
+        >>> from bytesparse import collapse_blocks
         >>> from hexrec.formats.motorola import Record as MotorolaRecord
         >>> data = bytes(range(256))
         >>> blocks = list(chop_blocks(data, 16))
@@ -306,6 +309,7 @@ def merge_records(
 
     Example:
         >>> from hexrec.utils import chop_blocks
+        >>> from bytesparse import collapse_blocks
         >>> from hexrec.formats.intel import Record as IntelRecord
         >>> from hexrec.formats.motorola import Record as MotorolaRecord
         >>> data1 = bytes(range(0, 32))
@@ -319,7 +323,7 @@ def merge_records(
         >>> data_records2 = get_data_records(records2)
         >>> merged_records = merge_records([data_records1, data_records2])
         >>> merged_blocks = records_to_blocks(merged_records)
-        >>> merged_blocks == merge(blocks1 + blocks2)
+        >>> merged_blocks == collapse_blocks(blocks1 + blocks2)
         True
     """
     if input_types is None:
@@ -331,14 +335,14 @@ def merge_records(
     if output_type is None:
         output_type = input_types[0]
 
-    blocks = collapse_blocks([[[r.address, r.data] for r in records]
-                              for records in data_records])
+    blocks = []
+    for records in data_records:
+        blocks.extend([r.address, r.data] for r in records)
+    blocks = collapse_blocks(blocks)
 
     output_records = blocks_to_records(blocks, output_type,
-                                       split_args=split_args,
-                                       split_kwargs=split_kwargs,
-                                       build_args=build_args,
-                                       build_kwargs=build_kwargs)
+                                       split_args, split_kwargs,
+                                       build_args, build_kwargs)
     return output_records
 
 
@@ -638,7 +642,7 @@ def load_blocks(
         list of blocks: Blocks loaded from `path`.
 
     Example:
-        >>> blocks = [(n, bytes(range(n, n + 16))) for n in range(0, 256, 16)]
+        >>> blocks = [[n, bytes(range(n, n + 16))] for n in range(0, 256, 16)]
         >>> save_blocks('bytes.mot', blocks)
         >>> load_blocks('bytes.mot') == blocks
         True
@@ -685,7 +689,7 @@ def save_blocks(
             Keyword arguments for :meth:`Record.build_standalone`.
 
     Example:
-        >>> blocks = [(n, bytes(range(n, n + 16))) for n in range(0, 256, 16)]
+        >>> blocks = [[n, bytes(range(n, n + 16))] for n in range(0, 256, 16)]
         >>> save_blocks('bytes.hex', blocks)
         >>> load_blocks('bytes.hex') == blocks
         True
@@ -718,8 +722,9 @@ def load_memory(
         :obj:`Memory`: Virtual memory holding data from `path`.
 
     Example:
-        >>> blocks = [(n, bytes(range(n, n + 16))) for n in range(0, 256, 16)]
-        >>> memory = Memory(blocks=blocks)
+        >>> blocks = [[n, bytes(range(n, n + 16))] for n in range(0, 256, 16)]
+        >>> blocks = collapse_blocks(blocks)
+        >>> memory = Memory.from_blocks(blocks)
         >>> save_memory('bytes.mot', memory)
         >>> load_memory('bytes.mot') == memory
         True
@@ -758,8 +763,9 @@ def save_memory(
             Keyword arguments for :meth:`Record.split`.
 
     Example:
-        >>> blocks = [(n, bytes(range(n, n + 16))) for n in range(0, 256, 16)]
-        >>> memory = Memory(blocks=blocks)
+        >>> blocks = [[n, bytes(range(n, n + 16))] for n in range(0, 256, 16)]
+        >>> blocks = collapse_blocks(blocks)
+        >>> memory = Memory.from_blocks(blocks)
         >>> save_memory('bytes.hex', memory)
         >>> load_memory('bytes.hex') == memory
         True
@@ -805,10 +811,10 @@ def save_chunk(
     Example:
         >>> data = bytes(range(256))
         >>> save_chunk('bytes.mot', data, 0x12345678)
-        >>> load_blocks('bytes.mot') == [(0x12345678, data)]
+        >>> load_blocks('bytes.mot') == [[0x12345678, data]]
         True
     """
-    save_blocks(path, [(address, chunk)],
+    save_blocks(path, [[address, chunk]],
                 record_type=record_type,
                 split_args=split_args,
                 split_kwargs=split_kwargs)
@@ -1541,12 +1547,12 @@ class Record:
         Example:
             >>> import io
             >>> from hexrec.formats.motorola import Record as MotorolaRecord
-            >>> blocks = [(0, b'abc'), (16, b'def')]
+            >>> blocks = [[0, b'abc'], [16, b'def']]
             >>> stream = io.StringIO()
             >>> MotorolaRecord.write_blocks(stream, blocks)
             >>> _ = stream.seek(0, io.SEEK_SET)
             >>> MotorolaRecord.read_blocks(stream)
-            [(0, b'abc'), (16, b'def')]
+            [[0, b'abc'], [16, b'def']]
         """
         records = cls.read_records(stream)
         cls.readdress(records)
@@ -1590,7 +1596,7 @@ class Record:
         Example:
             >>> import io
             >>> from hexrec.formats.motorola import Record as MotorolaRecord
-            >>> blocks = [(0, b'abc'), (16, b'def')]
+            >>> blocks = [[0, b'abc'], [16, b'def']]
             >>> stream = io.StringIO()
             >>> MotorolaRecord.write_blocks(stream, blocks)
             >>> stream.getvalue()
@@ -1629,7 +1635,7 @@ class Record:
             ...     f.write('S5030002FA\n')
             ...     f.write('S9030000FC\n')
             >>> MotorolaRecord.load_blocks('load_blocks.mot')
-            [(0, b'abc'), (16, b'def')]
+            [[0, b'abc'], [16, b'def']]
         """
         with cls._open_input(path) as stream:
             blocks = cls.read_blocks(stream)
@@ -1671,7 +1677,7 @@ class Record:
 
         Example:
             >>> from hexrec.formats.motorola import Record as MotorolaRecord
-            >>> blocks = [(0, b'abc'), (16, b'def')]
+            >>> blocks = [[0, b'abc'], [16, b'def']]
             >>> MotorolaRecord.save_blocks('save_blocks.mot', blocks)
             >>> with open('save_blocks.mot', 'rt') as f: text = f.read()
             >>> text
@@ -1702,17 +1708,16 @@ class Record:
         Example:
             >>> import io
             >>> from hexrec.formats.motorola import Record as MotorolaRecord
-            >>> blocks = [(0, b'abc'), (16, b'def')]
+            >>> blocks = [[0, b'abc'], [16, b'def']]
             >>> stream = io.StringIO()
             >>> MotorolaRecord.write_blocks(stream, blocks)
             >>> _ = stream.seek(0, io.SEEK_SET)
             >>> memory = MotorolaRecord.read_memory(stream)
-            >>> memory.blocks
-            [(0, b'abc'), (16, b'def')]
+            >>> memory.to_blocks()
+            [[0, b'abc'], [16, b'def']]
         """
         blocks = cls.read_blocks(stream)
-        memory = Memory()
-        memory.blocks = blocks  # avoid useless constructor operations
+        memory = Memory.from_blocks(blocks, copy=False)
         return memory
 
     @classmethod
@@ -1748,9 +1753,9 @@ class Record:
 
         Example:
             >>> import io
-            >>> from bytesparse import Memory
+            >>> from hexrec.records import Memory
             >>> from hexrec.formats.motorola import Record as MotorolaRecord
-            >>> memory = Memory(blocks=[(0, b'abc'), (16, b'def')])
+            >>> memory = Memory.from_blocks([[0, b'abc'], [16, b'def']])
             >>> stream = io.StringIO()
             >>> MotorolaRecord.write_memory(stream, memory)
             >>> stream.getvalue()
@@ -1783,8 +1788,8 @@ class Record:
             ...     f.write('S5030002FA\n')
             ...     f.write('S9030000FC\n')
             >>> memory = MotorolaRecord.load_memory('load_blocks.mot')
-            >>> memory.blocks
-            [(0, b'abc'), (16, b'def')]
+            >>> memory.to_blocks()
+            [[0, b'abc'], [16, b'def']]
         """
         with cls._open_input(path) as stream:
             memory = cls.read_memory(stream)
@@ -1794,7 +1799,7 @@ class Record:
     def save_memory(
         cls,
         path: str,
-        memory: Memory,
+        memory: ImmutableMemory,
         split_args: Optional[Sequence[Any]] = None,
         split_kwargs: Optional[Mapping[str, Any]] = None,
         build_args: Optional[Sequence[Any]] = None,
@@ -1822,9 +1827,9 @@ class Record:
                 Keyword arguments for :meth:`Record.build_standalone`.
 
         Example:
-            >>> from bytesparse import Memory
+            >>> from hexrec.records import Memory
             >>> from hexrec.formats.motorola import Record as MotorolaRecord
-            >>> memory = Memory(blocks=[(0, b'abc'), (16, b'def')])
+            >>> memory = Memory(blocks=[[0, b'abc'], [16, b'def']])
             >>> MotorolaRecord.save_memory('save_memory.mot', memory)
             >>> with open('save_memory.mot', 'rt') as f: text = f.read()
             >>> text
@@ -1859,7 +1864,7 @@ class Record:
         Example:
             >>> import io
             >>> from hexrec.formats.motorola import Record as MotorolaRecord
-            >>> blocks = [(0, b'abc'), (16, b'def')]
+            >>> blocks = [[0, b'abc'], [16, b'def']]
             >>> stream = io.StringIO()
             >>> MotorolaRecord.write_blocks(stream, blocks)
             >>> _ = stream.seek(0, io.SEEK_SET)
@@ -1903,7 +1908,7 @@ class Record:
             >>> import io
             >>> from hexrec.formats.motorola import Record as MotorolaRecord
             >>> from hexrec.records import blocks_to_records
-            >>> blocks = [(0, b'abc'), (16, b'def')]
+            >>> blocks = [[0, b'abc'], [16, b'def']]
             >>> records = blocks_to_records(blocks, MotorolaRecord)
             >>> stream = io.StringIO()
             >>> MotorolaRecord.write_records(stream, records)
@@ -1977,7 +1982,7 @@ class Record:
         Example:
             >>> from hexrec.formats.motorola import Record as MotorolaRecord
             >>> from hexrec.records import blocks_to_records
-            >>> blocks = [(0, b'abc'), (16, b'def')]
+            >>> blocks = [[0, b'abc'], [16, b'def']]
             >>> records = blocks_to_records(blocks, MotorolaRecord)
             >>> MotorolaRecord.save_records('save_records.mot', records)
             >>> with open('save_records.mot', 'rt') as f: text = f.read()
