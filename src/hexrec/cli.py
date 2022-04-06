@@ -53,9 +53,12 @@ from .records import convert_file as _convert_file
 from .records import find_record_type_name as _find_record_type_name
 from .records import load_memory as _load_memory
 from .records import merge_files as _merge_files
+from .records import register_default_record_types as _register_default_record_types
 from .records import save_memory as _save_memory
 from .utils import parse_int as _parse_int
 from .xxd import xxd as _xxd
+
+_register_default_record_types()
 
 
 class BasedIntParamType(click.ParamType):

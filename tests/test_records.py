@@ -30,11 +30,14 @@ from hexrec.records import load_records
 from hexrec.records import merge_files
 from hexrec.records import merge_records
 from hexrec.records import records_to_blocks
+from hexrec.records import register_default_record_types
 from hexrec.records import save_blocks
 from hexrec.records import save_chunk
 from hexrec.records import save_memory
 from hexrec.records import save_records
 from hexrec.utils import chop_blocks
+
+register_default_record_types()
 
 BYTES = bytes(range(256))
 
