@@ -73,8 +73,6 @@ from typing import Sequence
 from typing import Type
 from typing import Union
 
-import pkg_resources
-
 from bytesparse import Memory
 from bytesparse import collapse_blocks
 from bytesparse.base import BlockSequence
@@ -2022,10 +2020,6 @@ def __register_default_record_types():
 
 
 __register_default_record_types()
-RECORD_TYPES.update(
-    (entry_point.name, entry_point.load())
-    for entry_point in pkg_resources.iter_entry_points('hexrec_types')
-)
 
 
 def find_record_type_name(

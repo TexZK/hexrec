@@ -76,13 +76,5 @@ setup(
         'console_scripts': [
             'hexrec = hexrec.cli:main',
         ],
-        'hexrec_types': [
-            'ascii_hex = hexrec.formats.ascii_hex:Record',
-            'binary = hexrec.formats.binary:Record',
-            'intel = hexrec.formats.intel:Record',
-            'mos = hexrec.formats.mos:Record',
-            'motorola = hexrec.formats.motorola:Record',
-            'tektronix = hexrec.formats.tektronix:Record',
-        ],
     },
 )
