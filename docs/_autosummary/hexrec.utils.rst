@@ -16,6 +16,7 @@
       bitlify
       check_empty_args_kwargs
       chop
+      chop_blocks
       columnize
       columnize_lists
       do_overlap
@@ -28,7 +29,6 @@
       parse_int
       straighten_index
       straighten_slice
-      sum_bytes
       unbitlify
       unhexlify
       wrap_index

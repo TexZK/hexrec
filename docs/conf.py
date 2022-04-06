@@ -59,6 +59,15 @@ html_short_title = f'{project}-{version}'
 html_static_path = ['_static']
 html_style = 'css/my_theme.css'
 
+autoclass_content = 'both'
+autodoc_default_flags = [
+    'members',
+    'inherited-members',
+    'private-members',
+    'show-inheritance',
+]
+autodoc_inherit_docstrings = True
+autodoc_member_order = 'bysource'
 autosummary_generate = True
 autosummary_generate_overwrite = True
 
