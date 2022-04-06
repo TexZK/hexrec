@@ -18,7 +18,7 @@ def read(*names, **kwargs):
 
 
 def read_version():
-    path = os.path.join('src', 'bytesparse', '__init__.py')
+    path = os.path.join('src', 'hexrec', '__init__.py')
     with open(path, 'rt') as file:
         for line in file:
             if line.startswith('__version__'):
