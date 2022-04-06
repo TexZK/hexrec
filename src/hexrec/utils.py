@@ -616,31 +616,6 @@ def humanize_ebcdic(
     return text
 
 
-def sum_bytes(
-    data: Union[AnyStr, Iterable[int]],
-) -> int:
-    r"""Sums bytes.
-
-    Arguments:
-        data (bytes or str): Data bytes. Actually supports any
-            sequence with integers in it.
-
-    Returns:
-        int: The sum of all items in `data`.
-
-    Examples:
-        >>> sum_bytes(bytes(bytearray(range(16))))
-        120
-
-        >>> sum_bytes(range(16))
-        120
-    """
-    if isinstance(data, str):
-        return sum(ord(c) for c in data)
-    else:
-        return sum(data)
-
-
 def do_overlap(
     start1: int,
     endex1: int,

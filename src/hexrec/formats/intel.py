@@ -48,7 +48,6 @@ from ..utils import AnyBytes
 from ..utils import check_empty_args_kwargs
 from ..utils import chop
 from ..utils import hexlify
-from ..utils import sum_bytes
 from ..utils import unhexlify
 
 
@@ -171,9 +170,9 @@ class Record(_Record):
         offset = (self.address or 0) & 0xFFFF
 
         checksum = (self.count +
-                    sum_bytes(struct.pack('H', offset)) +
+                    sum(struct.pack('H', offset)) +
                     self.tag +
-                    sum_bytes(self.data))
+                    sum(self.data or b''))
 
         checksum = (0x100 - int(checksum & 0xFF)) & 0xFF
         return checksum

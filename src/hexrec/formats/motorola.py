@@ -51,7 +51,6 @@ from ..utils import check_empty_args_kwargs
 from ..utils import chop
 from ..utils import expmsg
 from ..utils import hexlify
-from ..utils import sum_bytes
 from ..utils import unhexlify
 
 
@@ -200,8 +199,8 @@ class Record(_Record):
     def compute_checksum(
         self: 'Record',
     ) -> int:
-        checksum = sum_bytes(struct.pack('HL', self.count, self.address))
-        checksum += sum_bytes(self.data)
+        checksum = sum(struct.pack('HL', self.count, self.address))
+        checksum += sum(self.data or b'')
         checksum = (checksum & 0xFF) ^ 0xFF
         return checksum
 

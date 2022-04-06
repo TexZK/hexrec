@@ -81,7 +81,6 @@ from click import open_file
 from .utils import AnyBytes
 from .utils import check_empty_args_kwargs
 from .utils import do_overlap
-from .utils import sum_bytes
 
 RecordIterable = Iterable['Record']
 RecordCollection = Collection['Record']
@@ -1182,7 +1181,7 @@ class Record:
             >>> hex(record.compute_checksum())
             '0x8a'
         """
-        return sum_bytes(self.data or b'') & 0xFF
+        return sum(self.data or b'') & 0xFF
 
     def update_checksum(
         self: 'Record',
@@ -1279,11 +1278,9 @@ class Record:
         Returns:
             stream: An input stream handle.
         """
-        if isinstance(cls.LINE_SEP, (bytes, bytearray)):
-            mode = 'rb'
-        else:
-            mode = 'rt'
-        return open_file(path, mode)
+        byte_types = (bytes, bytearray, memoryview)
+        mode = 'rb' if isinstance(cls.LINE_SEP, byte_types) else 'rt'
+        return click.open_file(path, mode)
 
     @classmethod
     def _open_output(
@@ -1299,11 +1296,9 @@ class Record:
         Returns:
             stream: An output stream handle.
         """
-        if isinstance(cls.LINE_SEP, (bytes, bytearray)):
-            mode = 'wb'
-        else:
-            mode = 'wt'
-        return open_file(path, mode)
+        byte_types = (bytes, bytearray, memoryview)
+        mode = 'wb' if isinstance(cls.LINE_SEP, byte_types) else 'wt'
+        return click.open_file(path, mode)
 
     @classmethod
     def parse_record(

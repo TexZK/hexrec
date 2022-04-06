@@ -47,7 +47,6 @@ from ..utils import AnyBytes
 from ..utils import check_empty_args_kwargs
 from ..utils import chop
 from ..utils import hexlify
-from ..utils import sum_bytes
 from ..utils import unhexlify
 
 
@@ -153,7 +152,7 @@ class Record(_Record):
                 f'8'
                 f'{self.address:08X}'
                 f'{hexlify(self.data)}')
-        checksum = sum_bytes(int(c, 16) for c in text) & 0xFF
+        checksum = sum(int(c, 16) for c in text) & 0xFF
         return checksum
 
     def check(
