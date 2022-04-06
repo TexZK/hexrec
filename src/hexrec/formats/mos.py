@@ -143,7 +143,7 @@ class Record(_Record):
             checksum = (self.count +
                         (self.address >> 16) +
                         (self.address & 0xFF) +
-                        sum(self.data)) & 0xFFFF
+                        sum(self.data or b'')) & 0xFFFF
         else:
             checksum = self.address
         return checksum

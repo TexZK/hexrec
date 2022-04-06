@@ -45,12 +45,10 @@ def read_text(path):
 # ============================================================================
 
 def test_main():
-    value = None
     try:
         _main('__main__')
-    except SystemExit as e:
-        value = str(e)
-    assert value == '2'
+    except SystemExit:
+        pass
 
 
 # ============================================================================
@@ -126,11 +124,10 @@ def test_by_filename(tmppath, datapath):
         args = args[:-1] + [str(path_in), str(path_out)]
 
         runner = CliRunner()
-        runner.invoke(main, args)
+        runner.invoke(main, args, catch_exceptions=False)
 
         ans_out = read_text(path_out)
         ans_ref = read_text(path_ref)
-        # if ans_out != ans_ref: raise AssertionError(str(path_ref))
         assert ans_out == ans_ref
 
 
