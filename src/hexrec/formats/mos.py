@@ -101,7 +101,7 @@ class Record(_Record):
     r"""File extensions typically mapped to this record type."""
 
     def __init__(
-        self: 'Record',
+        self,
         address: int,
         tag: Optional[Tag],
         data: AnyBytes,
@@ -110,7 +110,7 @@ class Record(_Record):
         super().__init__(address, tag, data, checksum)
 
     def __repr__(
-        self: 'Record',
+        self,
     ) -> str:
         text = (f'{type(self).__name__}('
                 f'address=0x{self.address:04X}, '
@@ -122,7 +122,7 @@ class Record(_Record):
         return text
 
     def __str__(
-        self: 'Record',
+        self,
     ) -> str:
         text = (f';'
                 f'{self.count:02X}'
@@ -132,12 +132,12 @@ class Record(_Record):
         return text
 
     def is_data(
-        self: 'Record',
+        self,
     ) -> bool:
         return self.count > 0
 
     def compute_checksum(
-        self: 'Record',
+        self,
     ) -> int:
         if self.count:
             checksum = (self.count +
@@ -149,7 +149,7 @@ class Record(_Record):
         return checksum
 
     def check(
-        self: 'Record',
+        self,
     ) -> None:
         if not 0 <= self.address < (1 << 16):
             raise ValueError('address overflow')
@@ -175,7 +175,7 @@ class Record(_Record):
 
     @classmethod
     def build_data(
-        cls: Type['Record'],
+        cls,
         address: int,
         data: AnyBytes,
     ) -> 'Record':
@@ -202,7 +202,7 @@ class Record(_Record):
 
     @classmethod
     def build_terminator(
-        cls: Type['Record'],
+        cls,
         record_count: int,
     ) -> 'Record':
         r"""Builds a terminator record.
@@ -229,7 +229,7 @@ class Record(_Record):
 
     @classmethod
     def split(
-        cls: Type['Record'],
+        cls,
         data: AnyBytes,
         address: int = 0,
         columns: int = 16,
@@ -287,7 +287,7 @@ class Record(_Record):
 
     @classmethod
     def parse_record(
-        cls: Type['Record'],
+        cls,
         line: str,
         *args: Any,
         **kwargs: Any,
@@ -313,7 +313,7 @@ class Record(_Record):
 
     @classmethod
     def build_standalone(
-        cls: Type['Record'],
+        cls,
         data_records: RecordSequence,
         *args: Any,
         **kwargs: Any,
@@ -338,7 +338,7 @@ class Record(_Record):
 
     @classmethod
     def check_sequence(
-        cls: Type['Record'],
+        cls,
         records: RecordSequence,
     ) -> None:
         super().check_sequence(records)

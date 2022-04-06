@@ -86,6 +86,7 @@ RecordIterable = Iterable['Record']
 RecordCollection = Collection['Record']
 RecordSequence = Sequence['Record']
 RecordList = List['Record']
+RecordType = Type['Record']
 
 
 def get_data_records(
@@ -200,8 +201,8 @@ def records_to_blocks(
 
 
 def blocks_to_records(
-    blocks: BlockSequence,
-    record_type: Type['Record'],
+    blocks: BlockIterable,
+    record_type: RecordType,
     split_args: Optional[Sequence[Any]] = None,
     split_kwargs: Optional[Mapping[str, Any]] = None,
     build_args: Optional[Sequence[Any]] = None,
@@ -261,7 +262,7 @@ def blocks_to_records(
 def merge_records(
     data_records: Sequence[RecordSequence],
     input_types: Optional[Sequence[type]] = None,
-    output_type: Optional[Type['Record']] = None,
+    output_type: Optional[RecordType] = None,
     split_args: Optional[Sequence[Any]] = None,
     split_kwargs: Optional[Mapping[str, Any]] = None,
     build_args: Optional[Sequence[Any]] = None,
@@ -343,8 +344,8 @@ def merge_records(
 
 def convert_records(
     records: RecordSequence,
-    input_type: Optional[Type['Record']] = None,
-    output_type: Optional[Type['Record']] = None,
+    input_type: Optional[RecordType] = None,
+    output_type: Optional[RecordType] = None,
     split_args: Optional[Sequence[Any]] = None,
     split_kwargs: Optional[Mapping[str, Any]] = None,
     build_args: Optional[Sequence[Any]] = None,
@@ -413,8 +414,8 @@ def convert_records(
 def merge_files(
     input_files: Sequence[str],
     output_file: str,
-    input_types: Optional[Sequence[Type['Record']]] = None,
-    output_type: Optional[Type['Record']] = None,
+    input_types: Optional[Sequence[RecordType]] = None,
+    output_type: Optional[RecordType] = None,
     split_args: Optional[Sequence[Any]] = None,
     split_kwargs: Optional[Mapping[str, Any]] = None,
     build_args: Optional[Sequence[Any]] = None,
@@ -462,7 +463,7 @@ def merge_files(
 
     """
     if input_types is None:
-        input_types: List[Optional[Type['Record']]] = [None] * len(input_files)
+        input_types: List[Optional[RecordType]] = [None] * len(input_files)
     else:
         input_types = list(input_types)
 
@@ -490,8 +491,8 @@ def merge_files(
 def convert_file(
     input_file: str,
     output_file: str,
-    input_type: Optional[Type['Record']] = None,
-    output_type: Optional[Type['Record']] = None,
+    input_type: Optional[RecordType] = None,
+    output_type: Optional[RecordType] = None,
     split_args: Optional[Sequence[Any]] = None,
     split_kwargs: Optional[Mapping[str, Any]] = None,
     build_args: Optional[Sequence[Any]] = None,
@@ -546,7 +547,7 @@ def convert_file(
 
 def load_records(
     path: str,
-    record_type: Optional[Type['Record']] = None,
+    record_type: Optional[RecordType] = None,
 ) -> RecordList:
     r"""Loads records from a record file.
 
@@ -575,7 +576,7 @@ def load_records(
 def save_records(
     path: str,
     records: RecordSequence,
-    output_type: Optional[Type['Record']] = None,
+    output_type: Optional[RecordType] = None,
     split_args: Optional[Sequence[Any]] = None,
     split_kwargs: Optional[Mapping[str, Any]] = None,
 ) -> None:
@@ -621,7 +622,7 @@ def save_records(
 
 def load_blocks(
     path: str,
-    record_type: Optional[Type['Record']] = None,
+    record_type: Optional[RecordType] = None,
 ):
     r"""Loads blocks from a record file.
 
@@ -652,7 +653,7 @@ def load_blocks(
 def save_blocks(
     path: str,
     blocks: BlockSequence,
-    record_type: Optional[Type['Record']] = None,
+    record_type: Optional[RecordType] = None,
     split_args: Optional[Sequence[Any]] = None,
     split_kwargs: Optional[Mapping[str, Any]] = None,
     build_args: Optional[Sequence[Any]] = None,
@@ -701,7 +702,7 @@ def save_blocks(
 
 def load_memory(
     path: str,
-    record_type: Optional[Type['Record']] = None,
+    record_type: Optional[RecordType] = None,
 ) -> Memory:
     r"""Loads a virtual memory from a file.
 
@@ -732,8 +733,8 @@ def load_memory(
 
 def save_memory(
     path: str,
-    memory: Memory,
-    record_type: Optional[Type['Record']] = None,
+    memory: ImmutableMemory,
+    record_type: Optional[RecordType] = None,
     split_args: Optional[Sequence[Any]] = None,
     split_kwargs: Optional[Mapping[str, Any]] = None,
 ) -> None:
@@ -775,7 +776,7 @@ def save_chunk(
     path: str,
     chunk: AnyBytes,
     address: int = 0,
-    record_type: Optional[Type['Record']] = None,
+    record_type: Optional[RecordType] = None,
     split_args: Optional[Sequence[Any]] = None,
     split_kwargs: Optional[Mapping[str, Any]] = None,
 ) -> None:
@@ -818,7 +819,7 @@ class Tag(enum.IntEnum):
 
     @classmethod
     def is_data(
-        cls: Type['Tag'],
+        cls,
         value: Optional[Union[int, 'Tag']],
     ) -> bool:
         r"""bool: `value` is a data record tag."""
@@ -892,7 +893,7 @@ class Record:
                data=b'Hello, World!', checksum=0x44)
     """
     def __init__(
-        self: 'Record',
+        self,
         address: int,
         tag: Optional[Union[Tag, int]],
         data: AnyBytes,
@@ -925,7 +926,7 @@ class Record:
     r"""File extensions typically mapped to this record type."""
 
     def __repr__(
-        self: 'Record',
+        self,
     ) -> str:
         text = (f'{type(self).__name__}('
                 f'address=0x{self.address:08X}, '
@@ -937,7 +938,7 @@ class Record:
         return text
 
     def __str__(
-        self: 'Record',
+        self,
     ) -> str:
         r"""Converts to text string.
 
@@ -967,7 +968,7 @@ class Record:
         return repr(self)
 
     def __eq__(
-        self: 'Record',
+        self,
         other: 'Record',
     ) -> bool:
         r"""Equality comparison.
@@ -1005,7 +1006,7 @@ class Record:
                 self.data == other.data)
 
     def __hash__(
-        self: 'Record',
+        self,
     ) -> int:
         r"""Computes the hash value.
 
@@ -1044,7 +1045,7 @@ class Record:
                 hash(int(self.checksum or 0)))
 
     def __lt__(
-        self: 'Record',
+        self,
         other: 'Record',
     ) -> bool:
         r"""Less-than comparison.
@@ -1068,7 +1069,7 @@ class Record:
         return self.address < other.address
 
     def is_data(
-        self: 'Record',
+        self,
     ) -> bool:
         r"""Tells if it is a data record.
 
@@ -1108,7 +1109,7 @@ class Record:
         return self.TAG_TYPE.is_data(self.tag)
 
     def compute_count(
-        self: 'Record',
+        self,
     ) -> Optional[int]:
         r"""Computes the count.
 
@@ -1143,13 +1144,13 @@ class Record:
         return len(self.data or b'')
 
     def update_count(
-        self: 'Record',
+        self,
     ) -> None:
         r"""Updates the `count` field via :meth:`compute_count`."""
         self.count = self.compute_count()
 
     def compute_checksum(
-        self: 'Record',
+        self,
     ) -> Optional[int]:
         r"""Computes the checksum.
 
@@ -1184,13 +1185,13 @@ class Record:
         return sum(self.data or b'') & 0xFF
 
     def update_checksum(
-        self: 'Record',
+        self,
     ) -> None:
         r"""Updates the `checksum` field via :meth:`compute_count`."""
         self.checksum = self.compute_checksum()
 
     def _get_checksum(
-        self: 'Record',
+        self,
     ) -> Optional[int]:
         r"""int: The `checksum` field itself if not ``None``, the
             value computed by :meth:`compute_count` otherwise.
@@ -1201,7 +1202,7 @@ class Record:
             return self.checksum
 
     def check(
-        self: 'Record',
+        self,
     ) -> None:
         r"""Performs consistency checks.
 
@@ -1228,7 +1229,7 @@ class Record:
                 raise ValueError('checksum error')
 
     def overlaps(
-        self: 'Record',
+        self,
         other: 'Record',
     ) -> bool:
         r"""Checks if overlapping occurs.
@@ -1266,7 +1267,7 @@ class Record:
 
     @classmethod
     def _open_input(
-        cls: Type['Record'],
+        cls,
         path: str,
     ) -> IO:
         r"""Opens a file for input.
@@ -1284,7 +1285,7 @@ class Record:
 
     @classmethod
     def _open_output(
-        cls: Type['Record'],
+        cls,
         path: str,
     ) -> IO:
         r"""Opens a file for output.
@@ -1302,7 +1303,7 @@ class Record:
 
     @classmethod
     def parse_record(
-        cls: Type['Record'],
+        cls,
         line: str,
         *args: Any,
         **kwargs: Any,
@@ -1328,7 +1329,7 @@ class Record:
         raise NotImplementedError('method must be overriden')
 
     def marshal(
-        self: 'Record',
+        self,
         *args: Any,
         **kwargs: Any,
     ) -> Union[bytes, bytearray, str]:
@@ -1350,7 +1351,7 @@ class Record:
 
     @classmethod
     def unmarshal(
-        cls: Type['Record'],
+        cls,
         data: Union[AnyBytes, str],
         *args: Any,
         **kwargs: Any,
@@ -1376,7 +1377,7 @@ class Record:
 
     @classmethod
     def get_metadata(
-        cls: 'Record',
+        cls,
         records: RecordSequence,
     ) -> Mapping[str, Any]:
         r"""Retrieves metadata from records.
@@ -1412,7 +1413,7 @@ class Record:
 
     @classmethod
     def split(
-        cls: Type['Record'],
+        cls,
         data: AnyBytes,
         *args: Any,
         **kwargs: Any,
@@ -1436,11 +1437,12 @@ class Record:
             This method must be overridden.
         """
         check_empty_args_kwargs(args, kwargs)
+
         yield from ()
 
     @classmethod
     def build_standalone(
-        cls: Type['Record'],
+        cls,
         data_records: RecordSequence,
         *args: Any,
         **kwargs: Any,
@@ -1466,7 +1468,7 @@ class Record:
 
     @classmethod
     def check_sequence(
-        cls: Type['Record'],
+        cls,
         records: RecordSequence,
     ) -> None:
         r"""Consistency check of a sequence of records.
@@ -1498,7 +1500,7 @@ class Record:
 
     @classmethod
     def readdress(
-        cls: Type['Record'],
+        cls,
         records: RecordSequence,
     ) -> None:
         r"""Converts to flat addressing.
@@ -1522,7 +1524,7 @@ class Record:
 
     @classmethod
     def read_blocks(
-        cls: Type['Record'],
+        cls,
         stream: IO,
     ) -> BlockSequence:
         r"""Reads blocks from a stream.
@@ -1553,7 +1555,7 @@ class Record:
 
     @classmethod
     def write_blocks(
-        cls: Type['Record'],
+        cls,
         stream: IO,
         blocks: BlockSequence,
         split_args: Optional[Sequence[Any]] = None,
@@ -1603,7 +1605,8 @@ class Record:
 
     @classmethod
     def load_blocks(
-        cls: Type['Record'], path: str,
+        cls,
+        path: str,
     ) -> BlockSequence:
         r"""Loads blocks from a file.
 
@@ -1634,7 +1637,7 @@ class Record:
 
     @classmethod
     def save_blocks(
-        cls: Type['Record'],
+        cls,
         path: str,
         blocks: BlockSequence,
         split_args: Optional[Sequence[Any]] = None,
@@ -1682,7 +1685,7 @@ class Record:
 
     @classmethod
     def read_memory(
-        cls: Type['Record'],
+        cls,
         stream: IO,
     ) -> Memory:
         r"""Reads a virtual memory from a stream.
@@ -1714,7 +1717,7 @@ class Record:
 
     @classmethod
     def write_memory(
-        cls: Type['Record'],
+        cls,
         stream: IO,
         memory: ImmutableMemory,
         split_args: Optional[Sequence[Any]] = None,
@@ -1759,7 +1762,7 @@ class Record:
 
     @classmethod
     def load_memory(
-        cls: Type['Record'],
+        cls,
         path: str,
     ) -> Memory:
         r"""Loads a virtual memory from a file.
@@ -1789,7 +1792,7 @@ class Record:
 
     @classmethod
     def save_memory(
-        cls: Type['Record'],
+        cls,
         path: str,
         memory: Memory,
         split_args: Optional[Sequence[Any]] = None,
@@ -1835,7 +1838,7 @@ class Record:
 
     @classmethod
     def read_records(
-        cls: Type['Record'],
+        cls,
         stream: IO,
     ) -> RecordList:
         r"""Reads records from a stream.
@@ -1881,7 +1884,7 @@ class Record:
 
     @classmethod
     def write_records(
-        cls: Type['Record'],
+        cls,
         stream: IO,
         records: RecordSequence,
     ) -> None:
@@ -1913,7 +1916,7 @@ class Record:
 
     @classmethod
     def load_records(
-        cls: Type['Record'],
+        cls,
         path: str,
     ) -> RecordList:
         r"""Loads records from a file.
@@ -1955,7 +1958,7 @@ class Record:
 
     @classmethod
     def save_records(
-        cls: Type['Record'],
+        cls,
         path: str,
         records: RecordSequence,
     ):
@@ -1986,7 +1989,7 @@ class Record:
             stream.flush()
 
 
-RECORD_TYPES: MutableMapping[str, Type[Record]] = {}
+RECORD_TYPES: MutableMapping[str, RecordType] = {}
 r"""Registered record types."""
 
 

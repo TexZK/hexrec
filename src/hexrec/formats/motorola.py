@@ -90,7 +90,7 @@ class Tag(_Tag):
 
     @classmethod
     def is_data(
-        cls: Type['Tag'],
+        cls,
         value: Union[int, 'Tag'],
     ) -> bool:
         r"""bool: `value` is a data record tag."""
@@ -155,7 +155,7 @@ class Record(_Record):
     r"""File extensions typically mapped to this record type."""
 
     def __init__(
-        self: 'Record',
+        self,
         address: int,
         tag: Tag,
         data: AnyBytes,
@@ -164,7 +164,7 @@ class Record(_Record):
         super().__init__(address, self.TAG_TYPE(tag), data, checksum)
 
     def __str__(
-        self: 'Record',
+        self,
     ) -> str:
         self.check()
         tag_text = f'S{self.tag:d}'
@@ -190,14 +190,14 @@ class Record(_Record):
         return text
 
     def compute_count(
-        self: 'Record',
+        self,
     ) -> int:
         tag = int(self.tag)
         address_length = self.TAG_TO_ADDRESS_LENGTH[tag] or 0
         return address_length + len(self.data) + 1
 
     def compute_checksum(
-        self: 'Record',
+        self,
     ) -> int:
         checksum = sum(struct.pack('HL', self.count, self.address))
         checksum += sum(self.data or b'')
@@ -205,7 +205,7 @@ class Record(_Record):
         return checksum
 
     def check(
-        self: 'Record',
+        self,
     ) -> None:
         super().check()
 
@@ -219,7 +219,7 @@ class Record(_Record):
 
     @classmethod
     def fit_data_tag(
-        cls: Type['Record'],
+        cls,
         endex: int,
     ) -> 'Tag':
         r"""Fits a data tag by address.
@@ -274,7 +274,7 @@ class Record(_Record):
 
     @classmethod
     def fit_count_tag(
-        cls: Type['Record'],
+        cls,
         record_count: int,
     ) -> 'Tag':
         r"""Fits the record count tag.
@@ -314,7 +314,7 @@ class Record(_Record):
 
     @classmethod
     def build_header(
-        cls: Type['Record'],
+        cls,
         data: AnyBytes,
     ) -> 'Record':
         r"""Builds a header record.
@@ -334,7 +334,7 @@ class Record(_Record):
 
     @classmethod
     def build_data(
-        cls: Type['Record'],
+        cls,
         address: int,
         data: AnyBytes,
         tag: Optional[Tag] = None,
@@ -385,7 +385,7 @@ class Record(_Record):
 
     @classmethod
     def build_terminator(
-        cls: Type['Record'],
+        cls,
         start: int,
         last_data_tag: Tag = Tag.DATA_16,
     ) -> 'Record':
@@ -420,7 +420,7 @@ class Record(_Record):
 
     @classmethod
     def build_count(
-        cls: Type['Record'],
+        cls,
         record_count: int,
     ) -> 'Record':
         r"""Builds a count record.
@@ -449,7 +449,7 @@ class Record(_Record):
 
     @classmethod
     def parse_record(
-        cls: Type['Record'],
+        cls,
         line: str,
         *args: Any,
         **kwargs: Any,
@@ -476,7 +476,7 @@ class Record(_Record):
 
     @classmethod
     def build_standalone(
-        cls: Type['Record'],
+        cls,
         data_records: RecordSequence,
         start: Optional[int] = None,
         tag: Optional[Tag] = None,
@@ -528,7 +528,7 @@ class Record(_Record):
 
     @classmethod
     def check_sequence(
-        cls: Type['Record'],
+        cls,
         records: RecordSequence,
     ) -> None:
         super().check_sequence(records)
@@ -614,7 +614,7 @@ class Record(_Record):
 
     @classmethod
     def get_metadata(
-        cls: 'Record',
+        cls,
         records: RecordSequence,
     ) -> Mapping[str, Any]:
         r"""Retrieves metadata from records.
@@ -663,7 +663,7 @@ class Record(_Record):
 
     @classmethod
     def split(
-        cls: Type['Record'],
+        cls,
         data: AnyBytes,
         address: int = 0,
         columns: int = 16,
@@ -743,7 +743,7 @@ class Record(_Record):
 
     @classmethod
     def fix_tags(
-        cls: Type['Record'],
+        cls,
         records: RecordSequence,
     ) -> None:
         r"""Fix record tags.

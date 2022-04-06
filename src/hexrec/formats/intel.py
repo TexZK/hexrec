@@ -75,7 +75,7 @@ class Tag(_Tag):
 
     @classmethod
     def is_data(
-        cls: Type['Tag'],
+        cls,
         value: Union[int, 'Tag'],
     ) -> bool:
         r"""bool: `value` is a data record tag."""
@@ -135,7 +135,7 @@ class Record(_Record):
     r"""Automatically supported file extensions."""
 
     def __init__(
-        self: 'Record',
+        self,
         address: int,
         tag: 'Tag',
         data: AnyBytes,
@@ -148,7 +148,7 @@ class Record(_Record):
         super().__init__(address, self.TAG_TYPE(tag), data, checksum)
 
     def __str__(
-        self: 'Record',
+        self,
     ) -> str:
         self.check()
         data = self.data or b''
@@ -160,12 +160,12 @@ class Record(_Record):
         return text
 
     def compute_count(
-        self: 'Record',
+        self,
     ) -> int:
         return len(self.data)
 
     def compute_checksum(
-        self: 'Record',
+        self,
     ) -> int:
         offset = (self.address or 0) & 0xFFFF
 
@@ -178,7 +178,7 @@ class Record(_Record):
         return checksum
 
     def check(
-        self: 'Record',
+        self,
     ) -> None:
         super().check()
 
@@ -190,7 +190,7 @@ class Record(_Record):
 
     @classmethod
     def build_data(
-        cls: Type['Record'],
+        cls,
         address: int,
         data: AnyBytes,
     ) -> 'Record':
@@ -215,7 +215,7 @@ class Record(_Record):
 
     @classmethod
     def build_extended_segment_address(
-        cls: Type['Record'],
+        cls,
         address: int,
     ) -> 'Record':
         r"""Builds an extended segment address record.
@@ -241,7 +241,7 @@ class Record(_Record):
 
     @classmethod
     def build_start_segment_address(
-        cls: Type['Record'],
+        cls,
         address: int,
     ) -> 'Record':
         r"""Builds an start segment address record.
@@ -269,7 +269,7 @@ class Record(_Record):
 
     @classmethod
     def build_end_of_file(
-        cls: Type['Record'],
+        cls,
     ) -> 'Record':
         r"""Builds an end-of-file record.
 
@@ -285,7 +285,7 @@ class Record(_Record):
 
     @classmethod
     def build_extended_linear_address(
-        cls: Type['Record'],
+        cls,
         address: int,
     ) -> 'Record':
         r"""Builds an extended linear address record.
@@ -315,7 +315,7 @@ class Record(_Record):
 
     @classmethod
     def build_start_linear_address(
-        cls: Type['Record'],
+        cls,
         address: int,
     ) -> 'Record':
         r"""Builds an start linear address record.
@@ -343,7 +343,7 @@ class Record(_Record):
 
     @classmethod
     def split(
-        cls: Type['Record'],
+        cls,
         data: AnyBytes,
         address: int = 0,
         columns: int = 16,
@@ -428,7 +428,7 @@ class Record(_Record):
 
     @classmethod
     def build_standalone(
-        cls: Type['Record'],
+        cls,
         data_records: RecordSequence,
         start: Optional[int] = None,
         *args: Any,
@@ -462,7 +462,7 @@ class Record(_Record):
 
     @classmethod
     def terminate(
-        cls: Type['Record'],
+        cls,
         start: int,
     ) -> Sequence['Record']:
         r"""Builds a record termination sequence.
@@ -490,7 +490,7 @@ class Record(_Record):
 
     @classmethod
     def readdress(
-        cls: Type['Record'],
+        cls,
         records: RecordSequence,
     ) -> None:
         r"""Converts to flat addressing.
@@ -547,7 +547,7 @@ class Record(_Record):
 
     @classmethod
     def parse_record(
-        cls: Type['Record'],
+        cls,
         line: str,
         *args: Any,
         **kwargs: Any,

@@ -98,7 +98,7 @@ class Record(_Record):
     r"""Regular expression for parsing a record text line."""
 
     def __init__(
-        self: 'Record',
+        self,
         address: Optional[int],
         tag: Optional[Tag],
         data: Optional[AnyBytes],
@@ -107,7 +107,7 @@ class Record(_Record):
         super().__init__(address, tag, data, checksum)
 
     def __repr__(
-        self: 'Record',
+        self,
     ) -> str:
         address, data, checksum = None, None, None
 
@@ -130,7 +130,7 @@ class Record(_Record):
         return text
 
     def __str__(
-        self: 'Record',
+        self,
     ) -> str:
         address, data, checksum = '', '', ''
 
@@ -147,18 +147,18 @@ class Record(_Record):
         return text
 
     def is_data(
-        self: 'Record',
+        self,
     ) -> bool:
         return self.data is not None
 
     def compute_checksum(
-        self: 'Record',
+        self,
     ) -> Optional[int]:
         checksum = sum(self.data or b'') & 0xFFFF
         return checksum
 
     def check(
-        self: 'Record',
+        self,
     ) -> None:
         if self.address is not None and not 0 <= self.address < (1 << 16):
             raise ValueError('address overflow')
@@ -178,7 +178,7 @@ class Record(_Record):
 
     @classmethod
     def build_data(
-        cls: Type['Record'],
+        cls,
         address: Optional[int],
         data: Optional[AnyBytes],
     ) -> 'Record':
@@ -214,7 +214,7 @@ class Record(_Record):
 
     @classmethod
     def split(
-        cls: Type['Record'],
+        cls,
         data: AnyBytes,
         address: int = 0,
         columns: int = 16,
@@ -281,7 +281,7 @@ class Record(_Record):
 
     @classmethod
     def parse_record(
-        cls: Type['Record'],
+        cls,
         line: str,
         *args: Any,
         **kwargs: Any,
@@ -315,7 +315,7 @@ class Record(_Record):
 
     @classmethod
     def build_standalone(
-        cls: Type['Record'],
+        cls,
         data_records: RecordSequence,
         *args: Any,
         **kwargs: Any,
@@ -332,7 +332,7 @@ class Record(_Record):
 
     @classmethod
     def readdress(
-        cls: Type['Record'],
+        cls,
         records: RecordSequence,
     ) -> None:
         offset = 0
@@ -343,7 +343,7 @@ class Record(_Record):
 
     @classmethod
     def read_records(
-        cls: Type['Record'],
+        cls,
         stream: IO,
     ) -> RecordSequence:
         text = stream.read()
@@ -354,7 +354,7 @@ class Record(_Record):
 
     @classmethod
     def write_records(
-        cls: Type['Record'],
+        cls,
         stream: IO,
         records: RecordSequence,
     ) -> None:

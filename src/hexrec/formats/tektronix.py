@@ -117,7 +117,7 @@ class Record(_Record):
     r"""File extensions typically mapped to this record type."""
 
     def __init__(
-        self: 'Record',
+        self,
         address: int,
         tag: Tag,
         data: AnyBytes,
@@ -126,7 +126,7 @@ class Record(_Record):
         super().__init__(address, self.TAG_TYPE(tag), data, checksum)
 
     def __str__(
-        self: 'Record',
+        self,
     ) -> str:
         self.check()
         text = (f'%'
@@ -139,13 +139,13 @@ class Record(_Record):
         return text
 
     def compute_count(
-        self: 'Record',
+        self,
     ) -> int:
         count = 9 + (len(self.data) * 2)
         return count
 
     def compute_checksum(
-        self: 'Record',
+        self,
     ) -> int:
         text = (f'{self.count:02X}'
                 f'{self.tag:01X}'
@@ -156,7 +156,7 @@ class Record(_Record):
         return checksum
 
     def check(
-        self: 'Record',
+        self,
     ) -> None:
         super().check()
         tag = self.TAG_TYPE(self.tag)
@@ -169,7 +169,7 @@ class Record(_Record):
 
     @classmethod
     def parse_record(
-        cls: Type['Record'],
+        cls,
         line: str,
         *args: Any,
         **kwargs: Any,
@@ -196,7 +196,7 @@ class Record(_Record):
 
     @classmethod
     def build_data(
-        cls: Type['Record'],
+        cls,
         address: int,
         data: AnyBytes,
     ) -> 'Record':
@@ -221,7 +221,7 @@ class Record(_Record):
 
     @classmethod
     def build_terminator(
-        cls: Type['Record'],
+        cls,
         start: int,
     ) -> 'Record':
         r"""Builds a terminator record.
@@ -242,7 +242,7 @@ class Record(_Record):
 
     @classmethod
     def split(
-        cls: Type['Record'],
+        cls,
         data: AnyBytes,
         address: int = 0,
         columns: int = 16,
@@ -303,7 +303,7 @@ class Record(_Record):
 
     @classmethod
     def build_standalone(
-        cls: Type['Record'],
+        cls,
         data_records: RecordSequence,
         *args: Any,
         start: Optional[int] = None,
@@ -336,7 +336,7 @@ class Record(_Record):
 
     @classmethod
     def check_sequence(
-        cls: Type['Record'],
+        cls,
         records: RecordSequence,
     ) -> None:
         super().check_sequence(records)
