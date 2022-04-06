@@ -33,6 +33,7 @@
       merge_files
       merge_records
       records_to_blocks
+      register_default_record_types
       save_blocks
       save_chunk
       save_memory
