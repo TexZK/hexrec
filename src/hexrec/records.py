@@ -72,11 +72,11 @@ from typing import Type
 from typing import Union
 
 import click
+from bytesparse import Memory
+from bytesparse import collapse_blocks
 from bytesparse.base import BlockIterable
 from bytesparse.base import BlockSequence
 from bytesparse.base import ImmutableMemory
-from bytesparse import Memory
-from bytesparse import collapse_blocks
 
 from .utils import AnyBytes
 from .utils import check_empty_args_kwargs

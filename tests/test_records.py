@@ -5,8 +5,6 @@ from pathlib import Path
 
 import pytest
 
-from hexrec.records import Memory
-from hexrec.records import collapse_blocks
 from hexrec.formats.binary import Record as BinaryRecord
 from hexrec.formats.intel import Record as IntelRecord
 from hexrec.formats.intel import Tag as IntelTag
@@ -14,9 +12,11 @@ from hexrec.formats.motorola import Record as MotorolaRecord
 from hexrec.formats.motorola import Tag as MotorolaTag
 from hexrec.formats.tektronix import Record as TektronixRecord
 from hexrec.records import RECORD_TYPES
+from hexrec.records import Memory
 from hexrec.records import Record
 from hexrec.records import Tag
 from hexrec.records import blocks_to_records
+from hexrec.records import collapse_blocks
 from hexrec.records import convert_file
 from hexrec.records import convert_records
 from hexrec.records import find_corrupted_records
