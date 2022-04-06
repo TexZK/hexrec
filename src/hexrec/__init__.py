@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-
-# Copyright (c) 2013-2020, Andrea Zoppi
+# Copyright (c) 2013-2022, Andrea Zoppi
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -25,4 +23,4 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-__version__ = '0.2.3'
+__version__ = '0.3.0'

@@ -16,7 +16,7 @@ jobs:
         platform:
           - ubuntu-latest  # ubuntu-20.04
           - macos-latest  # macOS-10.15
-          - windows-latest  # windows-2019
+          - windows-2019  # FIXME: windows-2022 lacks Python 3.6
 
         python-version:
           - 3.6

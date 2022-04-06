@@ -10,7 +10,7 @@ Overview
     * - docs
       - |docs|
     * - tests
-      - | |gh_actions| |requires|
+      - | |gh_actions|
         | |codecov|
     * - package
       - | |version| |wheel|
@@ -24,10 +24,6 @@ Overview
 .. |gh_actions| image:: https://github.com/TexZK/hexrec/workflows/CI/badge.svg
     :alt: GitHub Actions Status
     :target: https://github.com/TexZK/hexrec
-
-.. |requires| image:: https://requires.io/github/TexZK/hexrec/requirements.svg?branch=main
-    :alt: Requirements Status
-    :target: https://requires.io/github/TexZK/hexrec/requirements/?branch=main
 
 .. |codecov| image:: https://codecov.io/gh/TexZK/hexrec/branch/main/graphs/badge.svg?branch=main
     :alt: Coverage Status
@@ -309,13 +305,13 @@ for a *DOS* prompt).
 Installation
 ============
 
-From PIP (might not be the latest version found on *github*):
+From PyPI (might not be the latest version found on *github*):
 
 .. code-block:: sh
 
     $ pip install hexrec
 
-From source root directory:
+From the source code root directory:
 
 .. code-block:: sh
 
@@ -330,4 +326,4 @@ To run the all the tests:
 .. code-block:: sh
 
     $ pip install tox
-    $ tox --skip-missing-interpreters
+    $ tox

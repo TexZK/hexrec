@@ -3,6 +3,8 @@ Reference
 
 .. autosummary::
     :toctree: _autosummary
+    :template: custom-module-template.rst
+    :recursive:
 
     hexrec.blocks
     hexrec.blocks.Memory
