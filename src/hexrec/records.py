@@ -72,7 +72,7 @@ from typing import Type
 from typing import Union
 
 import click
-from bytesparse import Memory
+from bytesparse import bytesparse as Memory
 from bytesparse import collapse_blocks
 from bytesparse.base import BlockIterable
 from bytesparse.base import BlockSequence
