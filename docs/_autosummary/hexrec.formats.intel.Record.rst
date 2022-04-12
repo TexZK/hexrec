@@ -1,17 +1,20 @@
-﻿hexrec.formats.intel.Record
+hexrec.formats.intel.Record
 ===========================
 
 .. currentmodule:: hexrec.formats.intel
 
 .. autoclass:: Record
+   :members:
+   :inherited-members:
+   :private-members:
+   :special-members:
 
    
-   .. automethod:: __init__
-
    
    .. rubric:: Methods
 
    .. autosummary::
+      :nosignatures:
    
       ~Record.__init__
       ~Record.build_data

@@ -12,6 +12,8 @@
    .. rubric:: Functions
 
    .. autosummary::
+      :toctree:
+      :nosignatures:
    
       check_sequence
       chop_blocks
@@ -42,6 +44,9 @@
    .. rubric:: Classes
 
    .. autosummary::
+      :toctree:
+      :template: custom-class-template.rst
+      :nosignatures:
    
       Memory
    

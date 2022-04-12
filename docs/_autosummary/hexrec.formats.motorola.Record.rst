@@ -1,17 +1,20 @@
-﻿hexrec.formats.motorola.Record
+hexrec.formats.motorola.Record
 ==============================
 
 .. currentmodule:: hexrec.formats.motorola
 
 .. autoclass:: Record
+   :members:
+   :inherited-members:
+   :private-members:
+   :special-members:
 
    
-   .. automethod:: __init__
-
    
    .. rubric:: Methods
 
    .. autosummary::
+      :nosignatures:
    
       ~Record.__init__
       ~Record.build_count

@@ -1,17 +1,20 @@
-﻿hexrec.formats.ascii\_hex.Record
+hexrec.formats.ascii\_hex.Record
 ================================
 
 .. currentmodule:: hexrec.formats.ascii_hex
 
 .. autoclass:: Record
+   :members:
+   :inherited-members:
+   :private-members:
+   :special-members:
 
    
-   .. automethod:: __init__
-
    
    .. rubric:: Methods
 
    .. autosummary::
+      :nosignatures:
    
       ~Record.__init__
       ~Record.build_data

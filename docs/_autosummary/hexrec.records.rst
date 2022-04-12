@@ -5,9 +5,10 @@
 
    
    
-   .. rubric:: Module Attributes
+   .. rubric:: Module attributes
 
    .. autosummary::
+      :toctree:
    
       RECORD_TYPES
    
@@ -18,6 +19,8 @@
    .. rubric:: Functions
 
    .. autosummary::
+      :toctree:
+      :nosignatures:
    
       blocks_to_records
       convert_file
@@ -46,6 +49,9 @@
    .. rubric:: Classes
 
    .. autosummary::
+      :toctree:
+      :template: custom-class-template.rst
+      :nosignatures:
    
       Record
       Tag

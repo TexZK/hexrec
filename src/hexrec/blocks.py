@@ -1035,7 +1035,7 @@ def reserve(
         +===+===+===+===+===+===+===+===+===+===+===+===+
         |[A | B | C | D]|   |   |[x | y | z]|   |   |   |
         +---+---+---+---+---+---+---+---+---+---+---+---+
-        |[A | B | C | D]|   |   |[x | y]|   [z]|   |[$]|
+        |[A | B | C | D]|   |   |[x | y]|   |[z]|   |[$]|
         +---+---+---+---+---+---+---+---+---+---+---+---+
 
         >>> blocks = [(0, 'ABCD'), (6, 'xyz')]
@@ -1610,12 +1610,13 @@ def union(
     return result
 
 
-@deprecated(reason='Replaced by ``bytesparse.Memory``')
+@deprecated(reason='Replaced by ``bytesparse`` as ``hexrec.records.Memory``')
 class Memory:
     r"""Virtual memory.
 
     Warning:
-        Deprecated class. Replaced by ``bytesparse.Memory``.
+        Deprecated class.
+        Replaced by ``bytesparse`` as ``hexrec.records.Memory``.
 
     This class is a handy wrapper around `blocks`, so that it can behave mostly
     like a :obj:`bytearray`, but on sparse chunks of data.

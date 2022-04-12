@@ -12,6 +12,8 @@
    .. rubric:: Functions
 
    .. autosummary::
+      :toctree:
+      :nosignatures:
    
       bitlify
       check_empty_args_kwargs

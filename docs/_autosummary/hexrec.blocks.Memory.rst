@@ -1,17 +1,20 @@
-﻿hexrec.blocks.Memory
+hexrec.blocks.Memory
 ====================
 
 .. currentmodule:: hexrec.blocks
 
 .. autoclass:: Memory
+   :members:
+   :inherited-members:
+   :private-members:
+   :special-members:
 
    
-   .. automethod:: __init__
-
    
    .. rubric:: Methods
 
    .. autosummary::
+      :nosignatures:
    
       ~Memory.__init__
       ~Memory.append

@@ -1,17 +1,20 @@
-﻿hexrec.formats.binary.Record
+hexrec.formats.binary.Record
 ============================
 
 .. currentmodule:: hexrec.formats.binary
 
 .. autoclass:: Record
+   :members:
+   :inherited-members:
+   :private-members:
+   :special-members:
 
    
-   .. automethod:: __init__
-
    
    .. rubric:: Methods
 
    .. autosummary::
+      :nosignatures:
    
       ~Record.__init__
       ~Record.build_data

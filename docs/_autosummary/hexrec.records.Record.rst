@@ -1,17 +1,20 @@
-﻿hexrec.records.Record
+hexrec.records.Record
 =====================
 
 .. currentmodule:: hexrec.records
 
 .. autoclass:: Record
+   :members:
+   :inherited-members:
+   :private-members:
+   :special-members:
 
    
-   .. automethod:: __init__
-
    
    .. rubric:: Methods
 
    .. autosummary::
+      :nosignatures:
    
       ~Record.__init__
       ~Record.build_standalone
