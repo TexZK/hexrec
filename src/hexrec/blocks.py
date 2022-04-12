@@ -1610,8 +1610,12 @@ def union(
     return result
 
 
+@deprecated(reason='Replaced by ``bytesparse.Memory``')
 class Memory:
     r"""Virtual memory.
+
+    Warning:
+        Deprecated class. Replaced by ``bytesparse.Memory``.
 
     This class is a handy wrapper around `blocks`, so that it can behave mostly
     like a :obj:`bytearray`, but on sparse chunks of data.

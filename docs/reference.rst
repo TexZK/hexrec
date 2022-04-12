@@ -4,6 +4,9 @@ Reference
 .. autosummary::
     :toctree: _autosummary
 
+    hexrec.blocks
+    hexrec.blocks.Memory
+
     hexrec.formats
 
     hexrec.formats.ascii_hex
