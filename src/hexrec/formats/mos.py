@@ -26,7 +26,7 @@
 r"""MOS Technology format.
 
 See Also:
-    `<http://srecord.sourceforge.net/man/man5/srec_mos_tech.html>`_
+    `<https://srecord.sourceforge.net/man/man5/srec_mos_tech.5.html>`_
 """
 
 import re

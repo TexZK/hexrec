@@ -8,4 +8,4 @@ Authors
 Special thanks
 --------------
 
-* Scott Finneran - main developer of the SRecord project - http://srecord.sourceforge.net/
+* Scott Finneran - main developer of the SRecord project - https://srecord.sourceforge.net/

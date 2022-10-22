@@ -26,7 +26,7 @@
 r"""ASCII-hex format.
 
 See Also:
-    `<http://srecord.sourceforge.net/man/man5/srec_ascii_hex.html>`_
+    `<https://srecord.sourceforge.net/man/man5/srec_ascii_hex.5.html>`_
 """
 
 import io
