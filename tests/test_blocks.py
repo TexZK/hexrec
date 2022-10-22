@@ -365,6 +365,11 @@ def test_merge():
     ans_out = merge(blocks, join=''.join)
     assert ans_out == ans_ref
 
+    blocks = [(0, b'Hello,'), (6, b''), (7, b'World'), (12, b'!'), (15, b'$')]
+    ans_ref = [(0, b'Hello,'), (7, b'World!'), (15, b'$')]
+    ans_out = merge(blocks)
+    assert ans_out == ans_ref
+
 
 # ============================================================================
 

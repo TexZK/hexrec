@@ -827,6 +827,12 @@ def test_find_record_type_name():
         find_record_type_name('filename.invalid')
 
 
+def test_find_record_type_name_register():
+    RECORD_TYPES.clear()
+    find_record_type_name('force_reloading.hex')
+    test_find_record_type_name()  # try again
+
+
 # ============================================================================
 
 def test_find_record_type_doctest():
