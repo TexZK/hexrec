@@ -428,7 +428,7 @@ class Record(_Record):
     def build_standalone(
         cls,
         data_records: RecordSequence,
-        start: Optional[int] = None,
+        start: Optional[Union[int, Type['Ellipsis']]] = Ellipsis,
         *args: Any,
         **kwargs: Any,
     ) -> Iterator['Record']:
@@ -440,7 +440,8 @@ class Record(_Record):
 
             start (int):
                 Program start address.
-                If ``None``, it is assigned the minimum data record address.
+                If ``Ellipsis``, it is assigned the minimum data record address.
+                If ``None``, the start address records are not output.
 
         Yields:
             record: Records for a standalone record file.
@@ -450,7 +451,7 @@ class Record(_Record):
         for record in data_records:
             yield record
 
-        if start is None:
+        if start is Ellipsis:
             if not data_records:
                 data_records = [cls.build_data(0, b'')]
             start = min(record.address for record in data_records)
@@ -461,7 +462,7 @@ class Record(_Record):
     @classmethod
     def terminate(
         cls,
-        start: int,
+        start: Optional[int] = None,
     ) -> Sequence['Record']:
         r"""Builds a record termination sequence.
 
@@ -474,6 +475,7 @@ class Record(_Record):
         Arguments:
             start (int):
                 Program start address.
+                If ``None``, the start address records are not output.
 
         Returns:
             list of records: Termination sequence.
@@ -482,9 +484,12 @@ class Record(_Record):
             >>> list(map(str, Record.terminate(0x12345678)))
             [':020000040000FA', ':0400000512345678E3', ':00000001FF']
         """
-        return [cls.build_extended_linear_address(0),
-                cls.build_start_linear_address(start),
-                cls.build_end_of_file()]
+        if start is None:
+            return [cls.build_end_of_file()]
+        else:
+            return [cls.build_extended_linear_address(0),
+                    cls.build_start_linear_address(start),
+                    cls.build_end_of_file()]
 
     @classmethod
     def readdress(

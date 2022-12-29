@@ -232,6 +232,20 @@ class TestRecord:
         ]
         assert ans_out == ans_ref
 
+        ans_out = list(Record.build_standalone([], start=...))
+        ans_ref = [
+            Record(0, Tag.EXTENDED_LINEAR_ADDRESS, b'\x00\x00'),
+            Record(0, Tag.START_LINEAR_ADDRESS, b'\x00\x00\x00\x00'),
+            Record(0, Tag.END_OF_FILE, b''),
+        ]
+        assert ans_out == ans_ref
+
+        ans_out = list(Record.build_standalone([], start=None))
+        ans_ref = [
+            Record(0, Tag.END_OF_FILE, b''),
+        ]
+        assert ans_out == ans_ref
+
         ans_out = list(Record.build_standalone([], start=0))
         ans_ref = [
             Record(0, Tag.EXTENDED_LINEAR_ADDRESS, b'\x00\x00'),
@@ -241,11 +255,21 @@ class TestRecord:
         assert ans_out == ans_ref
 
         data_records = [Record.build_data(0x1234, HEXBYTES)]
-        ans_out = list(Record.build_standalone(data_records))
+        ans_out = list(Record.build_standalone(data_records, start=...))
         ans_ref = [
             Record(0x1234, Tag.DATA, HEXBYTES),
             Record(0, Tag.EXTENDED_LINEAR_ADDRESS, b'\x00\x00'),
             Record(0, Tag.START_LINEAR_ADDRESS, b'\x00\x00\x12\x34'),
+            Record(0, Tag.END_OF_FILE, b''),
+        ]
+        assert ans_out == ans_ref
+
+        data_records = [Record.build_data(0x1234, HEXBYTES)]
+        ans_out = list(Record.build_standalone(data_records, start=0x5678))
+        ans_ref = [
+            Record(0x1234, Tag.DATA, HEXBYTES),
+            Record(0, Tag.EXTENDED_LINEAR_ADDRESS, b'\x00\x00'),
+            Record(0, Tag.START_LINEAR_ADDRESS, b'\x00\x00\x56\x78'),
             Record(0, Tag.END_OF_FILE, b''),
         ]
         assert ans_out == ans_ref
