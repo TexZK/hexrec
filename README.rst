@@ -67,7 +67,7 @@ volatile memory dumps, etc.
 
 The most common file formats for hexadecimal record files are *Intel HEX*
 (.hex) and *Motorola S-record* (.srec).
-Other common formats for binary data exhange for embedded systems include the
+Other common formats for binary data exchange for embedded systems include the
 *Executable and Linkable Format* (.elf), hex dumps (by *hexdump* or *xxd*),
 and raw binary files (.bin).
 
@@ -112,10 +112,8 @@ first module a user should look up.
 It provides high-level functions to deal with record files, as well as classes
 holding record data.
 
-However, the ``hexrec.records`` module is actually an user-friendly interface
-over ``hexrec.blocks``, which manages sparse blocks of data.
-It also provides the handy wrapper class ``hexrec.blocks.Memory`` to work
-with sparse byte chunks with an API akin to ``bytearray``.
+The ``hexrec.records`` allows to load ``bytesparse`` virtual memories, which
+are as easy to use as the native ``bytearray``, but with sparse data blocks.
 
 The ``hexrec.utils`` module provides some miscellaneous utility stuff.
 
@@ -129,25 +127,6 @@ one from the ``pyinstaller`` folder.
 
 The codebase is written in a simple fashion, to be easily readable and
 maintainable, following some naive pythonic *K.I.S.S.* approach by choice.
-
-This is mainly a library to create and manage sparse blocks of binary data,
-not made to edit binary data chunks directly.
-Please consider faster native pythonic ways to create and edit your binary
-data chunks (``bytes``, ``bytearray``, ``struct``, ...).
-Algorithms can be very slow if misused (this is Python anyway), but they are
-fast enough for the vast majority of operations made on the memory of a
-microcontroller-based embedded system.
-
-
-+------------------------------------------------------+
-|                      hexrec.cli                      |
-+--------------+---------------------------------------+
-|  hexrec.xxd  |                                       |
-+--------------+----------------------+----------------+
-|              | hexrec.blocks.Memory | hexrec.records |
-| hexrec.utils +----------------------+----------------+
-|              |            hexrec.blocks              |
-+--------------+---------------------------------------+
 
 
 Examples
@@ -167,8 +146,10 @@ is in a *segment:offset* fashion).
 
 In this example, a HEX file is converted to SREC.
 
->>> import hexrec.records as hr
->>> hr.convert_file('data.hex', 'data.srec')
+.. code-block:: python3
+
+    import hexrec.records as hr
+    hr.convert_file('data.hex', 'data.srec')
 
 This can also be done by running the `hexrec` package as a command line tool:
 
@@ -188,15 +169,30 @@ counts.
 This example shows how to merge a bootloader, an executable, and some
 configuration data into a single file, in the order they are listed.
 
->>> import hexrec.records as hr
->>> input_files = ['bootloader.hex', 'executable.mot', 'configuration.s19']
->>> hr.merge_files(input_files, 'merged.srec')
+.. code-block:: python3
+
+    import hexrec.records as hr
+    input_files = ['bootloader.hex', 'executable.mot', 'configuration.s19']
+    hr.merge_files(input_files, 'merged.srec')
 
 This can also be done by running the `hexrec` package as a command line tool:
 
 .. code-block:: sh
 
     $ python -m hexrec merge bootloader.hex executable.mot configuration.s19 merged.srec
+
+Alternatively, these files can be merged manually via *virtual memory*:
+
+.. code-block:: python3
+
+    import hexrec.records as hr
+    from bytesparse import bytesparse
+    input_files = ['bootloader.hex', 'executable.mot', 'configuration.s19']
+    input_memories = [hr.load_memory(fn) for fn in input_files]
+    merged_memory = bytesparse()
+    for input_memory in input_memories:
+        merged_memory.write(0, input_memory)
+    hr.save_memory('merged.srec', merged_memory)
 
 
 Dataset generator
@@ -210,12 +206,14 @@ For the sake of simplicity, the data structure consists of 4096 random values
 (0 to 1) of ``float`` type, stored in little-endian at the address
 ``0xDA7A0000``.
 
->>> import struct, random
->>> import hexrec.records as hr
->>> for index in range(100):
->>>     values = [random.random() for _ in range(4096)]
->>>     data = struct.pack('<4096f', *values)
->>>     hr.save_chunk(f'dataset_{index:02d}.mot', data, 0xDA7A0000)
+.. code-block:: python3
+
+    import struct, random
+    import hexrec.records as hr
+    for index in range(100):
+        values = [random.random() for _ in range(4096)]
+        data = struct.pack('<4096f', *values)
+        hr.save_chunk(f'dataset_{index:02d}.mot', data, 0xDA7A0000)
 
 
 Write a CRC
@@ -232,24 +230,14 @@ This example shows how to load a HEX file, compute a CRC32 from the address
 to ``0x3FFC`` in big-endian as a SREC file.
 The rest of the data is left untouched.
 
->>> import binascii, struct
->>> import hexrec.records as hr
->>> import hexrec.blocks as hb
->>> blocks = hr.load_blocks('data_original.hex')
->>> data = hb.crop(blocks, 0x1000, 0x3FFC)
->>> crc = binascii.crc32(data) & 0xFFFFFFFF  # remove sign
->>> blocks = hb.write(blocks, 0x3FFC, struct.pack('>L', crc))
->>> hr.save_blocks('data_crc.srec', blocks)
+.. code-block:: python3
 
-The same example as above, this time using ``hexrec.blocks.Memory`` as
-a virtual memory behaving almost like ``bytearray``.
-
->>> import binascii, struct
->>> import hexrec.records as hr
->>> memory = hr.load_memory('data.srec')
->>> crc = binascii.crc32(memory[0x1000:0x3FFC]) & 0xFFFFFFFF
->>> memory.write(0x3FFC, struct.pack('>L', crc))
->>> hr.save_memory('data_crc.srec', memory)
+    import binascii, struct
+    import hexrec.records as hr
+    memory = hr.load_memory('data.srec')
+    crc = binascii.crc32(memory[0x1000:0x3FFC]) & 0xFFFFFFFF  # remove sign
+    memory.write(0x3FFC, struct.pack('>L', crc))
+    hr.save_memory('data_crc.srec', memory)
 
 
 Trim for bootloader
@@ -265,10 +253,12 @@ This example shows how to trim the application executable record file to the
 allocated address range ``0x8000``-``0x1FFFF``.  Being written to a flash
 memory, unused memory byte cells default to ``0xFF``.
 
->>> import hexrec.records as hr
->>> memory = hr.load_memory('app_original.hex')
->>> data = memory[0x8000:0x20000:b'\xFF']
->>> hr.save_chunk('app_trimmed.srec', data, 0x8000)
+.. code-block:: python3
+
+    import hexrec.records as hr
+    memory = hr.load_memory('app_original.hex')
+    data = memory[0x8000:0x20000:b'\xFF']
+    hr.save_chunk('app_trimmed.srec', data, 0x8000)
 
 This can also be done by running the `hexrec` package as a command line tool:
 
@@ -281,11 +271,13 @@ with ``0xFF``, so that no existing application will be available again.
 Also, we need to preserve the address range ``0x3F800``-``0x3FFFF`` because it
 already contains some important data.
 
->>> import hexrec.records as hr
->>> memory = hr.load_memory('boot_original.hex')
->>> memory.fill(0x8000, 0x20000, b'\xFF')
->>> memory.clear(0x3F800, 0x40000)
->>> hr.save_memory('boot_fixed.srec', memory)
+.. code-block:: python3
+
+    import hexrec.records as hr
+    memory = hr.load_memory('boot_original.hex')
+    memory.fill(0x8000, 0x20000, b'\xFF')
+    memory.clear(0x3F800, 0x40000)
+    hr.save_memory('boot_fixed.srec', memory)
 
 With the command line interface, it can be done via a two-pass processing,
 first to fill the application range, then to clear the reserved range.
@@ -300,6 +292,30 @@ per ``boot_original.hex``).
 
 (newline continuation is backslash ``\`` for a *Unix-like* shell, caret ``^``
 for a *DOS* prompt).
+
+
+Export ELF physical program
+---------------------------
+
+The following example shows how to export *physical program* stored within an
+*Executable and Linkable File* (*ELF*), compiled for a microcontroller.
+As per the previous example, only data within the range ``0x8000``-``0x1FFFF``
+are kept, with the rest of the memory filled with the ``0xFF`` value.
+
+.. code-block:: python3
+
+    import hexrec.records as hr
+    from bytesparse import bytesparse
+    from elftools.elf.elffile import ELFFile
+    with open('app.elf', 'rb') as elf_stream:
+        elf_file = ELFFile(elf_stream)
+        memory = bytesparse(start=0x8000, endex=0x20000)  # bounds set
+        memory.fill(pattern=b'\xFF')  # between bounds
+        for segment in elf_file.iter_segments(type='PT_LOAD'):
+            addr = segment.header.p_paddr
+            data = segment.data()
+            memory.write(addr, data)
+    hr.save_memory('app.srec', memory)
 
 
 Installation
