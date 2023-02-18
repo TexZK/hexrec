@@ -1,6 +1,17 @@
 Changelog
 =========
 
+0.3.0 (2023-TO-DO)
+------------------
+
+* Added support for Python 3.11, removed 3.6.
+* Deprecated ``hexrec.blocks`` module entirely.
+* Using ``bytesparse`` for virtual memory management.
+* Improved repository layout.
+* Improved testing and packaging workflow.
+* Minor fixes and changes.
+
+
 0.2.3 (2021-12-30)
 ------------------
 
