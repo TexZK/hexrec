@@ -8,8 +8,6 @@ import pytest
 from hexrec.xxd import *
 
 
-# ============================================================================
-
 @pytest.fixture
 def tmppath(tmpdir):
     return Path(str(tmpdir))
