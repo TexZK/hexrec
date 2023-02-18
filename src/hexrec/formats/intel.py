@@ -360,7 +360,6 @@ class Record(_Record):
 
             columns (int):
                 Maximum number of columns per data record.
-                If ``None``, the whole `data` is put into a single record.
                 Maximum of 255 columns.
 
             align (int):
