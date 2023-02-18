@@ -1995,9 +1995,9 @@ RECORD_TYPES: MutableMapping[str, RecordType] = {}
 r"""Registered record types."""
 
 
-# Workaround to always regsister official record types.
+# Workaround to always register official record types.
 # Using a function to avoid namespace cluttering.
-def register_default_record_types():
+def register_default_record_types() -> None:
     if 'ascii_hex' not in RECORD_TYPES:
         from hexrec.formats.ascii_hex import Record
         RECORD_TYPES['ascii_hex'] = Record

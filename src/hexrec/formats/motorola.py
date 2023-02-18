@@ -45,6 +45,7 @@ from ..records import RecordSequence
 from ..records import Tag as _Tag
 from ..records import get_data_records
 from ..utils import AnyBytes
+from ..utils import EllipsisType
 from ..utils import check_empty_args_kwargs
 from ..utils import chop
 from ..utils import expmsg
@@ -665,7 +666,7 @@ class Record(_Record):
         data: AnyBytes,
         address: int = 0,
         columns: int = 16,
-        align: Union[int, type(Ellipsis)] = Ellipsis,
+        align: Union[int, EllipsisType] = Ellipsis,
         standalone: bool = True,
         start: Optional[int] = None,
         tag: Optional[Tag] = None,

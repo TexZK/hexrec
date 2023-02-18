@@ -38,11 +38,18 @@ from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Tuple
+from typing import Type
 from typing import TypeVar
 from typing import Union
 
-AnyBytes = Union[ByteString, bytes, bytearray, memoryview]
-T = TypeVar('T')
+try:
+    from typing import TypeAlias
+except ImportError:  # pragma: no cover
+    TypeAlias = Any  # Python < 3.10
+
+AnyBytes: TypeAlias = Union[ByteString, bytes, bytearray, memoryview]
+T: TypeAlias = TypeVar('T')
+EllipsisType: TypeAlias = Type['Ellipsis']
 
 BIN8_TO_STR: Tuple[str] = tuple(bin(i)[2:].zfill(8) for i in range(256))
 STR_TO_BIN8: Mapping[str, int] = {s: i for i, s in enumerate(BIN8_TO_STR)}

@@ -42,6 +42,7 @@ from ..records import Record as _Record
 from ..records import RecordSequence
 from ..records import Tag
 from ..utils import AnyBytes
+from ..utils import EllipsisType
 from ..utils import check_empty_args_kwargs
 from ..utils import chop
 from ..utils import hexlify
@@ -100,7 +101,7 @@ class Record(_Record):
         address: Optional[int],
         tag: Optional[Tag],
         data: Optional[AnyBytes],
-        checksum: Union[int, type(Ellipsis)] = None,
+        checksum: Union[int, EllipsisType] = None,
     ) -> None:
         super().__init__(address, tag, data, checksum)
 
@@ -230,7 +231,6 @@ class Record(_Record):
 
             columns (int):
                 Maximum number of columns per data record.
-                If ``None``, the whole `data` is put into a single record.
                 Maximum of 128 columns.
 
             align (int):
