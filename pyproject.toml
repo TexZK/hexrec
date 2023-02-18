@@ -13,11 +13,12 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
     "Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator",
@@ -36,7 +37,7 @@ dynamic = ["version"]
 license = {text = "BSD-2-Clause"}
 name = "hexrec"
 readme = "README.rst"
-requires-python = ">= 3.6"
+requires-python = ">= 3.7"
 
 [project.optional-dependencies]
 testing = ["pytest"]
