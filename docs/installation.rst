@@ -2,8 +2,8 @@
 Installation
 ============
 
-From PIP
---------
+From *PyPI*
+-----------
 
 At the command line:
 
@@ -11,7 +11,7 @@ At the command line:
 
     $ pip install hexrec
 
-The package found on PIP might be outdated with respect to the *github*
+The package found on *PyPI* might be outdated with respect to the source
 repository.
 
 

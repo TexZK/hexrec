@@ -1,7 +1,6 @@
-bytesparse>=0.0.5
-sphinx>=1.7
+sphinx >= 6
 sphinx-rtd-theme
 sphinx-click
 sphinx-autodoc-typehints
-twine>=1.12
+twine
 -e .

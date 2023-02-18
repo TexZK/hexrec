@@ -72,8 +72,7 @@ from typing import Type
 from typing import Union
 
 import click
-from bytesparse import bytesparse as Memory
-from bytesparse import collapse_blocks
+from bytesparse import Memory
 from bytesparse.base import BlockIterable
 from bytesparse.base import BlockSequence
 from bytesparse.base import ImmutableMemory
@@ -188,16 +187,16 @@ def records_to_blocks(
 
     Example:
         >>> from hexrec.utils import chop_blocks
-        >>> from bytesparse import collapse_blocks
+        >>> from bytesparse import Memory
         >>> from hexrec.formats.motorola import Record as MotorolaRecord
         >>> data = bytes(range(256))
         >>> blocks = list(chop_blocks(data, 16))
         >>> records = blocks_to_records(blocks, MotorolaRecord)
-        >>> records_to_blocks(records) == collapse_blocks(blocks)
+        >>> records_to_blocks(records) == Memory.collapse_blocks(blocks)
         True
     """
     blocks = [[r.address, r.data] for r in get_data_records(records)]
-    blocks = collapse_blocks(blocks)
+    blocks = Memory.collapse_blocks(blocks)
     return blocks
 
 
@@ -235,12 +234,12 @@ def blocks_to_records(
 
     Example:
         >>> from hexrec.utils import chop_blocks
-        >>> from bytesparse import collapse_blocks
+        >>> from bytesparse import Memory
         >>> from hexrec.formats.motorola import Record as MotorolaRecord
         >>> data = bytes(range(256))
         >>> blocks = list(chop_blocks(data, 16))
         >>> records = blocks_to_records(blocks, MotorolaRecord)
-        >>> records_to_blocks(records) == collapse_blocks(blocks)
+        >>> records_to_blocks(records) == Memory.collapse_blocks(blocks)
         True
     """
     split_args = split_args or ()
@@ -307,7 +306,7 @@ def merge_records(
 
     Example:
         >>> from hexrec.utils import chop_blocks
-        >>> from bytesparse import collapse_blocks
+        >>> from bytesparse import Memory
         >>> from hexrec.formats.intel import Record as IntelRecord
         >>> from hexrec.formats.motorola import Record as MotorolaRecord
         >>> data1 = bytes(range(0, 32))
@@ -321,7 +320,7 @@ def merge_records(
         >>> data_records2 = get_data_records(records2)
         >>> merged_records = merge_records([data_records1, data_records2])
         >>> merged_blocks = records_to_blocks(merged_records)
-        >>> merged_blocks == collapse_blocks(blocks1 + blocks2)
+        >>> merged_blocks == Memory.collapse_blocks(blocks1 + blocks2)
         True
     """
     if input_types is None:
@@ -336,7 +335,7 @@ def merge_records(
     blocks = []
     for records in data_records:
         blocks.extend([r.address, r.data] for r in records)
-    blocks = collapse_blocks(blocks)
+    blocks = Memory.collapse_blocks(blocks)
 
     output_records = blocks_to_records(blocks, output_type,
                                        split_args, split_kwargs,

@@ -16,7 +16,6 @@ from hexrec.records import Memory
 from hexrec.records import Record
 from hexrec.records import Tag
 from hexrec.records import blocks_to_records
-from hexrec.records import collapse_blocks
 from hexrec.records import convert_file
 from hexrec.records import convert_records
 from hexrec.records import find_corrupted_records
@@ -111,7 +110,7 @@ def test_records_to_blocks_doctest():
     data = bytes(range(256))
     blocks = list(chop_blocks(data, 16))
     records = blocks_to_records(blocks, MotorolaRecord)
-    ans_ref = collapse_blocks(blocks)
+    ans_ref = Memory.collapse_blocks(blocks)
     ans_out = records_to_blocks(records)
     assert ans_ref == ans_out
 
@@ -122,7 +121,7 @@ def test_blocks_to_records_doctest():
     data = bytes(range(256))
     blocks = list(chop_blocks(data, 16))
     records = blocks_to_records(blocks, MotorolaRecord)
-    ans_ref = collapse_blocks(blocks)
+    ans_ref = Memory.collapse_blocks(blocks)
     ans_out = records_to_blocks(records)
     assert ans_ref == ans_out
 
@@ -141,7 +140,7 @@ def test_merge_records_doctest():
     data_records2 = get_data_records(records2)
     merged_records = merge_records([data_records1, data_records2])
     merged_blocks = records_to_blocks(merged_records)
-    ans_ref = collapse_blocks(blocks1 + blocks2)
+    ans_ref = Memory.collapse_blocks(blocks1 + blocks2)
     ans_out = merged_blocks
     assert ans_ref == ans_out
 
@@ -273,7 +272,7 @@ def test_load_blocks_doctest(tmppath):
               for offset in range(0, 256, 16)]
     save_blocks(path, blocks)
     ans_out = load_blocks(path)
-    ans_ref = collapse_blocks(blocks)
+    ans_ref = Memory.collapse_blocks(blocks)
     assert ans_out == ans_ref
 
 
@@ -283,7 +282,7 @@ def test_load_blocks(tmppath):
               for offset in range(0, 256, 16)]
     save_blocks(path, blocks)
     ans_out = load_blocks(path, MotorolaRecord)
-    ans_ref = collapse_blocks(blocks)
+    ans_ref = Memory.collapse_blocks(blocks)
     assert ans_out == ans_ref
 
 
@@ -295,7 +294,7 @@ def test_save_blocks_doctest(tmppath):
               for offset in range(0, 256, 16)]
     save_blocks(path, blocks)
     ans_out = load_blocks(path)
-    ans_ref = collapse_blocks(blocks)
+    ans_ref = Memory.collapse_blocks(blocks)
     assert ans_out == ans_ref
 
 
@@ -305,7 +304,7 @@ def test_save_blocks(tmppath):
               for offset in range(0, 256, 16)]
     save_blocks(path, blocks, IntelRecord)
     ans_out = load_blocks(path)
-    ans_ref = collapse_blocks(blocks)
+    ans_ref = Memory.collapse_blocks(blocks)
     assert ans_out == ans_ref
 
 
@@ -315,7 +314,7 @@ def test_load_memory_doctest(tmppath):
     path = str(tmppath / 'bytes.mot')
     blocks = [[offset, bytes(range(offset, offset + 16))]
               for offset in range(0, 256, 16)]
-    blocks = collapse_blocks(blocks)
+    blocks = Memory.collapse_blocks(blocks)
     sparse_items = Memory.from_blocks(blocks)
     save_memory(path, sparse_items)
     ans_out = load_memory(path)
@@ -329,7 +328,7 @@ def test_save_memory_doctest(tmppath):
     path = str(tmppath / 'bytes.hex')
     blocks = [[offset, bytes(range(offset, offset + 16))]
               for offset in range(0, 256, 16)]
-    blocks = collapse_blocks(blocks)
+    blocks = Memory.collapse_blocks(blocks)
     sparse_items = Memory.from_blocks(blocks)
     save_memory(path, sparse_items)
     ans_out = load_memory(path)
