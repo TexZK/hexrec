@@ -594,7 +594,7 @@ def humanize_ascii(
 
 
 def humanize_ebcdic(
-    data: Union[ByteString, Iterable[int]],
+    data: Union[AnyBytes, Iterable[int]],
     replace: str = '.',
 ) -> str:
     r"""EBCDIC for human readers.
@@ -616,8 +616,8 @@ def humanize_ebcdic(
         >>> humanize_ebcdic(bytearray(range(0xC0, 0xD0)))
         '{ABCDEFGHI......'
     """
-    data = data.decode('cp500')
-    text = ''.join(c if 0x20 <= ord(c) < 0x7F else replace for c in data)
+    chars = str(data, encoding='cp500')
+    text = ''.join(c if 0x20 <= ord(c) < 0x7F else replace for c in chars)
     return text
 
 
@@ -665,7 +665,7 @@ def do_overlap(
         start1, endex1 = endex1, start1
     if start2 > endex2:
         start2, endex2 = endex2, start2
-    return (endex1 > start2 and endex2 > start1)
+    return endex1 > start2 and endex2 > start1
 
 
 def straighten_index(
