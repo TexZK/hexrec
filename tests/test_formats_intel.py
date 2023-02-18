@@ -183,7 +183,7 @@ class TestRecord:
         with pytest.raises(ValueError):
             list(Record.split(BYTES, columns=256))
 
-        ans_out = list(Record.split(HEXBYTES, address=0x12345678))
+        ans_out = list(Record.split(HEXBYTES, address=0x12345678, start=...))
         ans_ref = [
             Record(0, Tag.EXTENDED_LINEAR_ADDRESS, b'\x124'),
             Record(0x12345678, Tag.DATA,
@@ -210,7 +210,17 @@ class TestRecord:
         assert ans_out == ans_ref
 
         ans_out = list(Record.split(HEXBYTES, address=0x0000FFF8,
-                                    align=False))
+                                    align=False, start=...))
+        assert ans_out == ans_ref
+
+        ans_out = list(Record.split(HEXBYTES, address=0x0000FFF8))
+        ans_ref = [
+            Record(0xFFF8, Tag.DATA,
+                   b'\x00\x01\x02\x03\x04\x05\x06\x07'),
+            Record(0, Tag.EXTENDED_LINEAR_ADDRESS, b'\x00\x01'),
+            Record(0x10000, Tag.DATA, b'\x08\t\n\x0b\x0c\r\x0e\x0f'),
+            Record(0, Tag.END_OF_FILE, b'')
+        ]
         assert ans_out == ans_ref
 
         ans_out = list(Record.split(HEXBYTES, standalone=False,
@@ -307,13 +317,13 @@ class TestRecord:
     def test_load_records(self, datapath):
         path_ref = datapath / 'bytes.hex'
         ans_out = list(Record.load_records(str(path_ref)))
-        ans_ref = list(Record.split(BYTES))
+        ans_ref = list(Record.split(BYTES, start=...))
         assert ans_out == ans_ref
 
     def test_save_records(self, tmppath, datapath):
         path_out = tmppath / 'bytes.hex'
         path_ref = datapath / 'bytes.hex'
-        records = list(Record.split(BYTES))
+        records = list(Record.split(BYTES, start=...))
         Record.save_records(str(path_out), records)
         ans_out = read_text(path_out)
         ans_ref = read_text(path_ref)

@@ -247,7 +247,7 @@ class Record(_Record):
         columns: int = 16,
         align: Union[int, EllipsisType] = Ellipsis,
         standalone: bool = True,
-        start: Optional[int] = None,
+        start: Optional[Union[int, EllipsisType]] = None,
     ) -> Iterator['Record']:
         r"""Splits a chunk of data into records.
 
@@ -272,7 +272,8 @@ class Record(_Record):
 
             start (int):
                 Program start address.
-                If ``None``, it is assigned the minimum data record address.
+                If ``Ellipsis``, it is assigned the minimum data record address.
+                If ``None``, no start address records are output.
 
         Yields:
             record: Data split into records.
@@ -288,6 +289,8 @@ class Record(_Record):
             raise ValueError('column overflow')
         if align is Ellipsis:
             align = columns
+        if start is Ellipsis:
+            start = address
 
         align_base = (address % align) if align else 0
         offset = address

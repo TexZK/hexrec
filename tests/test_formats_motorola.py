@@ -298,28 +298,28 @@ class TestRecord:
         pass  # TODO
 
     def test_check_sequence(self):
-        records = list(Record.split(BYTES, header=b'Hello, World!'))
+        records = list(Record.split(BYTES, header=b'Hello, World!', start=...))
         Record.check_sequence(records)
 
-        records = list(Record.split(BYTES, header=b'Hello, World!'))
+        records = list(Record.split(BYTES, header=b'Hello, World!', start=...))
         assert records[0].tag == Tag.HEADER
         del records[0]
         with pytest.raises(ValueError, match='missing header'):
             Record.check_sequence(records)
 
-        records = list(Record.split(BYTES, header=b'Hello, World!'))
+        records = list(Record.split(BYTES, header=b'Hello, World!', start=...))
         assert records[0].tag == Tag.HEADER
         records.insert(1, records[0])
         with pytest.raises(ValueError, match='header error'):
             Record.check_sequence(records)
 
-        records = list(Record.split(BYTES, header=b'Hello, World!'))
+        records = list(Record.split(BYTES, header=b'Hello, World!', start=...))
         assert records[0].tag == Tag.HEADER
         records.insert(1, Record(0, Tag._RESERVED, b''))
         with pytest.raises(ValueError, match='missing count'):
             Record.check_sequence(records)
 
-        records = list(Record.split(BYTES, header=b'Hello, World!'))
+        records = list(Record.split(BYTES, header=b'Hello, World!', start=...))
         assert records[2].tag == Tag.DATA_16
         records[2].tag = Tag.DATA_24
         records[2].update_count()
@@ -327,7 +327,7 @@ class TestRecord:
         with pytest.raises(ValueError, match='tag error'):
             Record.check_sequence(records)
 
-        records = list(Record.split(BYTES))
+        records = list(Record.split(BYTES, start=...))
         assert records[2].tag == Tag.DATA_16
         records[2].address -= 1
         records[2].update_count()
@@ -335,26 +335,26 @@ class TestRecord:
         with pytest.raises(ValueError, match='overlapping records'):
             Record.check_sequence(records)
 
-        records = list(Record.split(BYTES))
+        records = list(Record.split(BYTES, start=...))
         assert records[2].tag == Tag.DATA_16
         assert records[-2].tag == Tag.COUNT_16
         del records[2]
         with pytest.raises(ValueError, match='record count error'):
             Record.check_sequence(records)
 
-        records = list(Record.split(BYTES))
+        records = list(Record.split(BYTES, start=...))
         assert records[-2].tag == Tag.COUNT_16
         del records[-2]
         with pytest.raises(ValueError, match='missing count'):
             Record.check_sequence(records)
 
-        records = list(Record.split(BYTES))
+        records = list(Record.split(BYTES, start=...))
         assert records[-2].tag == Tag.COUNT_16
         records.insert(-2, records[-2])
         with pytest.raises(ValueError, match='misplaced count'):
             Record.check_sequence(records)
 
-        records = list(Record.split(BYTES))
+        records = list(Record.split(BYTES, start=...))
         assert records[-2].tag == Tag.COUNT_16
         records[-2].tag = Tag.COUNT_24
         records[-2].data = b'\x00' + records[-2].data
@@ -362,7 +362,7 @@ class TestRecord:
         records[-2].update_checksum()
         Record.check_sequence(records)
 
-        records = list(Record.split(BYTES))
+        records = list(Record.split(BYTES, start=...))
         assert records[-2].tag == Tag.COUNT_16
         records[-2].tag = Tag.COUNT_24
         records[-2].data = b'\x00' + records[-2].data
@@ -372,7 +372,7 @@ class TestRecord:
         with pytest.raises(ValueError, match='misplaced count'):
             Record.check_sequence(records)
 
-        records = list(Record.split(BYTES))
+        records = list(Record.split(BYTES, start=...))
         assert records[-2].tag == Tag.COUNT_16
         records[-2].tag = Tag.COUNT_24
         records[-2].data = b'\x00' + records[-2].data
@@ -383,7 +383,7 @@ class TestRecord:
         with pytest.raises(ValueError, match='record count error'):
             Record.check_sequence(records)
 
-        records = list(Record.split(BYTES))
+        records = list(Record.split(BYTES, start=...))
         assert records[1].tag == Tag.DATA_16
         assert records[-1].tag == Tag.START_16
         records[-1].tag = Tag.START_24
@@ -392,19 +392,19 @@ class TestRecord:
         with pytest.raises(ValueError):
             Record.check_sequence(records)
 
-        records = list(Record.split(BYTES))
+        records = list(Record.split(BYTES, start=...))
         assert records[-1].tag == Tag.START_16
         del records[-1]
         with pytest.raises(ValueError, match='missing start'):
             Record.check_sequence(records)
 
-        records = list(Record.split(BYTES))
+        records = list(Record.split(BYTES, start=...))
         assert records[-1].tag == Tag.START_16
         records.insert(-1, Record(0, Tag._RESERVED, b''))
         with pytest.raises(ValueError, match='tag error'):
             Record.check_sequence(records)
 
-        records = list(Record.split(BYTES))
+        records = list(Record.split(BYTES, start=...))
         assert records[-1].tag == Tag.START_16
         records.append(Record(0, Tag._RESERVED, b''))
         with pytest.raises(ValueError, match='sequence length error'):
@@ -448,6 +448,15 @@ class TestRecord:
 
         with pytest.raises(ValueError):
             list(Record.split(BYTES, columns=251, tag=Record.TAG_TYPE.DATA_32))
+
+        ans_out = list(Record.split(HEXBYTES, header=b'Hello, World!',
+                                    start=None, tag=Tag.DATA_16))
+        ans_ref = [
+            Record(0, Tag.HEADER, b'Hello, World!'),
+            Record(0, Tag.DATA_16, HEXBYTES),
+            Record(0, Tag.COUNT_16, b'\x00\x01'),
+        ]
+        assert ans_out == ans_ref
 
         ans_out = list(Record.split(HEXBYTES, header=b'Hello, World!',
                                     start=0, tag=Tag.DATA_16))
@@ -497,13 +506,13 @@ class TestRecord:
     def test_load_records(self, datapath):
         path_ref = datapath / 'bytes.mot'
         ans_out = list(Record.load_records(str(path_ref)))
-        ans_ref = list(Record.split(BYTES))
+        ans_ref = list(Record.split(BYTES, start=...))
         assert ans_out == ans_ref
 
     def test_save_records(self, tmppath, datapath):
         path_out = tmppath / 'bytes.mot'
         path_ref = datapath / 'bytes.mot'
-        records = list(Record.split(BYTES))
+        records = list(Record.split(BYTES, start=...))
         Record.save_records(str(path_out), records)
         ans_out = read_text(path_out)
         ans_ref = read_text(path_ref)

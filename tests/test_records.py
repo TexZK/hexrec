@@ -95,7 +95,7 @@ def test_get_max_data_length_doctest():
 
 def test_find_corrupted_records_doctest():
     data = bytes(range(256))
-    records = list(MotorolaRecord.split(data))
+    records = list(MotorolaRecord.split(data, start=...))
     records[3].checksum ^= 0xFF
     records[5].checksum ^= 0xFF
     records[7].checksum ^= 0xFF
@@ -148,25 +148,25 @@ def test_merge_records_doctest():
 # ============================================================================
 
 def test_convert_records_doctest():
-    motorola = list(MotorolaRecord.split(BYTES))
-    intel = list(IntelRecord.split(BYTES))
+    motorola = list(MotorolaRecord.split(BYTES, start=...))
+    intel = list(IntelRecord.split(BYTES, start=...))
     converted = convert_records(motorola, output_type=IntelRecord)
     assert converted == intel
 
-    motorola = list(MotorolaRecord.split(BYTES))
-    intel = list(IntelRecord.split(BYTES))
+    motorola = list(MotorolaRecord.split(BYTES, start=...))
+    intel = list(IntelRecord.split(BYTES, start=...))
     converted = convert_records(intel, output_type=MotorolaRecord)
     assert converted == motorola
 
 
 def test_convert_records():
-    motorola1 = list(MotorolaRecord.split(BYTES))
-    motorola2 = list(MotorolaRecord.split(BYTES))
+    motorola1 = list(MotorolaRecord.split(BYTES, start=...))
+    motorola2 = list(MotorolaRecord.split(BYTES, start=...))
     converted = convert_records(motorola1, input_type=MotorolaRecord)
     assert converted == motorola2
 
-    intel1 = list(IntelRecord.split(BYTES))
-    intel2 = list(IntelRecord.split(BYTES))
+    intel1 = list(IntelRecord.split(BYTES, start=...))
+    intel2 = list(IntelRecord.split(BYTES, start=...))
     converted = convert_records(intel1, output_type=IntelRecord)
     assert converted == intel2
 
@@ -201,8 +201,8 @@ def test_merge_files(tmppath, datapath):
 def test_convert_file_doctest(tmppath):
     path_mot = str(tmppath / 'bytes.mot')
     path_hex = str(tmppath / 'bytes.hex')
-    motorola = list(MotorolaRecord.split(BYTES))
-    intel = list(IntelRecord.split(BYTES))
+    motorola = list(MotorolaRecord.split(BYTES, start=...))
+    intel = list(IntelRecord.split(BYTES, start=...))
     save_records(path_mot, motorola)
     convert_file(path_mot, path_hex)
     ans_out = load_records(path_hex)
@@ -214,7 +214,7 @@ def test_convert_file_doctest(tmppath):
 
 def test_load_records_doctest(tmppath):
     path = str(tmppath / 'bytes.mot')
-    records = list(MotorolaRecord.split(BYTES))
+    records = list(MotorolaRecord.split(BYTES, start=...))
     save_records(path, records)
     ans_out = load_records(path)
     ans_ref = records
@@ -223,7 +223,7 @@ def test_load_records_doctest(tmppath):
 
 def test_load_records(tmppath):
     path = str(tmppath / 'bytes.mot')
-    records = list(MotorolaRecord.split(BYTES))
+    records = list(MotorolaRecord.split(BYTES, start=...))
     save_records(path, records)
     ans_out = load_records(path, MotorolaRecord)
     ans_ref = records
@@ -234,7 +234,7 @@ def test_load_records(tmppath):
 
 def test_save_records_doctest(tmppath):
     path = str(tmppath / 'bytes.hex')
-    records = list(IntelRecord.split(BYTES))
+    records = list(IntelRecord.split(BYTES, start=...))
     save_records(path, records)
     ans_out = load_records(path)
     ans_ref = records
@@ -243,7 +243,7 @@ def test_save_records_doctest(tmppath):
 
 def test_save_records(tmppath):
     path = str(tmppath / 'bytes.hex')
-    records = list(IntelRecord.split(BYTES))
+    records = list(IntelRecord.split(BYTES, start=...))
     save_records(path, records, IntelRecord)
     ans_out = load_records(path)
     ans_ref = records
@@ -256,8 +256,8 @@ def test_save_records(tmppath):
     assert ans_out == ans_ref
 
     path = str(tmppath / 'bytes.mot')
-    intel = list(IntelRecord.split(BYTES))
-    motorola = list(MotorolaRecord.split(BYTES))
+    intel = list(IntelRecord.split(BYTES, start=...))
+    motorola = list(MotorolaRecord.split(BYTES, start=...))
     save_records(path, intel, MotorolaRecord)
     ans_out = load_records(path)
     ans_ref = motorola
@@ -614,7 +614,7 @@ class TestRecord:
         assert ans_out == ans_ref
 
         data = bytes(range(256))
-        records = list(MotorolaRecord.split(data))
+        records = list(MotorolaRecord.split(data, start=...))
         ans_out = Record.get_metadata(records)
         ans_ref = dict(columns=16)
         assert ans_out == ans_ref

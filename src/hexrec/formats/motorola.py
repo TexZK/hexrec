@@ -668,7 +668,7 @@ class Record(_Record):
         columns: int = 16,
         align: Union[int, EllipsisType] = Ellipsis,
         standalone: bool = True,
-        start: Optional[int] = None,
+        start: Optional[Union[int, EllipsisType]] = 0,
         tag: Optional[Tag] = None,
         header: AnyBytes = b'',
     ) -> Iterator['Record']:
@@ -695,7 +695,8 @@ class Record(_Record):
 
             start (int):
                 Program start address.
-                If ``None``, it is assigned the minimum data record address.
+                If ``Ellipsis``, it is assigned the minimum data record address.
+                If ``None``, no start address records are output.
 
             tag (tag):
                 Data tag record.
@@ -716,7 +717,7 @@ class Record(_Record):
             raise ValueError('size overflow')
         if align is Ellipsis:
             align = columns
-        if start is None:
+        if start is Ellipsis:
             start = address
         if tag is None:
             tag = cls.fit_data_tag(address + len(data))
@@ -737,7 +738,8 @@ class Record(_Record):
 
         if standalone:
             yield cls.build_count(count)
-            yield cls.build_terminator(start, tag)
+            if start is not None:
+                yield cls.build_terminator(start, tag)
 
     @classmethod
     def fix_tags(
