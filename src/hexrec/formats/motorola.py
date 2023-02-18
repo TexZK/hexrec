@@ -682,7 +682,6 @@ class Record(_Record):
 
             columns (int):
                 Maximum number of columns per data record.
-                If ``None``, the whole `data` is put into a single record.
                 Maximum columns: 252 for `S1`, 251 for `S2`, 250 for `S3`.
 
             align (int):
