@@ -138,6 +138,20 @@ class TestRecord:
         ]
         assert ans_out == ans_ref
 
+        ans_out = list(Record.split(HEXBYTES, start=0x1234))
+        ans_ref = [
+            Record(0, Tag.DATA, HEXBYTES),
+            Record(0x1234, Tag.TERMINATOR, b''),
+        ]
+        assert ans_out == ans_ref
+
+        ans_out = list(Record.split(HEXBYTES, start=...))
+        ans_ref = [
+            Record(0, Tag.DATA, HEXBYTES),
+            Record(0, Tag.TERMINATOR, b''),
+        ]
+        assert ans_out == ans_ref
+
         ans_out = list(Record.split(HEXBYTES, standalone=False,
                                     address=7, columns=5, align=3))
         ans_ref = [

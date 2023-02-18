@@ -273,7 +273,7 @@ class Record(_Record):
             start (int):
                 Program start address.
                 If ``Ellipsis``, it is assigned the minimum data record address.
-                If ``None``, no start address records are output.
+                If ``None``, no start address is set.
 
         Yields:
             record: Data split into records.
@@ -291,6 +291,8 @@ class Record(_Record):
             align = columns
         if start is Ellipsis:
             start = address
+        if start is None:
+            start = 0
 
         align_base = (address % align) if align else 0
         offset = address
@@ -300,7 +302,7 @@ class Record(_Record):
             offset += len(chunk)
 
         if standalone:
-            yield cls.build_terminator(address if start is None else start)
+            yield cls.build_terminator(start)
 
     @classmethod
     def build_standalone(
