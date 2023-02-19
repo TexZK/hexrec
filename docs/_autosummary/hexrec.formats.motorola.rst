@@ -1,4 +1,4 @@
-hexrec.formats.motorola
+﻿hexrec.formats.motorola
 =======================
 
 .. automodule:: hexrec.formats.motorola

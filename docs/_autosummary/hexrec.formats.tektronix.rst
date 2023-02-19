@@ -1,4 +1,4 @@
-hexrec.formats.tektronix
+﻿hexrec.formats.tektronix
 ========================
 
 .. automodule:: hexrec.formats.tektronix

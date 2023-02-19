@@ -1,4 +1,4 @@
-hexrec.formats.intel
+﻿hexrec.formats.intel
 ====================
 
 .. automodule:: hexrec.formats.intel

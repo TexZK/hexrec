@@ -1,4 +1,4 @@
-hexrec.formats.binary
+﻿hexrec.formats.binary
 =====================
 
 .. automodule:: hexrec.formats.binary

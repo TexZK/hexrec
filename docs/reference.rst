@@ -4,9 +4,8 @@ Reference
 .. autosummary::
     :toctree: _autosummary
     :template: custom-module-template.rst
-    :recursive:
 
-    hexrec.blocks
+    hexrec
     hexrec.formats
     hexrec.formats.ascii_hex
     hexrec.formats.binary
