@@ -38,6 +38,7 @@ from typing import Union
 from ..records import Record as _Record
 from ..records import Tag as _Tag
 from ..utils import AnyBytes
+from ..utils import EllipsisType
 from ..utils import check_empty_args_kwargs
 from ..utils import chop
 from ..utils import hexlify
@@ -102,7 +103,7 @@ class Record(_Record):
         address: int,
         tag: Optional[_Tag],
         data: AnyBytes,
-        checksum: Union[int, type(Ellipsis)] = Ellipsis,
+        checksum: Union[int, EllipsisType] = Ellipsis,
     ) -> None:
         super().__init__(address, tag, data, checksum)
 
@@ -229,7 +230,7 @@ class Record(_Record):
         data: AnyBytes,
         address: int = 0,
         columns: Optional[int] = None,
-        align: Union[int, type(Ellipsis)] = Ellipsis,
+        align: Union[int, EllipsisType] = Ellipsis,
         standalone: bool = True,
     ) -> Iterator['Record']:
         r"""Splits a chunk of data into records.

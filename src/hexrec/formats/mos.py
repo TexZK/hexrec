@@ -232,7 +232,7 @@ class Record(_Record):
         data: AnyBytes,
         address: int = 0,
         columns: int = 16,
-        align: Union[int, type(Ellipsis)] = Ellipsis,
+        align: Union[int, EllipsisType] = Ellipsis,
         standalone: bool = True,
     ) -> Iterator['Record']:
         r"""Splits a chunk of data into records.

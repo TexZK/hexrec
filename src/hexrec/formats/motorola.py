@@ -158,7 +158,7 @@ class Record(_Record):
         address: int,
         tag: Tag,
         data: AnyBytes,
-        checksum: Union[int, type(Ellipsis)] = Ellipsis,
+        checksum: Union[int, EllipsisType] = Ellipsis,
     ) -> None:
         super().__init__(address, self.TAG_TYPE(tag), data, checksum)
 

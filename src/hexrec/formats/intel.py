@@ -138,7 +138,7 @@ class Record(_Record):
         address: int,
         tag: 'Tag',
         data: AnyBytes,
-        checksum: Union[int, type(Ellipsis)] = Ellipsis,
+        checksum: Union[int, EllipsisType] = Ellipsis,
     ) -> None:
         if not 0 <= address < (1 << 32):
             raise ValueError('address overflow')

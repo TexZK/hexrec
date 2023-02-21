@@ -78,6 +78,7 @@ from bytesparse.base import BlockSequence
 from bytesparse.base import ImmutableMemory
 
 from .utils import AnyBytes
+from .utils import EllipsisType
 from .utils import check_empty_args_kwargs
 from .utils import do_overlap
 
@@ -900,12 +901,12 @@ class Record:
         address: int,
         tag: Optional[Union[Tag, int]],
         data: AnyBytes,
-        checksum: Optional[Union[int, type(Ellipsis)]] = Ellipsis,
+        checksum: Optional[Union[int, EllipsisType]] = Ellipsis,
     ) -> None:
         self.address: int = address
         self.tag: Optional[Union[Tag, int]] = tag
         self.data: AnyBytes = data
-        self.checksum: Optional[Union[int, type(Ellipsis)]] = None
+        self.checksum: Optional[Union[int, EllipsisType]] = None
         self.count: int = -1  # invalidate
 
         self.update_count()
