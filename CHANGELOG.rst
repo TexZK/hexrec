@@ -1,7 +1,7 @@
 Changelog
 =========
 
-0.3.0 (2023-TO-DO)
+0.3.0 (2023-02-21)
 ------------------
 
 * Added support for Python 3.11, removed 3.6.
