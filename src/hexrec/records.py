@@ -720,7 +720,7 @@ def load_memory(
 
     Example:
         >>> blocks = [[n, bytes(range(n, n + 16))] for n in range(0, 256, 16)]
-        >>> blocks = collapse_blocks(blocks)
+        >>> blocks = Memory.collapse_blocks(blocks)
         >>> memory = Memory.from_blocks(blocks)
         >>> save_memory('bytes.mot', memory)
         >>> load_memory('bytes.mot') == memory
@@ -761,7 +761,7 @@ def save_memory(
 
     Example:
         >>> blocks = [[n, bytes(range(n, n + 16))] for n in range(0, 256, 16)]
-        >>> blocks = collapse_blocks(blocks)
+        >>> blocks = Memory.collapse_blocks(blocks)
         >>> memory = Memory.from_blocks(blocks)
         >>> save_memory('bytes.hex', memory)
         >>> load_memory('bytes.hex') == memory
