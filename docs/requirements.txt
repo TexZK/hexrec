@@ -1,4 +1,4 @@
-sphinx >= 6
+sphinx >= 6, < 7
 sphinx-rtd-theme
 sphinx-click
 sphinx-autodoc-typehints
