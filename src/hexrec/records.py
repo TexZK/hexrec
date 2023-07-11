@@ -581,6 +581,8 @@ def save_records(
     output_type: Optional[RecordType] = None,
     split_args: Optional[Sequence[Any]] = None,
     split_kwargs: Optional[Mapping[str, Any]] = None,
+    build_args: Optional[Sequence[Any]] = None,
+    build_kwargs: Optional[Mapping[str, Any]] = None,
 ) -> None:
     r"""Saves records to a record file.
 
@@ -601,6 +603,12 @@ def save_records(
         split_kwargs (dict):
             Keyword arguments for :meth:`Record.split`.
 
+        build_args (list):
+            Positional arguments for :meth:`Record.build_standalone`.
+
+        build_kwargs (dict):
+            Keyword arguments for :meth:`Record.build_standalone`.
+
     Example:
         >>> from hexrec.formats.intel import Record as IntelRecord
         >>> records = list(IntelRecord.split(bytes(range(256))))
@@ -615,7 +623,9 @@ def save_records(
         if not all(isinstance(r, output_type) for r in records):
             records = convert_records(records, output_type=output_type,
                                       split_args=split_args,
-                                      split_kwargs=split_kwargs)
+                                      split_kwargs=split_kwargs,
+                                      build_args=build_args,
+                                      build_kwargs=build_kwargs)
     else:
         records = ()
 
@@ -740,6 +750,8 @@ def save_memory(
     record_type: Optional[RecordType] = None,
     split_args: Optional[Sequence[Any]] = None,
     split_kwargs: Optional[Mapping[str, Any]] = None,
+    build_args: Optional[Sequence[Any]] = None,
+    build_kwargs: Optional[Mapping[str, Any]] = None,
 ) -> None:
     r"""Saves a virtual memory to a record file.
 
@@ -760,6 +772,12 @@ def save_memory(
         split_kwargs (dict):
             Keyword arguments for :meth:`Record.split`.
 
+        build_args (list):
+            Positional arguments for :meth:`Record.build_standalone`.
+
+        build_kwargs (dict):
+            Keyword arguments for :meth:`Record.build_standalone`.
+
     Example:
         >>> blocks = [[n, bytes(range(n, n + 16))] for n in range(0, 256, 16)]
         >>> blocks = Memory.collapse_blocks(blocks)
@@ -773,7 +791,9 @@ def save_memory(
 
     record_type.save_memory(path, memory,
                             split_args=split_args,
-                            split_kwargs=split_kwargs)
+                            split_kwargs=split_kwargs,
+                            build_args=build_args,
+                            build_kwargs=build_kwargs)
 
 
 def save_chunk(
@@ -783,6 +803,8 @@ def save_chunk(
     record_type: Optional[RecordType] = None,
     split_args: Optional[Sequence[Any]] = None,
     split_kwargs: Optional[Mapping[str, Any]] = None,
+    build_args: Optional[Sequence[Any]] = None,
+    build_kwargs: Optional[Mapping[str, Any]] = None,
 ) -> None:
     r"""Saves a data chunk to a record file.
 
@@ -806,6 +828,12 @@ def save_chunk(
         split_kwargs (dict):
             Keyword arguments for :meth:`Record.split`.
 
+        build_args (list):
+            Positional arguments for :meth:`Record.build_standalone`.
+
+        build_kwargs (dict):
+            Keyword arguments for :meth:`Record.build_standalone`.
+
     Example:
         >>> data = bytes(range(256))
         >>> save_chunk('bytes.mot', data, 0x12345678)
@@ -815,7 +843,9 @@ def save_chunk(
     save_blocks(path, [[address, chunk]],
                 record_type=record_type,
                 split_args=split_args,
-                split_kwargs=split_kwargs)
+                split_kwargs=split_kwargs,
+                build_args=build_args,
+                build_kwargs=build_kwargs)
 
 
 class Tag(enum.IntEnum):
