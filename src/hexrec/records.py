@@ -335,7 +335,7 @@ def merge_records(
 
     blocks = []
     for records in data_records:
-        blocks.extend([r.address, r.data] for r in records)
+        blocks.extend([r.address, r.data] for r in records if r.is_data())
     blocks = Memory.collapse_blocks(blocks)
 
     output_records = blocks_to_records(blocks, output_type,
