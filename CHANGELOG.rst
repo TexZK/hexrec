@@ -1,6 +1,14 @@
 Changelog
 =========
 
+0.3.1 (TBD)
+------------------
+
+* Added support for Python 3.12.
+* Added Motorola header editing.
+* Minor fixes and changes.
+
+
 0.3.0 (2023-02-21)
 ------------------
 
