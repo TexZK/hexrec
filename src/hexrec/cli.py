@@ -40,6 +40,8 @@ Why does this file exist, and why not put this in __main__?
   Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
 """
 import sys
+from typing import Callable
+from typing import Mapping
 from typing import Optional
 from typing import Tuple
 from typing import Type
@@ -47,6 +49,7 @@ from typing import Type
 import click
 
 from .__init__ import __version__ as _version
+from .formats.motorola import Record as _MotorolaRecord
 from .records import RECORD_TYPES as _RECORD_TYPES
 from .records import Record as _Record
 from .records import convert_file as _convert_file
@@ -55,7 +58,9 @@ from .records import load_memory as _load_memory
 from .records import merge_files as _merge_files
 from .records import register_default_record_types as _register_default_record_types
 from .records import save_memory as _save_memory
+from .utils import hexlify as _hexlify
 from .utils import parse_int as _parse_int
+from .utils import unhexlify as _unhexlify
 from .xxd import xxd as _xxd
 
 _register_default_record_types()
@@ -68,7 +73,7 @@ class BasedIntParamType(click.ParamType):
         try:
             return _parse_int(value)
         except ValueError:
-            self.fail('%s is not a valid integer' % value, param, ctx)
+            self.fail(f'{value} is not a valid integer', param, ctx)
 
 
 class ByteIntParamType(click.ParamType):
@@ -81,7 +86,7 @@ class ByteIntParamType(click.ParamType):
                 raise ValueError()
             return b
         except ValueError:
-            self.fail('%s is not a valid byte' % value, param, ctx)
+            self.fail(f'{value} is not a valid byte', param, ctx)
 
 
 BASED_INT = BasedIntParamType()
@@ -92,6 +97,40 @@ FILE_PATH_IN = click.Path(dir_okay=False, allow_dash=True, readable=True,
 FILE_PATH_OUT = click.Path(dir_okay=False, allow_dash=True, writable=True)
 
 RECORD_FORMAT_CHOICE = click.Choice(list(sorted(_RECORD_TYPES.keys())))
+
+DATA_FMT_FORMATTERS: Mapping[str, Callable[[bytes], str]] = {
+    'ascii': lambda b: b.decode('ascii'),
+    'hex': lambda b: _hexlify(b, upper=False),
+    'HEX': lambda b: _hexlify(b, upper=True),
+    'hex.': lambda b: _hexlify(b, sep='.', upper=False),
+    'HEX.': lambda b: _hexlify(b, sep='.', upper=True),
+    'hex-': lambda b: _hexlify(b, sep='-', upper=False),
+    'HEX-': lambda b: _hexlify(b, sep='-', upper=True),
+    'hex:': lambda b: _hexlify(b, sep=':', upper=False),
+    'HEX:': lambda b: _hexlify(b, sep=':', upper=True),
+    'hex_': lambda b: _hexlify(b, sep='_', upper=False),
+    'HEX_': lambda b: _hexlify(b, sep='_', upper=True),
+    'hex ': lambda b: _hexlify(b, sep=' ', upper=False),
+    'HEX ': lambda b: _hexlify(b, sep=' ', upper=True),
+}
+
+DATA_FMT_PARSERS: Mapping[str, Callable[[str], bytes]] = {
+    'ascii': lambda t: t.encode('ascii'),
+    'hex': lambda t: _unhexlify(t),
+    'HEX': lambda t: _unhexlify(t),
+    'hex.': lambda t: _unhexlify(t.replace('.', '')),
+    'HEX.': lambda t: _unhexlify(t.replace('.', '')),
+    'hex-': lambda t: _unhexlify(t.replace('-', '')),
+    'HEX-': lambda t: _unhexlify(t.replace('-', '')),
+    'hex:': lambda t: _unhexlify(t.replace(':', '')),
+    'HEX:': lambda t: _unhexlify(t.replace(':', '')),
+    'hex_': lambda t: _unhexlify(t.replace('_', '')),
+    'HEX_': lambda t: _unhexlify(t.replace('_', '')),
+    'hex ': lambda t: _unhexlify(t),
+    'HEX ': lambda t: _unhexlify(t),
+}
+
+DATA_FMT_CHOICE = click.Choice(list(DATA_FMT_FORMATTERS.keys()))
 
 
 # ----------------------------------------------------------------------------
@@ -585,6 +624,117 @@ def shift(
     memory = _load_memory(infile, record_type=input_type)
     memory.shift(amount)
     _save_memory(outfile, memory, record_type=output_type)
+
+
+# ----------------------------------------------------------------------------
+
+@main.command()
+@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
+Forces the input file format.
+Required for the standard input.
+""")
+@click.argument('infile', type=FILE_PATH_IN)
+def validate(
+    input_format: str,
+    infile: str,
+) -> None:
+    r"""Validates a record file.
+
+    ``INFILE`` is the path of the input file.
+    Set to ``-`` to read from standard input; input format required.
+    """
+    input_type, _ = find_types(input_format, None, infile, '-')
+    records = input_type.load_records(infile)
+    input_type.check_sequence(records)
+
+
+# ----------------------------------------------------------------------------
+
+@main.group()
+def motorola() -> None:
+    """Motorola SREC specific"""
+    pass
+
+
+# ----------------------------------------------------------------------------
+
+# noinspection PyShadowingBuiltins
+@motorola.command()
+@click.option('-f', '--format', 'format', type=DATA_FMT_CHOICE,
+              default='ascii', help='Header data format.')
+@click.argument('infile', type=FILE_PATH_IN)
+def get_header(
+    format: str,
+    infile: str,
+) -> None:
+    r"""Gets the header data.
+
+    ``INFILE`` is the path of the input file; 'motorola' record type.
+    Set to ``-`` to read from standard input.
+    """
+    formatter = DATA_FMT_FORMATTERS[format]
+    record_type = _MotorolaRecord
+    records = record_type.load_records(infile)
+    record = record_type.get_header(records)
+    if record is not None:
+        header_text = formatter(record.data)
+        print(header_text)
+
+
+# ----------------------------------------------------------------------------
+
+# noinspection PyShadowingBuiltins
+@motorola.command()
+@click.option('-f', '--format', 'format', type=DATA_FMT_CHOICE,
+              default='ascii', help='Header data format.')
+@click.argument('header', type=str)
+@click.argument('infile', type=FILE_PATH_IN)
+@click.argument('outfile', type=FILE_PATH_OUT)
+def set_header(
+    format: str,
+    header: str,
+    infile: str,
+    outfile: str,
+) -> None:
+    r"""Sets the header data record.
+
+    ``INFILE`` is the path of the input file; 'motorola' record type.
+    Set to ``-`` to read from standard input.
+
+    ``OUTFILE`` is the path of the output file.
+    Set to ``-`` to write to standard output.
+    """
+    parser = DATA_FMT_PARSERS[format]
+    data = parser(header)
+    record_type = _MotorolaRecord
+    records = record_type.load_records(infile)
+    records = record_type.set_header(records, data)
+    record_type.save_records(outfile, records)
+
+
+# ----------------------------------------------------------------------------
+
+# noinspection PyShadowingBuiltins
+@motorola.command()
+@click.argument('infile', type=FILE_PATH_IN)
+@click.argument('outfile', type=FILE_PATH_OUT)
+def del_header(
+    infile: str,
+    outfile: str,
+) -> None:
+    r"""Deletes the header data record.
+
+    ``INFILE`` is the path of the input file; 'motorola' record type.
+    Set to ``-`` to read from standard input.
+
+    ``OUTFILE`` is the path of the output file.
+    Set to ``-`` to write to standard output.
+    """
+    record_type = _MotorolaRecord
+    records = record_type.load_records(infile)
+    header_tag = record_type.TAG_TYPE.HEADER
+    records = [r for r in records if r.tag != header_tag]
+    record_type.save_records(outfile, records)
 
 
 # ----------------------------------------------------------------------------

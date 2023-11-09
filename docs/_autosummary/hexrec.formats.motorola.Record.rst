@@ -29,6 +29,7 @@ hexrec.formats.motorola.Record
       ~Record.fit_count_tag
       ~Record.fit_data_tag
       ~Record.fix_tags
+      ~Record.get_header
       ~Record.get_metadata
       ~Record.is_data
       ~Record.load_blocks
@@ -44,6 +45,7 @@ hexrec.formats.motorola.Record
       ~Record.save_blocks
       ~Record.save_memory
       ~Record.save_records
+      ~Record.set_header
       ~Record.split
       ~Record.unmarshal
       ~Record.update_checksum

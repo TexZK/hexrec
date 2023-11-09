@@ -503,6 +503,41 @@ class TestRecord:
         ]
         assert ans_out == ans_ref
 
+    def test_get_header(self):
+        records = [
+            Record(0, Tag.HEADER, b'Hello, World!'),
+            Record(0x12345678, Tag.DATA_16, HEXBYTES),
+            Record(0, Tag.COUNT_16, b'\x12\x34'),
+            Record(0, Tag.COUNT_16, b'\x12\x34\x56'),
+            Record(0x1234, Tag.START_16, b''),
+        ]
+        assert Record.get_header(records) is records[0]
+
+        records.pop(0)
+        assert Record.get_header(records) is None
+
+    def test_set_header(self):
+        records = [
+            Record(0x12345678, Tag.DATA_16, HEXBYTES),
+            Record(0, Tag.COUNT_16, b'\x12\x34'),
+            Record(0, Tag.COUNT_16, b'\x12\x34\x56'),
+            Record(0x1234, Tag.START_16, b''),
+        ]
+        ans_out = Record.set_header(records, b'Hello, World!')[0]
+        ans_ref = Record(0, Tag.HEADER, b'Hello, World!')
+        assert ans_out == ans_ref
+
+        records = [
+            Record(0, Tag.HEADER, b'Hello, World!'),
+            Record(0x12345678, Tag.DATA_16, HEXBYTES),
+            Record(0, Tag.COUNT_16, b'\x12\x34'),
+            Record(0, Tag.COUNT_16, b'\x12\x34\x56'),
+            Record(0x1234, Tag.START_16, b''),
+        ]
+        ans_out = Record.set_header(records, b'header')[0]
+        ans_ref = Record(0, Tag.HEADER, b'header')
+        assert ans_out == ans_ref
+
     def test_load_records(self, datapath):
         path_ref = datapath / 'bytes.mot'
         ans_out = list(Record.load_records(str(path_ref)))

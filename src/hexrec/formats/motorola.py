@@ -792,3 +792,61 @@ class Record(_Record):
         start_tag = cls.TAG_TYPE(cls.MATCHING_TAG.index(max_tag))
         for index in start_ids:
             records[index].tag = start_tag
+
+    @classmethod
+    def get_header(
+        cls,
+        records: RecordSequence,
+    ) -> Optional['Record']:
+        r"""Gets the header record.
+
+        Arguments:
+            records (list of records):
+                A sequence of records.
+
+        Returns:
+            record: The header record, or ``None``.
+        """
+        header_tag = cls.TAG_TYPE.HEADER
+        for record in records:
+            if record.tag == header_tag:
+                return record
+        return None
+
+    @classmethod
+    def set_header(
+        cls,
+        records: RecordSequence,
+        data: AnyBytes,
+    ) -> RecordSequence:
+        r"""Sets the header data.
+
+        If existing, the header record is updated in-place.
+        If missing, the header record is prepended.
+
+        Arguments:
+            records (list of records):
+                A sequence of records.
+
+            data (bytes):
+                Optional header data.
+
+        Returns:
+            list of records: Updated record list.
+        """
+        header_tag = cls.TAG_TYPE.HEADER
+        found = None
+        for record in records:
+            if record.tag == header_tag:
+                found = record
+                break
+
+        if found is None:
+            records = list(records)
+            records.insert(0, cls.build_header(data))
+        else:
+            found.data = data
+            found.address = 0
+            found.update_count()
+            found.update_checksum()
+        return records

@@ -153,6 +153,74 @@ def test_merge_nothing():
 
 # ============================================================================
 
+def test_validate_nothing():
+    runner = CliRunner()
+    with pytest.raises(ValueError, match='missing count'):
+        runner.invoke(main, 'validate -i motorola -'.split(), catch_exceptions=False)
+
+
+def test_validate_headless(datapath):
+    runner = CliRunner()
+    path_in = str(datapath / 'headless.mot')
+    with pytest.raises(ValueError, match='missing header'):
+        runner.invoke(main, f'validate {path_in}'.split(), catch_exceptions=False)
+
+
+def test_validate(datapath):
+    runner = CliRunner()
+    path_in = str(datapath / 'bytes.mot')
+    result = runner.invoke(main, f'validate {path_in}'.split())
+
+    assert result.exit_code == 0
+    assert result.output == ''
+
+
+# ============================================================================
+
+def test_motorola_dummy(datapath):
+    runner = CliRunner()
+    result = runner.invoke(main, f'motorola -h'.split())
+    assert result.exit_code == 2
+
+
+def test_motorola_get_header_headless(datapath):
+    runner = CliRunner()
+    path_in = str(datapath / 'headless.mot')
+    result = runner.invoke(main, f'motorola get-header {path_in}'.split())
+
+    assert result.exit_code == 0
+    assert result.output == ''
+
+
+def test_motorola_get_header_empty(datapath):
+    runner = CliRunner()
+    path_in = str(datapath / 'bytes.mot')
+    result = runner.invoke(main, f'motorola get-header {path_in}'.split())
+
+    assert result.exit_code == 0
+    assert result.output == '\n'
+
+
+def test_motorola_get_header_ascii(datapath):
+    runner = CliRunner()
+    path_in = str(datapath / 'header.mot')
+    result = runner.invoke(main, f'motorola get-header -f ascii {path_in}'.split())
+
+    assert result.exit_code == 0
+    assert result.output == 'ABC\n'
+
+
+def test_motorola_get_header_hex(datapath):
+    runner = CliRunner()
+    path_in = str(datapath / 'header.mot')
+    result = runner.invoke(main, f'motorola get-header -f hex {path_in}'.split())
+
+    assert result.exit_code == 0
+    assert result.output == '414243\n'
+
+
+# ============================================================================
+
 def test_xxd_version():
     runner = CliRunner()
     result = runner.invoke(main, 'xxd -v'.split())
