@@ -261,7 +261,7 @@ def blocks_to_records(
 
 
 def merge_records(
-    data_records: Sequence[RecordSequence],
+    records: Sequence[RecordSequence],
     input_types: Optional[Sequence[type]] = None,
     output_type: Optional[RecordType] = None,
     split_args: Optional[Sequence[Any]] = None,
@@ -275,10 +275,11 @@ def merge_records(
     overlapping data of the previous sequences.
 
     Arguments:
-        data_records (list of records):
-            A vector of *data* record sequences.
+        records (list of records):
+            A vector of record sequences.
             If `input_types` is not ``None``, sequence generators are
             supported for the vector and its nested sequences.
+            Only *data* records are kept.
 
         input_types (list of types):
             Selects the record type for each of the sequences in
@@ -317,16 +318,14 @@ def merge_records(
         >>> records1 = blocks_to_records(blocks1, MotorolaRecord)
         >>> records2 = blocks_to_records(blocks2, IntelRecord)
         >>> IntelRecord.readdress(records2)
-        >>> data_records1 = get_data_records(records1)
-        >>> data_records2 = get_data_records(records2)
-        >>> merged_records = merge_records([data_records1, data_records2])
+        >>> merged_records = merge_records([records1, records2])
         >>> merged_blocks = records_to_blocks(merged_records)
         >>> merged_blocks == Memory.collapse_blocks(blocks1 + blocks2)
         True
     """
     if input_types is None:
-        input_types = [type(records[0]) if records else Record
-                       for records in data_records]
+        input_types = [type(subrecords[0]) if subrecords else Record
+                       for subrecords in records]
     else:
         input_types = list(input_types)
 
@@ -334,8 +333,8 @@ def merge_records(
         output_type = input_types[0]
 
     blocks = []
-    for records in data_records:
-        blocks.extend([r.address, r.data] for r in records if r.is_data())
+    for subrecords in records:
+        blocks.extend([r.address, r.data] for r in subrecords if r.is_data())
     blocks = Memory.collapse_blocks(blocks)
 
     output_records = blocks_to_records(blocks, output_type,

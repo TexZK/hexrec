@@ -2,7 +2,6 @@ graft .github
 graft docs
 graft src
 graft tests
-graft _static
 graft pyinstaller
 
 include .coveragerc
