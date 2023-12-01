@@ -43,21 +43,27 @@ extlinks = {
     'issue': ('https://github.com/TexZK/hexrec/issues/%s', '#'),
     'pr': ('https://github.com/TexZK/hexrec/pull/%s', 'PR #'),
 }
-# on_rtd is whether we are on readthedocs.org
-on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
 
-if not on_rtd:  # only set the theme if we're building docs locally
-    html_theme = 'sphinx_rtd_theme'
+# on_rtd is whether we are on readthedocs.org
+#on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+
+html_theme = 'furo'
 
 html_use_smartypants = True
 html_last_updated_fmt = '%Y-%m-%d'
 html_split_index = False
 html_sidebars = {
-   '**': ['searchbox.html', 'globaltoc.html', 'sourcelink.html'],
+    "**": [
+        "sidebar/scroll-start.html",
+        "sidebar/brand.html",
+        "sidebar/search.html",
+        "sidebar/navigation.html",
+        "sidebar/ethical-ads.html",
+        "sidebar/scroll-end.html",
+    ],
 }
 html_short_title = f'{project}-{version}'
 html_static_path = ['_static']
-html_style = 'css/my_theme.css'
 
 autosummary_generate = True
 autosummary_generate_overwrite = True

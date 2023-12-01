@@ -1,6 +1,6 @@
-sphinx >= 6
-sphinx-rtd-theme
+sphinx >= 7
 sphinx-click
 sphinx-autodoc-typehints
+furo
 twine
 -e .
