@@ -316,6 +316,14 @@ def test_makefill_doctest():
 
 
 def test_makefill():
+    ans_out = makefill(b'0123456789ABCDEF' * 16, 0, 256)
+    ans_ref = b'0123456789ABCDEF' * 16
+    assert ans_out == ans_ref
+
+    ans_out = makefill(b'0123456789ABCDEF', 0, 16)
+    ans_ref = b'0123456789ABCDEF'
+    assert ans_out == ans_ref
+
     with pytest.raises(ValueError):
         makefill(b'', 0, 8)
 

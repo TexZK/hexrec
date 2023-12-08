@@ -746,17 +746,6 @@ class Record(_Record):
         cls,
         records: RecordSequence,
     ) -> None:
-        r"""Fix record tags.
-
-        Updates record tags to reflect modified size and count.
-        All the checksums are updated too.
-        Operates in-place.
-
-        Arguments:
-            records (list of records):
-                A sequence of records.
-                Must be in-line mutable.
-        """
         if records:
             max_address = max(record.address + len(record.data)
                               for record in records)
@@ -780,6 +769,7 @@ class Record(_Record):
 
             elif record.is_data():
                 record.tag = tag
+                record.update_count()
                 record.update_checksum()
 
             elif record.tag in start_tags:

@@ -257,6 +257,7 @@ def blocks_to_records(
     build_kwargs = dict(build_kwargs or ())
     records = list(record_type.build_standalone(data_records,
                                                 *build_args, **build_kwargs))
+    record_type.fix_tags(records)
     return records
 
 
@@ -663,7 +664,7 @@ def load_blocks(
 
 def save_blocks(
     path: str,
-    blocks: BlockSequence,
+    blocks: BlockIterable,
     record_type: Optional[RecordType] = None,
     split_args: Optional[Sequence[Any]] = None,
     split_kwargs: Optional[Mapping[str, Any]] = None,
@@ -1556,6 +1557,24 @@ class Record:
         pass
 
     @classmethod
+    def fix_tags(
+        cls,
+        records: RecordSequence,
+    ) -> None:
+        r"""Fix record tags.
+
+        Updates record tags to reflect modified size and count.
+        All the checksums are updated too.
+        Operates in-place.
+
+        Arguments:
+            records (list of records):
+                A sequence of records.
+                Must be in-line mutable.
+        """
+        pass
+
+    @classmethod
     def read_blocks(
         cls,
         stream: IO,
@@ -1590,7 +1609,7 @@ class Record:
     def write_blocks(
         cls,
         stream: IO,
-        blocks: BlockSequence,
+        blocks: BlockIterable,
         split_args: Optional[Sequence[Any]] = None,
         split_kwargs: Optional[Mapping[str, Any]] = None,
         build_args: Optional[Sequence[Any]] = None,
@@ -1672,7 +1691,7 @@ class Record:
     def save_blocks(
         cls,
         path: str,
-        blocks: BlockSequence,
+        blocks: BlockIterable,
         split_args: Optional[Sequence[Any]] = None,
         split_kwargs: Optional[Mapping[str, Any]] = None,
         build_args: Optional[Sequence[Any]] = None,
