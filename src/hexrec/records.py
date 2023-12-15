@@ -80,7 +80,6 @@ from bytesparse.base import ImmutableMemory
 from .utils import AnyBytes
 from .utils import EllipsisType
 from .utils import check_empty_args_kwargs
-from .utils import do_overlap
 
 RecordIterable = Iterable['Record']
 RecordCollection = Collection['Record']
@@ -112,62 +111,6 @@ def get_data_records(
     """
     data_records = [record for record in records if record.is_data()]
     return data_records
-
-
-def get_max_data_length(
-    data_records: RecordIterable,
-) -> Optional[int]:
-    r"""Extracts data records.
-
-    Arguments:
-        data_records (list of records):
-            Sequence of data records.
-
-    Returns:
-        int: Maximum data count found; ``0`` by default.
-
-    Example:
-        >>> from hexrec.utils import chop_blocks
-        >>> from hexrec.formats.motorola import Record as MotorolaRecord
-        >>> data = bytes(range(100))
-        >>> blocks = list(chop_blocks(data, 16))
-        >>> records = blocks_to_records(blocks, MotorolaRecord)
-        >>> get_max_data_length(records))
-        16
-    """
-    length = max(len(record.data or b'') for record in data_records)
-    return length
-
-
-def find_corrupted_records(
-    records: RecordIterable,
-) -> List[int]:
-    r"""Finds corrupted records.
-
-    Arguments:
-        records (list of records):
-            Sequence of records.
-
-    Returns:
-        list of int: Sequence of corrupted record indices.
-
-    Example:
-        >>> from hexrec.formats.motorola import Record as MotorolaRecord
-        >>> data = bytes(range(256))
-        >>> records = list(MotorolaRecord.split(data))
-        >>> records[3].checksum ^= 0xFF
-        >>> records[5].checksum ^= 0xFF
-        >>> records[7].checksum ^= 0xFF
-        >>> find_corrupted_records(records)
-        [3, 5, 7]
-    """
-    corrupted = []
-    for index, record in enumerate(records):
-        try:
-            record.check()
-        except ValueError:
-            corrupted.append(index)
-    return corrupted
 
 
 def records_to_blocks(
@@ -1294,10 +1237,11 @@ class Record:
         if self.address is None or other.address is None:
             return False
         else:
-            return do_overlap(self.address,
-                              self.address + len(self.data or b''),
-                              other.address,
-                              other.address + len(other.data or b''))
+            start1 = self.address
+            endex1 = start1 + len(self.data or b'')
+            start2 = other.address
+            endex2 = start2 + len(other.data or b'')
+            return endex1 > start2 and endex2 > start1
 
     @classmethod
     def _open_input(
@@ -1360,7 +1304,7 @@ class Record:
         Note:
             This method must be overridden.
         """
-        raise NotImplementedError('method must be overriden')
+        raise NotImplementedError('method must be overridden')
 
     def marshal(
         self,

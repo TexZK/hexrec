@@ -18,11 +18,9 @@ from hexrec.records import Tag
 from hexrec.records import blocks_to_records
 from hexrec.records import convert_file
 from hexrec.records import convert_records
-from hexrec.records import find_corrupted_records
 from hexrec.records import find_record_type
 from hexrec.records import find_record_type_name
 from hexrec.records import get_data_records
-from hexrec.records import get_max_data_length
 from hexrec.records import load_blocks
 from hexrec.records import load_memory
 from hexrec.records import load_records
@@ -79,29 +77,6 @@ def test_get_data_records_doctest():
     blocks = list(chop_blocks(data, 16))
     records = blocks_to_records(blocks, MotorolaRecord)
     assert all(r.is_data() for r in get_data_records(records))
-
-
-# ============================================================================
-
-def test_get_max_data_length_doctest():
-    data = bytes(range(256))
-    blocks = list(chop_blocks(data, 16))
-    records = blocks_to_records(blocks, MotorolaRecord)
-    data_records = get_data_records(records)
-    assert get_max_data_length(data_records) == 16
-
-
-# ============================================================================
-
-def test_find_corrupted_records_doctest():
-    data = bytes(range(256))
-    records = list(MotorolaRecord.split(data, start=...))
-    records[3].checksum ^= 0xFF
-    records[5].checksum ^= 0xFF
-    records[7].checksum ^= 0xFF
-    ans_out = find_corrupted_records(records)
-    ans_ref = [3, 5, 7]
-    assert ans_out == ans_ref
 
 
 # ============================================================================

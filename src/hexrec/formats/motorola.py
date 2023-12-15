@@ -48,7 +48,6 @@ from ..utils import AnyBytes
 from ..utils import EllipsisType
 from ..utils import check_empty_args_kwargs
 from ..utils import chop
-from ..utils import expmsg
 from ..utils import hexlify
 from ..utils import unhexlify
 
@@ -561,8 +560,7 @@ class Record(_Record):
                     first_tag = record_tag
 
                 elif record_tag != first_tag:
-                    raise ValueError(expmsg(record_tag, 'in (1, 2, 3)',
-                                            'tag error'))
+                    raise ValueError('tag error')
 
                 data_count += 1
 
@@ -572,8 +570,7 @@ class Record(_Record):
                 count_found = True
                 expected_count = unpack('>H', record.data)[0]
                 if expected_count != data_count:
-                    raise ValueError(expmsg(data_count, expected_count,
-                                            'record count error'))
+                    raise ValueError('record count error')
 
             elif record_tag == 6:
                 if count_found:
@@ -582,8 +579,7 @@ class Record(_Record):
                 u, hl = unpack('>BH', record.data)
                 expected_count = (u << 16) | hl
                 if expected_count != data_count:
-                    raise ValueError(expmsg(data_count, expected_count,
-                                            'record count error'))
+                    raise ValueError('record count error')
 
             else:
                 break
@@ -601,8 +597,7 @@ class Record(_Record):
         else:
             matching_tag = cls.MATCHING_TAG[record.tag]
             if first_tag != matching_tag:
-                raise ValueError(expmsg(matching_tag, first_tag,
-                                        'matching tag error'))
+                raise ValueError('matching tag error')
 
         try:
             next(it)
