@@ -24,3 +24,20 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 __version__ = '0.3.1'
+
+from .formats.ascii_hex import Record as AsciiHexRecord
+from .formats.binary import Record as BinaryRecord
+from .formats.intel import Record as IntelRecord
+from .formats.mos import Record as MosRecord
+from .formats.motorola import Record as MotorolaRecord
+from .formats.tektronix import Record as TektronixRecord
+from .records import convert_file
+from .records import find_record_type
+from .records import find_record_type_name
+from .records import load_memory
+from .records import load_records
+from .records import merge_files
+from .records import register_default_record_types
+from .records import save_memory
+from .records import save_records
+from .xxd import xxd

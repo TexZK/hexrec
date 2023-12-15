@@ -107,6 +107,9 @@ https://hexrec.readthedocs.io/
 Architecture
 ============
 
+Within the ``hexrec`` package itself are the symbols of the most commonly used
+classes and functions.
+
 As the core of this library are record files, the ``hexrec.records`` is the
 first module a user should look up.
 It provides high-level functions to deal with record files, as well as classes
@@ -148,10 +151,16 @@ In this example, a HEX file is converted to SREC.
 
 .. code-block:: python3
 
-    import hexrec.records as hr
-    hr.convert_file('data.hex', 'data.srec')
+    from hexrec import convert_file
+    convert_file('data.hex', 'data.srec')
 
-This can also be done by running the `hexrec` package as a command line tool:
+This can also be done by running `hexrec` as a command line tool:
+
+.. code-block:: sh
+
+    $ hexrec convert data.hex data.srec
+
+Alternatively, by executing the package itself:
 
 .. code-block:: sh
 
@@ -171,28 +180,28 @@ configuration data into a single file, in the order they are listed.
 
 .. code-block:: python3
 
-    import hexrec.records as hr
+    from hexrec import merge_files
     input_files = ['bootloader.hex', 'executable.mot', 'configuration.s19']
-    hr.merge_files(input_files, 'merged.srec')
+    merge_files(input_files, 'merged.srec')
 
 This can also be done by running the `hexrec` package as a command line tool:
 
 .. code-block:: sh
 
-    $ python -m hexrec merge bootloader.hex executable.mot configuration.s19 merged.srec
+    $ hexrec merge bootloader.hex executable.mot configuration.s19 merged.srec
 
 Alternatively, these files can be merged manually via *virtual memory*:
 
 .. code-block:: python3
 
-    import hexrec.records as hr
+    from hexrec import load_memory, save_memory
     from bytesparse import bytesparse
     input_files = ['bootloader.hex', 'executable.mot', 'configuration.s19']
-    input_memories = [hr.load_memory(fn) for fn in input_files]
+    input_memories = [load_memory(filename) for filename in input_files]
     merged_memory = bytesparse()
     for input_memory in input_memories:
         merged_memory.write(0, input_memory)
-    hr.save_memory('merged.srec', merged_memory)
+    save_memory('merged.srec', merged_memory)
 
 
 Dataset generator
@@ -209,11 +218,11 @@ For the sake of simplicity, the data structure consists of 4096 random values
 .. code-block:: python3
 
     import struct, random
-    import hexrec.records as hr
+    from hexrec import save_chunk
     for index in range(100):
         values = [random.random() for _ in range(4096)]
         data = struct.pack('<4096f', *values)
-        hr.save_chunk(f'dataset_{index:02d}.mot', data, 0xDA7A0000)
+        save_chunk(f'dataset_{index:02d}.mot', data, 0xDA7A0000)
 
 
 Write a CRC
@@ -233,11 +242,11 @@ The rest of the data is left untouched.
 .. code-block:: python3
 
     import binascii, struct
-    import hexrec.records as hr
+    from hexrec import save_memory
     memory = hr.load_memory('data.srec')
     crc = binascii.crc32(memory[0x1000:0x3FFC]) & 0xFFFFFFFF  # remove sign
     memory.write(0x3FFC, struct.pack('>L', crc))
-    hr.save_memory('data_crc.srec', memory)
+    save_memory('data_crc.srec', memory)
 
 
 Trim for bootloader
@@ -255,16 +264,16 @@ memory, unused memory byte cells default to ``0xFF``.
 
 .. code-block:: python3
 
-    import hexrec.records as hr
+    from hexrec import save_chunk
     memory = hr.load_memory('app_original.hex')
     data = memory[0x8000:0x20000:b'\xFF']
-    hr.save_chunk('app_trimmed.srec', data, 0x8000)
+    save_chunk('app_trimmed.srec', data, 0x8000)
 
 This can also be done by running the `hexrec` package as a command line tool:
 
 .. code-block:: sh
 
-    $ python -m hexrec cut -s 0x8000 -e 0x20000 -v 0xFF app_original.hex app_trimmed.srec
+    $ hexrec cut -s 0x8000 -e 0x20000 -v 0xFF app_original.hex app_trimmed.srec
 
 By contrast, we need to fill the application range within the bootloader image
 with ``0xFF``, so that no existing application will be available again.
@@ -273,11 +282,11 @@ already contains some important data.
 
 .. code-block:: python3
 
-    import hexrec.records as hr
-    memory = hr.load_memory('boot_original.hex')
+    from hexrec import load_memory, save_memory
+    memory = load_memory('boot_original.hex')
     memory.fill(0x8000, 0x20000, b'\xFF')
     memory.clear(0x3F800, 0x40000)
-    hr.save_memory('boot_fixed.srec', memory)
+    save_memory('boot_fixed.srec', memory)
 
 With the command line interface, it can be done via a two-pass processing,
 first to fill the application range, then to clear the reserved range.
@@ -287,8 +296,8 @@ per ``boot_original.hex``).
 
 .. code-block:: sh
 
-    $ python -m hexrec fill -s 0x8000 -e 0x20000 -v 0xFF boot_original.hex - | \
-      python -m hexrec clear -s 0x3F800 -e 0x40000 -i intel - boot_fixed.srec
+    $ hexrec fill -s 0x8000 -e 0x20000 -v 0xFF boot_original.hex - | \
+      hexrec clear -s 0x3F800 -e 0x40000 -i intel - boot_fixed.srec
 
 (newline continuation is backslash ``\`` for a *Unix-like* shell, caret ``^``
 for a *DOS* prompt).
@@ -304,7 +313,7 @@ are kept, with the rest of the memory filled with the ``0xFF`` value.
 
 .. code-block:: python3
 
-    import hexrec.records as hr
+    from hexrec import save_memory
     from bytesparse import bytesparse
     from elftools.elf.elffile import ELFFile
     with open('app.elf', 'rb') as elf_stream:
@@ -315,7 +324,7 @@ are kept, with the rest of the memory filled with the ``0xFF`` value.
             addr = segment.header.p_paddr
             data = segment.data()
             memory.write(addr, data)
-    hr.save_memory('app.srec', memory)
+    save_memory('app.srec', memory)
 
 
 Installation
