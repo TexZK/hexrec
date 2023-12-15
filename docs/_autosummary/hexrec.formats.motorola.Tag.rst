@@ -11,6 +11,19 @@ hexrec.formats.motorola.Tag
 
    
    
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+      ~Tag.__init__
+      ~Tag.as_integer_ratio
+      ~Tag.bit_count
+      ~Tag.bit_length
+      ~Tag.conjugate
+      ~Tag.from_bytes
+      ~Tag.to_bytes
+   
    
 
    
@@ -28,5 +41,9 @@ hexrec.formats.motorola.Tag
       ~Tag.START_32
       ~Tag.START_24
       ~Tag.START_16
+      ~Tag.denominator
+      ~Tag.imag
+      ~Tag.numerator
+      ~Tag.real
    
    

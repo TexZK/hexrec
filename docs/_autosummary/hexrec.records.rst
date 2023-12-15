@@ -25,11 +25,9 @@
       blocks_to_records
       convert_file
       convert_records
-      find_corrupted_records
       find_record_type
       find_record_type_name
       get_data_records
-      get_max_data_length
       load_blocks
       load_memory
       load_records

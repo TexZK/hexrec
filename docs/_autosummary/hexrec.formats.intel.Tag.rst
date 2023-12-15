@@ -11,6 +11,19 @@ hexrec.formats.intel.Tag
 
    
    
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+      ~Tag.__init__
+      ~Tag.as_integer_ratio
+      ~Tag.bit_count
+      ~Tag.bit_length
+      ~Tag.conjugate
+      ~Tag.from_bytes
+      ~Tag.to_bytes
+   
    
 
    
@@ -25,5 +38,9 @@ hexrec.formats.intel.Tag
       ~Tag.START_SEGMENT_ADDRESS
       ~Tag.EXTENDED_LINEAR_ADDRESS
       ~Tag.START_LINEAR_ADDRESS
+      ~Tag.denominator
+      ~Tag.imag
+      ~Tag.numerator
+      ~Tag.real
    
    

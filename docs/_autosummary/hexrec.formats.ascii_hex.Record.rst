@@ -23,6 +23,7 @@ hexrec.formats.ascii\_hex.Record
       ~Record.check_sequence
       ~Record.compute_checksum
       ~Record.compute_count
+      ~Record.fix_tags
       ~Record.get_metadata
       ~Record.is_data
       ~Record.load_blocks

@@ -243,7 +243,7 @@ The rest of the data is left untouched.
 
     import binascii, struct
     from hexrec import save_memory
-    memory = hr.load_memory('data.srec')
+    memory = load_memory('data.srec')
     crc = binascii.crc32(memory[0x1000:0x3FFC]) & 0xFFFFFFFF  # remove sign
     memory.write(0x3FFC, struct.pack('>L', crc))
     save_memory('data_crc.srec', memory)
@@ -265,7 +265,7 @@ memory, unused memory byte cells default to ``0xFF``.
 .. code-block:: python3
 
     from hexrec import save_chunk
-    memory = hr.load_memory('app_original.hex')
+    memory = load_memory('app_original.hex')
     data = memory[0x8000:0x20000:b'\xFF']
     save_chunk('app_trimmed.srec', data, 0x8000)
 
