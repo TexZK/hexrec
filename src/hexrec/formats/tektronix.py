@@ -29,18 +29,25 @@ See Also:
     `<https://en.wikipedia.org/wiki/Tektronix_extended_HEX>`_
 """
 
+import binascii
 import enum
 import re
+from typing import IO
 from typing import Any
 from typing import Iterator
+from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Type
 from typing import Union
+from typing import cast as _cast
 
 from ..records import Record as _Record
 from ..records import RecordSequence
 from ..records import Tag as _Tag
+from ..records2 import BaseFile
+from ..records2 import BaseRecord
+from ..records2 import BaseTag
 from ..utils import AnyBytes
 from ..utils import EllipsisType
 from ..utils import check_empty_args_kwargs
@@ -355,3 +362,374 @@ class Record(_Record):
         record = records[-1]
         if record.tag != cls.TAG_TYPE.TERMINATOR:
             raise ValueError('missing terminator')
+
+
+# =============================================================================
+
+@enum.unique
+class TekExtTag(BaseTag, enum.IntEnum):
+    r"""Tektronix Extended tag."""
+
+    DATA = 6
+    r"""Data."""
+
+    EOF = 8
+    r"""End Of File."""
+
+    def is_data(self) -> bool:
+
+        return self == 6
+
+    def is_eof(self) -> bool:
+        # TODO: __doc__
+
+        return self == 8
+
+
+class TekExtRecord(BaseRecord):
+    # TODO: __doc__
+
+    TAG_TYPE: Type[TekExtTag] = TekExtTag
+
+    LINE1_REGEX = re.compile(
+        r'^(?P<before>[^%]*)%'
+        r'(?P<count>[0-9A-Fa-f]{2})'
+        r'(?P<tag>[68])'
+        r'(?P<checksum>[0-9A-Fa-f]{2})'
+        r'(?P<addrlen>[1-9A-Fa-f])'
+    )
+    # TODO: __doc__
+
+    LINE2_REGEX = [re.compile(
+        f'^(?P<address>[0-9A-Fa-f]{{{1 + i}}})'
+    ) for i in range(15)]
+    # TODO: __doc__
+
+    LINE3_REGEX = re.compile(
+        r'^(?P<data>([0-9A-Fa-f]{2}){,255})'
+        r'(?P<after>\\s*)\\r?$'
+    )
+    # TODO: __doc__
+
+    def __init__(
+        self,
+        *super_init_args,
+        addrlen: int = 8,
+        **super_init_kwargs,
+    ):
+
+        addrlen = addrlen.__index__()
+        if not 1 <= addrlen <= 15:
+            raise ValueError('invalid address length')
+
+        super().__init__(*super_init_args, **super_init_kwargs)
+        self.addrlen = addrlen
+
+    @classmethod
+    def build_data(
+        cls,
+        address: int,
+        data: AnyBytes,
+        addrlen: int = 8,
+    ) -> 'TekExtRecord':
+        # TODO: __doc__
+
+        addrlen = addrlen.__index__()
+        if not 1 <= addrlen <= 15:
+            raise ValueError('invalid address length')
+        addrmax = cls.compute_address_max(addrlen)
+
+        address = address.__index__()
+        if not 0 <= address <= addrmax:
+            raise ValueError('address overflow')
+
+        return cls(cls.TAG_TYPE.EOF, address=address, data=data, addrlen=addrlen)
+
+    @classmethod
+    def build_end_of_file(
+        cls,
+        start: int = 0,
+        addrlen: int = 8,
+    ) -> 'TekExtRecord':
+        # TODO: __doc__
+
+        addrlen = addrlen.__index__()
+        if not 1 <= addrlen <= 15:
+            raise ValueError('invalid address length')
+        addrmax = cls.compute_address_max(addrlen)
+
+        startaddr = start.__index__()
+        if not 0 <= startaddr <= addrmax:
+            raise ValueError('start address overflow')
+
+        return cls(cls.TAG_TYPE.EOF, address=startaddr, addrlen=addrlen)
+
+    @classmethod
+    def compute_address_max(cls, addrlen: int) -> int:
+        # TODO: __doc__
+
+        if not 1 <= addrlen <= 15:
+            raise ValueError('invalid address length')
+
+        addrmax = (1 << (addrlen * 4)) - 1
+        return addrmax
+
+    def compute_checksum(self) -> int:
+
+        count = self.count
+        if count is None:
+            raise ValueError('missing count')
+        count_sum = (count >> 4) + (count & 0xF)
+
+        address = self.address
+        address_sum = 0
+        while address > 0:
+            address_sum += address & 0xF
+            address >>= 4
+
+        data_sum = 0
+        for datum in self.data:
+            data_sum += (datum >> 4) + (datum & 0xF)
+
+        tag = _cast(TekExtTag, self.tag)
+        checksum = (count_sum + tag + self.addrlen + address_sum + data_sum)
+        return checksum
+
+    def compute_count(self) -> int:
+
+        count = 6 + self.addrlen + (len(self.data) * 2)
+        return count
+
+    @classmethod
+    def parse(cls, line: AnyBytes) -> 'TekExtRecord':
+        # TODO: __doc__
+
+        line = memoryview(line)
+        match = cls.LINE1_REGEX.match(line)
+        if not match:
+            raise ValueError('syntax error')
+        groups = match.groupdict()
+        before = groups['before']
+        count = int(groups['count'], 16)
+        tag = cls.TAG_TYPE(int(groups['tag'], 16))
+        checksum = int(groups['checksum'], 16)
+        addrlen = int(groups['addrlen'], 16)
+
+        line = line[match.span()[1]:]
+        match = cls.LINE2_REGEX[addrlen - 1].match(line)
+        if not match:
+            raise ValueError('syntax error')
+        groups = match.groupdict()
+        address = int(groups['address'], 16)
+
+        line = line[match.span()[1]:]
+        match = cls.LINE3_REGEX.match(line)
+        if not match:
+            raise ValueError('syntax error')
+        groups = match.groupdict()
+        data = binascii.unhexlify(groups['data'])
+        after = groups['after']
+
+        record = cls(tag,
+                     address=address,
+                     data=data,
+                     count=count,
+                     checksum=checksum,
+                     before=before,
+                     after=after,
+                     addrlen=addrlen)
+        return record
+
+    def to_bytestr(self, end: AnyBytes = b'\n') -> bytes:
+
+        self.validate()
+
+        bytestr = b'%s%%%02X%X%02X%X%s%s%s%s' % (
+            self.before,
+            self.count,
+            _cast(TekExtTag, self.tag),
+            self.checksum,
+            self.addrlen,
+            (b'%%0%dX' % self.addrlen) % self.addrlen,
+            binascii.hexlify(self.data).upper(),
+            self.after,
+            end,
+        )
+        return bytestr
+
+    def to_tokens(self, end: AnyBytes = b'\r\n') -> Mapping[str, bytes]:
+
+        self.validate()
+        return {
+            'before': self.before,
+            'begin': b'%',
+            'count': b'%02X' % self.count,
+            'tag': b'%X' % _cast(TekExtTag, self.tag),
+            'checksum': b'%02X' % self.checksum,
+            'addrlen': b'%X' % self.addrlen,
+            'address': (b'%%0%dX' % self.addrlen) % self.addrlen,
+            'data': binascii.hexlify(self.data).upper(),
+            'after': self.after,
+            'end': end,
+        }
+
+    # TODO: validate()
+    def validate(self) -> 'TekExtRecord':
+
+        super().validate()
+
+        if self.after and not self.after.isspace():
+            raise ValueError('junk after is not whitespace')
+
+        if b'%' in self.before:
+            raise ValueError('junk before contains "%"')
+
+        if not 0 <= self.checksum <= 0xFF:
+            raise ValueError('checksum overflow')
+
+        if not 0 <= self.count <= 0xFF:
+            raise ValueError('count overflow')
+
+        addrlen = self.addrlen
+        if not 1 <= addrlen <= 15:
+            raise ValueError('invalid address length')
+
+        addrmax = self.compute_address_max(addrlen)
+        if not 0 <= self.address <= addrmax:
+            raise ValueError('address overflow')
+
+        datamax = (0xFA - addrlen) // 2
+        data_size = len(self.data)
+        if data_size > datamax:
+            raise ValueError('data size overflow')
+
+        tag = _cast(TekExtTag, self.tag)
+
+        if tag.is_data():
+            pass
+        elif tag.is_eof():
+            if data_size:
+                raise ValueError('end of file record data')
+        else:
+            raise ValueError('unsupported tag')
+
+        return self
+
+
+class TekExtFile(BaseFile):
+
+    FILE_EXT: Sequence[int] = ['.tek']
+
+    META_KEYS: Sequence[str] = ['maxdatalen', 'startaddr']
+
+    RECORD_TYPE: Type[TekExtRecord] = TekExtRecord
+
+    def __init__(self):
+
+        super().__init__()
+
+        self._startaddr: int = 0
+
+    def parse(cls, stream: IO, ignore_errors: bool = False) -> 'TekExtFile':
+
+        file = super().parse(stream, ignore_errors=ignore_errors)
+        return _cast(TekExtFile, file)
+
+    @property
+    def startaddr(self) -> Optional[int]:
+
+        if self._memory is None:
+            self.apply_records()
+        return self._startaddr
+
+    @startaddr.setter
+    def startaddr(self, address: int = 0) -> None:
+
+        address = address.__index__()
+        if not 0 <= address <= 0xFFFFFFFF:
+            raise ValueError('invalid start address')
+
+        if self._startaddr != address:
+            self.discard_records()
+        self._startaddr = address
+
+    def update_records(
+        self,
+        align: bool = True,
+        start: bool = True,
+        addrlen: int = 8,
+    ) -> 'TekExtFile':
+        # TODO: __doc__
+
+        memory = self._memory
+        if memory is None:
+            raise ValueError('memory instance required')
+
+        addrlen = addrlen.__index__()
+        if not 1 <= addrlen <= 15:
+            raise ValueError('invalid address length')
+
+        records = []
+        record_type = self.RECORD_TYPE
+        chunk_views = []
+        try:
+            for chunk_start, chunk_view in memory.chop(self.maxdatalen, align=align):
+                chunk_views.append(chunk_view)
+                data = bytes(chunk_view)
+                record = record_type.build_data(chunk_start, data, addrlen=addrlen)
+                records.append(record)
+
+            record = record_type.build_end_of_file(self.startaddr, addrlen=addrlen)
+            records.append(record)
+
+        finally:
+            for chunk_view in chunk_views:
+                chunk_view.release()
+
+        self.discard_records()
+        self._records = records
+        return self
+
+    def validate_records(
+        self,
+        data_ordering: bool = False,
+        startaddr_within_data: bool = False,
+    ) -> 'TekExtFile':
+        # TODO: __doc__
+
+        records = self._records
+        if records is None:
+            raise ValueError('records required')
+
+        eof_record = None
+        last_data_endex = 0
+
+        for index, record in enumerate(records):
+            record = _cast(TekExtRecord, record)
+            record.validate()
+            tag = _cast(TekExtTag, record.tag)
+
+            if data_ordering:
+                if tag == tag.DATA:
+                    address = record.address
+                    if address < last_data_endex:
+                        raise ValueError('unordered data record')
+                    last_data_endex = address + len(record.data)
+
+            if tag == tag.EOF:
+                if eof_record is not None:
+                    raise ValueError('multiple end of file records')
+                eof_record = record
+
+                if index != len(records) - 1:
+                    raise ValueError('end of file record not last')
+
+        if eof_record is None:
+            raise ValueError('missing end of file record')
+
+        if startaddr_within_data:
+            start_datum = self.memory.peek(eof_record.address)
+            if start_datum is None:
+                raise ValueError('no data at start address')
+
+        return self

@@ -2,16 +2,20 @@
 import glob
 import os
 from pathlib import Path
-from typing import List
+from typing import cast as _cast
 
 import pytest
+from click.core import BaseCommand
 from click.testing import CliRunner
 
+from hexrec.__init__ import IhexFile
+from hexrec.__init__ import SrecFile
 from hexrec.__init__ import __version__ as _version
 from hexrec.__main__ import main as _main
 from hexrec.cli import *
-from hexrec.formats.intel import Record as IntelRecord
-from hexrec.formats.motorola import Record as MotorolaRecord
+
+main = _cast(BaseCommand, main)  # suppress warnings
+
 
 # ============================================================================
 
@@ -44,6 +48,48 @@ def read_text(path):
 
 # ============================================================================
 
+class TestSingleFileInOutCtxMgr:
+
+    def test___init__(self):
+        ctx = SingleFileInOutCtxMgr('in.mot', 'srec', 'out.hex', 'ihex', 33)
+        assert ctx.input_path == 'in.mot'
+        assert ctx.input_format == 'srec'
+        assert ctx.output_path == 'out.hex'
+        assert ctx.output_format == 'ihex'
+        assert ctx.output_width == 33
+
+    def test___init__no_out(self):
+        ctx = SingleFileInOutCtxMgr('in.mot', 'srec', '', 'ihex', 33)
+        assert ctx.input_path == 'in.mot'
+        assert ctx.input_format == 'srec'
+        assert ctx.output_path == 'in.mot'
+        assert ctx.output_format == 'ihex'
+        assert ctx.output_width == 33
+
+
+# ============================================================================
+
+class TestMultiFileInOutCtxMgr:
+
+    def test___init__(self):
+        ctx = MultiFileInOutCtxMgr(['in.mot'], ['srec'], 'out.hex', 'ihex', 33)
+        assert ctx.input_paths == ['in.mot']
+        assert ctx.input_formats == ['srec']
+        assert ctx.output_path == 'out.hex'
+        assert ctx.output_format == 'ihex'
+        assert ctx.output_width == 33
+
+    def test___init__no_out(self):
+        ctx = MultiFileInOutCtxMgr(['in.mot'], ['srec'], '', 'ihex', 33)
+        assert ctx.input_paths == ['in.mot']
+        assert ctx.input_formats == ['srec']
+        assert ctx.output_path == 'in.mot'
+        assert ctx.output_format == 'ihex'
+        assert ctx.output_width == 33
+
+
+# ============================================================================
+
 def test_main():
     try:
         _main('__main__')
@@ -53,36 +99,26 @@ def test_main():
 
 # ============================================================================
 
-def test_find_types():
-    input_type, output_type = find_types(None, None, 'x.mot', 'y.hex')
-    assert input_type is MotorolaRecord
-    assert output_type is IntelRecord
+def test_guess_input_type():
+    assert guess_input_type('x.mot') is SrecFile
+    assert guess_input_type('-', 'ihex') is IhexFile
+    assert guess_input_type('x.tek', 'ihex') is IhexFile
 
     match = 'standard input requires input format'
     with pytest.raises(ValueError, match=match):
-        find_types(None, None, '-', 'y.hex')
+        guess_input_type('-')
 
-    input_type, output_type = find_types(None, None, 'x.mot', '-')
-    assert input_type is MotorolaRecord
-    assert output_type is MotorolaRecord
 
-    input_type, output_type = find_types('intel', None, '-', '-')
-    assert input_type is IntelRecord
-    assert output_type is IntelRecord
-
-    input_type, output_type = find_types('intel', 'motorola', '-', '-')
-    assert input_type is IntelRecord
-    assert output_type is MotorolaRecord
-
-    input_type, output_type = find_types('intel', 'motorola', 'x.tek', 'y.tek')
-    assert input_type is IntelRecord
-    assert output_type is MotorolaRecord
+def test_guess_output_type():
+    assert guess_output_type('y.mot') is SrecFile
+    assert guess_output_type('-', 'ihex') is IhexFile
+    assert guess_output_type('y.tek', 'ihex') is IhexFile
 
 
 # ============================================================================
 
 def test_missing_input_format():
-    commands = ('clear', 'convert', 'cut', 'delete', 'fill', 'flood', 'merge',
+    commands = ('clear', 'convert', 'crop', 'delete', 'fill', 'flood', 'merge',
                 'reverse', 'shift')
     match = 'standard input requires input format'
     runner = CliRunner()
@@ -97,7 +133,7 @@ def test_missing_input_format():
 # ============================================================================
 
 def test_help():
-    commands = ('clear', 'convert', 'cut', 'delete', 'fill', 'flood', 'merge',
+    commands = ('clear', 'convert', 'crop', 'delete', 'fill', 'flood', 'merge',
                 'reverse', 'shift', 'xxd')
     runner = CliRunner()
 
@@ -128,7 +164,7 @@ def test_by_filename(tmppath, datapath):
 
         ans_out = read_text(path_out)
         ans_ref = read_text(path_ref)
-        assert ans_out == ans_ref
+        assert ans_out == ans_ref, filename
 
 
 # ============================================================================
@@ -138,33 +174,20 @@ def test_fill_parse_byte_fail():
     result = runner.invoke(main, 'fill -v 256 - -'.split())
 
     assert result.exit_code == 2
-    assert '256 is not a valid byte' in result.output
+    assert "invalid byte: '256'" in result.output
 
 
 # ============================================================================
 
 def test_merge_nothing():
     runner = CliRunner()
-    result = runner.invoke(main, 'merge -i binary - -'.split())
+    result = runner.invoke(main, 'merge -i raw -'.split())
 
     assert result.exit_code == 0
     assert result.output == ''
 
 
 # ============================================================================
-
-def test_validate_nothing():
-    runner = CliRunner()
-    with pytest.raises(ValueError, match='missing count'):
-        runner.invoke(main, 'validate -i motorola -'.split(), catch_exceptions=False)
-
-
-def test_validate_headless(datapath):
-    runner = CliRunner()
-    path_in = str(datapath / 'headless.mot')
-    with pytest.raises(ValueError, match='missing header'):
-        runner.invoke(main, f'validate {path_in}'.split(), catch_exceptions=False)
-
 
 def test_validate(datapath):
     runner = CliRunner()
@@ -256,4 +279,4 @@ def test_xxd_parse_int_fail():
     result = runner.invoke(main, 'xxd -c ? - -'.split())
 
     assert result.exit_code == 2
-    assert '? is not a valid integer' in result.output
+    assert "invalid integer: '?'" in result.output

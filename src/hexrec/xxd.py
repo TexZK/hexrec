@@ -29,10 +29,12 @@ import io
 import os
 import re
 import sys
+from typing import IO
 from typing import Mapping
 from typing import Optional
 from typing import Tuple
 from typing import Union
+from typing import cast as _cast
 
 from .utils import BIN8_TO_STR
 from .utils import AnyBytes
@@ -129,8 +131,8 @@ def parse_seek(
 
 
 def xxd(
-    infile: Optional[Union[str, AnyBytes]] = None,
-    outfile: Optional[Union[str, AnyBytes]] = None,
+    infile: Optional[Union[str, AnyBytes, IO]] = None,
+    outfile: Optional[Union[str, AnyBytes, IO]] = None,
     autoskip: bool = False,
     bits: Optional[int] = None,
     cols: Optional[int] = None,
@@ -335,7 +337,7 @@ def xxd(
             if postscript:
                 # Plain hexadecimal input
                 for line in instream:
-                    data = unhexlify(line)
+                    data = unhexlify(_cast(str, line))
                     outstream.write(data)
 
             else:

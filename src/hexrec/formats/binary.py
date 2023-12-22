@@ -28,8 +28,12 @@ r"""Binary format.
 This format is actually used to hold binary chunks of raw data (`bytes`).
 """
 
+import enum
+import sys
+from typing import IO
 from typing import Any
 from typing import Iterator
+from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Type
@@ -37,6 +41,9 @@ from typing import Union
 
 from ..records import Record as _Record
 from ..records import Tag as _Tag
+from ..records2 import BaseFile
+from ..records2 import BaseRecord
+from ..records2 import BaseTag
 from ..utils import AnyBytes
 from ..utils import EllipsisType
 from ..utils import check_empty_args_kwargs
@@ -274,3 +281,162 @@ class Record(_Record):
             for chunk in chop(data, columns, align_base):
                 yield cls.build_data(address, chunk)
                 address += len(chunk)
+
+
+# =============================================================================
+
+@enum.unique
+class RawTag(BaseTag, enum.Enum):
+    r"""Binary tag."""
+
+    DATA = ...
+    r"""Data."""
+
+    def is_data(self) -> bool:
+
+        return True
+
+
+class RawRecord(BaseRecord):
+    # TODO: __doc__
+
+    TAG_TYPE: Type[RawTag] = RawTag
+
+    @classmethod
+    def build_data(
+        cls,
+        address: int,
+        data: AnyBytes,
+    ) -> 'RawRecord':
+        # TODO: __doc__
+
+        address = address.__index__()
+        if address < 0:
+            raise ValueError('address overflow')
+
+        record = cls(cls.TAG_TYPE.DATA, address=address, data=data)
+        return record
+
+    def compute_checksum(self) -> int:
+
+        return 0  # unused
+
+    def compute_count(self) -> int:
+
+        return 0  # unused
+
+    @classmethod
+    def parse(cls, line: AnyBytes, address: int = 0) -> 'RawRecord':
+
+        return cls.build_data(address, line)
+
+    def to_bytestr(self) -> bytes:
+
+        self.validate()
+        return bytes(self.data)
+
+    def to_tokens(self) -> Mapping[str, bytes]:
+
+        self.validate()
+        return {
+            'data': self.data,
+        }
+
+
+class RawFile(BaseFile):
+
+    DEFAULT_DATALEN: int = sys.maxsize
+
+    FILE_EXT: Sequence[str] = [
+        # A very generic list
+        '.bin', '.dat', '.eep', '.raw',
+    ]
+
+    RECORD_TYPE: Type[RawRecord] = RawRecord
+
+    @classmethod
+    def parse(
+        cls,
+        stream: IO,
+        ignore_errors: bool = False,
+        maxdatalen: int = sys.maxsize,
+    ) -> 'RawFile':
+        # TODO: __doc__
+
+        maxdatalen = maxdatalen.__index__()
+        if maxdatalen < 1:
+            raise ValueError('invalid maximum data length')
+
+        records = []
+        record_type = cls.RECORD_TYPE
+        address = 0
+
+        chunk = b'...'
+        while chunk:
+            chunk = stream.read(maxdatalen)
+            if chunk:
+                record = record_type.build_data(address, chunk)
+                record.coords = (0, address)
+                records.append(record)
+                size = len(chunk)
+                address += size
+
+        file = cls.from_records(records)
+        file._maxdatalen = maxdatalen
+        return file
+
+    def update_records(
+        self,
+        align: bool = True,
+    ) -> 'RawFile':
+        # TODO: __doc__
+
+        memory = self._memory
+        if memory is None:
+            raise ValueError('memory instance required')
+        with memory.view():  # contiguity check
+            pass
+
+        records = []
+        record_type = self.RECORD_TYPE
+        chunk_views = []
+        try:
+            for chunk_start, chunk_view in memory.chop(self.maxdatalen, align=align):
+                chunk_views.append(chunk_view)
+                data = bytes(chunk_view)
+                record = record_type.build_data(chunk_start, data)
+                records.append(record)
+
+        finally:
+            for chunk_view in chunk_views:
+                chunk_view.release()
+
+        self.discard_records()
+        self._records = records
+        return self
+
+    def validate_records(
+        self,
+        data_contiguity: bool = True,
+        data_ordering: bool = True,
+    ) -> 'RawFile':
+        # TODO: __doc__
+
+        if self._records is None:
+            raise ValueError('records required')
+
+        last_data_end = 0
+
+        for record in self._records:
+            record.validate()
+            address = record.address
+
+            if data_contiguity and address != last_data_end:
+                raise ValueError('data not contiguous')
+
+            if data_ordering and address < last_data_end:
+                raise ValueError('unordered data record')
+
+            last_data_end = address + len(record.data)
+
+        return self

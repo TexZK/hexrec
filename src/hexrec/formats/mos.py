@@ -29,17 +29,25 @@ See Also:
     `<https://srecord.sourceforge.net/man/man5/srec_mos_tech.5.html>`_
 """
 
+import binascii
+import enum
 import re
+from typing import IO
 from typing import Any
 from typing import Iterator
+from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Type
 from typing import Union
+from typing import cast as _cast
 
 from ..records import Record as _Record
 from ..records import RecordSequence
 from ..records import Tag
+from ..records2 import BaseFile
+from ..records2 import BaseRecord
+from ..records2 import BaseTag
 from ..utils import AnyBytes
 from ..utils import EllipsisType
 from ..utils import check_empty_args_kwargs
@@ -349,3 +357,299 @@ class Record(_Record):
 
         if record.address != record_count or record.checksum != record_count:
             raise ValueError('wrong terminator')
+
+
+# =============================================================================
+
+@enum.unique
+class MosTag(BaseTag, enum.IntEnum):
+    r"""MOS Technology tag."""
+
+    DATA = 0
+    r"""Data."""
+
+    EOF = 1  # FIXME: add full support
+    r"""End Of File."""
+
+    def is_data(self) -> bool:
+
+        return self == 0
+
+    def is_eof(self) -> bool:
+        # TODO: __doc__
+
+        return self == 1
+
+
+class MosRecord(BaseRecord):
+    # TODO: __doc__
+
+    TAG_TYPE: Type[MosTag] = MosTag
+
+    LINE_REGEX = re.compile(
+        b'^(?P<before>[^;]*);'
+        b'(?P<address>[0-9A-Fa-f]{4})'
+        b'(?P<data>([0-9A-Fa-f]{2}){,255})'
+        b'(?P<checksum>[0-9A-Fa-f]{4})'
+        b'(?P<after>[^\\r\\n]*)\\r?\\n\x00*$'
+    )
+    # TODO: __doc__
+
+    @classmethod
+    def build_data(
+        cls,
+        address: int,
+        data: AnyBytes,
+    ) -> 'MosRecord':
+        # TODO: __doc__
+
+        address = address.__index__()
+        if not 0 <= address <= 0xFFFF:
+            raise ValueError('address overflow')
+
+        size = len(data)
+        if size > 0xFF:
+            raise ValueError('size overflow')
+
+        record = cls(cls.TAG_TYPE.DATA, address=address, data=data)
+        return record
+
+    @classmethod
+    def build_eof(
+        cls,
+        record_count: int,
+    ) -> 'MosRecord':
+        # TODO: __doc__
+
+        record_count = record_count.__index__()
+        if not 0 <= record_count <= 0xFFFF:
+            raise ValueError('record count overflow')
+
+        record = cls(cls.TAG_TYPE.EOF, address=record_count)
+        return record
+
+    def compute_checksum(self) -> int:
+
+        if self.count is None:
+            raise ValueError('missing count')
+
+        sum_address = (self.address >> 8) + (self.address & 0xFF)
+        sum_data = sum(iter(self.data))
+        checksum = (self.count + sum_address + sum_data) & 0xFFFF
+        return checksum
+
+    def compute_count(self) -> int:
+
+        return len(self.data)
+
+    @classmethod
+    def parse(cls, line: AnyBytes) -> 'MosRecord':
+        # TODO: __doc__
+
+        match = cls.LINE_REGEX.match(line)
+        if not match:
+            raise ValueError('syntax error')
+
+        groups = match.groupdict()
+        before = groups['before']
+        count = int(groups['count'], 16)
+        address = int(groups['address'], 16)
+        data = binascii.unhexlify(groups['data'])
+        checksum = int(groups['checksum'], 16)
+        after = groups['after']
+
+        record = cls(cls.TAG_TYPE.DATA,
+                     address=address,
+                     data=data,
+                     count=count,
+                     checksum=checksum,
+                     before=before,
+                     after=after)
+        return record
+
+    def to_bytestr(
+        self,
+        end: AnyBytes = b'\r\n',
+        nuls: bool = True,
+    ) -> bytes:
+
+        self.validate()
+        nulstr = b'\0\0\0\0\0\0' if nuls else b''
+
+        line = b'%s;%02X%04X%s%04X%s%s%s' % (
+            self.before,
+            self.count,
+            self.address,
+            binascii.hexlify(self.data).upper(),
+            self.checksum,
+            self.after,
+            end,
+            nulstr,
+        )
+        return line
+
+    def to_tokens(
+        self,
+        end: AnyBytes = b'\r\n',
+        nuls: bool = True,
+    ) -> Mapping[str, bytes]:
+
+        self.validate()
+        nulstr = b'\0\0\0\0\0\0' if nuls else b''
+
+        return {
+            'before': self.before,
+            'begin': b';',
+            'count': b'%02X' % self.count,
+            'address': b'%04X' % self.address,
+            'data': binascii.hexlify(self.data).upper(),
+            'checksum': b'%04X' % self.checksum,
+            'after': self.after,
+            'end': end,
+            'nuls': nulstr,
+        }
+
+    def validate(self) -> 'MosRecord':
+
+        super().validate()
+
+        if self.after and not self.after.isspace():
+            raise ValueError('junk after is not whitespace')
+
+        if b';' in self.before:
+            raise ValueError('junk before contains ";"')
+
+        if not 0 <= self.checksum <= 0xFFFF:
+            raise ValueError('checksum overflow')
+
+        if not 0 <= self.count <= 0xFF:
+            raise ValueError('count overflow')
+
+        data_size = len(self.data)
+        if data_size > 0xFF:
+            raise ValueError('data size overflow')
+
+        if not 0 <= self.address <= 0xFFFF:
+            raise ValueError('address overflow')
+
+        return self
+
+
+class MosFile(BaseFile):
+
+    DEFAULT_DATALEN: int = 24
+
+    RECORD_TYPE: Type[MosRecord] = MosRecord
+
+    @classmethod
+    def parse(
+        cls,
+        stream: IO,
+        ignore_errors: bool = False,
+        eof_record: bool = True,
+    ) -> 'MosFile':
+        # TODO: __doc__
+
+        file = super().parse(stream, ignore_errors=ignore_errors)
+        file = _cast(MosFile, file)
+
+        if eof_record:
+            if file._records:
+                file._records[-1].tag = cls.RECORD_TYPE.TAG_TYPE.EOF  # patch
+            elif not ignore_errors:
+                raise ValueError('missing end of file record')
+
+        return file
+
+    def serialize(
+        self,
+        stream: IO,
+        nuls: bool = True,
+        xoff: bool = True,
+    ) -> 'BaseFile':
+        # TODO: __doc__
+
+        for record in self.records:
+            record.serialize(stream, nuls=nuls)
+
+        if xoff:
+            stream.write(b'\x13')
+
+        return self
+
+    def update_records(
+        self,
+        align: bool = True,
+        start: bool = True,
+    ) -> 'MosFile':
+        # TODO: __doc__
+
+        memory = self._memory
+        if memory is None:
+            raise ValueError('memory instance required')
+
+        records = []
+        record_type = self.RECORD_TYPE
+        chunk_views = []
+        try:
+            for chunk_start, chunk_view in memory.chop(self.maxdatalen, align=align):
+                chunk_views.append(chunk_view)
+                data = bytes(chunk_view)
+                record = record_type.build_data(chunk_start, data)
+                records.append(record)
+
+            record = record_type.build_eof(len(records))
+            records.append(record)
+
+        finally:
+            for chunk_view in chunk_views:
+                chunk_view.release()
+
+        self.discard_records()
+        self._records = records
+        return self
+
+    def validate_records(
+        self,
+        data_ordering: bool = False,
+        eof_record_required: bool = True,
+    ) -> 'MosFile':
+        # TODO: __doc__
+
+        records = self._records
+        if records is None:
+            raise ValueError('records required')
+
+        eof_record = None
+        last_data_endex = 0
+
+        for index, record in enumerate(records):
+            record = _cast(MosRecord, record)
+            record.validate()
+            tag = _cast(MosTag, record.tag)
+
+            if data_ordering:
+                if tag == tag.DATA:
+                    address = record.address
+                    if address < last_data_endex:
+                        raise ValueError('unordered data record')
+                    last_data_endex = address + len(record.data)
+
+            if tag == tag.EOF:
+                if eof_record is not None:
+                    raise ValueError('multiple end of file records')
+                eof_record = record
+
+                expected_eof_index = len(records) - 1
+                if index != expected_eof_index:
+                    raise ValueError('end of file record not last')
+
+                if record.address != expected_eof_index:
+                    raise ValueError('wrong record count as address')
+                if record.checksum != expected_eof_index:
+                    raise ValueError('wrong record count as checksum')
+
+        if eof_record_required and eof_record is None:
+            raise ValueError('missing end of file record')
+
+        return self

@@ -37,33 +37,29 @@ Why does this file exist, and why not put this in __main__?
   - When you import __main__ it will get executed again (as a module) because
     there's no ``hexrec.__main__`` in ``sys.modules``.
 
-  Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
+  Also see (1) from https://click.palletsprojects.com/en/5.x/setuptools/#setuptools-integration
 """
-import sys
+
 from typing import Callable
+from typing import List
 from typing import Mapping
 from typing import Optional
-from typing import Tuple
+from typing import Sequence
 from typing import Type
+from typing import cast as _cast
 
 import click
 
-from .__init__ import __version__ as _version
-from .formats.motorola import Record as _MotorolaRecord
-from .records import RECORD_TYPES as _RECORD_TYPES
-from .records import Record as _Record
-from .records import convert_file as _convert_file
-from .records import find_record_type_name as _find_record_type_name
-from .records import load_memory as _load_memory
-from .records import merge_files as _merge_files
-from .records import register_default_record_types as _register_default_record_types
-from .records import save_memory as _save_memory
-from .utils import hexlify as _hexlify
-from .utils import parse_int as _parse_int
-from .utils import unhexlify as _unhexlify
-from .xxd import xxd as _xxd
-
-_register_default_record_types()
+from .__init__ import __version__
+from .__init__ import FILE_TYPES
+from .formats.motorola import SrecFile
+from .formats.motorola import SrecRecord
+from .records2 import BaseFile
+from .records2 import guess_type_name
+from .utils import hexlify
+from .utils import parse_int
+from .utils import unhexlify
+from .xxd import xxd as xxd_core
 
 
 class BasedIntParamType(click.ParamType):
@@ -71,9 +67,9 @@ class BasedIntParamType(click.ParamType):
 
     def convert(self, value, param, ctx):
         try:
-            return _parse_int(value)
+            return parse_int(value)
         except ValueError:
-            self.fail(f'{value} is not a valid integer', param, ctx)
+            self.fail(f'invalid integer: {value!r}', param, ctx)
 
 
 class ByteIntParamType(click.ParamType):
@@ -81,53 +77,52 @@ class ByteIntParamType(click.ParamType):
 
     def convert(self, value, param, ctx):
         try:
-            b = _parse_int(value)
+            b = parse_int(value)
             if not 0 <= b <= 255:
                 raise ValueError()
             return b
         except ValueError:
-            self.fail(f'{value} is not a valid byte', param, ctx)
+            self.fail(f'invalid byte: {value!r}', param, ctx)
 
 
 BASED_INT = BasedIntParamType()
 BYTE_INT = ByteIntParamType()
 
-FILE_PATH_IN = click.Path(dir_okay=False, allow_dash=True, readable=True,
-                          exists=True)
+FILE_PATH_IN = click.Path(dir_okay=False, allow_dash=True, readable=True, exists=True)
 FILE_PATH_OUT = click.Path(dir_okay=False, allow_dash=True, writable=True)
 
-RECORD_FORMAT_CHOICE = click.Choice(list(sorted(_RECORD_TYPES.keys())))
+RECORD_FORMAT_CHOICE = click.Choice(list(sorted(FILE_TYPES.keys())))
 
 DATA_FMT_FORMATTERS: Mapping[str, Callable[[bytes], str]] = {
     'ascii': lambda b: b.decode('ascii'),
-    'hex': lambda b: _hexlify(b, upper=False),
-    'HEX': lambda b: _hexlify(b, upper=True),
-    'hex.': lambda b: _hexlify(b, sep='.', upper=False),
-    'HEX.': lambda b: _hexlify(b, sep='.', upper=True),
-    'hex-': lambda b: _hexlify(b, sep='-', upper=False),
-    'HEX-': lambda b: _hexlify(b, sep='-', upper=True),
-    'hex:': lambda b: _hexlify(b, sep=':', upper=False),
-    'HEX:': lambda b: _hexlify(b, sep=':', upper=True),
-    'hex_': lambda b: _hexlify(b, sep='_', upper=False),
-    'HEX_': lambda b: _hexlify(b, sep='_', upper=True),
-    'hex ': lambda b: _hexlify(b, sep=' ', upper=False),
-    'HEX ': lambda b: _hexlify(b, sep=' ', upper=True),
+    'hex': lambda b: hexlify(b, upper=False),
+    'HEX': lambda b: hexlify(b, upper=True),
+    'hex.': lambda b: hexlify(b, sep='.', upper=False),
+    'HEX.': lambda b: hexlify(b, sep='.', upper=True),
+    'hex-': lambda b: hexlify(b, sep='-', upper=False),
+    'HEX-': lambda b: hexlify(b, sep='-', upper=True),
+    'hex:': lambda b: hexlify(b, sep=':', upper=False),
+    'HEX:': lambda b: hexlify(b, sep=':', upper=True),
+    'hex_': lambda b: hexlify(b, sep='_', upper=False),
+    'HEX_': lambda b: hexlify(b, sep='_', upper=True),
+    'hex ': lambda b: hexlify(b, sep=' ', upper=False),
+    'HEX ': lambda b: hexlify(b, sep=' ', upper=True),
 }
 
 DATA_FMT_PARSERS: Mapping[str, Callable[[str], bytes]] = {
     'ascii': lambda t: t.encode('ascii'),
-    'hex': lambda t: _unhexlify(t),
-    'HEX': lambda t: _unhexlify(t),
-    'hex.': lambda t: _unhexlify(t.replace('.', '')),
-    'HEX.': lambda t: _unhexlify(t.replace('.', '')),
-    'hex-': lambda t: _unhexlify(t.replace('-', '')),
-    'HEX-': lambda t: _unhexlify(t.replace('-', '')),
-    'hex:': lambda t: _unhexlify(t.replace(':', '')),
-    'HEX:': lambda t: _unhexlify(t.replace(':', '')),
-    'hex_': lambda t: _unhexlify(t.replace('_', '')),
-    'HEX_': lambda t: _unhexlify(t.replace('_', '')),
-    'hex ': lambda t: _unhexlify(t),
-    'HEX ': lambda t: _unhexlify(t),
+    'hex': lambda t: unhexlify(t),
+    'HEX': lambda t: unhexlify(t),
+    'hex.': lambda t: unhexlify(t.replace('.', '')),
+    'HEX.': lambda t: unhexlify(t.replace('.', '')),
+    'hex-': lambda t: unhexlify(t.replace('-', '')),
+    'HEX-': lambda t: unhexlify(t.replace('-', '')),
+    'hex:': lambda t: unhexlify(t.replace(':', '')),
+    'HEX:': lambda t: unhexlify(t.replace(':', '')),
+    'hex_': lambda t: unhexlify(t.replace('_', '')),
+    'HEX_': lambda t: unhexlify(t.replace('_', '')),
+    'hex ': lambda t: unhexlify(t),
+    'HEX ': lambda t: unhexlify(t),
 }
 
 DATA_FMT_CHOICE = click.Choice(list(DATA_FMT_FORMATTERS.keys()))
@@ -135,34 +130,138 @@ DATA_FMT_CHOICE = click.Choice(list(DATA_FMT_FORMATTERS.keys()))
 
 # ----------------------------------------------------------------------------
 
-def find_types(
-    input_format: Optional[str],
-    output_format: Optional[str],
-    infile: str,
-    outfile: str
-) -> Tuple[Type[_Record], Type[_Record]]:
+def guess_input_type(
+    input_path: str,
+    input_format: Optional[str] = None,
+) -> Type[BaseFile]:
+
     if input_format:
-        input_type = _RECORD_TYPES[input_format]
-    elif infile == '-':
+        input_type = FILE_TYPES[input_format]
+    elif input_path == '-':
         raise ValueError('standard input requires input format')
     else:
-        input_type = _RECORD_TYPES[_find_record_type_name(infile)]
+        name = guess_type_name(input_path)
+        input_type = FILE_TYPES[name]
+    return input_type
+
+
+def guess_output_type(
+    output_path: str,
+    output_format: Optional[str] = None,
+    input_type: Optional[Type[BaseFile]] = None,
+) -> Type[BaseFile]:
 
     if output_format:
-        output_type = _RECORD_TYPES[output_format]
-    elif outfile == '-':
+        output_type = FILE_TYPES[output_format]
+    elif output_path == '-':
         output_type = input_type
     else:
-        output_type = _RECORD_TYPES[_find_record_type_name(outfile)]
-
-    return input_type, output_type
+        name = guess_type_name(output_path)
+        output_type = FILE_TYPES[name]
+    return output_type
 
 
 def print_version(ctx, _, value):
+
     if not value or ctx.resilient_parsing:
         return
-    click.echo(str(_version))
+
+    click.echo(str(__version__))
     ctx.exit()
+
+
+# ----------------------------------------------------------------------------
+
+class SingleFileInOutCtxMgr:
+
+    def __init__(
+        self,
+        input_path: str,
+        input_format: Optional[str],
+        output_path: str,
+        output_format: Optional[str],
+        output_width: Optional[int],
+    ):
+
+        if not output_path:
+            output_path = input_path
+
+        self.input_path: str = input_path
+        self.input_format: Optional[str] = input_format
+        self.input_type: Optional[Type[BaseFile]] = None
+        self.input_file: Optional[BaseFile] = None
+
+        self.output_path: str = output_path
+        self.output_format: Optional[str] = output_format
+        self.output_type: Optional[Type[BaseFile]] = None
+        self.output_file: Optional[BaseFile] = None
+        self.output_width: Optional[int] = output_width
+
+    def __enter__(self) -> 'SingleFileInOutCtxMgr':
+
+        self.input_type = guess_input_type(self.input_path, self.input_format)
+        self.input_file = self.input_type.load(self.input_path)
+
+        self.output_type = guess_output_type(self.output_path, self.output_format, self.input_type)
+
+        if self.output_type is self.input_type:
+            self.output_file = self.input_file
+            self.output_file.apply_records()
+        else:
+            self.output_file = self.output_type.convert(self.input_file)
+
+        if self.output_width is not None:
+            self.output_file.maxdatalen = self.output_width
+
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+
+        self.output_file.save(self.output_path)
+
+
+class MultiFileInOutCtxMgr:
+
+    def __init__(
+        self,
+        input_paths: Sequence[str],
+        input_formats: Sequence[Optional[str]],
+        output_path: str,
+        output_format: Optional[str],
+        output_width: Optional[int],
+    ):
+
+        if not output_path:
+            output_path = input_paths[0]
+
+        self.input_paths: Sequence[str] = input_paths
+        self.input_formats: Sequence[Optional[str]] = input_formats
+        self.input_types: List[Optional[Type[BaseFile]]] = [None] * len(self.input_paths)
+        self.input_files: List[Optional[BaseFile]] = [None] * len(self.input_paths)
+
+        self.output_path: str = output_path
+        self.output_format: Optional[str] = output_format
+        self.output_type: Optional[Type[BaseFile]] = None
+        self.output_file: Optional[BaseFile] = None
+        self.output_width: Optional[int] = output_width
+
+    def __enter__(self) -> 'MultiFileInOutCtxMgr':
+
+        for i in range(len(self.input_paths)):
+            self.input_types[i] = guess_input_type(self.input_paths[i], self.input_formats[i])
+            self.input_files[i] = self.input_types[i].load(self.input_paths[i])
+
+        self.output_type = guess_output_type(self.output_path, self.output_format, self.input_types[0])
+        self.output_file = self.output_type()
+
+        if self.output_width is not None:
+            self.output_file.maxdatalen = self.output_width
+
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+
+        self.output_file.save(self.output_path)
 
 
 # ============================================================================
@@ -176,7 +275,6 @@ def main() -> None:
     commands follow POSIX-like syntax rules, as well as reserving the virtual
     file path ``-`` for command chaining via standard output/input buffering.
     """
-    pass
 
 
 # ----------------------------------------------------------------------------
@@ -198,13 +296,18 @@ By default it applies from the start of the data contents.
 Exclusive end address. Negative values are referred to the end of the data.
 By default it applies till the end of the data contents.
 """)
+@click.option('-w', '--width', type=BASED_INT, help="""
+Sets the length of the record data field, in bytes.
+By default it is that of the input file.
+""")
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
 def clear(
-    input_format: str,
-    output_format: str,
-    start: int,
-    endex: int,
+    input_format: Optional[str],
+    output_format: Optional[str],
+    start: Optional[int],
+    endex: Optional[int],
+    width: Optional[int],
     infile: str,
     outfile: str,
 ) -> None:
@@ -215,13 +318,11 @@ def clear(
 
     ``OUTFILE`` is the path of the output file.
     Set to ``-`` to write to standard output.
+    Leave empty to overwrite ``INFILE``.
     """
-    input_type, output_type = find_types(input_format, output_format,
-                                         infile, outfile)
 
-    memory = _load_memory(infile, record_type=input_type)
-    memory.clear(start=start, endex=endex)
-    _save_memory(outfile, memory, record_type=output_type)
+    with SingleFileInOutCtxMgr(infile, input_format, outfile, output_format, width) as ctx:
+        ctx.output_file.clear(start=start, endex=endex)
 
 
 # ----------------------------------------------------------------------------
@@ -235,14 +336,20 @@ Required for the standard input.
 Forces the output file format.
 By default it is that of the input file.
 """)
+@click.option('-w', '--width', type=BASED_INT, help="""
+Sets the length of the record data field, in bytes.
+By default it is that of the input file.
+""")
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
 def convert(
-    input_format: str,
-    output_format: str,
+    input_format: Optional[str],
+    output_format: Optional[str],
+    width: Optional[int],
     infile: str,
     outfile: str,
 ) -> None:
+
     r"""Converts a file to another format.
 
     ``INFILE`` is the list of paths of the input files.
@@ -250,12 +357,11 @@ def convert(
 
     ``OUTFILE`` is the path of the output file.
     Set to ``-`` to write to standard output.
+    Leave empty to overwrite ``INFILE``.
     """
-    input_type, output_type = find_types(input_format, output_format,
-                                         infile, outfile)
 
-    _convert_file(infile, outfile,
-                  input_type=input_type, output_type=output_type)
+    with SingleFileInOutCtxMgr(infile, input_format, outfile, output_format, width):
+        pass
 
 
 # ----------------------------------------------------------------------------
@@ -269,10 +375,6 @@ Required for the standard input.
 Forces the output file format.
 By default it is that of the input file.
 """)
-@click.option('-v', '--value', type=BYTE_INT, help="""
-Byte value used to flood the address range.
-By default, no flood is performed.
-""")
 @click.option('-s', '--start', type=BASED_INT, help="""
 Inclusive start address. Negative values are referred to the end of the data.
 By default it applies from the start of the data contents.
@@ -280,15 +382,24 @@ By default it applies from the start of the data contents.
 @click.option('-e', '--endex', type=BASED_INT, help="""
 Exclusive end address. Negative values are referred to the end of the data.
 By default it applies till the end of the data contents.
+""")
+@click.option('-v', '--value', type=BYTE_INT, help="""
+Byte value used to flood the address range.
+By default, no flood is performed.
+""")
+@click.option('-w', '--width', type=BASED_INT, help="""
+Sets the length of the record data field, in bytes.
+By default it is that of the input file.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
 def crop(
-    input_format: str,
-    output_format: str,
-    value: int,
-    start: int,
-    endex: int,
+    input_format: Optional[str],
+    output_format: Optional[str],
+    start: Optional[int],
+    endex: Optional[int],
+    value: Optional[int],
+    width: Optional[int],
     infile: str,
     outfile: str,
 ) -> None:
@@ -299,71 +410,14 @@ def crop(
 
     ``OUTFILE`` is the path of the output file.
     Set to ``-`` to write to standard output.
+    Leave empty to overwrite ``INFILE``.
     """
-    input_type, output_type = find_types(input_format, output_format,
-                                         infile, outfile)
 
-    memory = _load_memory(infile, record_type=input_type)
-    memory.crop(start=start, endex=endex)
-    if value is not None:
-        memory.flood(start=start, endex=endex, pattern=value)
-    _save_memory(outfile, memory, record_type=output_type)
+    with SingleFileInOutCtxMgr(infile, input_format, outfile, output_format, width) as ctx:
+        ctx.output_file.crop(start=start, endex=endex)
 
-
-# ----------------------------------------------------------------------------
-
-@main.command()
-@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
-Forces the input file format.
-Required for the standard input.
-""")
-@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
-Forces the output file format.
-By default it is that of the input file.
-""")
-@click.option('-v', '--value', type=BYTE_INT, help="""
-Byte value used to flood the address range.
-By default, no flood is performed.
-""")
-@click.option('-s', '--start', type=BASED_INT, help="""
-Inclusive start address. Negative values are referred to the end of the data.
-By default it applies from the start of the data contents.
-""")
-@click.option('-e', '--endex', type=BASED_INT, help="""
-Exclusive end address. Negative values are referred to the end of the data.
-By default it applies till the end of the data contents.
-""")
-@click.argument('infile', type=FILE_PATH_IN)
-@click.argument('outfile', type=FILE_PATH_OUT)
-def cut(
-    input_format: str,
-    output_format: str,
-    value: int,
-    start: int,
-    endex: int,
-    infile: str,
-    outfile: str,
-) -> None:
-    r"""Selects data from an address range.
-
-    DEPRECATED: Use the `crop` command instead.
-
-    ``INFILE`` is the path of the input file.
-    Set to ``-`` to read from standard input; input format required.
-
-    ``OUTFILE`` is the path of the output file.
-    Set to ``-`` to write to standard output.
-    """
-    print('DEPRECATED: Use the `crop` command instead.', file=sys.stderr)
-
-    input_type, output_type = find_types(input_format, output_format,
-                                         infile, outfile)
-
-    memory = _load_memory(infile, record_type=input_type)
-    memory.crop(start=start, endex=endex)
-    if value is not None:
-        memory.flood(start=start, endex=endex, pattern=value)
-    _save_memory(outfile, memory, record_type=output_type)
+        if value is not None:
+            ctx.output_file.flood(start=start, endex=endex, pattern=value)
 
 
 # ----------------------------------------------------------------------------
@@ -384,14 +438,19 @@ By default it applies from the start of the data contents.
 @click.option('-e', '--endex', type=BASED_INT, help="""
 Exclusive end address. Negative values are referred to the end of the data.
 By default it applies till the end of the data contents.
+""")
+@click.option('-w', '--width', type=BASED_INT, help="""
+Sets the length of the record data field, in bytes.
+By default it is that of the input file.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
 def delete(
-    input_format: str,
-    output_format: str,
-    start: int,
-    endex: int,
+    input_format: Optional[str],
+    output_format: Optional[str],
+    start: Optional[int],
+    endex: Optional[int],
+    width: Optional[int],
     infile: str,
     outfile: str,
 ) -> None:
@@ -402,13 +461,11 @@ def delete(
 
     ``OUTFILE`` is the path of the output file.
     Set to ``-`` to write to standard output.
+    Leave empty to overwrite ``INFILE``.
     """
-    input_type, output_type = find_types(input_format, output_format,
-                                         infile, outfile)
 
-    memory = _load_memory(infile, record_type=input_type)
-    memory.delete(start=start, endex=endex)
-    _save_memory(outfile, memory, record_type=output_type)
+    with SingleFileInOutCtxMgr(infile, input_format, outfile, output_format, width) as ctx:
+        ctx.output_file.delete(start=start, endex=endex)
 
 
 # ----------------------------------------------------------------------------
@@ -433,14 +490,19 @@ By default it applies from the start of the data contents.
 Exclusive end address. Negative values are referred to the end of the data.
 By default it applies till the end of the data contents.
 """)
+@click.option('-w', '--width', type=BASED_INT, help="""
+Sets the length of the record data field, in bytes.
+By default it is that of the input file.
+""")
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
 def fill(
-    input_format: str,
-    output_format: str,
+    input_format: Optional[str],
+    output_format: Optional[str],
     value: int,
-    start: int,
-    endex: int,
+    start: Optional[int],
+    endex: Optional[int],
+    width: Optional[int],
     infile: str,
     outfile: str,
 ) -> None:
@@ -451,13 +513,11 @@ def fill(
 
     ``OUTFILE`` is the path of the output file.
     Set to ``-`` to write to standard output.
+    Leave empty to overwrite ``INFILE``.
     """
-    input_type, output_type = find_types(input_format, output_format,
-                                         infile, outfile)
 
-    memory = _load_memory(infile, record_type=input_type)
-    memory.fill(start=start, endex=endex, pattern=value)
-    _save_memory(outfile, memory, record_type=output_type)
+    with SingleFileInOutCtxMgr(infile, input_format, outfile, output_format, width) as ctx:
+        ctx.output_file.fill(start=start, endex=endex, pattern=value)
 
 
 # ----------------------------------------------------------------------------
@@ -482,14 +542,19 @@ By default it applies from the start of the data contents.
 Exclusive end address. Negative values are referred to the end of the data.
 By default it applies till the end of the data contents.
 """)
+@click.option('-w', '--width', type=BASED_INT, help="""
+Sets the length of the record data field, in bytes.
+By default it is that of the input file.
+""")
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
 def flood(
-    input_format: str,
-    output_format: str,
-    value: BYTE_INT,
-    start: BASED_INT,
-    endex: BASED_INT,
+    input_format: Optional[str],
+    output_format: Optional[str],
+    value: int,
+    start: Optional[int],
+    endex: Optional[int],
+    width: Optional[int],
     infile: str,
     outfile: str,
 ) -> None:
@@ -500,38 +565,45 @@ def flood(
 
     ``OUTFILE`` is the path of the output file.
     Set to ``-`` to write to standard output.
+    Leave empty to overwrite ``INFILE``.
     """
-    input_type, output_type = find_types(input_format, output_format,
-                                         infile, outfile)
 
-    memory = _load_memory(infile, record_type=input_type)
-    memory.flood(start=start, endex=endex, pattern=value)
-    _save_memory(outfile, memory, record_type=output_type)
+    with SingleFileInOutCtxMgr(infile, input_format, outfile, output_format, width) as ctx:
+        ctx.output_file.flood(start=start, endex=endex, pattern=value)
 
 
 # ----------------------------------------------------------------------------
 
 @main.command()
 @click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
-Forces the input file format.
+Forces the input file format for all input files.
 Required for the standard input.
 """)
 @click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
 Forces the output file format.
 By default it is that of the input file.
 """)
-@click.argument('infiles', type=FILE_PATH_IN, nargs=-1, required=True)
+@click.option('-w', '--width', type=BASED_INT, help="""
+Sets the length of the record data field, in bytes.
+By default it is that of the input file.
+""")
+@click.option('--clear-holes', is_flag=True, help="""
+Merges memory holes, clearing data at their place.
+""")
+@click.argument('infiles', type=FILE_PATH_IN, nargs=-1)
 @click.argument('outfile', type=FILE_PATH_OUT)
 def merge(
-    input_format: str,
-    output_format: str,
-    infiles: str,
+    input_format: Optional[str],
+    output_format: Optional[str],
+    width: Optional[int],
+    clear_holes: bool,
+    infiles: Sequence[str],
     outfile: str,
 ) -> None:
     r"""Merges multiple files.
 
     ``INFILES`` is the list of paths of the input files.
-    Set any to ``-`` to read from standard input; input format required.
+    Set any to ``-`` or none to read from standard input; input format required.
 
     ``OUTFILE`` is the path of the output file.
     Set to ``-`` to write to standard output.
@@ -539,17 +611,14 @@ def merge(
     Every file of ``INFILES`` will overwrite data of previous files of the
     list where addresses overlap.
     """
-    for infile in infiles:
-        if infile != '-':
-            break
-    else:
-        infile = '-'
-    input_type, output_type = find_types(input_format, output_format,
-                                         infile, outfile)
-    input_types = [input_type] * len(infiles)
 
-    _merge_files(infiles, outfile,
-                 input_types=input_types, output_type=output_type)
+    if not infiles:
+        infiles = ['-']
+    input_formats = [input_format] * len(infiles)
+
+    with MultiFileInOutCtxMgr(infiles, input_formats, outfile, output_format, width) as ctx:
+        for input_file in ctx.input_files:
+            ctx.output_file.merge(input_file, clear=clear_holes)
 
 
 # ----------------------------------------------------------------------------
@@ -563,11 +632,16 @@ Required for the standard input.
 Forces the output file format.
 By default it is that of the input file.
 """)
+@click.option('-w', '--width', type=BASED_INT, help="""
+Sets the length of the record data field, in bytes.
+By default it is that of the input file.
+""")
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
 def reverse(
-    input_format: str,
-    output_format: str,
+    input_format: Optional[str],
+    output_format: Optional[str],
+    width: Optional[int],
     infile: str,
     outfile: str,
 ) -> None:
@@ -578,13 +652,11 @@ def reverse(
 
     ``OUTFILE`` is the path of the output file.
     Set to ``-`` to write to standard output.
+    Leave empty to overwrite ``INFILE``.
     """
-    input_type, output_type = find_types(input_format, output_format,
-                                         infile, outfile)
 
-    memory = _load_memory(infile, record_type=input_type)
-    memory.reverse()
-    _save_memory(outfile, memory, record_type=output_type)
+    with SingleFileInOutCtxMgr(infile, input_format, outfile, output_format, width) as ctx:
+        ctx.output_file.reverse()
 
 
 # ----------------------------------------------------------------------------
@@ -601,12 +673,17 @@ By default it is that of the input file.
 @click.option('-n', '--amount', type=BASED_INT, default=0, help="""
 Address shift to apply.
 """)
+@click.option('-w', '--width', type=BASED_INT, help="""
+Sets the length of the record data field, in bytes.
+By default it is that of the input file.
+""")
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
 def shift(
-    input_format: str,
-    output_format: str,
+    input_format: Optional[str],
+    output_format: Optional[str],
     amount: int,
+    width: Optional[int],
     infile: str,
     outfile: str,
 ) -> None:
@@ -617,13 +694,11 @@ def shift(
 
     ``OUTFILE`` is the path of the output file.
     Set to ``-`` to write to standard output.
+    Leave empty to overwrite ``INFILE``.
     """
-    input_type, output_type = find_types(input_format, output_format,
-                                         infile, outfile)
 
-    memory = _load_memory(infile, record_type=input_type)
-    memory.shift(amount)
-    _save_memory(outfile, memory, record_type=output_type)
+    with SingleFileInOutCtxMgr(infile, input_format, outfile, output_format, width) as ctx:
+        ctx.output_file.shift(amount)
 
 
 # ----------------------------------------------------------------------------
@@ -635,7 +710,7 @@ Required for the standard input.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 def validate(
-    input_format: str,
+    input_format: Optional[str],
     infile: str,
 ) -> None:
     r"""Validates a record file.
@@ -643,9 +718,10 @@ def validate(
     ``INFILE`` is the path of the input file.
     Set to ``-`` to read from standard input; input format required.
     """
-    input_type, _ = find_types(input_format, None, infile, '-')
-    records = input_type.load_records(infile)
-    input_type.check_sequence(records)
+
+    input_type = guess_input_type(infile, input_format)
+    input_file = input_type.load(infile)
+    input_file.validate_records()
 
 
 # ----------------------------------------------------------------------------
@@ -653,7 +729,6 @@ def validate(
 @main.group()
 def motorola() -> None:
     """Motorola SREC specific"""
-    pass
 
 
 # ----------------------------------------------------------------------------
@@ -669,16 +744,17 @@ def get_header(
 ) -> None:
     r"""Gets the header data.
 
-    ``INFILE`` is the path of the input file; 'motorola' record type.
+    ``INFILE`` is the path of the input file; 'srec' record type.
     Set to ``-`` to read from standard input.
     """
-    formatter = DATA_FMT_FORMATTERS[format]
-    record_type = _MotorolaRecord
-    records = record_type.load_records(infile)
-    record = record_type.get_header(records)
-    if record is not None:
-        header_text = formatter(record.data)
-        print(header_text)
+
+    input_file = SrecFile.load(infile)
+    records = input_file.records
+
+    if records and records[0].tag == 0:
+        formatter = DATA_FMT_FORMATTERS[format]
+        text = formatter(records[0].data)
+        print(text)
 
 
 # ----------------------------------------------------------------------------
@@ -698,18 +774,33 @@ def set_header(
 ) -> None:
     r"""Sets the header data record.
 
-    ``INFILE`` is the path of the input file; 'motorola' record type.
+    The header record is expected to be the first.
+    All other records are kept as-is.
+    No file-wise validation occurs.
+
+    ``INFILE`` is the path of the input file; 'srec' record type.
     Set to ``-`` to read from standard input.
 
     ``OUTFILE`` is the path of the output file.
     Set to ``-`` to write to standard output.
+    Leave empty to overwrite ``INFILE``.
     """
+
     parser = DATA_FMT_PARSERS[format]
-    data = parser(header)
-    record_type = _MotorolaRecord
-    records = record_type.load_records(infile)
-    records = record_type.set_header(records, data)
-    record_type.save_records(outfile, records)
+    header_data = parser(header)
+    file = SrecFile.load(infile)
+    records = _cast(List[SrecRecord], file.records)
+
+    if records and records[0].tag == 0:
+        record = records[0]
+        record.data = header_data
+        record.update_count()
+        record.update_checksum()
+    else:
+        record = SrecRecord.build_header(header_data)
+        records.insert(0, record)
+
+    file.save(outfile)
 
 
 # ----------------------------------------------------------------------------
@@ -724,17 +815,25 @@ def del_header(
 ) -> None:
     r"""Deletes the header data record.
 
-    ``INFILE`` is the path of the input file; 'motorola' record type.
+    The header record is expected to be the first.
+    All other records are kept as-is.
+    No file-wise validation occurs.
+
+    ``INFILE`` is the path of the input file; 'srec' record type.
     Set to ``-`` to read from standard input.
 
     ``OUTFILE`` is the path of the output file.
     Set to ``-`` to write to standard output.
+    Leave empty to overwrite ``INFILE``.
     """
-    record_type = _MotorolaRecord
-    records = record_type.load_records(infile)
-    header_tag = record_type.TAG_TYPE.HEADER
-    records = [r for r in records if r.tag != header_tag]
-    record_type.save_records(outfile, records)
+
+    file = SrecFile.load(infile)
+    records = file.records
+
+    if records and records[0].tag == 0:
+        del records[0]
+
+    file.save(outfile)
 
 
 # ----------------------------------------------------------------------------
@@ -842,8 +941,7 @@ Uses upper case hex letters on address and data.
 @click.option('-u', '--upper', 'upper', is_flag=True, help="""
 Uses upper case hex letters on data only.
 """)
-@click.option('-v', '--version', is_flag=True, is_eager=True,
-              expose_value=False,
+@click.option('-v', '--version', is_flag=True, is_eager=True, expose_value=False,
               callback=print_version, help="""
 Prints the package version number.
 """)
@@ -875,7 +973,8 @@ def xxd(
 
     Some parameters were changed to satisfy the POSIX-like command line parser.
     """
-    _xxd(
+
+    xxd_core(
         infile=infile,
         outfile=outfile,
         autoskip=autoskip,
