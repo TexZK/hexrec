@@ -60,7 +60,7 @@ from ..utils import unhexlify
 
 
 @enum.unique
-class Tag(_Tag):
+class Tag(_Tag):  # pragma: no cover  # TODO: remove
     r"""Intel HEX tag."""
 
     DATA = 0
@@ -90,7 +90,7 @@ class Tag(_Tag):
         return value == cls.DATA
 
 
-class Record(_Record):
+class Record(_Record):  # pragma: no cover  # TODO: remove
     r"""Intel HEX record.
 
     Attributes:
@@ -641,7 +641,7 @@ class IhexRecord(BaseRecord):
         b'(?P<tag>[0-9A-Fa-f]{2})'
         b'(?P<data>([0-9A-Fa-f]{2}){,255})'
         b'(?P<checksum>[0-9A-Fa-f]{2})'
-        b'(?P<after>[^\\r\\n]*)\\r?\\n$'
+        b'(?P<after>[^\\r\\n]*)\\r?\\n?$'
     )
     # TODO: __doc__
 
@@ -659,7 +659,7 @@ class IhexRecord(BaseRecord):
 
         size = len(data)
         if size > 0xFF:
-            raise ValueError('size overflow')
+            raise ValueError('data size overflow')
 
         record = cls(cls.TAG_TYPE.DATA, address=address, data=data)
         return record
@@ -724,10 +724,12 @@ class IhexRecord(BaseRecord):
         if self.count is None:
             raise ValueError('missing count')
 
-        sum_address = (self.address >> 8) + (self.address & 0xFF)
+        count = self.count & 0xFF
+        address = self.address & 0xFFFF
+        sum_address = (address >> 8) + (address & 0xFF)
         sum_data = sum(iter(self.data))
-        tag = _cast(IhexTag, self.tag)
-        checksum = (self.count + sum_address + tag + sum_data)
+        tag = _cast(IhexTag, self.tag) & 0xFF
+        checksum = (count + sum_address + tag + sum_data)
         checksum = (0x100 - (checksum & 0xFF)) & 0xFF
         return checksum
 
@@ -767,11 +769,11 @@ class IhexRecord(BaseRecord):
 
         bytestr = b'%s:%02X%04X%02X%s%02X%s%s' % (
             self.before,
-            self.count,
-            self.address,
-            _cast(IhexTag, self.tag),
+            self.count & 0xFF,
+            self.address & 0xFFFF,
+            _cast(IhexTag, self.tag) & 0xFF,
             binascii.hexlify(self.data).upper(),
-            self.checksum,
+            self.checksum & 0xFF,
             self.after,
             end,
         )
@@ -783,11 +785,11 @@ class IhexRecord(BaseRecord):
         return {
             'before': self.before,
             'begin': b':',
-            'count': b'%02X' % self.count,
-            'address': b'%04X' % self.address,
-            'tag': b'%02X' % _cast(IhexTag, self.tag),
+            'count': b'%02X' % (self.count & 0xFF),
+            'address': b'%04X' % (self.address & 0xFFFF),
+            'tag': b'%02X' % (_cast(IhexTag, self.tag) & 0xFF),
             'data': binascii.hexlify(self.data).upper(),
-            'checksum': b'%02X' % self.checksum,
+            'checksum': b'%02X' % (self.checksum & 0xFF),
             'after': self.after,
             'end': end,
         }
@@ -796,8 +798,8 @@ class IhexRecord(BaseRecord):
 
         super().validate()
 
-        if self.after and not self.after.isspace():
-            raise ValueError('junk after is not whitespace')
+        # if self.after and not self.after.isspace():
+        #     raise ValueError('junk after is not whitespace')
 
         if b':' in self.before:
             raise ValueError('junk before contains ":"')
@@ -822,24 +824,15 @@ class IhexRecord(BaseRecord):
 
         elif tag.is_start():
             if data_size != 4:
-                raise ValueError('start address size')
-            startaddr = self.data_to_int()
-            if not 0 <= startaddr <= 0xFFFFFFFF:
-                raise ValueError('start address overflow')
+                raise ValueError('start address data size overflow')
 
         elif tag.is_extension():
             if data_size != 2:
-                raise ValueError('extension size')
-            extension = self.data_to_int()
-            if not 0 <= extension <= 0xFFFF:
-                raise ValueError('extension overflow')
+                raise ValueError('extension data size overflow')
 
-        elif tag.is_eof():
+        else:  # elif tag.is_eof():
             if data_size:
                 raise ValueError('end of file record data')
-
-        else:
-            raise ValueError('unsupported tag')
 
         return self
 
@@ -867,7 +860,7 @@ class IhexFile(BaseFile):
         super().__init__()
 
         self._linear: bool = True
-        self._startaddr: int = 0
+        self._startaddr: Optional[int] = None
 
     def apply_records(self) -> 'IhexFile':
 
@@ -910,6 +903,8 @@ class IhexFile(BaseFile):
     @property
     def linear(self) -> bool:
 
+        if self._memory is None:
+            self.apply_records()
         return self._linear
 
     @linear.setter
@@ -1008,8 +1003,9 @@ class IhexFile(BaseFile):
     def validate_records(
         self,
         data_ordering: bool = False,
-        startaddr_required: bool = True,
-        startaddr_within_data: bool = False,
+        start_required: bool = False,
+        start_penultimate: bool = True,
+        start_within_data: bool = False,
     ) -> 'IhexFile':
         # TODO: __doc__
 
@@ -1041,27 +1037,25 @@ class IhexFile(BaseFile):
                     extension = record.data_to_int() << 4
 
             if tag == tag.END_OF_FILE:
-                if eof_record is not None:
-                    raise ValueError('multiple end of file records')
-                eof_record = record
-
                 if index != len(records) - 1:
                     raise ValueError('end of file record not last')
+                eof_record = record
 
-            if startaddr_required:
-                if tag.is_start():
-                    if start_record is not None:
-                        raise ValueError('multiple start records')
-                    start_record = record
+            if tag.is_start():
+                if start_penultimate:
+                    if index != len(records) - 2:
+                        raise ValueError('start record not penultimate')
+                start_record = record
 
         if eof_record is None:
             raise ValueError('missing end of file record')
 
-        if startaddr_required:
+        if start_required:
             if start_record is None:
                 raise ValueError('missing start record')
 
-            if startaddr_within_data:
+        if start_within_data:
+            if start_record is not None:
                 startaddr = start_record.data_to_int()
                 start_datum = self.memory.peek(startaddr)
                 if start_datum is None:

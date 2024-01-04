@@ -56,7 +56,7 @@ from ..utils import hexlify
 from ..utils import unhexlify
 
 
-class Record(_Record):
+class Record(_Record):  # pragma: no cover
     r"""ASCII-hex record.
 
     Attributes:
@@ -434,15 +434,12 @@ class AsciiHexRecord(BaseRecord):
         record = cls(cls.TAG_TYPE.DATA, data=data)
         return record
 
-    def compute_checksum(self) -> int:
-
-        return 0  # unused
-
-    def compute_count(self) -> int:
+    def compute_count(self) -> Optional[int]:
 
         if self.tag == self.TAG_TYPE.ADDRESS_DATA:
             return self.count  # loopback
-        return 0  # unused
+        else:
+            return None
 
     @classmethod
     def parse(
@@ -501,7 +498,7 @@ class AsciiHexRecord(BaseRecord):
         datastr = b''
 
         if tag == tag.ADDRESS_DATA:
-            addrstr = (b'$A%%0%dX' % self.count) % self.address
+            addrstr = (b'$A%%0%dX' % self.count) % (self.address & 0xFFFFFFFF)
 
         if self.data:
             datastr = binascii.hexlify(self.data, exechar).upper()
@@ -527,7 +524,7 @@ class AsciiHexRecord(BaseRecord):
         datastr = b''
 
         if tag == tag.ADDRESS_DATA:
-            addrstr = (b'$A%%0%dX' % self.count) % self.address
+            addrstr = (b'$A%%0%dX' % self.count) % (self.address & 0xFFFFFFFF)
 
         if self.data:
             datastr = binascii.hexlify(self.data, exechar).upper()

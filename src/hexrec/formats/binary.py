@@ -52,7 +52,7 @@ from ..utils import hexlify
 from ..utils import unhexlify
 
 
-class Record(_Record):
+class Record(_Record):  # pragma: no cover
     r"""Binary record.
 
     This record type is actually just a container for binary data.
@@ -317,14 +317,6 @@ class RawRecord(BaseRecord):
         record = cls(cls.TAG_TYPE.DATA, address=address, data=data)
         return record
 
-    def compute_checksum(self) -> int:
-
-        return 0  # unused
-
-    def compute_count(self) -> int:
-
-        return 0  # unused
-
     @classmethod
     def parse(cls, line: AnyBytes, address: int = 0) -> 'RawRecord':
 
@@ -355,21 +347,28 @@ class RawFile(BaseFile):
     RECORD_TYPE: Type[RawRecord] = RawRecord
 
     @classmethod
+    def _is_line_empty(cls, line: AnyBytes) -> bool:
+
+        return not line
+
+    @classmethod
     def parse(
         cls,
         stream: IO,
         ignore_errors: bool = False,
         maxdatalen: int = sys.maxsize,
+        address: int = 0,
     ) -> 'RawFile':
         # TODO: __doc__
 
         maxdatalen = maxdatalen.__index__()
         if maxdatalen < 1:
             raise ValueError('invalid maximum data length')
+        if maxdatalen == sys.maxsize:
+            maxdatalen = -1
 
         records = []
         record_type = cls.RECORD_TYPE
-        address = 0
 
         chunk = b'...'
         while chunk:
@@ -425,11 +424,13 @@ class RawFile(BaseFile):
         if self._records is None:
             raise ValueError('records required')
 
-        last_data_end = 0
+        last_data_end = None
 
         for record in self._records:
             record.validate()
             address = record.address
+            if last_data_end is None:
+                last_data_end = address
 
             if data_contiguity and address != last_data_end:
                 raise ValueError('data not contiguous')

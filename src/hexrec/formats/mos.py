@@ -31,6 +31,7 @@ See Also:
 
 import binascii
 import enum
+import io
 import re
 from typing import IO
 from typing import Any
@@ -56,7 +57,7 @@ from ..utils import hexlify
 from ..utils import unhexlify
 
 
-class Record(_Record):
+class Record(_Record):  # pragma: no cover
     r"""MOS Technology record.
 
     Attributes:
@@ -387,11 +388,12 @@ class MosRecord(BaseRecord):
     TAG_TYPE: Type[MosTag] = MosTag
 
     LINE_REGEX = re.compile(
-        b'^(?P<before>[^;]*);'
+        b'^\0*(?P<before>[^;]*);'
+        b'(?P<count>[0-9A-Fa-f]{2})'
         b'(?P<address>[0-9A-Fa-f]{4})'
         b'(?P<data>([0-9A-Fa-f]{2}){,255})'
         b'(?P<checksum>[0-9A-Fa-f]{4})'
-        b'(?P<after>[^\\r\\n]*)\\r?\\n\x00*$'
+        b'(?P<after>[^\\r\\n]*)\\r?\\n?\0*$'
     )
     # TODO: __doc__
 
@@ -433,9 +435,11 @@ class MosRecord(BaseRecord):
         if self.count is None:
             raise ValueError('missing count')
 
-        sum_address = (self.address >> 8) + (self.address & 0xFF)
+        count = self.count & 0xFF
+        address = self.address & 0xFFFF
+        sum_address = (address >> 8) + (address & 0xFF)
         sum_data = sum(iter(self.data))
-        checksum = (self.count + sum_address + sum_data) & 0xFFFF
+        checksum = (count + sum_address + sum_data) & 0xFFFF
         return checksum
 
     def compute_count(self) -> int:
@@ -478,10 +482,10 @@ class MosRecord(BaseRecord):
 
         line = b'%s;%02X%04X%s%04X%s%s%s' % (
             self.before,
-            self.count,
-            self.address,
+            self.count & 0xFF,
+            self.address & 0xFFFF,
             binascii.hexlify(self.data).upper(),
-            self.checksum,
+            self.checksum & 0xFFFF,
             self.after,
             end,
             nulstr,
@@ -500,10 +504,10 @@ class MosRecord(BaseRecord):
         return {
             'before': self.before,
             'begin': b';',
-            'count': b'%02X' % self.count,
-            'address': b'%04X' % self.address,
+            'count': b'%02X' % (self.count & 0xFF),
+            'address': b'%04X' % (self.address & 0xFFFF),
             'data': binascii.hexlify(self.data).upper(),
-            'checksum': b'%04X' % self.checksum,
+            'checksum': b'%04X' % (self.checksum & 0xFFFF),
             'after': self.after,
             'end': end,
             'nuls': nulstr,
@@ -542,6 +546,13 @@ class MosFile(BaseFile):
     RECORD_TYPE: Type[MosRecord] = MosRecord
 
     @classmethod
+    def _is_line_empty(cls, line: AnyBytes) -> bool:
+
+        if b'\0' in line:
+            line = line.replace(b'\0', b'')
+        return not line or line.isspace()
+
+    @classmethod
     def parse(
         cls,
         stream: IO,
@@ -549,6 +560,23 @@ class MosFile(BaseFile):
         eof_record: bool = True,
     ) -> 'MosFile':
         # TODO: __doc__
+
+        data = stream.read()
+        data = _cast(bytes, data)
+
+        start = data.find(b';')
+        if start < 0:
+            start = len(data)
+
+        endex = data.find(b'\x13')
+        if endex < 0:
+            endex = len(data)
+
+        if start > endex:
+            start = endex
+
+        data = data[start:endex]
+        stream = io.BytesIO(data)
 
         file = super().parse(stream, ignore_errors=ignore_errors)
         file = _cast(MosFile, file)
@@ -564,13 +592,14 @@ class MosFile(BaseFile):
     def serialize(
         self,
         stream: IO,
+        end: AnyBytes = b'\r\n',
         nuls: bool = True,
         xoff: bool = True,
     ) -> 'BaseFile':
         # TODO: __doc__
 
         for record in self.records:
-            record.serialize(stream, nuls=nuls)
+            record.serialize(stream, end=end, nuls=nuls)
 
         if xoff:
             stream.write(b'\x13')
@@ -636,8 +665,6 @@ class MosFile(BaseFile):
                     last_data_endex = address + len(record.data)
 
             if tag == tag.EOF:
-                if eof_record is not None:
-                    raise ValueError('multiple end of file records')
                 eof_record = record
 
                 expected_eof_index = len(records) - 1
@@ -646,8 +673,6 @@ class MosFile(BaseFile):
 
                 if record.address != expected_eof_index:
                     raise ValueError('wrong record count as address')
-                if record.checksum != expected_eof_index:
-                    raise ValueError('wrong record count as checksum')
 
         if eof_record_required and eof_record is None:
             raise ValueError('missing end of file record')

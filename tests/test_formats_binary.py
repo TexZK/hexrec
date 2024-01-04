@@ -1,21 +1,20 @@
 # -*- coding: utf-8 -*-
+import io
 import os
 from pathlib import Path
 
 import pytest
 
-from hexrec.formats.binary import Record
+from bytesparse import Memory
+from hexrec.formats.binary import RawFile
+from hexrec.formats.binary import RawRecord
+from hexrec.formats.binary import RawTag
 
 BYTES = bytes(range(256))
 HEXBYTES = bytes(range(16))
 
 
 # ============================================================================
-
-@pytest.fixture
-def tmppath(tmpdir):
-    return Path(str(tmpdir))
-
 
 @pytest.fixture(scope='module')
 def datadir(request):
@@ -31,130 +30,205 @@ def datapath(datadir):
 
 # ============================================================================
 
-def read_text(path):
-    path = str(path)
-    with open(path, 'rt') as file:
-        data = file.read()
-    data = data.replace('\r\n', '\n').replace('\r', '\n')  # normalize
-    return data
-
-
-# ============================================================================
-
-def normalize_whitespace(text):
-    return ' '.join(text.split())
-
-
-def test_normalize_whitespace():
-    ans_ref = 'abc def'
-    ans_out = normalize_whitespace('abc\tdef')
-    assert ans_ref == ans_out
-
-
-# ============================================================================
-
-class TestRecord:
-
-    def test_build_data_doctest(self):
-        record = Record.build_data(0x1234, b'Hello, World!')
-        ans_out = normalize_whitespace(repr(record))
-        ans_ref = normalize_whitespace('''
-        Record(address=0x00001234, tag=None, count=13,
-               data=b'Hello, World!', checksum=0x69)
-        ''')
-        assert ans_out == ans_ref
-
-    def test_parse_doctest(self):
-        line = '48656C6C 6F2C2057 6F726C64 21'
-        record = Record.parse_record(line)
-        ans_out = normalize_whitespace(repr(record))
-        ans_ref = normalize_whitespace('''
-        Record(address=0x00000000, tag=None, count=13,
-               data=b'Hello, World!', checksum=0x69)
-        ''')
-        assert ans_out == ans_ref
+class TestRawTag:
 
     def test_is_data(self):
-        assert Record.build_data(0, b'').is_data()
+        tag = RawTag(...)
+        assert tag is RawTag.DATA
+        assert tag.is_data()
 
-    def test_check(self):
-        with pytest.raises(ValueError):
-            Record(-1, None, b'Hello, World!').check()
 
-        record = Record(0, None, b'')
-        record.data = None
-        with pytest.raises(ValueError):
-            record.check()
+# ----------------------------------------------------------------------------
 
-        record = Record(0, None, b'Hello, World!')
-        record.checksum = None
-        record.check()
+class TestRawRecord:
 
-        record = Record(0, None, b'Hello, World!')
-        record.checksum = -1
-        with pytest.raises(ValueError):
-            record.check()
+    def test_build_data(self):
+        record = RawRecord.build_data(123, b'abc')
+        record.validate()
+        assert record.tag == RawTag.DATA
+        assert record.address == 123
+        assert record.data == b'abc'
 
-        record = Record(0, None, b'Hello, World!')
-        record.checksum = 256
-        with pytest.raises(ValueError):
-            record.check()
+        record = RawRecord.build_data(0, b'abc')
+        record.validate()
+        assert record.tag == RawTag.DATA
+        assert record.address == 0
+        assert record.data == b'abc'
 
-        record = Record(0, None, b'')
-        record.checksum ^= 0xFF
-        with pytest.raises(ValueError):
-            record.check()
+        record = RawRecord.build_data(123, b'')
+        record.validate()
+        assert record.tag == RawTag.DATA
+        assert record.address == 123
+        assert record.data == b''
 
-        record = Record(0, None, b'')
-        record.tag = -1
-        with pytest.raises(ValueError):
-            record.check()
+        with pytest.raises(ValueError, match='address overflow'):
+            RawRecord.build_data(-1, b'abc')
 
-        record = Record(0, None, b'')
+    def test_compute_checksum(self):
+        record = RawRecord.build_data(123, b'abc')
+        assert record.compute_checksum() is None
+
+    def test_compute_count(self):
+        record = RawRecord.build_data(123, b'abc')
+        assert record.compute_count() is None
+
+    def test_parse(self):
+        record = RawRecord.parse(b'abc')
+        assert record.tag == RawTag.DATA
+        assert record.address == 0
+        assert record.data == b'abc'
+
+        record = RawRecord.parse(b'abc', address=123)
+        assert record.tag == RawTag.DATA
+        assert record.address == 123
+        assert record.data == b'abc'
+
+    def test_to_bytestr(self):
+        record = RawRecord.build_data(123, b'abc')
+        assert record.to_bytestr() == b'abc'
+
         record.count = -1
-        with pytest.raises(ValueError):
-            record.check()
+        with pytest.raises(ValueError, match='count overflow'):
+            record.to_bytestr()
 
-    def test_split(self):
-        with pytest.raises(ValueError):
-            list(Record.split(b'', -1))
+    def test_to_tokens(self):
+        record = RawRecord.build_data(123, b'abc')
+        tokens = record.to_tokens()
+        assert len(tokens) == 1
+        assert tokens['data'] == b'abc'
 
-        with pytest.raises(ValueError):
-            list(Record.split(b'', 1 << 32))
+        record.count = -1
+        with pytest.raises(ValueError, match='count overflow'):
+            record.to_bytestr()
 
-        with pytest.raises(ValueError):
-            list(Record.split(b'abc', (1 << 32) - 1))
 
-        ans_out = list(Record.split(BYTES))
-        ans_ref = [Record.build_data(0, BYTES)]
-        assert ans_out == ans_ref
+# ----------------------------------------------------------------------------
 
-        ans_out = list(Record.split(BYTES, columns=8))
-        ans_ref = [Record.build_data(offset, BYTES[offset:(offset + 8)])
-                   for offset in range(0, 256, 8)]
-        assert ans_out == ans_ref
+class TestRawFile:
 
-        ans_out = list(Record.split(HEXBYTES, standalone=False,
-                                    address=7, columns=5, align=3))
-        ans_ref = [
-            Record.build_data(7, HEXBYTES[:4]),
-            Record.build_data(11, HEXBYTES[4:9]),
-            Record.build_data(16, HEXBYTES[9:14]),
-            Record.build_data(21, HEXBYTES[14:]),
-        ]
-        assert ans_out == ans_ref
+    def test__is_line_empty(self):
+        assert RawFile._is_line_empty(b'')
 
-    def test_load_records(self, datapath):
-        path_ref = datapath / 'hexbytes.bin'
-        ans_out = list(Record.load_records(str(path_ref)))
-        ans_ref = [Record.build_data(0, HEXBYTES)]
-        assert ans_out == ans_ref
+        assert not RawFile._is_line_empty(b' ')
+        assert not RawFile._is_line_empty(b'\r\n')
+        assert not RawFile._is_line_empty(b'0')
 
-    def test_save_records(self, tmppath, datapath):
-        path_out = tmppath / 'hexbytes.bin'
-        path_ref = datapath / 'hexbytes.bin'
-        records = [Record.build_data(0, HEXBYTES)]
-        Record.save_records(str(path_out), records)
-        ans_out = read_text(path_out)
-        ans_ref = read_text(path_ref)
-        assert ans_out == ans_ref
+    def test_parse_bytes(self):
+        with io.BytesIO(BYTES) as stream:
+            file = RawFile.parse(stream)
+        assert len(file.records) == 1
+        assert file.memory == BYTES
+
+    def test_parse_chunks(self):
+        with io.BytesIO(BYTES) as stream:
+            file = RawFile.parse(stream, maxdatalen=16, address=0x1000)
+        assert len(file.records) == 16
+        assert file.memory == BYTES
+
+        for index, record in enumerate(file.records):
+            assert record.tag == RawTag.DATA
+            offset = index * 16
+            assert record.address == 0x1000 + offset
+            assert len(record.data) == 16
+            assert record.data == BYTES[offset:(offset + 16)]
+
+    def test_parse_empty(self):
+        with io.BytesIO(b'') as stream:
+            file = RawFile.parse(stream)
+        assert len(file.records) == 0
+        assert file.memory == b''
+
+    def test_parse_file(self, datapath):
+        path = str(datapath / 'hexbytes.bin')
+        with open(path, 'rb') as stream:
+            file = RawFile.parse(stream)
+        assert len(file.records) == 1
+        assert file.memory == HEXBYTES
+
+    def test_parse_raises(self):
+        with pytest.raises(ValueError, match='invalid maximum data length'):
+            with io.BytesIO(BYTES) as stream:
+                RawFile.parse(stream, maxdatalen=0)
+
+        with pytest.raises(ValueError, match='invalid maximum data length'):
+            with io.BytesIO(BYTES) as stream:
+                RawFile.parse(stream, maxdatalen=-1)
+
+    def test_update_records_bytes(self):
+        memory = Memory.from_bytes(BYTES, offset=0x1000)
+        file = RawFile.from_memory(memory, maxdatalen=16)
+        file.update_records()
+        assert len(file.records) == 16
+        assert all(r.tag == RawTag.DATA for r in file.records)
+
+    def test_update_records_empty(self):
+        file = RawFile.from_memory(maxdatalen=16)
+        file.update_records()
+        assert len(file.records) == 0
+
+    def test_update_records_raises_hole(self):
+        memory = Memory.from_bytes(BYTES)
+        memory.clear(start=16, endex=32)
+        file = RawFile.from_memory(memory, maxdatalen=16)
+        with pytest.raises(ValueError, match='contiguous'):
+            file.update_records()
+
+    def test_update_records_raises_memory(self):
+        records = [RawRecord.build_data(123, b'abc')]
+        file = RawFile.from_records(records)
+        with pytest.raises(ValueError, match='memory instance required'):
+            file.update_records()
+
+    def test_validate_records_contiguity(self):
+        records = [RawRecord.build_data(10, b'abc'),
+                   RawRecord.build_data(13, b'xyz')]
+        file = RawFile.from_records(records)
+        file.validate_records(data_contiguity=True, data_ordering=False)
+
+    def test_validate_records_ordering(self):
+        records = [RawRecord.build_data(10, b'abc'),
+                   RawRecord.build_data(13, b'xyz')]
+        file = RawFile.from_records(records)
+        file.validate_records(data_contiguity=False, data_ordering=True)
+
+        records = [RawRecord.build_data(10, b'abc'),
+                   RawRecord.build_data(14, b'xyz')]
+        file = RawFile.from_records(records)
+        file.validate_records(data_contiguity=False, data_ordering=True)
+
+    def test_validate_records_raises_contiguity(self):
+        records = [RawRecord.build_data(123, b'abc'),
+                   RawRecord.build_data(456, b'xyz')]
+        file = RawFile.from_records(records)
+        with pytest.raises(ValueError, match='contiguous'):
+            file.validate_records(data_contiguity=True, data_ordering=False)
+
+    def test_validate_records_raises_ordering(self):
+        records = [RawRecord.build_data(14, b'xyz'),
+                   RawRecord.build_data(10, b'abc')]
+        file = RawFile.from_records(records)
+        with pytest.raises(ValueError, match='unordered data record'):
+            file.validate_records(data_contiguity=False, data_ordering=True)
+
+        records = [RawRecord.build_data(13, b'xyz'),
+                   RawRecord.build_data(10, b'abc')]
+        file = RawFile.from_records(records)
+        with pytest.raises(ValueError, match='unordered data record'):
+            file.validate_records(data_contiguity=False, data_ordering=True)
+
+        records = [RawRecord.build_data(10, b'abc'),
+                   RawRecord.build_data(10, b'xyz')]
+        file = RawFile.from_records(records)
+        with pytest.raises(ValueError, match='unordered data record'):
+            file.validate_records(data_contiguity=False, data_ordering=True)
+
+        records = [RawRecord.build_data(10, b'abc'),
+                   RawRecord.build_data(12, b'xyz')]
+        file = RawFile.from_records(records)
+        with pytest.raises(ValueError, match='unordered data record'):
+            file.validate_records(data_contiguity=False, data_ordering=True)
+
+    def test_validate_records_raises_records(self):
+        file = RawFile.from_memory(maxdatalen=16)
+        with pytest.raises(ValueError, match='records required'):
+            file.validate_records(data_contiguity=False, data_ordering=False)

@@ -57,7 +57,7 @@ from ..utils import unhexlify
 
 
 @enum.unique
-class Tag(_Tag):
+class Tag(_Tag):  # pragma: no cover
     DATA = 6
     TERMINATOR = 8
 
@@ -70,7 +70,7 @@ class Tag(_Tag):
         return value == cls.DATA
 
 
-class Record(_Record):
+class Record(_Record):  # pragma: no cover
     r"""Tektronix extended HEX record.
 
     Attributes:
@@ -446,7 +446,7 @@ class TekExtRecord(BaseRecord):
         return cls(cls.TAG_TYPE.EOF, address=address, data=data, addrlen=addrlen)
 
     @classmethod
-    def build_end_of_file(
+    def build_eof(
         cls,
         start: int = 0,
         addrlen: int = 8,
@@ -546,11 +546,11 @@ class TekExtRecord(BaseRecord):
 
         bytestr = b'%s%%%02X%X%02X%X%s%s%s%s' % (
             self.before,
-            self.count,
-            _cast(TekExtTag, self.tag),
-            self.checksum,
-            self.addrlen,
-            (b'%%0%dX' % self.addrlen) % self.addrlen,
+            self.count & 0xFF,
+            _cast(TekExtTag, self.tag) & 0xF,
+            self.checksum & 0xFF,
+            self.addrlen & 0xF,
+            (b'%%0%dX' % self.addrlen) % (self.address & 0xFFFFFFFF),
             binascii.hexlify(self.data).upper(),
             self.after,
             end,
@@ -563,17 +563,16 @@ class TekExtRecord(BaseRecord):
         return {
             'before': self.before,
             'begin': b'%',
-            'count': b'%02X' % self.count,
-            'tag': b'%X' % _cast(TekExtTag, self.tag),
-            'checksum': b'%02X' % self.checksum,
-            'addrlen': b'%X' % self.addrlen,
-            'address': (b'%%0%dX' % self.addrlen) % self.addrlen,
+            'count': b'%02X' % (self.count & 0xFF),
+            'tag': b'%X' % (_cast(TekExtTag, self.tag) & 0xF),
+            'checksum': b'%02X' % (self.checksum & 0xFF),
+            'addrlen': b'%X' % (self.addrlen & 0xF),
+            'address': (b'%%0%dX' % self.addrlen) % (self.address & 0xFFFFFFFF),
             'data': binascii.hexlify(self.data).upper(),
             'after': self.after,
             'end': end,
         }
 
-    # TODO: validate()
     def validate(self) -> 'TekExtRecord':
 
         super().validate()
@@ -630,6 +629,7 @@ class TekExtFile(BaseFile):
 
         self._startaddr: int = 0
 
+    @classmethod
     def parse(cls, stream: IO, ignore_errors: bool = False) -> 'TekExtFile':
 
         file = super().parse(stream, ignore_errors=ignore_errors)
@@ -679,7 +679,7 @@ class TekExtFile(BaseFile):
                 record = record_type.build_data(chunk_start, data, addrlen=addrlen)
                 records.append(record)
 
-            record = record_type.build_end_of_file(self.startaddr, addrlen=addrlen)
+            record = record_type.build_eof(self.startaddr, addrlen=addrlen)
             records.append(record)
 
         finally:

@@ -61,7 +61,7 @@ from ..utils import unhexlify
 
 
 @enum.unique
-class Tag(_Tag):
+class Tag(_Tag):  # pragma: no cover
     r"""Motorola S-record tag."""
 
     HEADER = 0
@@ -103,7 +103,7 @@ class Tag(_Tag):
         return 1 <= value <= 3
 
 
-class Record(_Record):
+class Record(_Record):  # pragma: no cover
     r"""Motorola S-record.
 
     Attributes:
@@ -921,6 +921,12 @@ class SrecTag(BaseTag, enum.IntEnum):
         size = SIZES[self]
         return size
 
+    def get_data_max(self) -> Optional[int]:
+        # TODO: __doc__
+
+        size = 0xFE - self.get_address_size()
+        return size
+
     def get_tag_match(self) -> Optional['SrecTag']:
         # TODO: __doc__
 
@@ -966,7 +972,7 @@ class SrecRecord(BaseRecord):
     TAG_TYPE: Type[SrecTag] = SrecTag
 
     LINE1_REGEX = re.compile(
-        b'^(?P<before>[^S]*)S'
+        b'^(?P<before>\\s*)[Ss]'
         b'(?P<tag>[0-9A-Fa-f])'
         b'(?P<count>[0-9A-Fa-f]{2})'
     )
@@ -978,9 +984,9 @@ class SrecRecord(BaseRecord):
     # TODO: __doc__
 
     LINE3_REGEX = re.compile(
-        b'^(?P<data>([0-9A-Fa-f]{2}){,252})'
+        b'^(?P<data>([0-9A-Fa-f]{2})*)'
         b'(?P<checksum>[0-9A-Fa-f]{2})'
-        b'(?P<after>[^\\r\\n]*)\\r?\\n$'
+        b'(?P<after>[^\\r\\n]*)\\r?\\n?$'
     )
     # TODO: __doc__
 
@@ -1024,12 +1030,18 @@ class SrecRecord(BaseRecord):
         if not 0 <= address <= tag.get_address_max():
             raise ValueError('address overflow')
 
+        if len(data) > tag.get_data_max():
+            raise ValueError('data size overflow')
+
         record = cls(tag, address=address, data=data)
         return record
 
     @classmethod
-    def build_header(cls, data: AnyBytes) -> 'SrecRecord':
+    def build_header(cls, data: AnyBytes = b'') -> 'SrecRecord':
         # TODO: __doc__
+
+        if len(data) > 0xFC:
+            raise ValueError('data size overflow')
 
         tag_type = cls.TAG_TYPE
         record = cls(tag_type.HEADER, data=data)
@@ -1038,7 +1050,7 @@ class SrecRecord(BaseRecord):
     @classmethod
     def build_start(
         cls,
-        address: int,
+        address: int = 0,
         tag: Optional[SrecTag] = None,
     ) -> 'SrecRecord':
         # TODO: __doc__
@@ -1051,15 +1063,15 @@ class SrecRecord(BaseRecord):
                 raise ValueError('invalid start tag')
 
         if not 0 <= address <= tag.get_address_max():
-            raise ValueError('start address overflow')
+            raise ValueError('address overflow')
 
         record = cls(tag, address=address)
         return record
 
     def compute_checksum(self) -> int:
 
-        checksum = self.count
-        address = self.address
+        checksum = self.count & 0xFF
+        address = self.address & 0xFFFFFFFF
         while address > 0:
             checksum += address & 0xFF
             address >>= 8
@@ -1122,11 +1134,11 @@ class SrecRecord(BaseRecord):
 
         bytestr = b'%sS%X%02X%s%s%02X%s%s' % (
             self.before,
-            tag,
-            self.count,
-            addrfmt % self.address,
+            tag & 0xF,
+            self.count & 0xFF,
+            addrfmt % (self.address & 0xFFFFFFFF),
             binascii.hexlify(self.data).upper(),
-            self.checksum,
+            self.checksum & 0xFF,
             self.after,
             end,
         )
@@ -1141,11 +1153,11 @@ class SrecRecord(BaseRecord):
         return {
             'before': self.before,
             'begin': b'S',
-            'tag': b'%X' % tag,
-            'count': b'%02X' % self.count,
-            'address': addrfmt % self.address,
+            'tag': b'%X' % (tag & 0xF),
+            'count': b'%02X' % (self.count & 0xFF),
+            'address': addrfmt % (self.address & 0xFFFFFFFF),
             'data': binascii.hexlify(self.data).upper(),
-            'checksum': b'%02X' % self.checksum,
+            'checksum': b'%02X' % (self.checksum & 0xFF),
             'after': self.after,
             'end': end,
         }
@@ -1155,8 +1167,8 @@ class SrecRecord(BaseRecord):
         super().validate()
         address = self.address
 
-        if self.after and not self.after.isspace():
-            raise ValueError('junk after')
+        # if self.after and not self.after.isspace():
+        #     raise ValueError('junk after')
 
         if self.before and not self.before.isspace():
             raise ValueError('junk before')
@@ -1173,19 +1185,15 @@ class SrecRecord(BaseRecord):
             raise ValueError('reserved tag')
 
         data_size = len(self.data)
-        address_max = tag.get_address_max()
 
         if not tag_type.HEADER <= tag <= tag_type.DATA_32:
             if data_size:
                 raise ValueError('unexpected data')
 
-            if tag == tag_type.HEADER:
-                address_max = 0
-
-        if data_size > 0xFF:
+        if data_size > tag.get_data_max():
             raise ValueError('data size overflow')
 
-        if not 0 <= address <= address_max:
+        if not 0 <= address <= tag.get_address_max():
             raise ValueError('address overflow')
 
         return self
@@ -1254,7 +1262,11 @@ class SrecFile(BaseFile):
         self._header = header
 
     @classmethod
-    def parse(cls, stream: IO, ignore_errors: bool = False) -> 'SrecFile':
+    def parse(
+        cls, stream: IO,
+        ignore_errors: bool = False,
+        # TODO: ignore_after_termination: bool = True,
+    ) -> 'SrecFile':
 
         file = super().parse(stream, ignore_errors=ignore_errors)
         return _cast(SrecFile, file)
@@ -1281,6 +1293,7 @@ class SrecFile(BaseFile):
         self,
         align: bool = True,
         header: bool = True,
+        data: bool = False,
         count: bool = True,
         start: bool = True,
         data_tag: Optional[SrecTag] = None,
@@ -1311,7 +1324,7 @@ class SrecFile(BaseFile):
                 records.append(record)
                 data_record_count += 1
 
-            if not data_record_count:
+            if data and not data_record_count:
                 record = record_type.build_data(0, b'', tag=data_tag)
                 records.append(record)
                 data_record_count += 1
@@ -1338,10 +1351,13 @@ class SrecFile(BaseFile):
     def validate_records(
         self,
         header_required: bool = False,
+        header_first: bool = True,
         data_ordering: bool = False,
         data_uniform: bool = True,
         count_required: bool = False,
-        startaddr_within_data: bool = False,
+        count_penultimate: bool = True,
+        start_last: bool = True,
+        start_within_data: bool = False,
     ) -> 'SrecFile':
         # TODO: __doc__
 
@@ -1349,6 +1365,7 @@ class SrecFile(BaseFile):
         if records is None:
             raise ValueError('records required')
 
+        header_record = None
         start_record = None
         count_record = None
         last_data_endex = 0
@@ -1383,20 +1400,28 @@ class SrecFile(BaseFile):
                 if record.address != data_count:
                     raise ValueError('wrong data record count')
 
-                if index != len(records) - 2:
-                    raise ValueError('count record not penultimate')
+                if count_penultimate:
+                    if index != len(records) - 2:
+                        raise ValueError('count record not penultimate')
 
             elif tag.is_start():
                 if start_record is not None:
                     raise ValueError('multiple start records')
                 start_record = record
 
-                if index != len(records) - 1:
-                    raise ValueError('count record not last')
+                if start_last:
+                    if index != len(records) - 1:
+                        raise ValueError('start record not last')
 
-            elif tag.is_header():
-                if index:
-                    raise ValueError('header record not first')
+            else:  # elif tag.is_header():
+                if header_first:
+                    if index != 0:
+                        raise ValueError('header record not first')
+                header_record = record
+
+        if header_required:
+            if header_record is None:
+                raise ValueError('missing header record')
 
         if count_required:
             if count_record is None:
@@ -1405,8 +1430,8 @@ class SrecFile(BaseFile):
         if start_record is None:
             raise ValueError('missing start record')
 
-        if startaddr_within_data:
-            startaddr = start_record.data_to_int()
+        if start_within_data:
+            startaddr = start_record.address
             start_datum = self.memory.peek(startaddr)
             if start_datum is None:
                 raise ValueError('no data at start address')

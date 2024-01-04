@@ -89,11 +89,17 @@ def colorize_tokens(
             if key == 'data' and altdata:
                 altcode = TOKEN_COLOR_CODES['dataalt']
                 buffer = bytearray()
+                length = len(value)
+                i = 0
 
-                for i in range(0, len(value), 2):
+                for i in range(0, length - 1, 2):
                     buffer.extend(altcode if i & 2 else code)
                     buffer.append(value[i])
                     buffer.append(value[i + 1])
+
+                if length & 1:
+                    buffer.extend(altcode if i & 2 else code)
+                    buffer.append(value[i])
 
                 colorized[key] = bytes(buffer)
             else:
@@ -163,6 +169,15 @@ class BaseTag:
 class BaseRecord(abc.ABC):
     # TODO: __doc__
 
+    EQUALITY_KEYS: Sequence[str] = [
+        'address',
+        'checksum',
+        'count',
+        'data',
+        'tag',
+    ]
+    # TODO: __doc__
+
     META_KEYS: Sequence[str] = [
         'address',
         'after',
@@ -173,6 +188,7 @@ class BaseRecord(abc.ABC):
         'data',
         'tag',
     ]
+    # TODO: __doc__
 
     TAG_TYPE: Type[BaseTag] = None  # override
     # TODO: __doc__
@@ -181,6 +197,11 @@ class BaseRecord(abc.ABC):
         # TODO: __doc__
 
         return self.to_bytestr()
+
+    def __eq__(self, other: 'BaseRecord') -> bool:
+        # TODO: __doc__
+
+        return not self != other
 
     def __init__(
         self,
@@ -213,20 +234,42 @@ class BaseRecord(abc.ABC):
         elif checksum is not None:
             self.checksum = checksum.__index__()
 
+    def __ne__(self, other: 'BaseRecord') -> bool:
+        # TODO: __doc__
+
+        for key in self.EQUALITY_KEYS:
+            if not hasattr(other, key):
+                return True
+            self_value = getattr(self, key)
+            other_value = getattr(other, key)
+            if self_value != other_value:
+                return True
+
+        return False
+
+    def __repr__(self) -> str:
+        # TODO: __doc__
+
+        tokens = self.to_tokens()
+        text = f'<{self.__class__!s} @0x{id(self):08X} '
+        text += ' '.join(f'{key!s}:={value!r}' for key, value in tokens.items())
+        text += '>'
+        return text
+
     def __str__(self) -> str:
         # TODO: __doc__
 
         return self.to_bytestr().decode()
 
-    @abc.abstractmethod
-    def compute_checksum(self) -> int:
+    def compute_checksum(self) -> Optional[int]:
         # TODO: __doc__
-        ...
 
-    @abc.abstractmethod
-    def compute_count(self) -> int:
+        return None
+
+    def compute_count(self) -> Optional[int]:
         # TODO: __doc__
-        ...
+
+        return None
 
     def copy(self) -> 'BaseRecord':  # shallow
         # TODO: __doc__
@@ -304,28 +347,24 @@ class BaseRecord(abc.ABC):
         # TODO: __doc__
 
         if self.address < 0:
-            raise ValueError('negative address')
+            raise ValueError('address overflow')
 
-        if self.checksum is None:
-            raise ValueError('null checksum')
+        if self.checksum is not None:
+            if self.checksum < 0:
+                raise ValueError('checksum overflow')
 
-        if self.checksum != self.compute_checksum():
-            raise ValueError('wrong checksum')
+            if self.checksum != self.compute_checksum():
+                raise ValueError('wrong checksum')
 
-        if self.count is None:
-            raise ValueError('null count')
+        if self.count is not None:
+            if self.count < 0:
+                raise ValueError('count overflow')
 
-        if self.count < 0:
-            raise ValueError('negative count')
+            if self.count != self.compute_count():
+                raise ValueError('wrong count')
 
-        if self.count != self.compute_count():
-            raise ValueError('wrong count')
-
-        if self.tag not in self.TAG_TYPE:
-            raise ValueError('invalid tag')
-
-        if self.data is None:
-            raise ValueError('no data')
+        TagType = _cast(Any, self.TAG_TYPE)
+        TagType(self.tag)
 
         return self
 
@@ -353,13 +392,23 @@ class BaseFile(abc.ABC):
 
         return self.copy().extend(other)
 
-    def __getitem__(self, key: Union[slice, int]) -> Union[bytes, int, None]:
+    def __delitem__(self, key: Union[slice, int]) -> None:
+        # TODO: __doc__
+
+        del self.memory[key]
+
+    def __getitem__(self, key: Union[slice, int]) -> Union[AnyBytes, None]:
         # TODO: __doc__
 
         item = self.memory[key]
         if isinstance(key, slice):
             item = bytes(item)
         return item
+
+    def __eq__(self, other: 'BaseFile') -> bool:
+        # TODO: __doc__
+
+        return not self != other
 
     def __iadd__(
         self,
@@ -378,12 +427,49 @@ class BaseFile(abc.ABC):
     def __ior__(self, other: 'BaseFile') -> 'BaseFile':
         # TODO: __doc__
 
-        return self.merge(other)
+        self.memory.write(0, other.memory)
+        return self
+
+    def __ne__(self, other: 'BaseFile') -> bool:
+        # TODO: __doc__
+
+        if self.memory != other.memory:
+            return True
+
+        if self.META_KEYS != other.META_KEYS:
+            return True
+
+        for key in self.META_KEYS:
+            if not hasattr(other, key):  # ensure
+                return True
+
+            self_value = getattr(self, key)
+            other_value = getattr(other, key)
+
+            if self_value != other_value:
+                return True
+
+        return False
 
     def __or__(self, other: 'BaseFile') -> 'BaseFile':
         # TODO: __doc__
 
-        return self.copy().merge(other)
+        return self.merge(self, other)
+
+    def __setitem__(
+        self,
+        key: Union[slice, int],
+        value: Union[AnyBytes, ImmutableMemory, None],
+    ) -> None:
+        # TODO: __doc__
+
+        self.memory[key] = value
+
+    @classmethod
+    def _is_line_empty(cls, line: AnyBytes) -> bool:
+        # TODO: __doc__
+
+        return not line or line.isspace()
 
     def append(self, item: Union[AnyBytes, int]) -> 'BaseFile':
         # TODO: __doc__
@@ -576,11 +662,8 @@ class BaseFile(abc.ABC):
     def from_records(cls, records: MutableSequence[BaseRecord]) -> 'BaseFile':
         # TODO: __doc__
 
-        if records:
-            maxdatalen = max(len(r.data) for r in records if r.tag.is_data())
-            if maxdatalen < 1:
-                maxdatalen = cls.DEFAULT_DATALEN
-        else:
+        maxdatalen = max((len(r.data) for r in records if r.tag.is_data()), default=0)
+        if maxdatalen < 1:
             maxdatalen = cls.DEFAULT_DATALEN
 
         file = cls()
@@ -698,7 +781,7 @@ class BaseFile(abc.ABC):
 
         for line in stream:
             row += 1
-            if not line or line.isspace():
+            if cls._is_line_empty(line):
                 continue
             try:
                 record = record_type.parse(line)

@@ -90,7 +90,7 @@ RecordType = Type['Record']
 
 def get_data_records(
     records: RecordIterable,
-) -> RecordList:
+) -> RecordList:  # pragma: no cover
     r"""Extracts data records.
 
     Arguments:
@@ -115,7 +115,7 @@ def get_data_records(
 
 def records_to_blocks(
     records: RecordIterable,
-) -> BlockSequence:
+) -> BlockSequence:  # pragma: no cover
     r"""Converts records to blocks.
 
     Extracts all the data records, collapses them in the order they compare in
@@ -151,7 +151,7 @@ def blocks_to_records(
     split_kwargs: Optional[Mapping[str, Any]] = None,
     build_args: Optional[Sequence[Any]] = None,
     build_kwargs: Optional[Mapping[str, Any]] = None,
-) -> RecordList:
+) -> RecordList:  # pragma: no cover
     r"""Converts blocks to records.
 
     Arguments:
@@ -212,7 +212,7 @@ def merge_records(
     split_kwargs: Optional[Mapping[str, Any]] = None,
     build_args: Optional[Sequence[Any]] = None,
     build_kwargs: Optional[Mapping[str, Any]] = None,
-) -> RecordList:
+) -> RecordList:  # pragma: no cover
     r"""Merges data records.
 
     Merges multiple sequences of data records where each sequence overwrites
@@ -295,7 +295,7 @@ def convert_records(
     split_kwargs: Optional[Mapping[str, Any]] = None,
     build_args: Optional[Sequence[Any]] = None,
     build_kwargs: Optional[Mapping[str, Any]] = None,
-) -> RecordList:
+) -> RecordList:  # pragma: no cover
     r"""Converts records to another type.
 
     Arguments:
@@ -365,7 +365,7 @@ def merge_files(
     split_kwargs: Optional[Mapping[str, Any]] = None,
     build_args: Optional[Sequence[Any]] = None,
     build_kwargs: Optional[Mapping[str, Any]] = None,
-) -> None:
+) -> None:  # pragma: no cover
     r"""Merges record files.
 
     Merges multiple record files where each file overwrites overlapping data
@@ -442,7 +442,7 @@ def convert_file(
     split_kwargs: Optional[Mapping[str, Any]] = None,
     build_args: Optional[Sequence[Any]] = None,
     build_kwargs: Optional[Mapping[str, Any]] = None,
-) -> None:
+) -> None:  # pragma: no cover
     r"""Converts a record file to another record type.
 
     Warning:
@@ -493,7 +493,7 @@ def convert_file(
 def load_records(
     path: str,
     record_type: Optional[RecordType] = None,
-) -> RecordList:
+) -> RecordList:  # pragma: no cover
     r"""Loads records from a record file.
 
     Arguments:
@@ -526,7 +526,7 @@ def save_records(
     split_kwargs: Optional[Mapping[str, Any]] = None,
     build_args: Optional[Sequence[Any]] = None,
     build_kwargs: Optional[Mapping[str, Any]] = None,
-) -> None:
+) -> None:  # pragma: no cover
     r"""Saves records to a record file.
 
     Arguments:
@@ -578,7 +578,7 @@ def save_records(
 def load_blocks(
     path: str,
     record_type: Optional[RecordType] = None,
-):
+):  # pragma: no cover
     r"""Loads blocks from a record file.
 
     Arguments:
@@ -613,7 +613,7 @@ def save_blocks(
     split_kwargs: Optional[Mapping[str, Any]] = None,
     build_args: Optional[Sequence[Any]] = None,
     build_kwargs: Optional[Mapping[str, Any]] = None,
-) -> None:
+) -> None:  # pragma: no cover
     r"""Saves blocks to a record file.
 
     Arguments:
@@ -658,7 +658,7 @@ def save_blocks(
 def load_memory(
     path: str,
     record_type: Optional[RecordType] = None,
-) -> Memory:
+) -> Memory:  # pragma: no cover
     r"""Loads a virtual memory from a file.
 
     Arguments:
@@ -695,7 +695,7 @@ def save_memory(
     split_kwargs: Optional[Mapping[str, Any]] = None,
     build_args: Optional[Sequence[Any]] = None,
     build_kwargs: Optional[Mapping[str, Any]] = None,
-) -> None:
+) -> None:  # pragma: no cover
     r"""Saves a virtual memory to a record file.
 
     Arguments:
@@ -748,7 +748,7 @@ def save_chunk(
     split_kwargs: Optional[Mapping[str, Any]] = None,
     build_args: Optional[Sequence[Any]] = None,
     build_kwargs: Optional[Mapping[str, Any]] = None,
-) -> None:
+) -> None:  # pragma: no cover
     r"""Saves a data chunk to a record file.
 
     Arguments:
@@ -791,7 +791,7 @@ def save_chunk(
                 build_kwargs=build_kwargs)
 
 
-class Tag(enum.IntEnum):
+class Tag(enum.IntEnum):  # pragma: no cover
     """Abstract record tag."""
 
     @classmethod
@@ -804,7 +804,7 @@ class Tag(enum.IntEnum):
         return True  # by default, all records are data records
 
 
-class Record:
+class Record:  # pragma: no cover
     r"""Abstract record type.
 
     A record is the basic structure of a record file.
@@ -1990,7 +1990,7 @@ r"""Registered record types."""
 
 # Workaround to always register official record types.
 # Using a function to avoid namespace cluttering.
-def register_default_record_types() -> None:
+def register_default_record_types() -> None:  # pragma: no cover
     if 'ascii_hex' not in RECORD_TYPES:
         from hexrec.formats.ascii_hex import Record
         RECORD_TYPES['ascii_hex'] = Record
@@ -2018,7 +2018,7 @@ def register_default_record_types() -> None:
 
 def find_record_type_name(
     file_path: str,
-) -> str:
+) -> str:  # pragma: no cover
     r"""Finds the record type name.
 
     Checks if the extension of `file_path` is a know record type, and returns
@@ -2053,7 +2053,7 @@ def find_record_type_name(
 
 def find_record_type(
     file_path: str,
-) -> Type[Record]:
+) -> Type[Record]:  # pragma: no cover
     r"""Finds the record type class.
 
     Checks if the extension of `file_path` is a know record type, and returns
