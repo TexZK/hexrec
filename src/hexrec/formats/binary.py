@@ -35,18 +35,19 @@ from typing import Mapping
 from typing import Sequence
 from typing import Type
 
-from ..records2 import BaseFile
-from ..records2 import BaseRecord
-from ..records2 import BaseTag
+from ..records import BaseFile
+from ..records import BaseRecord
+from ..records import BaseTag
 from ..utils import AnyBytes
 
 
-@enum.unique
 class RawTag(BaseTag, enum.Enum):
     r"""Binary tag."""
 
     DATA = ...
     r"""Data."""
+
+    _DATA = DATA
 
     def is_data(self) -> bool:
 

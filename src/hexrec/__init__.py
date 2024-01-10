@@ -31,7 +31,7 @@ from .formats.intel import IhexFile
 from .formats.mos import MosFile
 from .formats.motorola import SrecFile
 from .formats.tektronix import TekExtFile
-from .records2 import FILE_TYPES
+from .records import FILE_TYPES
 from .xxd import xxd
 
 

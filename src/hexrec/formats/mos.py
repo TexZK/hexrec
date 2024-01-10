@@ -38,13 +38,12 @@ from typing import Mapping
 from typing import Type
 from typing import cast as _cast
 
-from ..records2 import BaseFile
-from ..records2 import BaseRecord
-from ..records2 import BaseTag
+from ..records import BaseFile
+from ..records import BaseRecord
+from ..records import BaseTag
 from ..utils import AnyBytes
 
 
-@enum.unique
 class MosTag(BaseTag, enum.IntEnum):
     r"""MOS Technology tag."""
 
@@ -53,6 +52,8 @@ class MosTag(BaseTag, enum.IntEnum):
 
     EOF = 1  # FIXME: add full support
     r"""End Of File."""
+
+    _DATA = DATA
 
     def is_data(self) -> bool:
 
@@ -164,10 +165,10 @@ class MosRecord(BaseRecord):
 
         line = b'%s;%02X%04X%s%04X%s%s%s' % (
             self.before,
-            self.count & 0xFF,
+            (self.count or 0) & 0xFF,
             self.address & 0xFFFF,
             binascii.hexlify(self.data).upper(),
-            self.checksum & 0xFFFF,
+            (self.checksum or 0) & 0xFFFF,
             self.after,
             end,
             nulstr,
@@ -186,10 +187,10 @@ class MosRecord(BaseRecord):
         return {
             'before': self.before,
             'begin': b';',
-            'count': b'%02X' % (self.count & 0xFF),
+            'count': b'%02X' % ((self.count or 0) & 0xFF),
             'address': b'%04X' % (self.address & 0xFFFF),
             'data': binascii.hexlify(self.data).upper(),
-            'checksum': b'%04X' % (self.checksum & 0xFFFF),
+            'checksum': b'%04X' % ((self.checksum or 0) & 0xFFFF),
             'after': self.after,
             'end': end,
             'nuls': nulstr,
@@ -209,11 +210,13 @@ class MosRecord(BaseRecord):
         if b';' in self.before:
             raise ValueError('junk before contains ";"')
 
-        if not 0 <= self.checksum <= 0xFFFF:
-            raise ValueError('checksum overflow')
+        if self.checksum is not None:
+            if not 0 <= self.checksum <= 0xFFFF:
+                raise ValueError('checksum overflow')
 
-        if not 0 <= self.count <= 0xFF:
-            raise ValueError('count overflow')
+        if self.count is not None:
+            if not 0 <= self.count <= 0xFF:
+                raise ValueError('count overflow')
 
         data_size = len(self.data)
         if data_size > 0xFF:

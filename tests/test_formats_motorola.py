@@ -10,6 +10,10 @@ from hexrec.formats.motorola import SrecFile
 from hexrec.formats.motorola import SrecRecord
 from hexrec.formats.motorola import SrecTag
 
+from test_records import BaseTestFile
+from test_records import BaseTestRecord
+from test_records import BaseTestTag
+
 
 # ============================================================================
 
@@ -27,7 +31,9 @@ def datapath(datadir):
 
 # ============================================================================
 
-class TestSrecTag:
+class TestSrecTag(BaseTestTag):
+
+    Tag = SrecTag
 
     def test_enum(self):
         assert SrecTag.HEADER == 0
@@ -176,7 +182,9 @@ class TestSrecTag:
 
 # ----------------------------------------------------------------------------
 
-class TestSrecRecord:
+class TestSrecRecord(BaseTestRecord):
+
+    Record = SrecRecord
 
     def test_compute_checksum(self):
         vector = [
@@ -866,7 +874,9 @@ class TestSrecRecord:
 
 # ----------------------------------------------------------------------------
 
-class TestSrecFile:
+class TestSrecFile(BaseTestFile):
+
+    File = SrecFile
 
     def test_apply_records(self):
         records = [

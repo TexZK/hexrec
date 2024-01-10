@@ -54,8 +54,8 @@ from .__init__ import __version__
 from .__init__ import FILE_TYPES
 from .formats.motorola import SrecFile
 from .formats.motorola import SrecRecord
-from .records2 import BaseFile
-from .records2 import guess_type_name
+from .records import BaseFile
+from .records import guess_type_name
 from .utils import hexlify
 from .utils import parse_int
 from .utils import unhexlify

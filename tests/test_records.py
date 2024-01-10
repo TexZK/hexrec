@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
+import abc
 import io
 import enum
+import sys
 from binascii import hexlify
-from typing import Any
 from typing import Mapping
 from typing import cast as _cast
 
@@ -11,12 +12,12 @@ from bytesparse import Memory
 from hexrec import FILE_TYPES
 from hexrec.formats.intel import IhexFile
 from hexrec.formats.motorola import SrecFile
-from hexrec.records2 import BaseFile
-from hexrec.records2 import BaseRecord
-from hexrec.records2 import BaseTag
-from hexrec.records2 import colorize_tokens
-from hexrec.records2 import guess_type_class
-from hexrec.records2 import guess_type_name
+from hexrec.records import BaseFile
+from hexrec.records import BaseRecord
+from hexrec.records import BaseTag
+from hexrec.records import colorize_tokens
+from hexrec.records import guess_type_class
+from hexrec.records import guess_type_name
 from hexrec.utils import AnyBytes
 
 
@@ -57,7 +58,7 @@ class BaseTestTag:
     Tag_FAKE = _cast(BaseTag, -1)
 
     def test_is_data(self):
-        assert self.Tag.DATA.is_data() is True
+        assert self.Tag._DATA.is_data() is True
 
 
 # ----------------------------------------------------------------------------
@@ -68,22 +69,22 @@ class BaseTestRecord:
 
     def test___bytes__(self):
         Record = self.Record
-        record = Record(self.Record.Tag.DATA)
+        record = Record(self.Record.Tag._DATA)
         assert bytes(record) == record.to_bytestr()
 
     def test___eq__(self):
         Tag = self.Record.Tag
         Record = self.Record
         records = [
-            Record(Tag.DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
+            Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
                    before=b'b', after=b'a', coords=(33, 44)),
-            Record(Tag.DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
+            Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
                    before=b'?', after=b'a', coords=(33, 44)),
-            Record(Tag.DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
+            Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
                    before=b'b', after=b'?', coords=(33, 44)),
-            Record(Tag.DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
+            Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
                    before=b'b', after=b'a', coords=(55, 44)),
-            Record(Tag.DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
+            Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
                    before=b'b', after=b'a', coords=(33, 66)),
         ]
         record1 = records[0]
@@ -93,7 +94,7 @@ class BaseTestRecord:
     def test___init___basic(self):
         Tag = self.Record.Tag
         Record = self.Record
-        record = Record(Tag.DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
+        record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
                         before=b'b', after=b'a', coords=(33, 44))
         assert record.address == 0x1234
         assert record.after == b'a'
@@ -102,12 +103,12 @@ class BaseTestRecord:
         assert record.coords == (33, 44)
         assert record.count == 3
         assert record.data == b'xyz'
-        assert record.tag == Tag.DATA
+        assert record.tag == Tag._DATA
 
     def test___init___checksum_ellipsis(self):
         Tag = self.Record.Tag
         Record = self.Record
-        record = Record(Tag.DATA, address=0x1234, data=b'xyz', count=..., checksum=...,
+        record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=..., checksum=...,
                         before=b'b', after=b'a', coords=(33, 44))
         assert record.address == 0x1234
         assert record.after == b'a'
@@ -116,12 +117,12 @@ class BaseTestRecord:
         assert record.coords == (33, 44)
         assert record.count == record.compute_count()
         assert record.data == b'xyz'
-        assert record.tag == Tag.DATA
+        assert record.tag == Tag._DATA
 
     def test___init___checksum_none(self):
         Tag = self.Record.Tag
         Record = self.Record
-        record = Record(Tag.DATA, address=0x1234, data=b'xyz', count=..., checksum=None,
+        record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=..., checksum=None,
                         before=b'b', after=b'a', coords=(33, 44))
         assert record.address == 0x1234
         assert record.after == b'a'
@@ -130,12 +131,12 @@ class BaseTestRecord:
         assert record.coords == (33, 44)
         assert record.count == record.compute_count()
         assert record.data == b'xyz'
-        assert record.tag == Tag.DATA
+        assert record.tag == Tag._DATA
 
     def test___init___count_ellipsis(self):
         Tag = self.Record.Tag
         Record = self.Record
-        record = Record(Tag.DATA, address=0x1234, data=b'xyz', count=..., checksum=0xA5,
+        record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=..., checksum=0xA5,
                         before=b'b', after=b'a', coords=(33, 44))
         assert record.address == 0x1234
         assert record.after == b'a'
@@ -144,12 +145,12 @@ class BaseTestRecord:
         assert record.coords == (33, 44)
         assert record.count == record.compute_count()
         assert record.data == b'xyz'
-        assert record.tag == Tag.DATA
+        assert record.tag == Tag._DATA
 
     def test___init___count_none(self):
         Tag = self.Record.Tag
         Record = self.Record
-        record = Record(Tag.DATA, address=0x1234, data=b'xyz', count=None, checksum=0xA5,
+        record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=None, checksum=0xA5,
                         before=b'b', after=b'a', coords=(33, 44))
         assert record.address == 0x1234
         assert record.after == b'a'
@@ -158,12 +159,12 @@ class BaseTestRecord:
         assert record.coords == (33, 44)
         assert record.count is None
         assert record.data == b'xyz'
-        assert record.tag == Tag.DATA
+        assert record.tag == Tag._DATA
 
     def test___init___default(self):
         Tag = self.Record.Tag
         Record = self.Record
-        record = Record(Tag.DATA)
+        record = Record(Tag._DATA)
         assert record.address == 0
         assert record.after == b''
         assert record.before == b''
@@ -171,7 +172,7 @@ class BaseTestRecord:
         assert record.coords == (-1, -1)
         assert record.count == record.compute_count()
         assert record.data == b''
-        assert record.tag == Tag.DATA
+        assert record.tag == Tag._DATA
 
     def test___ne__(self):
         Tag = self.Record.Tag
@@ -180,16 +181,16 @@ class BaseTestRecord:
         records = [
             Record(Tag_FAKE, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
                    before=b'b', after=b'a', coords=(33, 44)),
-            Record(Tag.DATA, address=0x4321, data=b'xyz', count=3, checksum=0xA5,
+            Record(Tag._DATA, address=0x4321, data=b'xyz', count=3, checksum=0xA5,
                    before=b'b', after=b'a', coords=(33, 44)),
-            Record(Tag.DATA, address=0x1234, data=b'abc', count=3, checksum=0xA5,
+            Record(Tag._DATA, address=0x1234, data=b'abc', count=3, checksum=0xA5,
                    before=b'b', after=b'a', coords=(33, 44)),
-            Record(Tag.DATA, address=0x1234, data=b'xyz', count=4, checksum=0xA5,
+            Record(Tag._DATA, address=0x1234, data=b'xyz', count=4, checksum=0xA5,
                    before=b'b', after=b'a', coords=(33, 44)),
-            Record(Tag.DATA, address=0x1234, data=b'xyz', count=3, checksum=0x5A,
+            Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0x5A,
                    before=b'b', after=b'a', coords=(33, 44)),
         ]
-        record1 = Record(Tag.DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
+        record1 = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
                          before=b'b', after=b'a', coords=(33, 44))
         for record2 in records:
             assert record2 != record1
@@ -197,8 +198,8 @@ class BaseTestRecord:
     def test___repr___type(self):
         Tag = self.Record.Tag
         Record = self.Record
-        record = Record(Tag.DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
-                        before=b'b', after=b'a', coords=(33, 44))
+        record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
+                        before=b'', after=b'', coords=(33, 44))
         text = repr(record)
         assert isinstance(text, str)
         assert text
@@ -206,55 +207,44 @@ class BaseTestRecord:
     def test___str___type(self):
         Tag = self.Record.Tag
         Record = self.Record
-        record = Record(Tag.DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
-                        before=b'b', after=b'a', coords=(33, 44))
+        record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
+                        before=b'', after=b'', coords=(33, 44))
         text = str(record)
         assert isinstance(text, str)
         assert text
 
+    @abc.abstractmethod
     def test_compute_checksum(self):
-        Tag = self.Record.Tag
-        Record = self.Record
-        record = Record(Tag.DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
-                        before=b'b', after=b'a', coords=(33, 44))
-        checksum = record.compute_checksum()
-        assert checksum == 4956
+        ...
 
+    @abc.abstractmethod
     def test_compute_count(self):
-        Tag = self.Record.Tag
-        Record = self.Record
-        record = Record(Tag.DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
-                        before=b'b', after=b'a', coords=(33, 44))
-        count = record.compute_count()
-        assert count == 3
+        ...
 
     def test_copy(self):
         Tag = self.Record.Tag
         Record = self.Record
-        record1 = Record(Tag.DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
+        record1 = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
                          before=b'b', after=b'a', coords=(33, 44))
         record2 = record1.copy()
         assert record1 is not record2
         assert record1 == record2
 
+    @abc.abstractmethod
     def test_create_data(self):
-        Record = self.Record
-        record = Record.create_data(0x12, b'A')
-        assert record.tag.is_data() is True
-        assert record.address == 0x12
-        assert record.data == b'A'
+        ...
 
     def test_data_to_int(self):
         Tag = self.Record.Tag
         Record = self.Record
         vector = [
-            (0x00000000, Record(Tag.DATA, data=b'')),
-            (0x00000000, Record(Tag.DATA, data=b'\x00')),
-            (0x00000000, Record(Tag.DATA, data=b'\x00\x00\x00\x00')),
-            (0x000000FF, Record(Tag.DATA, data=b'\xFF')),
-            (0xFFFFFFFF, Record(Tag.DATA, data=b'\xFF\xFF\xFF\xFF')),
-            (0x12345678, Record(Tag.DATA, data=b'\x12\x34\x56\x78')),
-            (0x00ABCDEF, Record(Tag.DATA, data=b'\xAB\xCD\xEF')),
+            (0x00000000, Record(Tag._DATA, data=b'')),
+            (0x00000000, Record(Tag._DATA, data=b'\x00')),
+            (0x00000000, Record(Tag._DATA, data=b'\x00\x00\x00\x00')),
+            (0x000000FF, Record(Tag._DATA, data=b'\xFF')),
+            (0xFFFFFFFF, Record(Tag._DATA, data=b'\xFF\xFF\xFF\xFF')),
+            (0x12345678, Record(Tag._DATA, data=b'\x12\x34\x56\x78')),
+            (0x00ABCDEF, Record(Tag._DATA, data=b'\xAB\xCD\xEF')),
         ]
         for expected, record in vector:
             actual = record.data_to_int()
@@ -264,13 +254,13 @@ class BaseTestRecord:
         Tag = self.Record.Tag
         Record = self.Record
         vector = [
-            (+0x00000000, Record(Tag.DATA, data=b'')),
-            (+0x00000000, Record(Tag.DATA, data=b'\x00')),
-            (+0x00000000, Record(Tag.DATA, data=b'\x00\x00\x00\x00')),
-            (-0x00000001, Record(Tag.DATA, data=b'\xFF')),
-            (-0x00000001, Record(Tag.DATA, data=b'\xFF\xFF\xFF\xFF')),
-            (+0x12345678, Record(Tag.DATA, data=b'\x12\x34\x56\x78')),
-            (-0x00543211, Record(Tag.DATA, data=b'\xAB\xCD\xEF')),
+            (+0x00000000, Record(Tag._DATA, data=b'')),
+            (+0x00000000, Record(Tag._DATA, data=b'\x00')),
+            (+0x00000000, Record(Tag._DATA, data=b'\x00\x00\x00\x00')),
+            (-0x00000001, Record(Tag._DATA, data=b'\xFF')),
+            (-0x00000001, Record(Tag._DATA, data=b'\xFF\xFF\xFF\xFF')),
+            (+0x12345678, Record(Tag._DATA, data=b'\x12\x34\x56\x78')),
+            (-0x00543211, Record(Tag._DATA, data=b'\xAB\xCD\xEF')),
         ]
         for expected, record in vector:
             actual = record.data_to_int(byteorder='big', signed=True)
@@ -280,13 +270,13 @@ class BaseTestRecord:
         Tag = self.Record.Tag
         Record = self.Record
         vector = [
-            (0x00000000, Record(Tag.DATA, data=b'')),
-            (0x00000000, Record(Tag.DATA, data=b'\x00')),
-            (0x00000000, Record(Tag.DATA, data=b'\x00\x00\x00\x00')),
-            (0x000000FF, Record(Tag.DATA, data=b'\xFF')),
-            (0xFFFFFFFF, Record(Tag.DATA, data=b'\xFF\xFF\xFF\xFF')),
-            (0x12345678, Record(Tag.DATA, data=b'\x12\x34\x56\x78')),
-            (0x00ABCDEF, Record(Tag.DATA, data=b'\xAB\xCD\xEF')),
+            (0x00000000, Record(Tag._DATA, data=b'')),
+            (0x00000000, Record(Tag._DATA, data=b'\x00')),
+            (0x00000000, Record(Tag._DATA, data=b'\x00\x00\x00\x00')),
+            (0x000000FF, Record(Tag._DATA, data=b'\xFF')),
+            (0xFFFFFFFF, Record(Tag._DATA, data=b'\xFF\xFF\xFF\xFF')),
+            (0x12345678, Record(Tag._DATA, data=b'\x12\x34\x56\x78')),
+            (0x00ABCDEF, Record(Tag._DATA, data=b'\xAB\xCD\xEF')),
         ]
         for expected, record in vector:
             actual = record.data_to_int(byteorder='big', signed=False)
@@ -296,13 +286,13 @@ class BaseTestRecord:
         Tag = self.Record.Tag
         Record = self.Record
         vector = [
-            (+0x00000000, Record(Tag.DATA, data=b'')),
-            (+0x00000000, Record(Tag.DATA, data=b'\x00')),
-            (+0x00000000, Record(Tag.DATA, data=b'\x00\x00\x00\x00')),
-            (-0x00000001, Record(Tag.DATA, data=b'\xFF')),
-            (-0x00000001, Record(Tag.DATA, data=b'\xFF\xFF\xFF\xFF')),
-            (+0x78563412, Record(Tag.DATA, data=b'\x12\x34\x56\x78')),
-            (-0x00103255, Record(Tag.DATA, data=b'\xAB\xCD\xEF')),
+            (+0x00000000, Record(Tag._DATA, data=b'')),
+            (+0x00000000, Record(Tag._DATA, data=b'\x00')),
+            (+0x00000000, Record(Tag._DATA, data=b'\x00\x00\x00\x00')),
+            (-0x00000001, Record(Tag._DATA, data=b'\xFF')),
+            (-0x00000001, Record(Tag._DATA, data=b'\xFF\xFF\xFF\xFF')),
+            (+0x78563412, Record(Tag._DATA, data=b'\x12\x34\x56\x78')),
+            (-0x00103255, Record(Tag._DATA, data=b'\xAB\xCD\xEF')),
         ]
         for expected, record in vector:
             actual = record.data_to_int(byteorder='little', signed=True)
@@ -312,13 +302,13 @@ class BaseTestRecord:
         Tag = self.Record.Tag
         Record = self.Record
         vector = [
-            (0x00000000, Record(Tag.DATA, data=b'')),
-            (0x00000000, Record(Tag.DATA, data=b'\x00')),
-            (0x00000000, Record(Tag.DATA, data=b'\x00\x00\x00\x00')),
-            (0x000000FF, Record(Tag.DATA, data=b'\xFF')),
-            (0xFFFFFFFF, Record(Tag.DATA, data=b'\xFF\xFF\xFF\xFF')),
-            (0x78563412, Record(Tag.DATA, data=b'\x12\x34\x56\x78')),
-            (0x00EFCDAB, Record(Tag.DATA, data=b'\xAB\xCD\xEF')),
+            (0x00000000, Record(Tag._DATA, data=b'')),
+            (0x00000000, Record(Tag._DATA, data=b'\x00')),
+            (0x00000000, Record(Tag._DATA, data=b'\x00\x00\x00\x00')),
+            (0x000000FF, Record(Tag._DATA, data=b'\xFF')),
+            (0xFFFFFFFF, Record(Tag._DATA, data=b'\xFF\xFF\xFF\xFF')),
+            (0x78563412, Record(Tag._DATA, data=b'\x12\x34\x56\x78')),
+            (0x00EFCDAB, Record(Tag._DATA, data=b'\xAB\xCD\xEF')),
         ]
         for expected, record in vector:
             actual = record.data_to_int(byteorder='little', signed=False)
@@ -327,7 +317,7 @@ class BaseTestRecord:
     def test_get_meta(self):
         Tag = self.Record.Tag
         Record = self.Record
-        record = Record(Tag.DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
+        record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
                         before=b'b', after=b'a', coords=(33, 44))
         actual = record.get_meta()
         expected = {
@@ -338,23 +328,19 @@ class BaseTestRecord:
             'coords': (33, 44),
             'count': 3,
             'data': b'xyz',
-            'tag': Tag.DATA,
+            'tag': Tag._DATA,
         }
         assert actual == expected
 
+    @abc.abstractmethod
     def test_parse(self):
-        Tag = self.Record.Tag
-        Record = self.Record
-        Record = _cast(Any, Record)  # suppress IDE warnings
-        actual = Record.parse(Record, b'xyz')
-        expected = Record(Tag.DATA, data=b'xyz')
-        assert actual == expected
+        ...
 
-    def test_print_basic(self):
+    def test_print(self):
         Tag = self.Record.Tag
         Record = self.Record
-        record = Record(Tag.DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
-                        before=b'b', after=b'a', coords=(33, 44))
+        record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
+                        before=b'', after=b'', coords=(33, 44))
         plain_stream = io.StringIO()
         record.print(stream=plain_stream, color=False)
         color_stream = io.StringIO()
@@ -365,43 +351,44 @@ class BaseTestRecord:
         assert color_text
         assert len(color_text) >= len(plain_text)
 
-    def test_serialize_basic(self):
+    def test_print_stdout(self):
         Tag = self.Record.Tag
         Record = self.Record
-        record = Record(Tag.DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
-                        before=b'b', after=b'a', coords=(33, 44))
+        record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
+                        before=b'', after=b'', coords=(33, 44))
+        stream = io.StringIO()
+        stdout = sys.stdout
+        try:
+            sys.stdout = stream
+            record.print(stream=stream, color=False)
+        finally:
+            sys.stdout = stdout
+        text = stream.getvalue()
+        assert text
+
+    def test_serialize(self):
+        Tag = self.Record.Tag
+        Record = self.Record
+        record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
+                        before=b'', after=b'', coords=(33, 44))
         stream = io.BytesIO()
         record.serialize(stream)
         actual = stream.getvalue()
         expected = record.to_bytestr()
         assert actual == expected
 
+    @abc.abstractmethod
     def test_to_bytestr(self):
-        Tag = self.Record.Tag
-        Record = self.Record
-        record = Record(Tag.DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
-                        before=b'b', after=b'a', coords=(33, 44))
-        actual = record.to_bytestr()
-        expected = b'00000123478797A'
-        assert actual == expected
+        ...
 
+    @abc.abstractmethod
     def test_to_tokens(self):
-        Tag = self.Record.Tag
-        Record = self.Record
-        record = Record(Tag.DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
-                        before=b'b', after=b'a', coords=(33, 44))
-        actual = record.to_tokens()
-        expected = {
-            'tag': b'0',
-            'address': b'00001234',
-            'data': b'78797A',
-        }
-        assert actual == expected
+        ...
 
     def test_update_checksum(self):
         Tag = self.Record.Tag
         Record = self.Record
-        record = Record(Tag.DATA, address=0x1234, data=b'xyz', count=3, checksum=None,
+        record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=None,
                         before=b'b', after=b'a', coords=(33, 44))
         assert record.checksum is None
         returned = record.update_checksum()
@@ -411,7 +398,7 @@ class BaseTestRecord:
     def test_update_count(self):
         Tag = self.Record.Tag
         Record = self.Record
-        record = Record(Tag.DATA, address=0x1234, data=b'xyz', count=None, checksum=0xA5,
+        record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=None, checksum=0xA5,
                         before=b'b', after=b'a', coords=(33, 44))
         assert record.count is None
         returned = record.update_count()
@@ -421,21 +408,35 @@ class BaseTestRecord:
     def test_validate_default(self):
         Tag = self.Record.Tag
         Record = self.Record
-        record = Record(Tag.DATA)
+        record = Record(Tag._DATA)
         returned = record.validate()
+        assert returned is record
+
+    def test_validate_checksum_none(self):
+        Tag = self.Record.Tag
+        Record = self.Record
+        record = Record(Tag._DATA, checksum=None)
+        returned = record.validate(checksum=False)
+        assert returned is record
+
+    def test_validate_count_none(self):
+        Tag = self.Record.Tag
+        Record = self.Record
+        record = Record(Tag._DATA, count=None, checksum=None)
+        returned = record.validate(count=False, checksum=False)
         assert returned is record
 
     def test_validate_raises_basic(self):
         Tag = self.Record.Tag
         Record = self.Record
         records = [
-            Record(Tag.DATA, address=-1, count=0, checksum=0),
+            Record(Tag._DATA, address=-1, count=0, checksum=0),
 
-            Record(Tag.DATA, address=0, count=0, checksum=-1),
-            Record(Tag.DATA, address=0, count=0, checksum=42),
+            Record(Tag._DATA, address=0, count=0, checksum=-1),
+            Record(Tag._DATA, address=0, count=0, checksum=42),
 
-            Record(Tag.DATA, address=0, count=-1, checksum=0),
-            Record(Tag.DATA, address=0, count=42, checksum=0),
+            Record(Tag._DATA, address=0, count=-1, checksum=0),
+            Record(Tag._DATA, address=0, count=42, checksum=0),
         ]
         matches = [
             'address overflow',
@@ -578,8 +579,8 @@ class BaseTestFile:
         Record = File.Record
         Tag = Record.Tag
         records = [
-            Record(Tag.DATA, address=5, data=b'abc'),
-            Record(Tag.DATA, address=10, data=b'xyz'),
+            Record(Tag._DATA, address=5, data=b'abc'),
+            Record(Tag._DATA, address=10, data=b'xyz'),
         ]
         file = File.from_records(records)
         file._memory = Memory.from_bytes(b'discarded')
@@ -599,13 +600,77 @@ class BaseTestFile:
         assert file._memory.to_blocks() == [[5, b'ab'], [9, b'yz']]
         assert file._records is None
 
-    @pytest.mark.skip(reason='TODO')
-    def test_convert(self):
-        raise NotImplementedError('TODO')  # TODO:
+    def test_convert_meta(self):
+        File = self.File
+        blocks = [[5, b'abc'], [10, b'xyz']]
+        maxdatalen = max(1, File.DEFAULT_DATALEN - 1)
+        memory = Memory.from_blocks(blocks)
+        original = File.from_memory(memory, maxdatalen=maxdatalen)
+        converted = File.convert(original, meta=True)
+        assert converted is not original
+        assert converted == original
+        assert converted._memory is not original._memory
+        assert converted.memory == original.memory
+        assert converted.get_meta() == original.get_meta()
 
-    @pytest.mark.skip(reason='TODO')
-    def test_copy(self):
-        raise NotImplementedError('TODO')  # TODO:
+    def test_convert_no_meta(self):
+        File = self.File
+        blocks = [[5, b'abc'], [10, b'xyz']]
+        maxdatalen = max(1, File.DEFAULT_DATALEN - 1)
+        memory = Memory.from_blocks(blocks)
+        original = File.from_memory(memory, maxdatalen=maxdatalen)
+        converted = File.convert(original, meta=False)
+        assert converted is not original
+        assert converted != original
+        assert converted._memory is not original._memory
+        assert converted.memory == original.memory
+        converted_meta = converted.get_meta()
+        assert converted_meta != original.get_meta()
+        assert converted_meta['maxdatalen'] == File.DEFAULT_DATALEN
+
+    def test_copy_meta(self):
+        File = self.File
+        blocks = [[5, b'abc'], [10, b'xyz']]
+        maxdatalen = max(1, File.DEFAULT_DATALEN - 1)
+        memory = Memory.from_blocks(blocks)
+        original = File.from_memory(memory, maxdatalen=maxdatalen)
+        copied = original.copy(meta=True)
+        assert copied is not original
+        assert copied == original
+        assert copied._records is None
+        assert copied._memory is not original._memory
+        assert copied._memory == original._memory
+        assert copied.get_meta() == original.get_meta()
+
+    def test_copy_no_meta(self):
+        File = self.File
+        blocks = [[5, b'abc'], [10, b'xyz']]
+        maxdatalen = max(1, File.DEFAULT_DATALEN - 1)
+        memory = Memory.from_blocks(blocks)
+        original = File.from_memory(memory, maxdatalen=maxdatalen)
+        copied = original.copy(meta=False)
+        assert copied is not original
+        assert copied != original
+        assert copied._records is None
+        assert copied._memory is not original._memory
+        assert copied._memory == original._memory
+        copied_meta = copied.get_meta()
+        assert copied_meta != original.get_meta()
+        assert copied_meta['maxdatalen'] == File.DEFAULT_DATALEN
+
+    def test_copy_slice(self):
+        File = self.File
+        blocks = [[5, b'abc'], [10, b'xyz']]
+        maxdatalen = max(1, File.DEFAULT_DATALEN - 1)
+        memory = Memory.from_blocks(blocks)
+        original = File.from_memory(memory, maxdatalen=maxdatalen)
+        copied = original.copy(start=6, endex=12, meta=True)
+        assert copied is not original
+        assert copied != original
+        assert copied._records is None
+        assert copied._memory is not original._memory
+        assert copied._memory.to_blocks() == [[6, b'bc'], [10, b'xy']]
+        assert copied.get_meta() == original.get_meta()
 
     def test_crop(self):
         File = self.File
@@ -617,9 +682,70 @@ class BaseTestFile:
         assert file._memory.to_blocks() == [[7, b'cx']]
         assert file._records is None
 
-    @pytest.mark.skip(reason='TODO')
-    def test_cut(self):
-        raise NotImplementedError('TODO')  # TODO:
+    def test_cut_meta(self):
+        File = self.File
+        blocks = [[5, b'abc'], [10, b'xyz']]
+        maxdatalen = max(1, File.DEFAULT_DATALEN - 1)
+        memory = Memory.from_blocks(blocks)
+        original = File.from_memory(memory, maxdatalen=maxdatalen)
+        outer = original.copy()
+        inner = outer.cut(meta=True)
+        assert inner is not original
+        assert inner == original
+        assert inner._records is None
+        assert inner._memory is not original._memory
+        assert inner._memory == original._memory
+        assert inner.get_meta() == original.get_meta()
+        assert outer is not original
+        assert outer != original
+        assert outer._records is None
+        assert outer._memory is not original._memory
+        assert outer._memory.to_blocks() == []
+        assert outer.get_meta() == original.get_meta()
+
+    def test_cut_no_meta(self):
+        File = self.File
+        blocks = [[5, b'abc'], [10, b'xyz']]
+        maxdatalen = max(1, File.DEFAULT_DATALEN - 1)
+        memory = Memory.from_blocks(blocks)
+        original = File.from_memory(memory, maxdatalen=maxdatalen)
+        outer = original.copy()
+        inner = outer.cut(meta=False)
+        assert inner is not original
+        assert inner != original
+        assert inner._records is None
+        assert inner._memory is not original._memory
+        assert inner._memory == original._memory
+        inner_meta = inner.get_meta()
+        assert inner_meta != original.get_meta()
+        assert inner_meta['maxdatalen'] == File.DEFAULT_DATALEN
+        assert outer is not original
+        assert outer != original
+        assert outer._records is None
+        assert outer._memory is not original._memory
+        assert outer._memory.to_blocks() == []
+        assert outer.get_meta() == original.get_meta()
+
+    def test_cut_slice(self):
+        File = self.File
+        blocks = [[5, b'abc'], [10, b'xyz']]
+        maxdatalen = max(1, File.DEFAULT_DATALEN - 1)
+        memory = Memory.from_blocks(blocks)
+        original = File.from_memory(memory, maxdatalen=maxdatalen)
+        outer = original.copy()
+        inner = outer.cut(start=6, endex=12, meta=True)
+        assert inner is not original
+        assert inner != original
+        assert inner._records is None
+        assert inner._memory is not original._memory
+        assert inner._memory.to_blocks() == [[6, b'bc'], [10, b'xy']]
+        assert inner.get_meta() == original.get_meta()
+        assert outer is not original
+        assert outer != original
+        assert outer._records is None
+        assert outer._memory is not original._memory
+        assert outer._memory.to_blocks() == [[5, b'a'], [12, b'z']]
+        assert outer.get_meta() == original.get_meta()
 
     def test_delete(self):
         File = self.File
@@ -732,8 +858,8 @@ class BaseTestFile:
         Record = File.Record
         Tag = Record.Tag
         records = [
-            Record(Tag.DATA, address=5, data=b'abc'),
-            Record(Tag.DATA, address=10, data=b'xyz'),
+            Record(Tag._DATA, address=5, data=b'abc'),
+            Record(Tag._DATA, address=10, data=b'xyz'),
         ]
         file = File.from_records(records)
         file._memory = None
@@ -772,6 +898,14 @@ class BaseTestFile:
         result = File.merge()
         assert result._memory.to_blocks() == []
 
+    @abc.abstractmethod
+    def test_parse(self):
+        ...
+
+    @pytest.mark.skip(reason='TODO')
+    def test_print(self):
+        raise NotImplementedError('TODO')  # TODO:
+
     def test_read(self):
         File = self.File
 
@@ -787,12 +921,6 @@ class BaseTestFile:
 
     def test_records_getter(self):
         File = self.File
-        Record = File.Record
-        Tag = Record.Tag
-        records = [
-            Record(Tag.DATA, address=5, data=b'abc'),
-            Record(Tag.DATA, address=10, data=b'xyz'),
-        ]
         blocks = [[5, b'abc'], [10, b'xyz']]
         memory = Memory.from_blocks(blocks)
         file = File.from_memory(memory)
@@ -800,12 +928,12 @@ class BaseTestFile:
         assert file._memory.to_blocks() == blocks
         actual = file.records
         assert actual is file._records
-        assert actual == records
+        assert len(actual) >= 2
         assert file._memory is memory
         file._memory = None
         actual = file.records
         assert actual is file._records
-        assert actual == records
+        assert len(actual) >= 2
         assert file._memory is None
 
     def test_reverse(self):
@@ -824,14 +952,71 @@ class BaseTestFile:
     def test_save(self):
         raise NotImplementedError('TODO')  # TODO:
 
+    @pytest.mark.skip(reason='TODO')
+    def test_set_meta(self):
+        raise NotImplementedError('TODO')  # TODO:
+
+    @pytest.mark.skip(reason='TODO')
+    def test_serialize(self):
+        raise NotImplementedError('TODO')  # TODO:
+
+    def test_shift(self):
+        File = self.File
+        blocks = [[5, b'abc'], [10, b'xyz']]
+        memory = Memory.from_blocks(blocks)
+        file = File.from_memory(memory)
+        assert file._memory.to_blocks() == blocks
+        file.shift(+1)
+        assert file._memory.to_blocks() == [[6, b'abc'], [11, b'xyz']]
+        file.shift(-1)
+        assert file._memory.to_blocks() == blocks
+
+    @pytest.mark.skip(reason='TODO')
+    def test_split(self):
+        raise NotImplementedError('TODO')  # TODO:
+
+    @abc.abstractmethod
+    def test_update_records(self):
+        ...
+
+    @abc.abstractmethod
+    def test_validate_records(self):
+        ...
+
+    def test_view(self):
+        File = self.File
+        file = File.from_memory(Memory.from_bytes(b'abcxyz', offset=5))
+        with file.view() as view:
+            assert isinstance(view, memoryview)
+            assert view == b'abcxyz'
+        with file.view(start=7, endex=9) as view:
+            assert isinstance(view, memoryview)
+            assert view == b'cx'
+
+    def test_view_raises(self):
+        File = self.File
+        blocks = [[5, b'abc'], [10, b'xyz']]
+        memory = Memory.from_blocks(blocks)
+        file = File.from_memory(memory)
+        with pytest.raises(ValueError, match='non-contiguous'):
+            file.view()
+
+    def test_write(self):
+        File = self.File
+        file = File.from_memory(Memory.from_bytes(b'abc', offset=5))
+        assert file._memory.to_blocks() == [[5, b'abc']]
+        file.write(10, b'xyz')
+        assert file._memory.to_blocks() == [[5, b'abc'], [10, b'xyz']]
+
 
 # ============================================================================
 
-@enum.unique
 class FakeTag(BaseTag, enum.IntEnum):
 
     DATA = 0
     FAKE = -1
+
+    _DATA = DATA
 
 
 # ----------------------------------------------------------------------------
@@ -920,6 +1105,44 @@ class TestFakeRecord(BaseTestRecord):
 
     Tag = FakeTag
     Record = FakeRecord
+
+    def test_compute_checksum(self):
+        Tag = self.Record.Tag
+        Record = self.Record
+        record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
+                        before=b'b', after=b'a', coords=(33, 44))
+        checksum = record.compute_checksum()
+        assert checksum == 4956
+
+    def test_compute_count(self):
+        Tag = self.Record.Tag
+        Record = self.Record
+        record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
+                        before=b'b', after=b'a', coords=(33, 44))
+        count = record.compute_count()
+        assert count == 3
+
+    def test_to_bytestr(self):
+        Tag = self.Record.Tag
+        Record = self.Record
+        record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
+                        before=b'a', after=b'b', coords=(33, 44))
+        actual = record.to_bytestr()
+        expected = b'00000123478797A'
+        assert actual == expected
+
+    def test_to_tokens(self):
+        Tag = self.Record.Tag
+        Record = self.Record
+        record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
+                        before=b'a', after=b'b', coords=(33, 44))
+        actual = record.to_tokens()
+        expected = {
+            'tag': b'0',
+            'address': b'00001234',
+            'data': b'78797A',
+        }
+        assert actual == expected
 
 
 # ----------------------------------------------------------------------------

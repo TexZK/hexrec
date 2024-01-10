@@ -41,13 +41,12 @@ from typing import cast as _cast
 
 from bytesparse import Memory
 
-from ..records2 import BaseFile
-from ..records2 import BaseRecord
-from ..records2 import BaseTag
+from ..records import BaseFile
+from ..records import BaseRecord
+from ..records import BaseTag
 from ..utils import AnyBytes
 
 
-@enum.unique
 class IhexTag(BaseTag, enum.IntEnum):
     r"""Intel HEX tag."""
 
@@ -68,6 +67,8 @@ class IhexTag(BaseTag, enum.IntEnum):
 
     START_LINEAR_ADDRESS = 5
     r"""Start linear address."""
+
+    _DATA = DATA
 
     def is_data(self) -> bool:
 
@@ -229,11 +230,11 @@ class IhexRecord(BaseRecord):
 
         bytestr = b'%s:%02X%04X%02X%s%02X%s%s' % (
             self.before,
-            self.count & 0xFF,
+            (self.count or 0) & 0xFF,
             self.address & 0xFFFF,
             _cast(IhexTag, self.tag) & 0xFF,
             binascii.hexlify(self.data).upper(),
-            self.checksum & 0xFF,
+            (self.checksum or 0) & 0xFF,
             self.after,
             end,
         )
@@ -245,11 +246,11 @@ class IhexRecord(BaseRecord):
         return {
             'before': self.before,
             'begin': b':',
-            'count': b'%02X' % (self.count & 0xFF),
+            'count': b'%02X' % ((self.count or 0) & 0xFF),
             'address': b'%04X' % (self.address & 0xFFFF),
             'tag': b'%02X' % (_cast(IhexTag, self.tag) & 0xFF),
             'data': binascii.hexlify(self.data).upper(),
-            'checksum': b'%02X' % (self.checksum & 0xFF),
+            'checksum': b'%02X' % ((self.checksum or 0) & 0xFF),
             'after': self.after,
             'end': end,
         }
@@ -268,11 +269,13 @@ class IhexRecord(BaseRecord):
         if b':' in self.before:
             raise ValueError('junk before contains ":"')
 
-        if not 0 <= self.checksum <= 0xFF:
-            raise ValueError('checksum overflow')
+        if self.checksum is not None:
+            if not 0 <= self.checksum <= 0xFF:
+                raise ValueError('checksum overflow')
 
-        if not 0 <= self.count <= 0xFF:
-            raise ValueError('count overflow')
+        if self.count is not None:
+            if not 0 <= self.count <= 0xFF:
+                raise ValueError('count overflow')
 
         data_size = len(self.data)
         if data_size > 0xFF:
@@ -285,15 +288,12 @@ class IhexRecord(BaseRecord):
 
         if tag.is_data():
             pass
-
         elif tag.is_start():
             if data_size != 4:
                 raise ValueError('start address data size overflow')
-
         elif tag.is_extension():
             if data_size != 2:
                 raise ValueError('extension data size overflow')
-
         else:  # elif tag.is_eof():
             if data_size:
                 raise ValueError('end of file record data')

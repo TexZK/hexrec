@@ -39,13 +39,12 @@ from typing import Type
 from typing import Union
 from typing import cast as _cast
 
-from ..records2 import BaseFile
-from ..records2 import BaseRecord
-from ..records2 import BaseTag
+from ..records import BaseFile
+from ..records import BaseRecord
+from ..records import BaseTag
 from ..utils import AnyBytes
 
 
-@enum.unique
 class AsciiHexTag(BaseTag, enum.IntEnum):
     r"""ASCII-HEX tag."""
 
@@ -55,9 +54,11 @@ class AsciiHexTag(BaseTag, enum.IntEnum):
     ADDRESS_DATA = 1
     r"""Address and data."""
 
+    _DATA = ADDRESS_DATA
+
     def is_data(self) -> bool:
 
-        return self == 0
+        return self == 0 or self == 1
 
     def is_address(self) -> bool:
         # TODO: __doc__
@@ -175,7 +176,8 @@ class AsciiHexRecord(BaseRecord):
         datastr = b''
 
         if tag == tag.ADDRESS_DATA:
-            addrstr = (b'$A%%0%dX' % self.count) % (self.address & 0xFFFFFFFF)
+            count = self.count or 1
+            addrstr = (b'$A%%0%dX' % count) % (self.address & 0xFFFFFFFF)
 
         if self.data:
             datastr = binascii.hexlify(self.data, exechar).upper()
@@ -201,7 +203,8 @@ class AsciiHexRecord(BaseRecord):
         datastr = b''
 
         if tag == tag.ADDRESS_DATA:
-            addrstr = (b'$A%%0%dX' % self.count) % (self.address & 0xFFFFFFFF)
+            count = self.count or 1
+            addrstr = (b'$A%%0%dX' % count) % (self.address & 0xFFFFFFFF)
 
         if self.data:
             datastr = binascii.hexlify(self.data, exechar).upper()
@@ -228,8 +231,9 @@ class AsciiHexRecord(BaseRecord):
         if self.before and not self.before.isspace():
             raise ValueError('junk before')
 
-        if self.count < 1:
-            raise ValueError('invalid count')
+        if self.count is not None:
+            if self.count < 1:
+                raise ValueError('invalid count')
 
         return self
 

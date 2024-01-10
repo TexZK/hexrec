@@ -41,13 +41,12 @@ from typing import cast as _cast
 
 from bytesparse import Memory
 
-from ..records2 import BaseFile
-from ..records2 import BaseRecord
-from ..records2 import BaseTag
+from ..records import BaseFile
+from ..records import BaseRecord
+from ..records import BaseTag
 from ..utils import AnyBytes
 
 
-@enum.unique
 class SrecTag(BaseTag, enum.IntEnum):
     r"""Motorola S-record tag."""
 
@@ -80,6 +79,8 @@ class SrecTag(BaseTag, enum.IntEnum):
 
     START_16 = 9
     r"""16-bit start address. Terminates :attr:`DATA_16`."""
+
+    _DATA = DATA_16
 
     @classmethod
     def fit_count_tag(cls, count: int) -> 'SrecTag':
@@ -335,10 +336,10 @@ class SrecRecord(BaseRecord):
         bytestr = b'%sS%X%02X%s%s%02X%s%s' % (
             self.before,
             tag & 0xF,
-            self.count & 0xFF,
+            (self.count or 0) & 0xFF,
             addrfmt % (self.address & 0xFFFFFFFF),
             binascii.hexlify(self.data).upper(),
-            self.checksum & 0xFF,
+            (self.checksum or 0) & 0xFF,
             self.after,
             end,
         )
@@ -354,10 +355,10 @@ class SrecRecord(BaseRecord):
             'before': self.before,
             'begin': b'S',
             'tag': b'%X' % (tag & 0xF),
-            'count': b'%02X' % (self.count & 0xFF),
+            'count': b'%02X' % ((self.count or 0) & 0xFF),
             'address': addrfmt % (self.address & 0xFFFFFFFF),
             'data': binascii.hexlify(self.data).upper(),
-            'checksum': b'%02X' % (self.checksum & 0xFF),
+            'checksum': b'%02X' % ((self.checksum or 0) & 0xFF),
             'after': self.after,
             'end': end,
         }
@@ -377,11 +378,13 @@ class SrecRecord(BaseRecord):
         if self.before and not self.before.isspace():
             raise ValueError('junk before')
 
-        if not 0 <= self.checksum <= 0xFF:
-            raise ValueError('checksum overflow')
+        if self.checksum is not None:
+            if not 0 <= self.checksum <= 0xFF:
+                raise ValueError('checksum overflow')
 
-        if not 3 <= self.count <= 0xFF:
-            raise ValueError('count overflow')
+        if self.count is not None:
+            if not 3 <= self.count <= 0xFF:
+                raise ValueError('count overflow')
 
         Tag = _cast(SrecTag, self.Tag)
         tag = _cast(SrecTag, self.tag)

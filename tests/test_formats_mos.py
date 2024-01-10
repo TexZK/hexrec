@@ -9,6 +9,10 @@ from hexrec.formats.mos import MosFile
 from hexrec.formats.mos import MosRecord
 from hexrec.formats.mos import MosTag
 
+from test_records import BaseTestFile
+from test_records import BaseTestRecord
+from test_records import BaseTestTag
+
 
 # ============================================================================
 
@@ -31,7 +35,9 @@ def datapath(datadir):
 
 # ============================================================================
 
-class TestMosTag:
+class TestMosTag(BaseTestTag):
+
+    Tag = MosTag
 
     def test_is_data(self):
         tag = MosTag(0)
@@ -48,7 +54,9 @@ class TestMosTag:
 
 # ----------------------------------------------------------------------------
 
-class TestMosRecord:
+class TestMosRecord(BaseTestRecord):
+
+    Record = MosRecord
 
     def test_compute_checksum(self):
         record = MosRecord.create_data(0, b'')
@@ -408,7 +416,9 @@ class TestMosRecord:
             record.validate()
 
 
-class TestMosFile:
+class TestMosFile(BaseTestFile):
+
+    File = MosFile
 
     def test__is_line_empty(self):
         assert MosFile._is_line_empty(b'')

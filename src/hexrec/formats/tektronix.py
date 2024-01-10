@@ -39,13 +39,12 @@ from typing import Sequence
 from typing import Type
 from typing import cast as _cast
 
-from ..records2 import BaseFile
-from ..records2 import BaseRecord
-from ..records2 import BaseTag
+from ..records import BaseFile
+from ..records import BaseRecord
+from ..records import BaseTag
 from ..utils import AnyBytes
 
 
-@enum.unique
 class TekExtTag(BaseTag, enum.IntEnum):
     r"""Tektronix Extended tag."""
 
@@ -54,6 +53,8 @@ class TekExtTag(BaseTag, enum.IntEnum):
 
     EOF = 8
     r"""End Of File."""
+
+    _DATA = DATA
 
     def is_data(self) -> bool:
 
@@ -101,8 +102,8 @@ class TekExtRecord(BaseRecord):
         if not 1 <= addrlen <= 15:
             raise ValueError('invalid address length')
 
-        super().__init__(*super_init_args, **super_init_kwargs)
         self.addrlen = addrlen
+        super().__init__(*super_init_args, **super_init_kwargs)
 
     def compute_checksum(self) -> int:
 
@@ -225,9 +226,9 @@ class TekExtRecord(BaseRecord):
 
         bytestr = b'%s%%%02X%X%02X%X%s%s%s%s' % (
             self.before,
-            self.count & 0xFF,
+            (self.count or 0) & 0xFF,
             _cast(TekExtTag, self.tag) & 0xF,
-            self.checksum & 0xFF,
+            (self.checksum or 0) & 0xFF,
             self.addrlen & 0xF,
             (b'%%0%dX' % self.addrlen) % (self.address & 0xFFFFFFFF),
             binascii.hexlify(self.data).upper(),
@@ -242,9 +243,9 @@ class TekExtRecord(BaseRecord):
         return {
             'before': self.before,
             'begin': b'%',
-            'count': b'%02X' % (self.count & 0xFF),
+            'count': b'%02X' % ((self.count or 0) & 0xFF),
             'tag': b'%X' % (_cast(TekExtTag, self.tag) & 0xF),
-            'checksum': b'%02X' % (self.checksum & 0xFF),
+            'checksum': b'%02X' % ((self.checksum or 0) & 0xFF),
             'addrlen': b'%X' % (self.addrlen & 0xF),
             'address': (b'%%0%dX' % self.addrlen) % (self.address & 0xFFFFFFFF),
             'data': binascii.hexlify(self.data).upper(),
@@ -266,11 +267,13 @@ class TekExtRecord(BaseRecord):
         if b'%' in self.before:
             raise ValueError('junk before contains "%"')
 
-        if not 0 <= self.checksum <= 0xFF:
-            raise ValueError('checksum overflow')
+        if self.checksum is not None:
+            if not 0 <= self.checksum <= 0xFF:
+                raise ValueError('checksum overflow')
 
-        if not 0 <= self.count <= 0xFF:
-            raise ValueError('count overflow')
+        if self.count is not None:
+            if not 0 <= self.count <= 0xFF:
+                raise ValueError('count overflow')
 
         addrlen = self.addrlen
         if not 1 <= addrlen <= 15:

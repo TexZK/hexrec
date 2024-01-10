@@ -10,9 +10,9 @@ from hexrec.formats.binary import RawFile
 from hexrec.formats.binary import RawRecord
 from hexrec.formats.binary import RawTag
 
-from test_records2 import BaseTestFile
-from test_records2 import BaseTestRecord
-from test_records2 import BaseTestTag
+from test_records import BaseTestFile
+from test_records import BaseTestRecord
+from test_records import BaseTestTag
 
 BYTES = bytes(range(256))
 HEXBYTES = bytes(range(16))

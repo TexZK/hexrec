@@ -11,6 +11,10 @@ from hexrec.formats.intel import IhexFile
 from hexrec.formats.intel import IhexRecord
 from hexrec.formats.intel import IhexTag
 
+from test_records import BaseTestFile
+from test_records import BaseTestRecord
+from test_records import BaseTestTag
+
 DATA = IhexTag.DATA
 EOF = IhexTag.END_OF_FILE
 ESA = IhexTag.EXTENDED_SEGMENT_ADDRESS
@@ -35,7 +39,9 @@ def datapath(datadir):
 
 # ============================================================================
 
-class TestIhexTag:
+class TestIhexTag(BaseTestTag):
+
+    Tag = IhexTag
 
     def test_enum(self):
         assert IhexTag.DATA == 0
@@ -80,7 +86,9 @@ class TestIhexTag:
 
 # ============================================================================
 
-class TestIhexRecord:
+class TestIhexRecord(BaseTestRecord):
+
+    Record = IhexRecord
 
     # https://en.wikipedia.org/wiki/Intel_HEX#Record_types
     def test_compute_checksum_misc(self):
@@ -585,7 +593,9 @@ class TestIhexRecord:
 
 # ============================================================================
 
-class TestIhexFile:
+class TestIhexFile(BaseTestFile):
+
+    File = IhexFile
 
     def test___init__(self):
         file = IhexFile()

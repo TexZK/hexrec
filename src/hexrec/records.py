@@ -23,7 +23,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-# TODO: module docs
+# TODO: __doc__
 
 import abc
 import os
@@ -56,6 +56,7 @@ r"""Registered record file types."""
 
 
 TOKEN_COLOR_CODES: Mapping[str, bytes] = {
+    '':         colorama.Style.RESET_ALL.encode(),
     '<':        colorama.Style.RESET_ALL.encode(),
     '>':        colorama.Style.RESET_ALL.encode(),
     'address':  colorama.Fore.RED.encode(),
@@ -70,6 +71,7 @@ TOKEN_COLOR_CODES: Mapping[str, bytes] = {
     'end':      colorama.Style.RESET_ALL.encode(),
     'tag':      colorama.Fore.GREEN.encode(),
 }
+# TODO: __doc__
 
 
 def colorize_tokens(
@@ -78,16 +80,19 @@ def colorize_tokens(
 ) -> Mapping[str, bytes]:
     # TODO: __doc__
 
+    codes = TOKEN_COLOR_CODES
     # noinspection PyDictCreation
     colorized = {}
-    colorized['<'] = TOKEN_COLOR_CODES['<']
+    colorized['<'] = codes['<']
 
     for key, value in tokens.items():
+        if key not in codes:
+            key = ''
         if value:
-            code = TOKEN_COLOR_CODES[key]
+            code = codes[key]
 
             if key == 'data' and altdata:
-                altcode = TOKEN_COLOR_CODES['dataalt']
+                altcode = codes['dataalt']
                 buffer = bytearray()
                 length = len(value)
                 i = 0
@@ -105,7 +110,7 @@ def colorize_tokens(
             else:
                 colorized[key] = code + value
 
-    colorized['>'] = TOKEN_COLOR_CODES['>']
+    colorized['>'] = codes['>']
     return colorized
 
 
@@ -160,13 +165,13 @@ def guess_type_class(file_path: str) -> Type['BaseFile']:
 class BaseTag:
     # TODO: __doc__
 
-    DATA = ...
+    _DATA = ...
     # TODO: __doc__
 
     def is_data(self) -> bool:
         # TODO: __doc__
 
-        return self == self.DATA
+        return self == self._DATA
 
 
 class BaseRecord(abc.ABC):
@@ -253,9 +258,9 @@ class BaseRecord(abc.ABC):
     def __repr__(self) -> str:
         # TODO: __doc__
 
-        tokens = self.to_tokens()
+        meta = self.get_meta()
         text = f'<{self.__class__!s} @0x{id(self):08X} '
-        text += ' '.join(f'{key!s}:={value!r}' for key, value in tokens.items())
+        text += ' '.join(f'{key!s}:={value!r}' for key, value in meta.items())
         text += '>'
         return text
 
@@ -274,12 +279,6 @@ class BaseRecord(abc.ABC):
 
         return None
 
-    @classmethod
-    @abc.abstractmethod
-    def create_data(cls, address: int, data: AnyBytes) -> 'BaseRecord':
-        # TODO: __doc__
-        ...
-
     def copy(self) -> 'BaseRecord':  # shallow
         # TODO: __doc__
 
@@ -287,6 +286,12 @@ class BaseRecord(abc.ABC):
         tag = meta.pop('tag')
         cls = type(self)
         return cls(tag, **meta)
+
+    @classmethod
+    @abc.abstractmethod
+    def create_data(cls, address: int, data: AnyBytes) -> 'BaseRecord':
+        # TODO: __doc__
+        ...
 
     def data_to_int(
         self,
@@ -317,6 +322,8 @@ class BaseRecord(abc.ABC):
     ) -> 'BaseRecord':
         # TODO: __doc__
 
+        if stream is None:
+            stream = sys.stdout
         tokens = self.to_tokens()
         if color:
             tokens = colorize_tokens(tokens)
@@ -448,8 +455,20 @@ class BaseFile(abc.ABC):
     def __ne__(self, other: 'BaseFile') -> bool:
         # TODO: __doc__
 
-        if self.memory != other.memory:
-            return True
+        self_records = self._records
+        other_records = other._records
+        self_memory = self._memory
+        other_memory = other._memory
+
+        if self_memory is not None and other_memory is not None:
+            if self_memory != other_memory:
+                return True
+        elif self_records is not None and other_records is not None:
+            if self_records != other_records:
+                return True
+        else:
+            # raise ValueError('both memory or both records required')
+            return False
 
         if self.META_KEYS != other.META_KEYS:
             return True
@@ -523,50 +542,35 @@ class BaseFile(abc.ABC):
     @classmethod
     def convert(
         cls,
-        other: 'BaseFile',
-        copy: bool = False,
+        source: 'BaseFile',
         meta: bool = True,
     ) -> 'BaseFile':
         # TODO: __doc__
 
-        converted_memory = other.memory
-        if copy:
-            converted_memory = converted_memory.copy()
-
         if meta:
-            other_meta = other.get_meta()
-            converted_meta = {key: other_meta[key]
-                              for key in cls.META_KEYS
-                              if key in other_meta}
+            source_meta = source.get_meta()
+            copied_meta = {key: source_meta[key]
+                          for key in cls.META_KEYS
+                          if key in source_meta}
         else:
-            converted_meta = {}
+            copied_meta = {}
 
-        converted = cls.from_memory(memory=converted_memory, **converted_meta)
-        return converted
+        copied_memory = source.memory.copy()
+        copied = cls.from_memory(memory=copied_memory, **copied_meta)
+        return copied
 
     def copy(
         self,
         start: Optional[int] = None,
         endex: Optional[int] = None,
-        records: bool = False,
-        memory: bool = True,
         meta: bool = True,
     ) -> 'BaseFile':
         # TODO: __doc__
 
-        other_records = None
-        if records:
-            other_records = [record.copy() for record in self.records]
-
-        other_memory = None
-        if memory:
-            other_memory = self.memory.extract(start=start, endex=endex, bound=False)
-
-        other_meta = self.get_meta() if meta else {}
-
-        other = self.from_memory(memory=other_memory, **other_meta)
-        other._records = other_records
-        return other
+        copied_memory = self.memory.extract(start=start, endex=endex, bound=False)
+        copied_meta = self.get_meta() if meta else {}
+        copied = self.from_memory(memory=copied_memory, **copied_meta)
+        return copied
 
     def crop(
         self,
@@ -589,7 +593,7 @@ class BaseFile(abc.ABC):
 
         memory = self.memory.cut(start=start, endex=endex, bound=False)
         memory = _cast(MutableMemory, memory)
-        other = self.copy(records=False, memory=False, meta=meta)
+        other = self.copy(meta=meta)
         other._memory = memory
         self.discard_records()
         return other
@@ -820,10 +824,9 @@ class BaseFile(abc.ABC):
         # TODO: __doc__
 
         records = self.records
-        if start is None:
-            start = 0
-        if stop is None:
-            stop = len(records)
+        count = len(records)
+        start = 0 if start is None else max(0, min(start, count))
+        stop = count if stop is None else max(0, min(stop, count))
 
         for index in range(start, stop):
             record = records[index]
@@ -899,7 +902,7 @@ class BaseFile(abc.ABC):
     def split(
         self,
         *addresses: int,
-        meta: bool = False,
+        meta: bool = True,
     ) -> List['BaseFile']:
         # TODO: __doc__
 

@@ -1,24 +1,57 @@
 # -*- coding: utf-8 -*-
-import os
-from pathlib import Path
-
 import pytest
+
+from hexrec.formats.ascii_hex import AsciiHexFile
+from hexrec.formats.ascii_hex import AsciiHexRecord
+from hexrec.formats.ascii_hex import AsciiHexTag
+
+from test_records import BaseTestFile
+from test_records import BaseTestRecord
+from test_records import BaseTestTag
 
 
 # ============================================================================
 
-@pytest.fixture
-def tmppath(tmpdir):
-    return Path(str(tmpdir))
+class TesAsciiHexTag(BaseTestTag):
+
+    Tag = AsciiHexTag
+
+    # TODO: ...
 
 
-@pytest.fixture(scope='module')
-def datadir(request):
-    dir_path, _ = os.path.splitext(request.module.__file__)
-    assert os.path.isdir(str(dir_path))
-    return dir_path
+# ----------------------------------------------------------------------------
+
+class TesAsciiHexRecord(BaseTestRecord):
+
+    Record = AsciiHexRecord
+
+    @pytest.mark.skip(reason='TODO')  # TODO:
+    def test_compute_checksum(self):
+        ...  # TODO:
+
+    @pytest.mark.skip(reason='TODO')  # TODO:
+    def test_compute_count(self):
+        ...  # TODO:
+
+    @pytest.mark.skip(reason='TODO')  # TODO:
+    def test_parse(self):
+        ...  # TODO:
+
+    @pytest.mark.skip(reason='TODO')  # TODO:
+    def test_to_bytestr(self):
+        ...  # TODO:
+
+    @pytest.mark.skip(reason='TODO')  # TODO:
+    def test_to_tokens(self):
+        ...  # TODO:
+
+    # TODO: ...
 
 
-@pytest.fixture
-def datapath(datadir):
-    return Path(str(datadir))
+# ----------------------------------------------------------------------------
+
+class TestAsciiHexFile(BaseTestFile):
+
+    File = AsciiHexFile
+
+    # TODO: ...
