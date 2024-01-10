@@ -7,8 +7,8 @@ import pytest
 from hexrec.formats.tektronix import Record
 from hexrec.formats.tektronix import Tag
 
-BYTES = bytes(range(256))
-HEXBYTES = bytes(range(16))
+BYTES = bytes(range(256))  # pragma: no cover  # TODO: DELETE
+HEXBYTES = bytes(range(16))  # pragma: no cover  # TODO: DELETE
 
 
 # ============================================================================
@@ -32,7 +32,7 @@ def datapath(datadir):
 
 # ============================================================================
 
-def read_text(path):
+def read_text(path):  # pragma: no cover  # TODO: DELETE
     path = str(path)
     with open(path, 'rt') as file:
         data = file.read()
@@ -42,7 +42,7 @@ def read_text(path):
 
 # ============================================================================
 
-class TestTag:
+class _TestTag:  # pragma: no cover  # TODO: DELETE
 
     def test_is_data(self):
         DATA_INTS = {6}
@@ -53,7 +53,7 @@ class TestTag:
 
 # ============================================================================
 
-class TestRecord:
+class _TestRecord:  # pragma: no cover  # TODO: DELETE
 
     def test___init___doctest(self):
         pass  # TODO
@@ -80,18 +80,18 @@ class TestRecord:
         pass  # TODO
 
     def test_check(self):
-        record = Record.build_terminator(0)
+        record = Record.create_terminator(0)
         record.data = b'Hello, World!'
         record.update_count()
         record.update_checksum()
         with pytest.raises(ValueError): record.check()
 
-        record = Record.build_data(0, b'Hello, World!')
+        record = Record.create_data(0, b'Hello, World!')
         record.count += 1
         record.update_checksum()
         with pytest.raises(ValueError): record.check()
 
-        record = Record.build_data(0, b'Hello, World!')
+        record = Record.create_data(0, b'Hello, World!')
         record.check()
         for tag in range(256):
             if tag not in (6, 8):
@@ -108,13 +108,13 @@ class TestRecord:
         with pytest.raises(ValueError, match='count error'):
             Record.parse_record('%336E081234567848656C6C6F2C20576F726C6421')
 
-    def test_build_data_doctest(self):
-        ans_out = str(Record.build_data(0x12345678, b'Hello, World!'))
+    def test_create_data_doctest(self):
+        ans_out = str(Record.create_data(0x12345678, b'Hello, World!'))
         ans_ref = '%236E081234567848656C6C6F2C20576F726C6421'
         assert ans_out == ans_ref
 
-    def test_build_terminator_doctest(self):
-        ans_out = str(Record.build_terminator(0x12345678))
+    def test_create_terminator_doctest(self):
+        ans_out = str(Record.create_terminator(0x12345678))
         ans_ref = '%0983D812345678'
         assert ans_out == ans_ref
 
@@ -155,24 +155,24 @@ class TestRecord:
         ans_out = list(Record.split(HEXBYTES, standalone=False,
                                     address=7, columns=5, align=3))
         ans_ref = [
-            Record.build_data(7, HEXBYTES[:4]),
-            Record.build_data(11, HEXBYTES[4:9]),
-            Record.build_data(16, HEXBYTES[9:14]),
-            Record.build_data(21, HEXBYTES[14:]),
+            Record.create_data(7, HEXBYTES[:4]),
+            Record.create_data(11, HEXBYTES[4:9]),
+            Record.create_data(16, HEXBYTES[9:14]),
+            Record.create_data(21, HEXBYTES[14:]),
         ]
         assert ans_out == ans_ref
 
-    def test_build_standalone(self):
-        ans_out = list(Record.build_standalone([], start=0))
+    def test_create_standalone(self):
+        ans_out = list(Record.create_standalone([], start=0))
         ans_ref = [Record(0, Tag.TERMINATOR, b'')]
         assert ans_out == ans_ref
 
-        ans_out = list(Record.build_standalone([]))
+        ans_out = list(Record.create_standalone([]))
         ans_ref = [Record(0, Tag.TERMINATOR, b'')]
         assert ans_out == ans_ref
 
-        data_records = [Record.build_data(0x1234, b'Hello, World!')]
-        ans_out = list(Record.build_standalone(data_records))
+        data_records = [Record.create_data(0x1234, b'Hello, World!')]
+        ans_out = list(Record.create_standalone(data_records))
         ans_ref = [
             Record(0x1234, Tag.DATA, b'Hello, World!'),
             Record(0x1234, Tag.TERMINATOR, b''),

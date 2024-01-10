@@ -797,7 +797,7 @@ def set_header(
         record.update_count()
         record.update_checksum()
     else:
-        record = SrecRecord.build_header(header_data)
+        record = SrecRecord.create_header(header_data)
         records.insert(0, record)
 
     file.save(outfile)

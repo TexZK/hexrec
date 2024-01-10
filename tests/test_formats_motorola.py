@@ -178,7 +178,51 @@ class TestSrecTag:
 
 class TestSrecRecord:
 
-    def test_build_count(self):
+    def test_compute_checksum(self):
+        vector = [
+            (0xFC, SrecRecord.create_header(b'')),
+            (0xD3, SrecRecord.create_header(b'abc')),
+            (0xFC, SrecRecord.create_data(0x00000000, b'')),
+            (0xD3, SrecRecord.create_data(0x00000000, b'abc')),
+            (0xB6, SrecRecord.create_data(0x00001234, b'')),
+            (0x8D, SrecRecord.create_data(0x00001234, b'abc')),
+            (0x5F, SrecRecord.create_data(0x00123456, b'')),
+            (0x36, SrecRecord.create_data(0x00123456, b'abc')),
+            (0xE6, SrecRecord.create_data(0x12345678, b'')),
+            (0xBD, SrecRecord.create_data(0x12345678, b'abc')),
+        ]
+        for expected, record in vector:
+            record.validate()
+            actual = record.compute_checksum()
+            assert actual == expected
+
+    # https://en.wikipedia.org/wiki/SREC_(file_format)#Checksum_calculation
+    def test_compute_checksum_wikipedia(self):
+        line = b'S1137AF00A0A0D0000000000000000000000000061\r\n'
+        record = SrecRecord.parse(line)
+        record.validate()
+        checksum = record.compute_checksum()
+        assert checksum == 0x61
+
+    def test_compute_count(self):
+        vector = [
+            (3, SrecRecord.create_header(b'')),
+            (6, SrecRecord.create_header(b'abc')),
+            (3, SrecRecord.create_data(0x00000000, b'')),
+            (6, SrecRecord.create_data(0x00000000, b'abc')),
+            (3, SrecRecord.create_data(0x00001234, b'')),
+            (6, SrecRecord.create_data(0x00001234, b'abc')),
+            (4, SrecRecord.create_data(0x00123456, b'')),
+            (7, SrecRecord.create_data(0x00123456, b'abc')),
+            (5, SrecRecord.create_data(0x12345678, b'')),
+            (8, SrecRecord.create_data(0x12345678, b'abc')),
+        ]
+        for expected, record in vector:
+            record.validate()
+            actual = record.compute_count()
+            assert actual == expected
+
+    def test_create_count(self):
         vector = [
             (0x000000, SrecTag.COUNT_16, None),
             (0x00FFFF, SrecTag.COUNT_16, None),
@@ -192,14 +236,14 @@ class TestSrecRecord:
             (0xFFFFFF, SrecTag.COUNT_24, SrecTag.COUNT_24),
         ]
         for count, tag_out, tag_in in vector:
-            record = SrecRecord.build_count(count, tag=tag_in)
+            record = SrecRecord.create_count(count, tag=tag_in)
             record.validate()
             assert record.tag == tag_out
             assert record.address == count
             assert record.count == tag_out.get_address_size() + 1
             assert record.data == b''
 
-    def test_build_count_raises_count(self):
+    def test_create_count_raises_count(self):
         vector = [
             (SrecTag.COUNT_16, -1),
             (SrecTag.COUNT_16, 0x0010000),
@@ -210,16 +254,16 @@ class TestSrecRecord:
         ]
         for tag, count in vector:
             with pytest.raises(ValueError, match='count overflow'):
-                SrecRecord.build_count(count, tag=tag)
+                SrecRecord.create_count(count, tag=tag)
 
-    def test_build_count_raises_tag(self):
+    def test_create_count_raises_tag(self):
         tags = [tag for tag in SrecTag if not tag.is_count()]
         assert tags
         for tag in tags:
             with pytest.raises(ValueError, match='invalid count tag'):
-                SrecRecord.build_count(0, tag=tag)
+                SrecRecord.create_count(0, tag=tag)
 
-    def test_build_data(self):
+    def test_create_data(self):
         contents = [
             b'',
             b'abc',
@@ -247,14 +291,14 @@ class TestSrecRecord:
         ]
         for data in contents:
             for address, tag_out, tag_in in vector:
-                record = SrecRecord.build_data(address, data, tag=tag_in)
+                record = SrecRecord.create_data(address, data, tag=tag_in)
                 record.validate()
                 assert record.tag == tag_out
                 assert record.address == address
                 assert record.count == tag_out.get_address_size() + len(data) + 1
                 assert record.data == data
 
-    def test_build_data_raises_address(self):
+    def test_create_data_raises_address(self):
         vector = [
             (SrecTag.DATA_16, -1),
             (SrecTag.DATA_16, 0x000010000),
@@ -267,9 +311,9 @@ class TestSrecRecord:
         ]
         for tag, address in vector:
             with pytest.raises(ValueError, match='address overflow'):
-                SrecRecord.build_data(address, b'abc', tag=tag)
+                SrecRecord.create_data(address, b'abc', tag=tag)
 
-    def test_build_data_raises_data(self):
+    def test_create_data_raises_data(self):
         vector = [
             (SrecTag.DATA_16, b'a' * 0xFD),
             (SrecTag.DATA_24, b'a' * 0xFC),
@@ -278,34 +322,34 @@ class TestSrecRecord:
         ]
         for tag, data in vector:
             with pytest.raises(ValueError, match='data size overflow'):
-                SrecRecord.build_data(0, data, tag=tag)
+                SrecRecord.create_data(0, data, tag=tag)
 
-    def test_build_data_raises_tag(self):
+    def test_create_data_raises_tag(self):
         tags = [tag for tag in SrecTag if not tag.is_data()]
         assert tags
         for tag in tags:
             with pytest.raises(ValueError, match='invalid data tag'):
-                SrecRecord.build_data(0, b'abc', tag=tag)
+                SrecRecord.create_data(0, b'abc', tag=tag)
 
-    def test_build_header(self):
+    def test_create_header(self):
         contents = [
             b'',
             b'abc',
             b'a' * 0xFA,
         ]
         for data in contents:
-            record = SrecRecord.build_header(data)
+            record = SrecRecord.create_header(data)
             record.validate()
             assert record.tag == SrecTag.HEADER
             assert record.address == 0
             assert record.count == 3 + len(data)
             assert record.data == data
 
-    def test_build_header_raises_data(self):
+    def test_create_header_raises_data(self):
         with pytest.raises(ValueError, match='data size overflow'):
-            SrecRecord.build_header(b'a' * 0xFD)
+            SrecRecord.create_header(b'a' * 0xFD)
 
-    def test_build_start(self):
+    def test_create_start(self):
         vector = [
             (0x00000000, SrecTag.START_16, None),
             (0x0000FFFF, SrecTag.START_16, None),
@@ -327,14 +371,14 @@ class TestSrecRecord:
             (0xFFFFFFFF, SrecTag.START_32, SrecTag.START_32),
         ]
         for address, tag_out, tag_in in vector:
-            record = SrecRecord.build_start(address, tag=tag_in)
+            record = SrecRecord.create_start(address, tag=tag_in)
             record.validate()
             assert record.tag == tag_out
             assert record.address == address
             assert record.count == tag_out.get_address_size() + 1
             assert record.data == b''
 
-    def test_build_start_raises_address(self):
+    def test_create_start_raises_address(self):
         vector = [
             (SrecTag.START_16, -1),
             (SrecTag.START_16, 0x000010000),
@@ -347,58 +391,14 @@ class TestSrecRecord:
         ]
         for tag, address in vector:
             with pytest.raises(ValueError, match='address overflow'):
-                SrecRecord.build_start(address, tag=tag)
+                SrecRecord.create_start(address, tag=tag)
 
-    def test_build_start_raises_tag(self):
+    def test_create_start_raises_tag(self):
         tags = [tag for tag in SrecTag if not tag.is_start()]
         assert tags
         for tag in tags:
             with pytest.raises(ValueError, match='invalid start tag'):
-                SrecRecord.build_start(0, tag=tag)
-
-    def test_compute_checksum(self):
-        vector = [
-            (0xFC, SrecRecord.build_header(b'')),
-            (0xD3, SrecRecord.build_header(b'abc')),
-            (0xFC, SrecRecord.build_data(0x00000000, b'')),
-            (0xD3, SrecRecord.build_data(0x00000000, b'abc')),
-            (0xB6, SrecRecord.build_data(0x00001234, b'')),
-            (0x8D, SrecRecord.build_data(0x00001234, b'abc')),
-            (0x5F, SrecRecord.build_data(0x00123456, b'')),
-            (0x36, SrecRecord.build_data(0x00123456, b'abc')),
-            (0xE6, SrecRecord.build_data(0x12345678, b'')),
-            (0xBD, SrecRecord.build_data(0x12345678, b'abc')),
-        ]
-        for expected, record in vector:
-            record.validate()
-            actual = record.compute_checksum()
-            assert actual == expected
-
-    # https://en.wikipedia.org/wiki/SREC_(file_format)#Checksum_calculation
-    def test_compute_checksum_wikipedia(self):
-        line = b'S1137AF00A0A0D0000000000000000000000000061\r\n'
-        record = SrecRecord.parse(line)
-        record.validate()
-        checksum = record.compute_checksum()
-        assert checksum == 0x61
-
-    def test_compute_count(self):
-        vector = [
-            (3, SrecRecord.build_header(b'')),
-            (6, SrecRecord.build_header(b'abc')),
-            (3, SrecRecord.build_data(0x00000000, b'')),
-            (6, SrecRecord.build_data(0x00000000, b'abc')),
-            (3, SrecRecord.build_data(0x00001234, b'')),
-            (6, SrecRecord.build_data(0x00001234, b'abc')),
-            (4, SrecRecord.build_data(0x00123456, b'')),
-            (7, SrecRecord.build_data(0x00123456, b'abc')),
-            (5, SrecRecord.build_data(0x12345678, b'')),
-            (8, SrecRecord.build_data(0x12345678, b'abc')),
-        ]
-        for expected, record in vector:
-            record.validate()
-            actual = record.compute_count()
-            assert actual == expected
+                SrecRecord.create_start(0, tag=tag)
 
     def test_parse(self):
         lines = [
@@ -602,45 +602,45 @@ class TestSrecRecord:
             b'S903FFFFFE\r\n',
         ]
         records = [
-            SrecRecord.build_header(b''),
-            SrecRecord.build_header(b'\x00' * 0xFC),
-            SrecRecord.build_header(b'\xFF' * 0xFC),
+            SrecRecord.create_header(b''),
+            SrecRecord.create_header(b'\x00' * 0xFC),
+            SrecRecord.create_header(b'\xFF' * 0xFC),
 
-            SrecRecord.build_data(0x00000000, b'', tag=SrecTag.DATA_16),
-            SrecRecord.build_data(0x00000000, (b'\x00' * 0xFC), tag=SrecTag.DATA_16),
-            SrecRecord.build_data(0x00000000, (b'\xFF' * 0xFC), tag=SrecTag.DATA_16),
-            SrecRecord.build_data(0x0000FFFF, b'', tag=SrecTag.DATA_16),
-            SrecRecord.build_data(0x0000FFFF, (b'\x00' * 0xFC), tag=SrecTag.DATA_16),
-            SrecRecord.build_data(0x0000FFFF, (b'\xFF' * 0xFC), tag=SrecTag.DATA_16),
+            SrecRecord.create_data(0x00000000, b'', tag=SrecTag.DATA_16),
+            SrecRecord.create_data(0x00000000, (b'\x00' * 0xFC), tag=SrecTag.DATA_16),
+            SrecRecord.create_data(0x00000000, (b'\xFF' * 0xFC), tag=SrecTag.DATA_16),
+            SrecRecord.create_data(0x0000FFFF, b'', tag=SrecTag.DATA_16),
+            SrecRecord.create_data(0x0000FFFF, (b'\x00' * 0xFC), tag=SrecTag.DATA_16),
+            SrecRecord.create_data(0x0000FFFF, (b'\xFF' * 0xFC), tag=SrecTag.DATA_16),
 
-            SrecRecord.build_data(0x00000000, b'', tag=SrecTag.DATA_24),
-            SrecRecord.build_data(0x00000000, (b'\x00' * 0xFB), tag=SrecTag.DATA_24),
-            SrecRecord.build_data(0x00000000, (b'\xFF' * 0xFB), tag=SrecTag.DATA_24),
-            SrecRecord.build_data(0x00FFFFFF, b'', tag=SrecTag.DATA_24),
-            SrecRecord.build_data(0x00FFFFFF, (b'\x00' * 0xFB), tag=SrecTag.DATA_24),
-            SrecRecord.build_data(0x00FFFFFF, (b'\xFF' * 0xFB), tag=SrecTag.DATA_24),
+            SrecRecord.create_data(0x00000000, b'', tag=SrecTag.DATA_24),
+            SrecRecord.create_data(0x00000000, (b'\x00' * 0xFB), tag=SrecTag.DATA_24),
+            SrecRecord.create_data(0x00000000, (b'\xFF' * 0xFB), tag=SrecTag.DATA_24),
+            SrecRecord.create_data(0x00FFFFFF, b'', tag=SrecTag.DATA_24),
+            SrecRecord.create_data(0x00FFFFFF, (b'\x00' * 0xFB), tag=SrecTag.DATA_24),
+            SrecRecord.create_data(0x00FFFFFF, (b'\xFF' * 0xFB), tag=SrecTag.DATA_24),
 
-            SrecRecord.build_data(0x00000000, b'', tag=SrecTag.DATA_32),
-            SrecRecord.build_data(0x00000000, (b'\x00' * 0xFA), tag=SrecTag.DATA_32),
-            SrecRecord.build_data(0x00000000, (b'\xFF' * 0xFA), tag=SrecTag.DATA_32),
-            SrecRecord.build_data(0xFFFFFFFF, b'', tag=SrecTag.DATA_32),
-            SrecRecord.build_data(0xFFFFFFFF, (b'\x00' * 0xFA), tag=SrecTag.DATA_32),
-            SrecRecord.build_data(0xFFFFFFFF, (b'\xFF' * 0xFA), tag=SrecTag.DATA_32),
+            SrecRecord.create_data(0x00000000, b'', tag=SrecTag.DATA_32),
+            SrecRecord.create_data(0x00000000, (b'\x00' * 0xFA), tag=SrecTag.DATA_32),
+            SrecRecord.create_data(0x00000000, (b'\xFF' * 0xFA), tag=SrecTag.DATA_32),
+            SrecRecord.create_data(0xFFFFFFFF, b'', tag=SrecTag.DATA_32),
+            SrecRecord.create_data(0xFFFFFFFF, (b'\x00' * 0xFA), tag=SrecTag.DATA_32),
+            SrecRecord.create_data(0xFFFFFFFF, (b'\xFF' * 0xFA), tag=SrecTag.DATA_32),
 
-            SrecRecord.build_count(0x00000000, tag=SrecTag.COUNT_16),
-            SrecRecord.build_count(0x0000FFFF, tag=SrecTag.COUNT_16),
+            SrecRecord.create_count(0x00000000, tag=SrecTag.COUNT_16),
+            SrecRecord.create_count(0x0000FFFF, tag=SrecTag.COUNT_16),
 
-            SrecRecord.build_count(0x00000000, tag=SrecTag.COUNT_24),
-            SrecRecord.build_count(0x00FFFFFF, tag=SrecTag.COUNT_24),
+            SrecRecord.create_count(0x00000000, tag=SrecTag.COUNT_24),
+            SrecRecord.create_count(0x00FFFFFF, tag=SrecTag.COUNT_24),
 
-            SrecRecord.build_start(0x00000000, tag=SrecTag.START_32),
-            SrecRecord.build_start(0xFFFFFFFF, tag=SrecTag.START_32),
+            SrecRecord.create_start(0x00000000, tag=SrecTag.START_32),
+            SrecRecord.create_start(0xFFFFFFFF, tag=SrecTag.START_32),
 
-            SrecRecord.build_start(0x00000000, tag=SrecTag.START_24),
-            SrecRecord.build_start(0x00FFFFFF, tag=SrecTag.START_24),
+            SrecRecord.create_start(0x00000000, tag=SrecTag.START_24),
+            SrecRecord.create_start(0x00FFFFFF, tag=SrecTag.START_24),
 
-            SrecRecord.build_start(0x00000000, tag=SrecTag.START_16),
-            SrecRecord.build_start(0x0000FFFF, tag=SrecTag.START_16),
+            SrecRecord.create_start(0x00000000, tag=SrecTag.START_16),
+            SrecRecord.create_start(0x0000FFFF, tag=SrecTag.START_16),
         ]
         for expected, record in zip(lines, records):
             actual = record.to_bytestr()
@@ -689,45 +689,45 @@ class TestSrecRecord:
             b'S903FFFFFE\r\n',
         ]
         records = [
-            SrecRecord.build_header(b''),
-            SrecRecord.build_header(b'\x00' * 0xFC),
-            SrecRecord.build_header(b'\xFF' * 0xFC),
+            SrecRecord.create_header(b''),
+            SrecRecord.create_header(b'\x00' * 0xFC),
+            SrecRecord.create_header(b'\xFF' * 0xFC),
 
-            SrecRecord.build_data(0x00000000, b'', tag=SrecTag.DATA_16),
-            SrecRecord.build_data(0x00000000, (b'\x00' * 0xFC), tag=SrecTag.DATA_16),
-            SrecRecord.build_data(0x00000000, (b'\xFF' * 0xFC), tag=SrecTag.DATA_16),
-            SrecRecord.build_data(0x0000FFFF, b'', tag=SrecTag.DATA_16),
-            SrecRecord.build_data(0x0000FFFF, (b'\x00' * 0xFC), tag=SrecTag.DATA_16),
-            SrecRecord.build_data(0x0000FFFF, (b'\xFF' * 0xFC), tag=SrecTag.DATA_16),
+            SrecRecord.create_data(0x00000000, b'', tag=SrecTag.DATA_16),
+            SrecRecord.create_data(0x00000000, (b'\x00' * 0xFC), tag=SrecTag.DATA_16),
+            SrecRecord.create_data(0x00000000, (b'\xFF' * 0xFC), tag=SrecTag.DATA_16),
+            SrecRecord.create_data(0x0000FFFF, b'', tag=SrecTag.DATA_16),
+            SrecRecord.create_data(0x0000FFFF, (b'\x00' * 0xFC), tag=SrecTag.DATA_16),
+            SrecRecord.create_data(0x0000FFFF, (b'\xFF' * 0xFC), tag=SrecTag.DATA_16),
 
-            SrecRecord.build_data(0x00000000, b'', tag=SrecTag.DATA_24),
-            SrecRecord.build_data(0x00000000, (b'\x00' * 0xFB), tag=SrecTag.DATA_24),
-            SrecRecord.build_data(0x00000000, (b'\xFF' * 0xFB), tag=SrecTag.DATA_24),
-            SrecRecord.build_data(0x00FFFFFF, b'', tag=SrecTag.DATA_24),
-            SrecRecord.build_data(0x00FFFFFF, (b'\x00' * 0xFB), tag=SrecTag.DATA_24),
-            SrecRecord.build_data(0x00FFFFFF, (b'\xFF' * 0xFB), tag=SrecTag.DATA_24),
+            SrecRecord.create_data(0x00000000, b'', tag=SrecTag.DATA_24),
+            SrecRecord.create_data(0x00000000, (b'\x00' * 0xFB), tag=SrecTag.DATA_24),
+            SrecRecord.create_data(0x00000000, (b'\xFF' * 0xFB), tag=SrecTag.DATA_24),
+            SrecRecord.create_data(0x00FFFFFF, b'', tag=SrecTag.DATA_24),
+            SrecRecord.create_data(0x00FFFFFF, (b'\x00' * 0xFB), tag=SrecTag.DATA_24),
+            SrecRecord.create_data(0x00FFFFFF, (b'\xFF' * 0xFB), tag=SrecTag.DATA_24),
 
-            SrecRecord.build_data(0x00000000, b'', tag=SrecTag.DATA_32),
-            SrecRecord.build_data(0x00000000, (b'\x00' * 0xFA), tag=SrecTag.DATA_32),
-            SrecRecord.build_data(0x00000000, (b'\xFF' * 0xFA), tag=SrecTag.DATA_32),
-            SrecRecord.build_data(0xFFFFFFFF, b'', tag=SrecTag.DATA_32),
-            SrecRecord.build_data(0xFFFFFFFF, (b'\x00' * 0xFA), tag=SrecTag.DATA_32),
-            SrecRecord.build_data(0xFFFFFFFF, (b'\xFF' * 0xFA), tag=SrecTag.DATA_32),
+            SrecRecord.create_data(0x00000000, b'', tag=SrecTag.DATA_32),
+            SrecRecord.create_data(0x00000000, (b'\x00' * 0xFA), tag=SrecTag.DATA_32),
+            SrecRecord.create_data(0x00000000, (b'\xFF' * 0xFA), tag=SrecTag.DATA_32),
+            SrecRecord.create_data(0xFFFFFFFF, b'', tag=SrecTag.DATA_32),
+            SrecRecord.create_data(0xFFFFFFFF, (b'\x00' * 0xFA), tag=SrecTag.DATA_32),
+            SrecRecord.create_data(0xFFFFFFFF, (b'\xFF' * 0xFA), tag=SrecTag.DATA_32),
 
-            SrecRecord.build_count(0x00000000, tag=SrecTag.COUNT_16),
-            SrecRecord.build_count(0x0000FFFF, tag=SrecTag.COUNT_16),
+            SrecRecord.create_count(0x00000000, tag=SrecTag.COUNT_16),
+            SrecRecord.create_count(0x0000FFFF, tag=SrecTag.COUNT_16),
 
-            SrecRecord.build_count(0x00000000, tag=SrecTag.COUNT_24),
-            SrecRecord.build_count(0x00FFFFFF, tag=SrecTag.COUNT_24),
+            SrecRecord.create_count(0x00000000, tag=SrecTag.COUNT_24),
+            SrecRecord.create_count(0x00FFFFFF, tag=SrecTag.COUNT_24),
 
-            SrecRecord.build_start(0x00000000, tag=SrecTag.START_32),
-            SrecRecord.build_start(0xFFFFFFFF, tag=SrecTag.START_32),
+            SrecRecord.create_start(0x00000000, tag=SrecTag.START_32),
+            SrecRecord.create_start(0xFFFFFFFF, tag=SrecTag.START_32),
 
-            SrecRecord.build_start(0x00000000, tag=SrecTag.START_24),
-            SrecRecord.build_start(0x00FFFFFF, tag=SrecTag.START_24),
+            SrecRecord.create_start(0x00000000, tag=SrecTag.START_24),
+            SrecRecord.create_start(0x00FFFFFF, tag=SrecTag.START_24),
 
-            SrecRecord.build_start(0x00000000, tag=SrecTag.START_16),
-            SrecRecord.build_start(0x0000FFFF, tag=SrecTag.START_16),
+            SrecRecord.create_start(0x00000000, tag=SrecTag.START_16),
+            SrecRecord.create_start(0x0000FFFF, tag=SrecTag.START_16),
         ]
         keys = [
             'before',
@@ -870,11 +870,11 @@ class TestSrecFile:
 
     def test_apply_records(self):
         records = [
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_count(2),
-            SrecRecord.build_start(0xABCD),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_count(2),
+            SrecRecord.create_start(0xABCD),
         ]
         blocks = [
             [0x1234, b'abc'],
@@ -894,11 +894,11 @@ class TestSrecFile:
 
     def test_header_getter(self):
         records = [
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_count(2),
-            SrecRecord.build_start(0xABCD),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_count(2),
+            SrecRecord.create_start(0xABCD),
         ]
         file = SrecFile.from_records(records)
         file._memory = None
@@ -909,11 +909,11 @@ class TestSrecFile:
 
     def test_header_setter(self):
         records = [
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_count(2),
-            SrecRecord.build_start(0xABCD),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_count(2),
+            SrecRecord.create_start(0xABCD),
         ]
         file = SrecFile.from_records(records)
         assert file.header == b'HDR\0'
@@ -952,11 +952,11 @@ class TestSrecFile:
 
     def test_startaddr_getter(self):
         records = [
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_count(2),
-            SrecRecord.build_start(0xABCD),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_count(2),
+            SrecRecord.create_start(0xABCD),
         ]
         file = SrecFile.from_records(records)
         file._memory = None
@@ -967,11 +967,11 @@ class TestSrecFile:
 
     def test_startaddr_setter(self):
         records = [
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_count(2),
-            SrecRecord.build_start(0xABCD),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_count(2),
+            SrecRecord.create_start(0xABCD),
         ]
         file = SrecFile.from_records(records)
         assert file.startaddr == 0xABCD
@@ -1003,11 +1003,11 @@ class TestSrecFile:
 
     def test_update_records_basic(self):
         records = [
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_count(2),
-            SrecRecord.build_start(0xABCD),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_count(2),
+            SrecRecord.create_start(0xABCD),
         ]
         blocks = [
             [0x1234, b'abc'],
@@ -1022,11 +1022,11 @@ class TestSrecFile:
 
     def test_update_records_address_max(self):
         records = [
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_data(0x1234, b'abc', tag=SrecTag.DATA_32),
-            SrecRecord.build_data(0x4321, b'xyz', tag=SrecTag.DATA_32),
-            SrecRecord.build_count(2, tag=SrecTag.COUNT_24),
-            SrecRecord.build_start(0xABCD, tag=SrecTag.START_32),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x1234, b'abc', tag=SrecTag.DATA_32),
+            SrecRecord.create_data(0x4321, b'xyz', tag=SrecTag.DATA_32),
+            SrecRecord.create_count(2, tag=SrecTag.COUNT_24),
+            SrecRecord.create_start(0xABCD, tag=SrecTag.START_32),
         ]
         blocks = [
             [0x1234, b'abc'],
@@ -1040,10 +1040,10 @@ class TestSrecFile:
 
     def test_update_records_empty(self):
         records = [
-            SrecRecord.build_header(),
-            SrecRecord.build_data(0, b''),
-            SrecRecord.build_count(1),
-            SrecRecord.build_start(),
+            SrecRecord.create_header(),
+            SrecRecord.create_data(0, b''),
+            SrecRecord.create_count(1),
+            SrecRecord.create_start(),
         ]
         file = SrecFile()
         file.update_records(header=True, data=True, count=True, start=True)
@@ -1051,10 +1051,10 @@ class TestSrecFile:
 
     def test_update_records_header_none(self):
         records = [
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_count(2),
-            SrecRecord.build_start(0xABCD),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_count(2),
+            SrecRecord.create_start(0xABCD),
         ]
         blocks = [
             [0x1234, b'abc'],
@@ -1067,10 +1067,10 @@ class TestSrecFile:
 
     def test_update_records_no_count(self):
         records = [
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_start(0xABCD),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_start(0xABCD),
         ]
         blocks = [
             [0x1234, b'abc'],
@@ -1083,9 +1083,9 @@ class TestSrecFile:
 
     def test_update_records_no_data(self):
         records = [
-            SrecRecord.build_header(),
-            SrecRecord.build_count(0),
-            SrecRecord.build_start(),
+            SrecRecord.create_header(),
+            SrecRecord.create_count(0),
+            SrecRecord.create_start(),
         ]
         file = SrecFile()
         file.update_records(header=True, data=False, count=True, start=True)
@@ -1093,10 +1093,10 @@ class TestSrecFile:
 
     def test_update_records_no_header(self):
         records = [
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_count(2),
-            SrecRecord.build_start(0xABCD),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_count(2),
+            SrecRecord.create_start(0xABCD),
         ]
         blocks = [
             [0x1234, b'abc'],
@@ -1109,11 +1109,11 @@ class TestSrecFile:
 
     def test_update_records_no_startaddr(self):
         records = [
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_count(2),
-            SrecRecord.build_start(0x0000),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_count(2),
+            SrecRecord.create_start(0x0000),
         ]
         blocks = [
             [0x1234, b'abc'],
@@ -1126,11 +1126,11 @@ class TestSrecFile:
 
     def test_update_records_raises(self):
         records = [
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_count(2),
-            SrecRecord.build_start(0xABCD),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_count(2),
+            SrecRecord.create_start(0xABCD),
         ]
         file = SrecFile.from_records(records)
         file._memory = None
@@ -1139,22 +1139,22 @@ class TestSrecFile:
 
     def test_validate_records_basic(self):
         records = [
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_count(2),
-            SrecRecord.build_start(0xABCD),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_count(2),
+            SrecRecord.create_start(0xABCD),
         ]
         file = SrecFile.from_records(records)
         file.validate_records()
 
     def test_validate_records_count_penultimate(self):
         records = [
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_count(2),
-            SrecRecord.build_start(0xABCD),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_count(2),
+            SrecRecord.create_start(0xABCD),
         ]
         file = SrecFile.from_records(records)
         file.validate_records(count_required=False, count_penultimate=True)
@@ -1162,11 +1162,11 @@ class TestSrecFile:
 
     def test_validate_records_count_required(self):
         records = [
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_count(2),
-            SrecRecord.build_start(0xABCD),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_count(2),
+            SrecRecord.create_start(0xABCD),
         ]
         file = SrecFile.from_records(records)
         file.validate_records(count_required=True, count_penultimate=False)
@@ -1180,11 +1180,11 @@ class TestSrecFile:
         ]
         for tag in tags:
             records = [
-                SrecRecord.build_header(b'HDR\0'),
-                SrecRecord.build_data(0x4321, b'xyz', tag=tag),
-                SrecRecord.build_data(0x1234, b'abc', tag=tag),
-                SrecRecord.build_count(2),
-                SrecRecord.build_start(0xABCD, tag=tag.get_tag_match()),
+                SrecRecord.create_header(b'HDR\0'),
+                SrecRecord.create_data(0x4321, b'xyz', tag=tag),
+                SrecRecord.create_data(0x1234, b'abc', tag=tag),
+                SrecRecord.create_count(2),
+                SrecRecord.create_start(0xABCD, tag=tag.get_tag_match()),
             ]
             file = SrecFile.from_records(records)
             file.validate_records(data_ordering=False, data_uniform=True)
@@ -1192,12 +1192,12 @@ class TestSrecFile:
 
     def test_validate_records_raises_count_multi(self):
         records = [
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_count(2),
-            SrecRecord.build_count(2),
-            SrecRecord.build_start(0xABCD),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_count(2),
+            SrecRecord.create_count(2),
+            SrecRecord.create_start(0xABCD),
         ]
         file = SrecFile.from_records(records)
         with pytest.raises(ValueError, match='multiple count records'):
@@ -1205,12 +1205,12 @@ class TestSrecFile:
 
     def test_validate_records_raises_count_penultimate(self):
         records = [
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_count(2),
-            SrecRecord.build_count(2),
-            SrecRecord.build_start(0xABCD),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_count(2),
+            SrecRecord.create_count(2),
+            SrecRecord.create_start(0xABCD),
         ]
         file = SrecFile.from_records(records)
         with pytest.raises(ValueError, match='count record not penultimate'):
@@ -1218,10 +1218,10 @@ class TestSrecFile:
 
     def test_validate_records_raises_count_required(self):
         records = [
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_start(0xABCD),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_start(0xABCD),
         ]
         file = SrecFile.from_records(records)
         with pytest.raises(ValueError, match='missing count record'):
@@ -1229,11 +1229,11 @@ class TestSrecFile:
 
     def test_validate_records_raises_count_wrong(self):
         records = [
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_count(3),
-            SrecRecord.build_start(0xABCD),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_count(3),
+            SrecRecord.create_start(0xABCD),
         ]
         file = SrecFile.from_records(records)
         with pytest.raises(ValueError, match='wrong data record count'):
@@ -1241,11 +1241,11 @@ class TestSrecFile:
 
     def test_validate_records_raises_data_ordering(self):
         records = [
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_count(2),
-            SrecRecord.build_start(0xABCD),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_count(2),
+            SrecRecord.create_start(0xABCD),
         ]
         file = SrecFile.from_records(records)
         with pytest.raises(ValueError, match='unordered data record'):
@@ -1253,22 +1253,22 @@ class TestSrecFile:
 
     def test_validate_records_raises_data_uniform(self):
         records = [
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_data(0x1234, b'abc', tag=SrecTag.DATA_16),
-            SrecRecord.build_data(0x4321, b'xyz', tag=SrecTag.DATA_32),
-            SrecRecord.build_count(2),
-            SrecRecord.build_start(0xABCD),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x1234, b'abc', tag=SrecTag.DATA_16),
+            SrecRecord.create_data(0x4321, b'xyz', tag=SrecTag.DATA_32),
+            SrecRecord.create_count(2),
+            SrecRecord.create_start(0xABCD),
         ]
         file = SrecFile.from_records(records)
         with pytest.raises(ValueError, match='data record tags not uniform'):
             file.validate_records(data_ordering=False, data_uniform=True)
 
         records = [
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_count(2),
-            SrecRecord.build_start(0xABCD, tag=SrecTag.START_32),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_count(2),
+            SrecRecord.create_start(0xABCD, tag=SrecTag.START_32),
         ]
         file = SrecFile.from_records(records)
         with pytest.raises(ValueError, match='start record tag not uniform'):
@@ -1276,44 +1276,44 @@ class TestSrecFile:
 
     def test_validate_records_raises_header_required(self):
         records = [
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_count(2),
-            SrecRecord.build_start(0xABCD),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_count(2),
+            SrecRecord.create_start(0xABCD),
         ]
         file = SrecFile.from_records(records)
         with pytest.raises(ValueError, match='missing header record'):
             file.validate_records(header_required=True, header_first=False)
 
         records = [
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_count(2),
-            SrecRecord.build_start(0xABCD),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_count(2),
+            SrecRecord.create_start(0xABCD),
         ]
         file = SrecFile.from_records(records)
         file.validate_records(header_required=True, header_first=False)
 
     def test_validate_records_raises_header_first(self):
         records = [
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_count(2),
-            SrecRecord.build_start(0xABCD),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_count(2),
+            SrecRecord.create_start(0xABCD),
         ]
         file = SrecFile.from_records(records)
         with pytest.raises(ValueError, match='header record not first'):
             file.validate_records(header_required=False, header_first=True)
 
         records = [
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_count(2),
-            SrecRecord.build_start(0xABCD),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_count(2),
+            SrecRecord.create_start(0xABCD),
         ]
         file = SrecFile.from_records(records)
         with pytest.raises(ValueError, match='header record not first'):
@@ -1326,11 +1326,11 @@ class TestSrecFile:
 
     def test_validate_records_raises_start_last(self):
         records = [
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_start(0xABCD),
-            SrecRecord.build_count(2),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_start(0xABCD),
+            SrecRecord.create_count(2),
         ]
         file = SrecFile.from_records(records)
         with pytest.raises(ValueError, match='start record not last'):
@@ -1338,10 +1338,10 @@ class TestSrecFile:
 
     def test_validate_records_raises_start_missing(self):
         records = [
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_count(2),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_count(2),
         ]
         file = SrecFile.from_records(records)
         with pytest.raises(ValueError, match='missing start record'):
@@ -1349,12 +1349,12 @@ class TestSrecFile:
 
     def test_validate_records_raises_start_multi(self):
         records = [
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_count(2),
-            SrecRecord.build_start(0xABCD),
-            SrecRecord.build_start(0xABCD),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_count(2),
+            SrecRecord.create_start(0xABCD),
+            SrecRecord.create_start(0xABCD),
         ]
         file = SrecFile.from_records(records)
         with pytest.raises(ValueError, match='multiple start records'):
@@ -1362,11 +1362,11 @@ class TestSrecFile:
 
     def test_validate_records_raises_start_within_data(self):
         records = [
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_count(2),
-            SrecRecord.build_start(0xABCD),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_count(2),
+            SrecRecord.create_start(0xABCD),
         ]
         file = SrecFile.from_records(records)
         with pytest.raises(ValueError, match='no data at start address'):
@@ -1374,11 +1374,11 @@ class TestSrecFile:
 
     def test_validate_records_start_within_data(self):
         records = [
-            SrecRecord.build_header(b'HDR\0'),
-            SrecRecord.build_data(0x1234, b'abc'),
-            SrecRecord.build_data(0x4321, b'xyz'),
-            SrecRecord.build_count(2),
-            SrecRecord.build_start(0x1234),
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x1234, b'abc'),
+            SrecRecord.create_data(0x4321, b'xyz'),
+            SrecRecord.create_count(2),
+            SrecRecord.create_start(0x1234),
         ]
         file = SrecFile.from_records(records)
         file.validate_records(start_within_data=True)

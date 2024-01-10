@@ -160,10 +160,13 @@ def guess_type_class(file_path: str) -> Type['BaseFile']:
 class BaseTag:
     # TODO: __doc__
 
+    DATA = ...
+    # TODO: __doc__
+
     def is_data(self) -> bool:
         # TODO: __doc__
 
-        return False
+        return self == self.DATA
 
 
 class BaseRecord(abc.ABC):
@@ -190,7 +193,7 @@ class BaseRecord(abc.ABC):
     ]
     # TODO: __doc__
 
-    TAG_TYPE: Type[BaseTag] = None  # override
+    Tag: Type[BaseTag] = None  # override
     # TODO: __doc__
 
     def __bytes__(self) -> bytes:
@@ -271,6 +274,12 @@ class BaseRecord(abc.ABC):
 
         return None
 
+    @classmethod
+    @abc.abstractmethod
+    def create_data(cls, address: int, data: AnyBytes) -> 'BaseRecord':
+        # TODO: __doc__
+        ...
+
     def copy(self) -> 'BaseRecord':  # shallow
         # TODO: __doc__
 
@@ -343,7 +352,11 @@ class BaseRecord(abc.ABC):
         self.count = self.compute_count()
         return self
 
-    def validate(self) -> 'BaseRecord':
+    def validate(
+        self,
+        checksum: bool = True,
+        count: bool = True,
+    ) -> 'BaseRecord':
         # TODO: __doc__
 
         if self.address < 0:
@@ -353,17 +366,19 @@ class BaseRecord(abc.ABC):
             if self.checksum < 0:
                 raise ValueError('checksum overflow')
 
-            if self.checksum != self.compute_checksum():
-                raise ValueError('wrong checksum')
+            if checksum:
+                if self.checksum != self.compute_checksum():
+                    raise ValueError('wrong checksum')
 
         if self.count is not None:
             if self.count < 0:
                 raise ValueError('count overflow')
 
-            if self.count != self.compute_count():
-                raise ValueError('wrong count')
+            if count:
+                if self.count != self.compute_count():
+                    raise ValueError('wrong count')
 
-        TagType = _cast(Any, self.TAG_TYPE)
+        TagType = _cast(Any, self.Tag)
         TagType(self.tag)
 
         return self
@@ -381,7 +396,7 @@ class BaseFile(abc.ABC):
     META_KEYS: Sequence[str] = ['maxdatalen']
     # TODO: __doc__
 
-    RECORD_TYPE: Type[BaseRecord] = None  # override
+    Record: Type[BaseRecord] = None  # override
     # TODO: __doc__
 
     def __add__(
@@ -776,7 +791,7 @@ class BaseFile(abc.ABC):
         # TODO: __doc__
 
         records = []
-        record_type = cls.RECORD_TYPE
+        Record = cls.Record
         row = 0
 
         for line in stream:
@@ -784,7 +799,7 @@ class BaseFile(abc.ABC):
             if cls._is_line_empty(line):
                 continue
             try:
-                record = record_type.parse(line)
+                record = Record.parse(line)
             except Exception:
                 if ignore_errors:
                     continue

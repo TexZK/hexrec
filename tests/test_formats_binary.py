@@ -10,6 +10,10 @@ from hexrec.formats.binary import RawFile
 from hexrec.formats.binary import RawRecord
 from hexrec.formats.binary import RawTag
 
+from test_records2 import BaseTestFile
+from test_records2 import BaseTestRecord
+from test_records2 import BaseTestTag
+
 BYTES = bytes(range(256))
 HEXBYTES = bytes(range(16))
 
@@ -30,7 +34,9 @@ def datapath(datadir):
 
 # ============================================================================
 
-class TestRawTag:
+class TestRawTag(BaseTestTag):
+
+    Tag = RawTag
 
     def test_is_data(self):
         tag = RawTag(...)
@@ -40,37 +46,39 @@ class TestRawTag:
 
 # ----------------------------------------------------------------------------
 
-class TestRawRecord:
+class TestRawRecord(BaseTestRecord):
 
-    def test_build_data(self):
-        record = RawRecord.build_data(123, b'abc')
+    Record = RawRecord
+
+    def test_compute_checksum(self):
+        record = RawRecord.create_data(123, b'abc')
+        assert record.compute_checksum() is None
+
+    def test_compute_count(self):
+        record = RawRecord.create_data(123, b'abc')
+        assert record.compute_count() is None
+
+    def test_create_data(self):
+        record = RawRecord.create_data(123, b'abc')
         record.validate()
         assert record.tag == RawTag.DATA
         assert record.address == 123
         assert record.data == b'abc'
 
-        record = RawRecord.build_data(0, b'abc')
+        record = RawRecord.create_data(0, b'abc')
         record.validate()
         assert record.tag == RawTag.DATA
         assert record.address == 0
         assert record.data == b'abc'
 
-        record = RawRecord.build_data(123, b'')
+        record = RawRecord.create_data(123, b'')
         record.validate()
         assert record.tag == RawTag.DATA
         assert record.address == 123
         assert record.data == b''
 
         with pytest.raises(ValueError, match='address overflow'):
-            RawRecord.build_data(-1, b'abc')
-
-    def test_compute_checksum(self):
-        record = RawRecord.build_data(123, b'abc')
-        assert record.compute_checksum() is None
-
-    def test_compute_count(self):
-        record = RawRecord.build_data(123, b'abc')
-        assert record.compute_count() is None
+            RawRecord.create_data(-1, b'abc')
 
     def test_parse(self):
         record = RawRecord.parse(b'abc')
@@ -84,7 +92,7 @@ class TestRawRecord:
         assert record.data == b'abc'
 
     def test_to_bytestr(self):
-        record = RawRecord.build_data(123, b'abc')
+        record = RawRecord.create_data(123, b'abc')
         assert record.to_bytestr() == b'abc'
 
         record.count = -1
@@ -92,7 +100,7 @@ class TestRawRecord:
             record.to_bytestr()
 
     def test_to_tokens(self):
-        record = RawRecord.build_data(123, b'abc')
+        record = RawRecord.create_data(123, b'abc')
         tokens = record.to_tokens()
         assert len(tokens) == 1
         assert tokens['data'] == b'abc'
@@ -104,7 +112,9 @@ class TestRawRecord:
 
 # ----------------------------------------------------------------------------
 
-class TestRawFile:
+class TestRawFile(BaseTestFile):
+
+    File = RawFile
 
     def test__is_line_empty(self):
         assert RawFile._is_line_empty(b'')
@@ -154,6 +164,28 @@ class TestRawFile:
             with io.BytesIO(BYTES) as stream:
                 RawFile.parse(stream, maxdatalen=-1)
 
+    def test_records_getter(self):
+        File = self.File
+        Record = File.Record
+        Tag = Record.Tag
+        records = [
+            Record(Tag.DATA, address=0, data=b'abc'),
+            Record(Tag.DATA, address=3, data=b'xyz'),
+        ]
+        memory = Memory.from_bytes(b'abcxyz')
+        file = File.from_memory(memory, maxdatalen=3)
+        file._records = None
+        assert file._memory == b'abcxyz'
+        actual = file.records
+        assert actual is file._records
+        assert actual == records
+        assert file._memory is memory
+        file._memory = None
+        actual = file.records
+        assert actual is file._records
+        assert actual == records
+        assert file._memory is None
+
     def test_update_records_bytes(self):
         memory = Memory.from_bytes(BYTES, offset=0x1000)
         file = RawFile.from_memory(memory, maxdatalen=16)
@@ -174,56 +206,56 @@ class TestRawFile:
             file.update_records()
 
     def test_update_records_raises_memory(self):
-        records = [RawRecord.build_data(123, b'abc')]
+        records = [RawRecord.create_data(123, b'abc')]
         file = RawFile.from_records(records)
         with pytest.raises(ValueError, match='memory instance required'):
             file.update_records()
 
     def test_validate_records_contiguity(self):
-        records = [RawRecord.build_data(10, b'abc'),
-                   RawRecord.build_data(13, b'xyz')]
+        records = [RawRecord.create_data(10, b'abc'),
+                   RawRecord.create_data(13, b'xyz')]
         file = RawFile.from_records(records)
         file.validate_records(data_contiguity=True, data_ordering=False)
 
     def test_validate_records_ordering(self):
-        records = [RawRecord.build_data(10, b'abc'),
-                   RawRecord.build_data(13, b'xyz')]
+        records = [RawRecord.create_data(10, b'abc'),
+                   RawRecord.create_data(13, b'xyz')]
         file = RawFile.from_records(records)
         file.validate_records(data_contiguity=False, data_ordering=True)
 
-        records = [RawRecord.build_data(10, b'abc'),
-                   RawRecord.build_data(14, b'xyz')]
+        records = [RawRecord.create_data(10, b'abc'),
+                   RawRecord.create_data(14, b'xyz')]
         file = RawFile.from_records(records)
         file.validate_records(data_contiguity=False, data_ordering=True)
 
     def test_validate_records_raises_contiguity(self):
-        records = [RawRecord.build_data(123, b'abc'),
-                   RawRecord.build_data(456, b'xyz')]
+        records = [RawRecord.create_data(123, b'abc'),
+                   RawRecord.create_data(456, b'xyz')]
         file = RawFile.from_records(records)
         with pytest.raises(ValueError, match='contiguous'):
             file.validate_records(data_contiguity=True, data_ordering=False)
 
     def test_validate_records_raises_ordering(self):
-        records = [RawRecord.build_data(14, b'xyz'),
-                   RawRecord.build_data(10, b'abc')]
+        records = [RawRecord.create_data(14, b'xyz'),
+                   RawRecord.create_data(10, b'abc')]
         file = RawFile.from_records(records)
         with pytest.raises(ValueError, match='unordered data record'):
             file.validate_records(data_contiguity=False, data_ordering=True)
 
-        records = [RawRecord.build_data(13, b'xyz'),
-                   RawRecord.build_data(10, b'abc')]
+        records = [RawRecord.create_data(13, b'xyz'),
+                   RawRecord.create_data(10, b'abc')]
         file = RawFile.from_records(records)
         with pytest.raises(ValueError, match='unordered data record'):
             file.validate_records(data_contiguity=False, data_ordering=True)
 
-        records = [RawRecord.build_data(10, b'abc'),
-                   RawRecord.build_data(10, b'xyz')]
+        records = [RawRecord.create_data(10, b'abc'),
+                   RawRecord.create_data(10, b'xyz')]
         file = RawFile.from_records(records)
         with pytest.raises(ValueError, match='unordered data record'):
             file.validate_records(data_contiguity=False, data_ordering=True)
 
-        records = [RawRecord.build_data(10, b'abc'),
-                   RawRecord.build_data(12, b'xyz')]
+        records = [RawRecord.create_data(10, b'abc'),
+                   RawRecord.create_data(12, b'xyz')]
         file = RawFile.from_records(records)
         with pytest.raises(ValueError, match='unordered data record'):
             file.validate_records(data_contiguity=False, data_ordering=True)

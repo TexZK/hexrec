@@ -10,8 +10,6 @@ from bytesparse import Memory
 from hexrec.formats.intel import IhexFile
 from hexrec.formats.intel import IhexRecord
 from hexrec.formats.intel import IhexTag
-from hexrec.formats.intel import Record
-from hexrec.formats.intel import Tag
 
 DATA = IhexTag.DATA
 EOF = IhexTag.END_OF_FILE
@@ -84,138 +82,6 @@ class TestIhexTag:
 
 class TestIhexRecord:
 
-    def test_build_data(self):
-        contents = [
-            b'',
-            b'abc',
-            b'a' * 0xFF,
-        ]
-        addresses = [
-            0x0000,
-            0xFFFF,
-        ]
-        for data in contents:
-            for address in addresses:
-                record = IhexRecord.build_data(address, data)
-                record.validate()
-                assert record.tag == IhexTag.DATA
-                assert record.address == address
-                assert record.count == len(data)
-                assert record.data == data
-
-    def test_build_data_raises_address(self):
-        addresses = [
-            -1,
-            0x10000,
-        ]
-        for address in addresses:
-            with pytest.raises(ValueError, match='address overflow'):
-                IhexRecord.build_data(address, b'abc')
-
-    def test_build_data_raises_data(self):
-        with pytest.raises(ValueError, match='data size overflow'):
-            IhexRecord.build_data(0, b'a' * 0x100)
-
-    def test_build_eof(self):
-        record = IhexRecord.build_end_of_file()
-        record.validate()
-        assert record.tag == IhexTag.END_OF_FILE
-        assert record.address == 0x0000
-        assert record.count == 0x00
-        assert record.data == b''
-
-    def test_build_ela(self):
-        extensions = [
-            0x0000,
-            0xFFFF,
-        ]
-        for extension in extensions:
-            record = IhexRecord.build_extended_linear_address(extension)
-            record.validate()
-            assert record.tag == IhexTag.EXTENDED_LINEAR_ADDRESS
-            assert record.address == 0
-            assert record.count == 2
-            assert record.data == extension.to_bytes(2, byteorder='big', signed=False)
-            assert record.data_to_int() == extension
-
-    def test_build_ela_raises_extension(self):
-        extensions = [
-            -1,
-            0x10000,
-        ]
-        for extension in extensions:
-            with pytest.raises(ValueError, match='extension overflow'):
-                IhexRecord.build_extended_linear_address(extension)
-
-    def test_build_esa(self):
-        extensions = [
-            0x0000,
-            0xFFFF,
-        ]
-        for extension in extensions:
-            record = IhexRecord.build_extended_segment_address(extension)
-            record.validate()
-            assert record.tag == IhexTag.EXTENDED_SEGMENT_ADDRESS
-            assert record.address == 0
-            assert record.count == 2
-            assert record.data == extension.to_bytes(2, byteorder='big', signed=False)
-            assert record.data_to_int() == extension
-
-    def test_build_esa_raises_extension(self):
-        extensions = [
-            -1,
-            0x10000,
-        ]
-        for extension in extensions:
-            with pytest.raises(ValueError, match='extension overflow'):
-                IhexRecord.build_extended_segment_address(extension)
-
-    def test_build_sla(self):
-        addresses = [
-            0x00000000,
-            0xFFFFFFFF,
-        ]
-        for address in addresses:
-            record = IhexRecord.build_start_linear_address(address)
-            record.validate()
-            assert record.tag == IhexTag.START_LINEAR_ADDRESS
-            assert record.address == 0
-            assert record.count == 4
-            assert record.data == address.to_bytes(4, byteorder='big', signed=False)
-            assert record.data_to_int() == address
-
-    def test_build_sla_raises_extension(self):
-        addresses = [
-            -1,
-            0x100000000,
-        ]
-        for address in addresses:
-            with pytest.raises(ValueError, match='address overflow'):
-                IhexRecord.build_start_linear_address(address)
-
-    def test_build_ssa(self):
-        addresses = [
-            0x00000000,
-            0xFFFFFFFF,
-        ]
-        for address in addresses:
-            record = IhexRecord.build_start_segment_address(address)
-            record.validate()
-            assert record.tag == IhexTag.START_SEGMENT_ADDRESS
-            assert record.address == 0
-            assert record.count == 4
-            assert record.data == address.to_bytes(4, byteorder='big', signed=False)
-            assert record.data_to_int() == address
-
-    def test_build_ssa_raises_extension(self):
-        addresses = [
-            -1,
-            0x100000000,
-        ]
-        for address in addresses:
-            with pytest.raises(ValueError, match='address overflow'):
-                IhexRecord.build_start_segment_address(address)
-
     # https://en.wikipedia.org/wiki/Intel_HEX#Record_types
     def test_compute_checksum_misc(self):
         vector = [
@@ -257,10 +123,142 @@ class TestIhexRecord:
         ]
         for data in contents:
             for address in addresses:
-                record = IhexRecord.build_data(address, data)
+                record = IhexRecord.create_data(address, data)
                 record.validate()
                 assert record.count == len(data)
                 assert record.compute_count() == len(data)
+
+    def test_create_data(self):
+        contents = [
+            b'',
+            b'abc',
+            b'a' * 0xFF,
+        ]
+        addresses = [
+            0x0000,
+            0xFFFF,
+        ]
+        for data in contents:
+            for address in addresses:
+                record = IhexRecord.create_data(address, data)
+                record.validate()
+                assert record.tag == IhexTag.DATA
+                assert record.address == address
+                assert record.count == len(data)
+                assert record.data == data
+
+    def test_create_data_raises_address(self):
+        addresses = [
+            -1,
+            0x10000,
+        ]
+        for address in addresses:
+            with pytest.raises(ValueError, match='address overflow'):
+                IhexRecord.create_data(address, b'abc')
+
+    def test_create_data_raises_data(self):
+        with pytest.raises(ValueError, match='data size overflow'):
+            IhexRecord.create_data(0, b'a' * 0x100)
+
+    def test_create_eof(self):
+        record = IhexRecord.create_end_of_file()
+        record.validate()
+        assert record.tag == IhexTag.END_OF_FILE
+        assert record.address == 0x0000
+        assert record.count == 0x00
+        assert record.data == b''
+
+    def test_create_ela(self):
+        extensions = [
+            0x0000,
+            0xFFFF,
+        ]
+        for extension in extensions:
+            record = IhexRecord.create_extended_linear_address(extension)
+            record.validate()
+            assert record.tag == IhexTag.EXTENDED_LINEAR_ADDRESS
+            assert record.address == 0
+            assert record.count == 2
+            assert record.data == extension.to_bytes(2, byteorder='big', signed=False)
+            assert record.data_to_int() == extension
+
+    def test_create_ela_raises_extension(self):
+        extensions = [
+            -1,
+            0x10000,
+        ]
+        for extension in extensions:
+            with pytest.raises(ValueError, match='extension overflow'):
+                IhexRecord.create_extended_linear_address(extension)
+
+    def test_create_esa(self):
+        extensions = [
+            0x0000,
+            0xFFFF,
+        ]
+        for extension in extensions:
+            record = IhexRecord.create_extended_segment_address(extension)
+            record.validate()
+            assert record.tag == IhexTag.EXTENDED_SEGMENT_ADDRESS
+            assert record.address == 0
+            assert record.count == 2
+            assert record.data == extension.to_bytes(2, byteorder='big', signed=False)
+            assert record.data_to_int() == extension
+
+    def test_create_esa_raises_extension(self):
+        extensions = [
+            -1,
+            0x10000,
+        ]
+        for extension in extensions:
+            with pytest.raises(ValueError, match='extension overflow'):
+                IhexRecord.create_extended_segment_address(extension)
+
+    def test_create_sla(self):
+        addresses = [
+            0x00000000,
+            0xFFFFFFFF,
+        ]
+        for address in addresses:
+            record = IhexRecord.create_start_linear_address(address)
+            record.validate()
+            assert record.tag == IhexTag.START_LINEAR_ADDRESS
+            assert record.address == 0
+            assert record.count == 4
+            assert record.data == address.to_bytes(4, byteorder='big', signed=False)
+            assert record.data_to_int() == address
+
+    def test_create_sla_raises_extension(self):
+        addresses = [
+            -1,
+            0x100000000,
+        ]
+        for address in addresses:
+            with pytest.raises(ValueError, match='address overflow'):
+                IhexRecord.create_start_linear_address(address)
+
+    def test_create_ssa(self):
+        addresses = [
+            0x00000000,
+            0xFFFFFFFF,
+        ]
+        for address in addresses:
+            record = IhexRecord.create_start_segment_address(address)
+            record.validate()
+            assert record.tag == IhexTag.START_SEGMENT_ADDRESS
+            assert record.address == 0
+            assert record.count == 4
+            assert record.data == address.to_bytes(4, byteorder='big', signed=False)
+            assert record.data_to_int() == address
+
+    def test_create_ssa_raises_extension(self):
+        addresses = [
+            -1,
+            0x100000000,
+        ]
+        for address in addresses:
+            with pytest.raises(ValueError, match='address overflow'):
+                IhexRecord.create_start_segment_address(address)
 
     def test_parse(self):
         lines = [
@@ -408,24 +406,24 @@ class TestIhexRecord:
             b':04000005FFFFFFFFFB\r\n',
         ]
         records = [
-            IhexRecord.build_data(0x0000, b''),
-            IhexRecord.build_data(0xFFFF, b''),
-            IhexRecord.build_data(0x0000, (b'\xFF' * 0xFF)),
-            IhexRecord.build_data(0xFFFF, (b'\xFF' * 0xFF)),
+            IhexRecord.create_data(0x0000, b''),
+            IhexRecord.create_data(0xFFFF, b''),
+            IhexRecord.create_data(0x0000, (b'\xFF' * 0xFF)),
+            IhexRecord.create_data(0xFFFF, (b'\xFF' * 0xFF)),
 
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_end_of_file(),
 
-            IhexRecord.build_extended_segment_address(0x0000),
-            IhexRecord.build_extended_segment_address(0xFFFF),
+            IhexRecord.create_extended_segment_address(0x0000),
+            IhexRecord.create_extended_segment_address(0xFFFF),
 
-            IhexRecord.build_start_segment_address(0x00000000),
-            IhexRecord.build_start_segment_address(0xFFFFFFFF),
+            IhexRecord.create_start_segment_address(0x00000000),
+            IhexRecord.create_start_segment_address(0xFFFFFFFF),
 
-            IhexRecord.build_extended_linear_address(0x0000),
-            IhexRecord.build_extended_linear_address(0xFFFF),
+            IhexRecord.create_extended_linear_address(0x0000),
+            IhexRecord.create_extended_linear_address(0xFFFF),
 
-            IhexRecord.build_start_linear_address(0x00000000),
-            IhexRecord.build_start_linear_address(0xFFFFFFFF),
+            IhexRecord.create_start_linear_address(0x00000000),
+            IhexRecord.create_start_linear_address(0xFFFFFFFF),
         ]
         for expected, record in zip(lines, records):
             record = _cast(IhexRecord, record)
@@ -454,24 +452,24 @@ class TestIhexRecord:
             b':04000005FFFFFFFFFB\r\n',
         ]
         records = [
-            IhexRecord.build_data(0x0000, b''),
-            IhexRecord.build_data(0xFFFF, b''),
-            IhexRecord.build_data(0x0000, (b'\xFF' * 0xFF)),
-            IhexRecord.build_data(0xFFFF, (b'\xFF' * 0xFF)),
+            IhexRecord.create_data(0x0000, b''),
+            IhexRecord.create_data(0xFFFF, b''),
+            IhexRecord.create_data(0x0000, (b'\xFF' * 0xFF)),
+            IhexRecord.create_data(0xFFFF, (b'\xFF' * 0xFF)),
 
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_end_of_file(),
 
-            IhexRecord.build_extended_segment_address(0x0000),
-            IhexRecord.build_extended_segment_address(0xFFFF),
+            IhexRecord.create_extended_segment_address(0x0000),
+            IhexRecord.create_extended_segment_address(0xFFFF),
 
-            IhexRecord.build_start_segment_address(0x00000000),
-            IhexRecord.build_start_segment_address(0xFFFFFFFF),
+            IhexRecord.create_start_segment_address(0x00000000),
+            IhexRecord.create_start_segment_address(0xFFFFFFFF),
 
-            IhexRecord.build_extended_linear_address(0x0000),
-            IhexRecord.build_extended_linear_address(0xFFFF),
+            IhexRecord.create_extended_linear_address(0x0000),
+            IhexRecord.create_extended_linear_address(0xFFFF),
 
-            IhexRecord.build_start_linear_address(0x00000000),
-            IhexRecord.build_start_linear_address(0xFFFFFFFF),
+            IhexRecord.create_start_linear_address(0x00000000),
+            IhexRecord.create_start_linear_address(0xFFFFFFFF),
         ]
         keys = [
             'before',
@@ -598,11 +596,11 @@ class TestIhexFile:
 
     def test_apply_records_linear(self):
         records = [
-            IhexRecord.build_data(0x1234, b'abc'),
-            IhexRecord.build_extended_linear_address(0xABCD),
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_start_linear_address(0x12345678),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_extended_linear_address(0xABCD),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_start_linear_address(0x12345678),
+            IhexRecord.create_end_of_file(),
         ]
         blocks = [
             [0x00001234, b'abc'],
@@ -618,11 +616,11 @@ class TestIhexFile:
 
     def test_apply_records_segment(self):
         records = [
-            IhexRecord.build_data(0x1234, b'abc'),
-            IhexRecord.build_extended_segment_address(0xA000),
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_start_segment_address(0x12345678),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_extended_segment_address(0xA000),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_start_segment_address(0x12345678),
+            IhexRecord.create_end_of_file(),
         ]
         blocks = [
             [0x00001234, b'abc'],
@@ -643,11 +641,11 @@ class TestIhexFile:
 
     def test_linear_getter_linear(self):
         records = [
-            IhexRecord.build_data(0x1234, b'abc'),
-            IhexRecord.build_extended_linear_address(0xABCD),
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_start_linear_address(0x12345678),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_extended_linear_address(0xABCD),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_start_linear_address(0x12345678),
+            IhexRecord.create_end_of_file(),
         ]
         file = IhexFile.from_records(records)
         file = _cast(IhexFile, file)
@@ -655,11 +653,11 @@ class TestIhexFile:
 
     def test_linear_getter_segment(self):
         records = [
-            IhexRecord.build_data(0x1234, b'abc'),
-            IhexRecord.build_extended_segment_address(0xA000),
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_start_segment_address(0x12345678),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_extended_segment_address(0xA000),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_start_segment_address(0x12345678),
+            IhexRecord.create_end_of_file(),
         ]
         file = IhexFile.from_records(records)
         file = _cast(IhexFile, file)
@@ -667,11 +665,11 @@ class TestIhexFile:
 
     def test_linear_setter_linear_to_segment(self):
         records = [
-            IhexRecord.build_data(0x1234, b'abc'),
-            IhexRecord.build_extended_linear_address(0xABCD),
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_start_linear_address(0x12345678),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_extended_linear_address(0xABCD),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_start_linear_address(0x12345678),
+            IhexRecord.create_end_of_file(),
         ]
         file = IhexFile.from_records(records)
         file = _cast(IhexFile, file)
@@ -691,11 +689,11 @@ class TestIhexFile:
 
     def test_linear_setter_segmented_to_linear(self):
         records = [
-            IhexRecord.build_data(0x1234, b'abc'),
-            IhexRecord.build_extended_segment_address(0xA000),
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_start_segment_address(0x12345678),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_extended_segment_address(0xA000),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_start_segment_address(0x12345678),
+            IhexRecord.create_end_of_file(),
         ]
         file = IhexFile.from_records(records)
         file = _cast(IhexFile, file)
@@ -740,11 +738,11 @@ class TestIhexFile:
 
     def test_startaddr_getter_linear(self):
         records = [
-            IhexRecord.build_data(0x1234, b'abc'),
-            IhexRecord.build_extended_linear_address(0xABCD),
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_start_linear_address(0x12345678),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_extended_linear_address(0xABCD),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_start_linear_address(0x12345678),
+            IhexRecord.create_end_of_file(),
         ]
         file = IhexFile.from_records(records)
         file = _cast(IhexFile, file)
@@ -756,10 +754,10 @@ class TestIhexFile:
 
     def test_startaddr_getter_none(self):
         records = [
-            IhexRecord.build_data(0x1234, b'abc'),
-            IhexRecord.build_extended_linear_address(0xABCD),
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_extended_linear_address(0xABCD),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_end_of_file(),
         ]
         file = IhexFile.from_records(records)
         file = _cast(IhexFile, file)
@@ -771,11 +769,11 @@ class TestIhexFile:
 
     def test_startaddr_getter_segment(self):
         records = [
-            IhexRecord.build_data(0x1234, b'abc'),
-            IhexRecord.build_extended_segment_address(0xA000),
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_start_segment_address(0x12345678),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_extended_segment_address(0xA000),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_start_segment_address(0x12345678),
+            IhexRecord.create_end_of_file(),
         ]
         file = IhexFile.from_records(records)
         file = _cast(IhexFile, file)
@@ -787,11 +785,11 @@ class TestIhexFile:
 
     def test_startaddr_setter_linear(self):
         records = [
-            IhexRecord.build_data(0x1234, b'abc'),
-            IhexRecord.build_extended_segment_address(0xA000),
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_start_segment_address(0x12345678),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_extended_segment_address(0xA000),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_start_segment_address(0x12345678),
+            IhexRecord.create_end_of_file(),
         ]
         file = IhexFile.from_records(records)
         file = _cast(IhexFile, file)
@@ -817,11 +815,11 @@ class TestIhexFile:
 
     def test_startaddr_setter_none(self):
         records = [
-            IhexRecord.build_data(0x1234, b'abc'),
-            IhexRecord.build_extended_linear_address(0xABCD),
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_start_linear_address(0x12345678),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_extended_linear_address(0xABCD),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_start_linear_address(0x12345678),
+            IhexRecord.create_end_of_file(),
         ]
         file = IhexFile.from_records(records)
         file = _cast(IhexFile, file)
@@ -841,11 +839,11 @@ class TestIhexFile:
 
     def test_startaddr_setter_segment(self):
         records = [
-            IhexRecord.build_data(0x1234, b'abc'),
-            IhexRecord.build_extended_linear_address(0xABCD),
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_start_linear_address(0x12345678),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_extended_linear_address(0xABCD),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_start_linear_address(0x12345678),
+            IhexRecord.create_end_of_file(),
         ]
         file = IhexFile.from_records(records)
         file = _cast(IhexFile, file)
@@ -878,11 +876,11 @@ class TestIhexFile:
 
     def test_update_records_basic_linear(self):
         records = [
-            IhexRecord.build_data(0x1234, b'abc'),
-            IhexRecord.build_extended_linear_address(0xABCD),
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_start_linear_address(0x12345678),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_extended_linear_address(0xABCD),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_start_linear_address(0x12345678),
+            IhexRecord.create_end_of_file(),
         ]
         blocks = [
             [0x00001234, b'abc'],
@@ -898,11 +896,11 @@ class TestIhexFile:
 
     def test_update_records_basic_segment(self):
         records = [
-            IhexRecord.build_data(0x1234, b'abc'),
-            IhexRecord.build_extended_segment_address(0xA000),
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_start_segment_address(0x12345678),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_extended_segment_address(0xA000),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_start_segment_address(0x12345678),
+            IhexRecord.create_end_of_file(),
         ]
         blocks = [
             [0x00001234, b'abc'],
@@ -918,7 +916,7 @@ class TestIhexFile:
 
     def test_update_records_empty(self):
         records = [
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_end_of_file(),
         ]
         memory = Memory()
         file = IhexFile.from_memory(memory)
@@ -929,8 +927,8 @@ class TestIhexFile:
 
     def test_update_records_empty_start_linear(self):
         records = [
-            IhexRecord.build_start_linear_address(0x12345678),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_start_linear_address(0x12345678),
+            IhexRecord.create_end_of_file(),
         ]
         memory = Memory()
         file = IhexFile.from_memory(memory, startaddr=0x12345678, linear=True)
@@ -941,8 +939,8 @@ class TestIhexFile:
 
     def test_update_records_empty_start_segment(self):
         records = [
-            IhexRecord.build_start_segment_address(0x12345678),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_start_segment_address(0x12345678),
+            IhexRecord.create_end_of_file(),
         ]
         memory = Memory()
         file = IhexFile.from_memory(memory, startaddr=0x12345678, linear=False)
@@ -953,11 +951,11 @@ class TestIhexFile:
 
     def test_update_records_raises_memory(self):
         records = [
-            IhexRecord.build_data(0x1234, b'abc'),
-            IhexRecord.build_extended_linear_address(0xABCD),
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_start_linear_address(0x12345678),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_extended_linear_address(0xABCD),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_start_linear_address(0x12345678),
+            IhexRecord.create_end_of_file(),
         ]
         file = IhexFile.from_records(records)
         with pytest.raises(ValueError, match='memory instance required'):
@@ -971,11 +969,11 @@ class TestIhexFile:
 
     def test_validate_records_basic_linear(self):
         records = [
-            IhexRecord.build_data(0x1234, b'abc'),
-            IhexRecord.build_extended_linear_address(0xABCD),
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_start_linear_address(0x12345678),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_extended_linear_address(0xABCD),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_start_linear_address(0x12345678),
+            IhexRecord.create_end_of_file(),
         ]
         file = IhexFile.from_records(records)
         returned = file.validate_records(data_ordering=True)
@@ -983,11 +981,11 @@ class TestIhexFile:
 
     def test_validate_records_basic_segment(self):
         records = [
-            IhexRecord.build_data(0x1234, b'abc'),
-            IhexRecord.build_extended_segment_address(0xA000),
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_start_segment_address(0x12345678),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_extended_segment_address(0xA000),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_start_segment_address(0x12345678),
+            IhexRecord.create_end_of_file(),
         ]
         file = IhexFile.from_records(records)
         returned = file.validate_records(data_ordering=True)
@@ -995,9 +993,9 @@ class TestIhexFile:
 
     def test_validate_records_data_ordering(self):
         records = [
-            IhexRecord.build_data(0x1234, b'abc'),
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_end_of_file(),
         ]
         file = IhexFile.from_records(records)
         file.validate_records(data_ordering=True)
@@ -1005,9 +1003,9 @@ class TestIhexFile:
 
     def test_validate_records_raises_data_ordering(self):
         records = [
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_data(0x1234, b'abc'),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_end_of_file(),
         ]
         file = IhexFile.from_records(records)
         with pytest.raises(ValueError, match='unordered data record'):
@@ -1015,9 +1013,9 @@ class TestIhexFile:
 
     def test_validate_records_raises_eof_last(self):
         records = [
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_end_of_file(),
-            IhexRecord.build_data(0x1234, b'abc'),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_end_of_file(),
+            IhexRecord.create_data(0x1234, b'abc'),
         ]
         file = IhexFile.from_records(records)
         with pytest.raises(ValueError, match='end of file record not last'):
@@ -1025,8 +1023,8 @@ class TestIhexFile:
 
     def test_validate_records_raises_eof_missing(self):
         records = [
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_data(0x1234, b'abc'),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_data(0x1234, b'abc'),
         ]
         file = IhexFile.from_records(records)
         with pytest.raises(ValueError, match='missing end of file record'):
@@ -1039,9 +1037,9 @@ class TestIhexFile:
 
     def test_validate_records_raises_start_missing(self):
         records = [
-            IhexRecord.build_data(0x1234, b'abc'),
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_end_of_file(),
         ]
         file = IhexFile.from_records(records)
         with pytest.raises(ValueError, match='missing start record'):
@@ -1049,11 +1047,11 @@ class TestIhexFile:
 
     def test_validate_records_raises_start_multi(self):
         records = [
-            IhexRecord.build_data(0x1234, b'abc'),
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_start_segment_address(0x12345678),
-            IhexRecord.build_start_segment_address(0x12345678),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_start_segment_address(0x12345678),
+            IhexRecord.create_start_segment_address(0x12345678),
+            IhexRecord.create_end_of_file(),
         ]
         file = IhexFile.from_records(records)
         with pytest.raises(ValueError, match='start record not penultimate'):
@@ -1061,10 +1059,10 @@ class TestIhexFile:
 
     def test_validate_records_raises_start_penultimate(self):
         records = [
-            IhexRecord.build_data(0x1234, b'abc'),
-            IhexRecord.build_start_segment_address(0x12345678),
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_start_segment_address(0x12345678),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_end_of_file(),
         ]
         file = IhexFile.from_records(records)
         with pytest.raises(ValueError, match='start record not penultimate'):
@@ -1072,10 +1070,10 @@ class TestIhexFile:
 
     def test_validate_records_raises_start_within_data(self):
         records = [
-            IhexRecord.build_data(0x1234, b'abc'),
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_start_segment_address(0x12345678),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_start_segment_address(0x12345678),
+            IhexRecord.create_end_of_file(),
         ]
         file = IhexFile.from_records(records)
         with pytest.raises(ValueError, match='no data at start address'):
@@ -1083,10 +1081,10 @@ class TestIhexFile:
 
     def test_validate_records_start(self):
         records = [
-            IhexRecord.build_data(0x1234, b'abc'),
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_start_segment_address(0x12345678),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_start_segment_address(0x12345678),
+            IhexRecord.create_end_of_file(),
         ]
         file = IhexFile.from_records(records)
         file.validate_records(start_required=True, start_penultimate=True)
@@ -1096,19 +1094,19 @@ class TestIhexFile:
 
     def test_validate_records_start_within_data(self):
         records = [
-            IhexRecord.build_data(0x1234, b'abc'),
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_start_segment_address(0x1234),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_start_segment_address(0x1234),
+            IhexRecord.create_end_of_file(),
         ]
         file = IhexFile.from_records(records)
         file.validate_records(start_within_data=True)
         file.validate_records(start_within_data=False)
 
         records = [
-            IhexRecord.build_data(0x1234, b'abc'),
-            IhexRecord.build_data(0x4321, b'xyz'),
-            IhexRecord.build_end_of_file(),
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_data(0x4321, b'xyz'),
+            IhexRecord.create_end_of_file(),
         ]
         file = IhexFile.from_records(records)
         file.validate_records(start_within_data=True)

@@ -31,344 +31,19 @@ See Also:
 
 import binascii
 import enum
-import io
 import re
 from typing import IO
-from typing import Any
-from typing import Iterator
 from typing import Mapping
 from typing import Optional
 from typing import Type
 from typing import Union
 from typing import cast as _cast
 
-from ..records import Record as _Record
-from ..records import RecordSequence
-from ..records import Tag
 from ..records2 import BaseFile
 from ..records2 import BaseRecord
 from ..records2 import BaseTag
 from ..utils import AnyBytes
-from ..utils import EllipsisType
-from ..utils import check_empty_args_kwargs
-from ..utils import chop
-from ..utils import hexlify
-from ..utils import unhexlify
 
-
-class Record(_Record):  # pragma: no cover
-    r"""ASCII-hex record.
-
-    Attributes:
-        address (int):
-            Tells where its `data` starts in the memory addressing space,
-            or an address with a special meaning.
-
-        tag (int):
-            Defines the logical meaning of the `address` and `data` fields.
-
-        data (bytes):
-            Byte data as required by the `tag`.
-
-        count (int):
-            Counts its fields as required by the :class:`Record` subclass
-            implementation.
-
-        checksum (int):
-            Computes the checksum as required by most :class:`Record`
-            implementations.
-
-    Arguments:
-        address (int):
-            Record `address` field.
-
-        tag (int):
-            Record `tag` field.
-
-        data (bytes):
-            Record `data` field.
-
-        checksum (int):
-            Record `checksum` field.
-            ``Ellipsis`` makes the constructor compute its actual value
-            automatically.
-            ``None`` assigns ``None``.
-    """
-
-    TAG_TYPE: Optional[Type[Tag]] = None
-    r"""Associated Python class for tags."""
-
-    REGEX = re.compile(r"^(\$A(?P<address>[0-9A-Fa-f]{4})[,.][ %',]?)?"
-                       r"(?P<data>([0-9A-Fa-f]{2}[ %',])*([0-9A-Fa-f]{2})?)"
-                       r"(\$S(?P<checksum>[0-9A-Fa-f]{4})[,.][ %',]?)?$")
-    r"""Regular expression for parsing a record text line."""
-
-    def __init__(
-        self,
-        address: Optional[int],
-        tag: Optional[Tag],
-        data: Optional[AnyBytes],
-        checksum: Union[int, EllipsisType] = None,
-    ) -> None:
-        super().__init__(address, tag, data, checksum)
-
-    def __repr__(
-        self,
-    ) -> str:
-        address, data, checksum = None, None, None
-
-        if self.address is not None:
-            address = f'0x{self.address:04X}'
-
-        if self.data is not None:
-            data = f'{self.data!r}'
-
-        if self.checksum is not None:
-            checksum = f'0x{(self._get_checksum() or 0):04X}'
-
-        text = (f'{type(self).__name__}('
-                f'address={address}, '
-                f'tag={self.tag!r}, '
-                f'count={self.count:d}, '
-                f'data={data}, '
-                f'checksum={checksum}'
-                f')')
-        return text
-
-    def __str__(
-        self,
-    ) -> str:
-        address, data, checksum = '', '', ''
-
-        if self.address is not None:
-            address = f'$A{self.address:04X},'
-
-        if self.data:
-            data = f'{hexlify(self.data, sep=" ")} '
-
-        if self.checksum is not None:
-            checksum = f'$S{self._get_checksum():04X},'
-
-        text = ''.join([address, data, checksum])
-        return text
-
-    def is_data(
-        self,
-    ) -> bool:
-        return self.data is not None
-
-    def compute_checksum(
-        self,
-    ) -> Optional[int]:
-        checksum = sum(self.data or b'') & 0xFFFF
-        return checksum
-
-    def check(
-        self,
-    ) -> None:
-        if self.address is not None and not 0 <= self.address < (1 << 16):
-            raise ValueError('address overflow')
-
-        if self.tag is not None:
-            raise ValueError('wrong tag')
-
-        if not 0 <= self.count < (1 << 16):
-            raise ValueError('count overflow')
-
-        if self.count != len(self.data or b''):
-            raise ValueError('count error')
-
-        if self.checksum is not None:
-            if not 0 <= self.checksum < (1 << 16):
-                raise ValueError('checksum overflow')
-
-    @classmethod
-    def build_data(
-        cls,
-        address: Optional[int],
-        data: Optional[AnyBytes],
-    ) -> 'Record':
-        r"""Builds a data record.
-
-        Arguments:
-            address (int):
-                Record address, or ``None``.
-
-            data (bytes):
-                Record data, or ``None``.
-
-        Returns:
-            record: A data record.
-
-        Examples:
-            >>> Record.build_data(0x1234, b'Hello, World!')
-            ... #doctest: +NORMALIZE_WHITESPACE
-            Record(address=0x1234, tag=None, count=13,
-                   data=b'Hello, World!', checksum=None)
-
-            >>> Record.build_data(None, b'Hello, World!')
-            ... #doctest: +NORMALIZE_WHITESPACE
-            Record(address=None, tag=None, count=13,
-                   data=b'Hello, World!', checksum=None)
-
-            >>> Record.build_data(0x1234, None)
-            ... #doctest: +NORMALIZE_WHITESPACE
-            Record(address=0x1234, tag=None, count=0, data=None, checksum=None)
-        """
-        record = cls(address, None, data)
-        return record
-
-    @classmethod
-    def split(
-        cls,
-        data: AnyBytes,
-        address: int = 0,
-        columns: int = 16,
-        align: Union[int, EllipsisType] = Ellipsis,
-        standalone: bool = True,
-    ) -> Iterator['Record']:
-        r"""Splits a chunk of data into records.
-
-        Arguments:
-            data (bytes):
-                Byte data to split.
-
-            address (int):
-                Start address of the first data record being split.
-
-            columns (int):
-                Maximum number of columns per data record.
-                Maximum of 128 columns.
-
-            align (int):
-                Aligns record addresses to such number.
-                If ``Ellipsis``, its value is resolved after `columns`.
-
-            standalone (bool):
-                Generates a sequence of records that can be saved as a
-                standalone record file.
-
-        Yields:
-            record: Data split into records.
-
-        Raises:
-            :obj:`ValueError`: Address, size, or column overflow.
-        """
-        if not 0 <= address < (1 << 16):
-            raise ValueError('address overflow')
-        if not 0 <= address + len(data) <= (1 << 16):
-            raise ValueError('size overflow')
-        if not 0 < columns < (1 << 8):
-            raise ValueError('column overflow')
-        if align is Ellipsis:
-            align = columns
-
-        align_base = (address % align) if align else 0
-        offset = address
-        checksum = 0
-
-        if standalone:
-            record = cls.build_data(offset, None)
-            yield record
-
-        for chunk in chop(data, columns, align_base):
-            if standalone:
-                record = cls.build_data(None, chunk)
-            else:
-                record = cls.build_data(offset, chunk)
-            yield record
-            checksum = (checksum + record.compute_checksum()) & 0xFFFF
-            offset += len(chunk)
-
-        if standalone:
-            record = cls(None, None, None, checksum)
-            yield record
-
-    @classmethod
-    def parse_record(
-        cls,
-        line: str,
-        *args: Any,
-        **kwargs: Any,
-    ) -> 'Record':
-        check_empty_args_kwargs(args, kwargs)
-
-        line = str(line).strip()
-        match = cls.REGEX.match(line)
-        if not match:
-            raise ValueError('regex error')
-        groups = match.groupdict()
-
-        address = groups['address']
-        if address is not None:
-            address = int(address, 16)
-
-        data = groups['data']
-        if data:
-            for c in " %',":
-                data = data.replace(c, '')
-            data = unhexlify(data)
-        else:
-            data = None
-
-        checksum = groups['checksum']
-        if checksum is not None:
-            checksum = int(checksum, 16)
-
-        record = cls(address, None, data, checksum)
-        return record
-
-    @classmethod
-    def build_standalone(
-        cls,
-        data_records: RecordSequence,
-        *args: Any,
-        **kwargs: Any,
-    ) -> Iterator['Record']:
-        check_empty_args_kwargs(args, kwargs)
-
-        checksum = 0
-        for record in data_records:
-            yield record
-            checksum = (checksum + record.compute_checksum()) & 0xFFFF
-
-        record = cls(None, None, None, checksum)
-        yield record
-
-    @classmethod
-    def readdress(
-        cls,
-        records: RecordSequence,
-    ) -> None:
-        offset = 0
-        for record in records:
-            if record.address is None:
-                record.address = offset
-            offset = record.address + len(record.data or b'')
-
-    @classmethod
-    def read_records(
-        cls,
-        stream: IO,
-    ) -> RecordSequence:
-        text = stream.read()
-        stx = text.index('\x02')
-        etx = text.index('\x03')
-        text = text[(stx + 1):etx]
-        return super().read_records(io.StringIO(text))
-
-    @classmethod
-    def write_records(
-        cls,
-        stream: IO,
-        records: RecordSequence,
-    ) -> None:
-        stream.write('\x02')
-        super().write_records(stream, records)
-        stream.write('\x03')
-
-
-# =============================================================================
 
 @enum.unique
 class AsciiHexTag(BaseTag, enum.IntEnum):
@@ -393,7 +68,7 @@ class AsciiHexTag(BaseTag, enum.IntEnum):
 class AsciiHexRecord(BaseRecord):
     # TODO: __doc__
 
-    TAG_TYPE: Type[AsciiHexTag] = AsciiHexTag
+    Tag: Type[AsciiHexTag] = AsciiHexTag
 
     LINE_REGEX = re.compile(
         b'\\s*(\\$[Aa](?P<address>[0-9A-Fa-f]+)[,.])?\\s*'
@@ -404,8 +79,15 @@ class AsciiHexRecord(BaseRecord):
     DATA_SEPS: bytes = b" \t\n\r\v\f%',"
     # TODO: __doc__
 
+    def compute_count(self) -> Optional[int]:
+
+        if self.tag == self.Tag.ADDRESS_DATA:
+            return self.count  # loopback
+        else:
+            return None
+
     @classmethod
-    def build_address(
+    def create_address(
         cls,
         address: int,
         data: AnyBytes,
@@ -421,25 +103,20 @@ class AsciiHexRecord(BaseRecord):
         if addrlen < 1:
             raise ValueError('invalid address length')
 
-        record = cls(cls.TAG_TYPE.ADDRESS_DATA, address=address, data=data, count=addrlen)
+        record = cls(cls.Tag.ADDRESS_DATA, address=address, data=data, count=addrlen)
         return record
 
     @classmethod
-    def build_data(
+    def create_data(
         cls,
+        address: int,
         data: AnyBytes,
     ) -> 'AsciiHexRecord':
         # TODO: __doc__
 
-        record = cls(cls.TAG_TYPE.DATA, data=data)
+        del address
+        record = cls(cls.Tag.DATA, data=data)
         return record
-
-    def compute_count(self) -> Optional[int]:
-
-        if self.tag == self.TAG_TYPE.ADDRESS_DATA:
-            return self.count  # loopback
-        else:
-            return None
 
     @classmethod
     def parse(
@@ -465,12 +142,12 @@ class AsciiHexRecord(BaseRecord):
 
         address_group = groups['address']
         if address_group:
-            tag = cls.TAG_TYPE.ADDRESS_DATA
+            tag = cls.Tag.ADDRESS_DATA
             address = int(address_group, 16)
             if addrlen is None:
                 addrlen = len(address_group)
         else:
-            tag = cls.TAG_TYPE.DATA
+            tag = cls.Tag.DATA
             addrlen = 0
 
         data_group = groups['data']
@@ -492,7 +169,7 @@ class AsciiHexRecord(BaseRecord):
     ) -> bytes:
         # TODO: __doc__
 
-        self.validate()
+        self.validate(checksum=False, count=False)
         tag = _cast(AsciiHexTag, self.tag)
         addrstr = b''
         datastr = b''
@@ -518,7 +195,7 @@ class AsciiHexRecord(BaseRecord):
         end: AnyBytes = b'\r\n',
     ) -> Mapping[str, bytes]:
 
-        self.validate()
+        self.validate(checksum=False, count=False)
         tag = _cast(AsciiHexTag, self.tag)
         addrstr = b''
         datastr = b''
@@ -537,9 +214,13 @@ class AsciiHexRecord(BaseRecord):
             'end': end,
         }
 
-    def validate(self) -> 'AsciiHexRecord':
+    def validate(
+        self,
+        checksum: bool = True,
+        count: bool = True,
+    ) -> 'AsciiHexRecord':
 
-        super().validate()
+        super().validate(checksum=checksum, count=count)
 
         if self.after and not self.after.isspace():
             raise ValueError('junk after')
@@ -555,7 +236,7 @@ class AsciiHexRecord(BaseRecord):
 
 class AsciiHexFile(BaseFile):
 
-    RECORD_TYPE: Type[AsciiHexRecord] = AsciiHexRecord
+    Record: Type[AsciiHexRecord] = AsciiHexRecord
 
     @classmethod
     def parse(
@@ -569,7 +250,7 @@ class AsciiHexFile(BaseFile):
         buffer: bytes = stream.read()
 
         records = []
-        record_type = cls.RECORD_TYPE
+        Record = cls.Record
 
         if stxetx:
             stx_offset = buffer.find(0x02)
@@ -590,7 +271,7 @@ class AsciiHexFile(BaseFile):
         while offset < etx_offset:
             chunk = _cast(bytes, view[offset:etx_offset])
             try:
-                record = record_type.parse(chunk, address=address)
+                record = Record.parse(chunk, address=address)
             except Exception:
                 if ignore_errors:
                     continue
@@ -643,7 +324,7 @@ class AsciiHexFile(BaseFile):
             raise ValueError('invalid address length')
 
         records = []
-        record_type = self.RECORD_TYPE
+        Record = self.Record
         last_data_endex = 0
         chunk_views = []
         try:
@@ -652,9 +333,9 @@ class AsciiHexFile(BaseFile):
                 data = bytes(chunk_view)
 
                 if chunk_start == last_data_endex:
-                    record = record_type.build_data(data)
+                    record = Record.create_data(data)
                 else:
-                    record = record_type.build_address(chunk_start, data, addrlen=addrlen)
+                    record = Record.create_address(chunk_start, data, addrlen=addrlen)
 
                 records.append(record)
                 last_data_endex = chunk_start + len(chunk_view)
@@ -678,7 +359,7 @@ class AsciiHexFile(BaseFile):
             raise ValueError('records required')
 
         last_data_endex = 0
-        address_data_tag = self.RECORD_TYPE.TAG_TYPE.ADDRESS_DATA
+        address_data_tag = self.Record.Tag.ADDRESS_DATA
 
         for index, record in enumerate(records):
             record = _cast(AsciiHexRecord, record)

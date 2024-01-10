@@ -50,75 +50,23 @@ class TestMosTag:
 
 class TestMosRecord:
 
-    def test_build_data(self):
-        record = MosRecord.build_data(123, b'abc')
-        record.validate()
-        assert record.tag == MosTag.DATA
-        assert record.address == 123
-        assert record.data == b'abc'
-
-        record = MosRecord.build_data(0, b'abc')
-        record.validate()
-        assert record.tag == MosTag.DATA
-        assert record.address == 0
-        assert record.data == b'abc'
-
-        record = MosRecord.build_data(123, b'')
-        record.validate()
-        assert record.tag == MosTag.DATA
-        assert record.address == 123
-        assert record.data == b''
-
-    def test_build_data_raises_address(self):
-        MosRecord.build_data(0, b'abc')
-        MosRecord.build_data(0xFFFF, b'abc')
-
-        with pytest.raises(ValueError, match='address overflow'):
-            MosRecord.build_data(-1, b'abc')
-
-        with pytest.raises(ValueError, match='address overflow'):
-            MosRecord.build_data(0x10000, b'abc')
-
-    def test_build_data_raises_data(self):
-        MosRecord.build_data(123, b'.' * 0xFF)
-
-        with pytest.raises(ValueError, match='size overflow'):
-            MosRecord.build_data(123, b'.' * 0x100)
-
-    def test_build_eof(self):
-        record = MosRecord.build_eof(123)
-        record.validate()
-        assert record.tag == MosTag.EOF
-        assert record.address == 123
-        assert record.data == b''
-
-    def test_build_eof_raises_count(self):
-        MosRecord.build_eof(0)
-        MosRecord.build_eof(0xFFFF)
-
-        with pytest.raises(ValueError, match='count overflow'):
-            MosRecord.build_eof(-1)
-
-        with pytest.raises(ValueError, match='count overflow'):
-            MosRecord.build_eof(0x10000)
-
     def test_compute_checksum(self):
-        record = MosRecord.build_data(0, b'')
+        record = MosRecord.create_data(0, b'')
         assert record.compute_checksum() == 0
 
-        record = MosRecord.build_data(0x1234, b'')
+        record = MosRecord.create_data(0x1234, b'')
         assert record.compute_checksum() == (0x12 + 0x34)
 
-        record = MosRecord.build_data(0, b'\x56\x78')
+        record = MosRecord.create_data(0, b'\x56\x78')
         assert record.compute_checksum() == (2 + 0x56 + 0x78)
 
-        record = MosRecord.build_data(0x1234, b'\x56\x78')
+        record = MosRecord.create_data(0x1234, b'\x56\x78')
         assert record.compute_checksum() == (0x12 + 0x34 + 2 + 0x56 + 0x78)
 
-        record = MosRecord.build_data(0, b'\0\0\0')
+        record = MosRecord.create_data(0, b'\0\0\0')
         assert record.compute_checksum() == 3
 
-        record = MosRecord.build_data(0xFFFF, b'\xFF' * 0xFF)
+        record = MosRecord.create_data(0xFFFF, b'\xFF' * 0xFF)
         max_sum = (2 + 1 + 0xFF) * 0xFF  # address + count + data
         assert max_sum > 0xFFFF
         assert record.compute_checksum() == max_sum & 0xFFFF
@@ -129,17 +77,69 @@ class TestMosRecord:
             record.compute_checksum()
 
     def test_compute_count(self):
-        record = MosRecord.build_data(0, b'')
+        record = MosRecord.create_data(0, b'')
         assert record.compute_count() == 0
 
-        record = MosRecord.build_data(0x1234, b'')
+        record = MosRecord.create_data(0x1234, b'')
         assert record.compute_count() == 0
 
-        record = MosRecord.build_data(0, b'\x56\x78')
+        record = MosRecord.create_data(0, b'\x56\x78')
         assert record.compute_count() == 2
 
-        record = MosRecord.build_data(0x1234, b'\x56\x78')
+        record = MosRecord.create_data(0x1234, b'\x56\x78')
         assert record.compute_count() == 2
+
+    def test_create_data(self):
+        record = MosRecord.create_data(123, b'abc')
+        record.validate()
+        assert record.tag == MosTag.DATA
+        assert record.address == 123
+        assert record.data == b'abc'
+
+        record = MosRecord.create_data(0, b'abc')
+        record.validate()
+        assert record.tag == MosTag.DATA
+        assert record.address == 0
+        assert record.data == b'abc'
+
+        record = MosRecord.create_data(123, b'')
+        record.validate()
+        assert record.tag == MosTag.DATA
+        assert record.address == 123
+        assert record.data == b''
+
+    def test_create_data_raises_address(self):
+        MosRecord.create_data(0, b'abc')
+        MosRecord.create_data(0xFFFF, b'abc')
+
+        with pytest.raises(ValueError, match='address overflow'):
+            MosRecord.create_data(-1, b'abc')
+
+        with pytest.raises(ValueError, match='address overflow'):
+            MosRecord.create_data(0x10000, b'abc')
+
+    def test_create_data_raises_data(self):
+        MosRecord.create_data(123, b'.' * 0xFF)
+
+        with pytest.raises(ValueError, match='size overflow'):
+            MosRecord.create_data(123, b'.' * 0x100)
+
+    def test_create_eof(self):
+        record = MosRecord.create_eof(123)
+        record.validate()
+        assert record.tag == MosTag.EOF
+        assert record.address == 123
+        assert record.data == b''
+
+    def test_create_eof_raises_count(self):
+        MosRecord.create_eof(0)
+        MosRecord.create_eof(0xFFFF)
+
+        with pytest.raises(ValueError, match='count overflow'):
+            MosRecord.create_eof(-1)
+
+        with pytest.raises(ValueError, match='count overflow'):
+            MosRecord.create_eof(0x10000)
 
     def test_parse_data_nul(self):
         line = b';180000FFEEDDCCBBAA0099887766554433221122334455667788990AFC\r\n\0\0\0\0\0\0'
@@ -237,7 +237,7 @@ class TestMosRecord:
         data = (b'\xFF\xEE\xDD\xCC\xBB\xAA\x00\x99'
                 b'\x88\x77\x66\x55\x44\x33\x22\x11'
                 b'\x22\x33\x44\x55\x66\x77\x88\x99')
-        record = MosRecord.build_data(0x0000, data)
+        record = MosRecord.create_data(0x0000, data)
         line = record.to_bytestr(nuls=True)
         ref = b';180000FFEEDDCCBBAA0099887766554433221122334455667788990AFC\r\n\0\0\0\0\0\0'
         assert line == ref
@@ -246,31 +246,31 @@ class TestMosRecord:
         data = (b'\xFF\xEE\xDD\xCC\xBB\xAA\x00\x99'
                 b'\x88\x77\x66\x55\x44\x33\x22\x11'
                 b'\x22\x33\x44\x55\x66\x77\x88\x99')
-        record = MosRecord.build_data(0x0000, data)
+        record = MosRecord.create_data(0x0000, data)
         line = record.to_bytestr(nuls=False)
         ref = b';180000FFEEDDCCBBAA0099887766554433221122334455667788990AFC\r\n'
         assert line == ref
 
     def test_to_bytestr_eof_checksum(self):
-        record = MosRecord.build_eof(0x1234)
+        record = MosRecord.create_eof(0x1234)
         line = record.to_bytestr(nuls=True)
         ref = b';0012340046\r\n\0\0\0\0\0\0'
         assert line == ref
 
     def test_to_bytestr_eof_nul(self):
-        record = MosRecord.build_eof(0x0001)
+        record = MosRecord.create_eof(0x0001)
         line = record.to_bytestr(nuls=True)
         ref = b';0000010001\r\n\0\0\0\0\0\0'
         assert line == ref
 
     def test_to_bytestr_eof_wonul(self):
-        record = MosRecord.build_eof(0x0001)
+        record = MosRecord.create_eof(0x0001)
         line = record.to_bytestr(nuls=False)
         ref = b';0000010001\r\n'
         assert line == ref
 
     def test_to_bytestr_eof_wonul_end(self):
-        record = MosRecord.build_eof(0x0001)
+        record = MosRecord.create_eof(0x0001)
         line = record.to_bytestr(end=b'\n', nuls=False)
         ref = b';0000010001\n'
         assert line == ref
@@ -279,7 +279,7 @@ class TestMosRecord:
         data = (b'\xFF\xEE\xDD\xCC\xBB\xAA\x00\x99'
                 b'\x88\x77\x66\x55\x44\x33\x22\x11'
                 b'\x22\x33\x44\x55\x66\x77\x88\x99')
-        record = MosRecord.build_data(0x0000, data)
+        record = MosRecord.create_data(0x0000, data)
         tokens = record.to_tokens(nuls=True)
         ref = {
             'before': b'',
@@ -298,7 +298,7 @@ class TestMosRecord:
         data = (b'\xFF\xEE\xDD\xCC\xBB\xAA\x00\x99'
                 b'\x88\x77\x66\x55\x44\x33\x22\x11'
                 b'\x22\x33\x44\x55\x66\x77\x88\x99')
-        record = MosRecord.build_data(0x0000, data)
+        record = MosRecord.create_data(0x0000, data)
         tokens = record.to_tokens(nuls=False)
         ref = {
             'before': b'',
@@ -314,7 +314,7 @@ class TestMosRecord:
         assert tokens == ref
 
     def test_to_tokens_eof_checksum(self):
-        record = MosRecord.build_eof(0x1234)
+        record = MosRecord.create_eof(0x1234)
         tokens = record.to_tokens(end=b'\n', nuls=True)
         ref = {
             'before': b'',
@@ -506,8 +506,8 @@ class TestMosFile:
         data = (b'\xFF\xEE\xDD\xCC\xBB\xAA\x00\x99'
                 b'\x88\x77\x66\x55\x44\x33\x22\x11'
                 b'\x22\x33\x44\x55\x66\x77\x88\x99')
-        records = [MosRecord.build_data(0x0000, data),
-                   MosRecord.build_eof(1)]
+        records = [MosRecord.create_data(0x0000, data),
+                   MosRecord.create_eof(1)]
         file = MosFile.from_records(records)
 
         outstream = io.BytesIO()
@@ -523,8 +523,8 @@ class TestMosFile:
         data = (b'\xFF\xEE\xDD\xCC\xBB\xAA\x00\x99'
                 b'\x88\x77\x66\x55\x44\x33\x22\x11'
                 b'\x22\x33\x44\x55\x66\x77\x88\x99')
-        records = [MosRecord.build_data(0x0000, data),
-                   MosRecord.build_eof(1)]
+        records = [MosRecord.create_data(0x0000, data),
+                   MosRecord.create_eof(1)]
         file = MosFile.from_records(records)
 
         outstream = io.BytesIO()
@@ -540,8 +540,8 @@ class TestMosFile:
         data = (b'\xFF\xEE\xDD\xCC\xBB\xAA\x00\x99'
                 b'\x88\x77\x66\x55\x44\x33\x22\x11'
                 b'\x22\x33\x44\x55\x66\x77\x88\x99')
-        records = [MosRecord.build_data(0x0000, data),
-                   MosRecord.build_eof(1)]
+        records = [MosRecord.create_data(0x0000, data),
+                   MosRecord.create_eof(1)]
         file = MosFile.from_records(records)
 
         outstream = io.BytesIO()
@@ -590,8 +590,8 @@ class TestMosFile:
         data = (b'\xFF\xEE\xDD\xCC\xBB\xAA\x00\x99'
                 b'\x88\x77\x66\x55\x44\x33\x22\x11'
                 b'\x22\x33\x44\x55\x66\x77\x88\x99')
-        records = [MosRecord.build_data(0x0000, data),
-                   MosRecord.build_eof(1)]
+        records = [MosRecord.create_data(0x0000, data),
+                   MosRecord.create_eof(1)]
         file = MosFile.from_records(records)
         with pytest.raises(ValueError, match='memory instance required'):
             file.update_records()
@@ -600,21 +600,21 @@ class TestMosFile:
         data = (b'\xFF\xEE\xDD\xCC\xBB\xAA\x00\x99'
                 b'\x88\x77\x66\x55\x44\x33\x22\x11'
                 b'\x22\x33\x44\x55\x66\x77\x88\x99')
-        records = [MosRecord.build_data(0x0000, data),
-                   MosRecord.build_eof(1)]
+        records = [MosRecord.create_data(0x0000, data),
+                   MosRecord.create_eof(1)]
         file = MosFile.from_records(records)
         file.validate_records(data_ordering=True, eof_record_required=True)
 
     def test_validate_records_data_order(self):
-        records = [MosRecord.build_data(10, b'xyz'),
-                   MosRecord.build_data(13, b'abc'),
-                   MosRecord.build_eof(2)]
+        records = [MosRecord.create_data(10, b'xyz'),
+                   MosRecord.create_data(13, b'abc'),
+                   MosRecord.create_eof(2)]
         file = MosFile.from_records(records)
         file.validate_records(data_ordering=True)
 
-        records = [MosRecord.build_data(10, b'xyz'),
-                   MosRecord.build_data(14, b'abc'),
-                   MosRecord.build_eof(2)]
+        records = [MosRecord.create_data(10, b'xyz'),
+                   MosRecord.create_data(14, b'abc'),
+                   MosRecord.create_eof(2)]
         file = MosFile.from_records(records)
         file.validate_records(data_ordering=True)
 
@@ -624,49 +624,49 @@ class TestMosFile:
             file.validate_records()
 
     def test_validate_records_raises_data_order(self):
-        records = [MosRecord.build_data(14, b'xyz'),
-                   MosRecord.build_data(10, b'abc'),
-                   MosRecord.build_eof(2)]
+        records = [MosRecord.create_data(14, b'xyz'),
+                   MosRecord.create_data(10, b'abc'),
+                   MosRecord.create_eof(2)]
         file = MosFile.from_records(records)
         with pytest.raises(ValueError, match='unordered data record'):
             file.validate_records(data_ordering=True)
 
-        records = [MosRecord.build_data(13, b'xyz'),
-                   MosRecord.build_data(10, b'abc'),
-                   MosRecord.build_eof(2)]
+        records = [MosRecord.create_data(13, b'xyz'),
+                   MosRecord.create_data(10, b'abc'),
+                   MosRecord.create_eof(2)]
         file = MosFile.from_records(records)
         with pytest.raises(ValueError, match='unordered data record'):
             file.validate_records(data_ordering=True)
 
-        records = [MosRecord.build_data(10, b'abc'),
-                   MosRecord.build_data(10, b'xyz'),
-                   MosRecord.build_eof(2)]
+        records = [MosRecord.create_data(10, b'abc'),
+                   MosRecord.create_data(10, b'xyz'),
+                   MosRecord.create_eof(2)]
         file = MosFile.from_records(records)
         with pytest.raises(ValueError, match='unordered data record'):
             file.validate_records(data_ordering=True)
 
-        records = [MosRecord.build_data(10, b'abc'),
-                   MosRecord.build_data(12, b'xyz'),
-                   MosRecord.build_eof(2)]
+        records = [MosRecord.create_data(10, b'abc'),
+                   MosRecord.create_data(12, b'xyz'),
+                   MosRecord.create_eof(2)]
         file = MosFile.from_records(records)
         with pytest.raises(ValueError, match='unordered data record'):
             file.validate_records(data_ordering=True)
 
     def test_validate_records_raises_eof_order(self):
-        records = [MosRecord.build_eof(0),
-                   MosRecord.build_data(0x1234, b'abc')]
+        records = [MosRecord.create_eof(0),
+                   MosRecord.create_data(0x1234, b'abc')]
         file = MosFile.from_records(records)
         with pytest.raises(ValueError, match='end of file record not last'):
             file.validate_records(data_ordering=False)
 
     def test_validate_records_raises_eof_address(self):
-        records = [MosRecord.build_eof(1)]
+        records = [MosRecord.create_eof(1)]
         file = MosFile.from_records(records)
         with pytest.raises(ValueError, match='wrong record count as address'):
             file.validate_records(data_ordering=False)
 
     def test_validate_records_raises_eof_missing(self):
-        records = [MosRecord.build_data(0x1234, b'abc')]
+        records = [MosRecord.create_data(0x1234, b'abc')]
         file = MosFile.from_records(records)
         with pytest.raises(ValueError, match='missing end of file record'):
             file.validate_records(eof_record_required=True)
