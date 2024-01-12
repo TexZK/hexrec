@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
+import io
 import os
-from binascii import unhexlify
 from pathlib import Path
 
 import pytest
@@ -13,9 +13,16 @@ from hexrec.formats.motorola import SrecTag
 from test_records import BaseTestFile
 from test_records import BaseTestRecord
 from test_records import BaseTestTag
+from test_records import replace_stdin
+from test_records import replace_stdout
 
 
 # ============================================================================
+
+@pytest.fixture
+def tmppath(tmpdir):  # pragma: no cover
+    return Path(str(tmpdir))
+
 
 @pytest.fixture(scope='module')
 def datadir(request):
@@ -191,12 +198,12 @@ class TestSrecRecord(BaseTestRecord):
             (0xFC, SrecRecord.create_header(b'')),
             (0xD3, SrecRecord.create_header(b'abc')),
             (0xFC, SrecRecord.create_data(0x00000000, b'')),
-            (0xD3, SrecRecord.create_data(0x00000000, b'abc')),
             (0xB6, SrecRecord.create_data(0x00001234, b'')),
-            (0x8D, SrecRecord.create_data(0x00001234, b'abc')),
             (0x5F, SrecRecord.create_data(0x00123456, b'')),
-            (0x36, SrecRecord.create_data(0x00123456, b'abc')),
             (0xE6, SrecRecord.create_data(0x12345678, b'')),
+            (0xD3, SrecRecord.create_data(0x00000000, b'abc')),
+            (0x8D, SrecRecord.create_data(0x00001234, b'abc')),
+            (0x36, SrecRecord.create_data(0x00123456, b'abc')),
             (0xBD, SrecRecord.create_data(0x12345678, b'abc')),
         ]
         for expected, record in vector:
@@ -551,13 +558,15 @@ class TestSrecRecord(BaseTestRecord):
         ]
         records = [
             SrecRecord(SrecTag.HEADER, count=0x0F, checksum=0x3C,
-                       data=unhexlify(b'68656C6C6F20202020200000')),
+                       data=b'\x68\x65\x6C\x6C\x6F\x20\x20\x20\x20\x20\x00\x00'),
             SrecRecord(SrecTag.DATA_16, count=0x1F, address=0x0000, checksum=0x26,
-                       data=unhexlify(b'7C0802A6900100049421FFF07C6C1B787C8C23783C60000038630000')),
+                       data=(b'\x7C\x08\x02\xA6\x90\x01\x00\x04\x94\x21\xFF\xF0\x7C\x6C\x1B\x78'
+                             b'\x7C\x8C\x23\x78\x3C\x60\x00\x00\x38\x63\x00\x00')),
             SrecRecord(SrecTag.DATA_16, count=0x1F, address=0x001C, checksum=0xE9,
-                       data=unhexlify(b'4BFFFFE5398000007D83637880010014382100107C0803A64E800020')),
+                       data=(b'\x4B\xFF\xFF\xE5\x39\x80\x00\x00\x7D\x83\x63\x78\x80\x01\x00\x14'
+                             b'\x38\x21\x00\x10\x7C\x08\x03\xA6\x4E\x80\x00\x20')),
             SrecRecord(SrecTag.DATA_16, count=0x11, address=0x0038, checksum=0x42,
-                       data=unhexlify(b'48656C6C6F20776F726C642E0A00')),
+                       data=b'\x48\x65\x6C\x6C\x6F\x20\x77\x6F\x72\x6C\x64\x2E\x0A\x00'),
             SrecRecord(SrecTag.COUNT_16, count=0x03, address=0x0003, checksum=0xF9),
             SrecRecord(SrecTag.START_16, count=0x03, address=0x0000, checksum=0xFC),
         ]
@@ -656,45 +665,45 @@ class TestSrecRecord(BaseTestRecord):
 
     def test_to_tokens(self):
         lines = [
-            b'S0030000FC\r\n',
-            b'S0FF0000' + (b'00' * 0xFC) + b'00\r\n',
-            b'S0FF0000' + (b'FF' * 0xFC) + b'FC\r\n',
+            b'|S|0|03|0000||FC||\r\n',
+            b'|S|0|FF|0000|' + (b'00' * 0xFC) + b'|00||\r\n',
+            b'|S|0|FF|0000|' + (b'FF' * 0xFC) + b'|FC||\r\n',
 
-            b'S1030000FC\r\n',
-            b'S1FF0000' + (b'00' * 0xFC) + b'00\r\n',
-            b'S1FF0000' + (b'FF' * 0xFC) + b'FC\r\n',
-            b'S103FFFFFE\r\n',
-            b'S1FFFFFF' + (b'00' * 0xFC) + b'02\r\n',
-            b'S1FFFFFF' + (b'FF' * 0xFC) + b'FE\r\n',
+            b'|S|1|03|0000||FC||\r\n',
+            b'|S|1|FF|0000|' + (b'00' * 0xFC) + b'|00||\r\n',
+            b'|S|1|FF|0000|' + (b'FF' * 0xFC) + b'|FC||\r\n',
+            b'|S|1|03|FFFF||FE||\r\n',
+            b'|S|1|FF|FFFF|' + (b'00' * 0xFC) + b'|02||\r\n',
+            b'|S|1|FF|FFFF|' + (b'FF' * 0xFC) + b'|FE||\r\n',
 
-            b'S204000000FB\r\n',
-            b'S2FF000000' + (b'00' * 0xFB) + b'00\r\n',
-            b'S2FF000000' + (b'FF' * 0xFB) + b'FB\r\n',
-            b'S204FFFFFFFE\r\n',
-            b'S2FFFFFFFF' + (b'00' * 0xFB) + b'03\r\n',
-            b'S2FFFFFFFF' + (b'FF' * 0xFB) + b'FE\r\n',
+            b'|S|2|04|000000||FB||\r\n',
+            b'|S|2|FF|000000|' + (b'00' * 0xFB) + b'|00||\r\n',
+            b'|S|2|FF|000000|' + (b'FF' * 0xFB) + b'|FB||\r\n',
+            b'|S|2|04|FFFFFF||FE||\r\n',
+            b'|S|2|FF|FFFFFF|' + (b'00' * 0xFB) + b'|03||\r\n',
+            b'|S|2|FF|FFFFFF|' + (b'FF' * 0xFB) + b'|FE||\r\n',
 
-            b'S30500000000FA\r\n',
-            b'S3FF00000000' + (b'00' * 0xFA) + b'00\r\n',
-            b'S3FF00000000' + (b'FF' * 0xFA) + b'FA\r\n',
-            b'S305FFFFFFFFFE\r\n',
-            b'S3FFFFFFFFFF' + (b'00' * 0xFA) + b'04\r\n',
-            b'S3FFFFFFFFFF' + (b'FF' * 0xFA) + b'FE\r\n',
+            b'|S|3|05|00000000||FA||\r\n',
+            b'|S|3|FF|00000000|' + (b'00' * 0xFA) + b'|00||\r\n',
+            b'|S|3|FF|00000000|' + (b'FF' * 0xFA) + b'|FA||\r\n',
+            b'|S|3|05|FFFFFFFF||FE||\r\n',
+            b'|S|3|FF|FFFFFFFF|' + (b'00' * 0xFA) + b'|04||\r\n',
+            b'|S|3|FF|FFFFFFFF|' + (b'FF' * 0xFA) + b'|FE||\r\n',
 
-            b'S5030000FC\r\n',
-            b'S503FFFFFE\r\n',
+            b'|S|5|03|0000||FC||\r\n',
+            b'|S|5|03|FFFF||FE||\r\n',
 
-            b'S604000000FB\r\n',
-            b'S604FFFFFFFE\r\n',
+            b'|S|6|04|000000||FB||\r\n',
+            b'|S|6|04|FFFFFF||FE||\r\n',
 
-            b'S70500000000FA\r\n',
-            b'S705FFFFFFFFFE\r\n',
+            b'|S|7|05|00000000||FA||\r\n',
+            b'|S|7|05|FFFFFFFF||FE||\r\n',
 
-            b'S804000000FB\r\n',
-            b'S804FFFFFFFE\r\n',
+            b'|S|8|04|000000||FB||\r\n',
+            b'|S|8|04|FFFFFF||FE||\r\n',
 
-            b'S9030000FC\r\n',
-            b'S903FFFFFE\r\n',
+            b'|S|9|03|0000||FC||\r\n',
+            b'|S|9|03|FFFF||FE||\r\n',
         ]
         records = [
             SrecRecord.create_header(b''),
@@ -751,7 +760,7 @@ class TestSrecRecord(BaseTestRecord):
         for expected, record in zip(lines, records):
             tokens = record.to_tokens()
             assert all((key in keys) for key in tokens.keys())
-            actual = b''.join(tokens.get(key, b'?') for key in keys)
+            actual = b'|'.join(tokens.get(key, b'?') for key in keys)
             assert actual == expected
 
     def test_validate_raises(self):
@@ -787,36 +796,36 @@ class TestSrecRecord(BaseTestRecord):
             'address overflow',
         ]
         records = [
-            # SrecRecord(SrecTag.DATA_16, after=b'?'),
-            SrecRecord(SrecTag.DATA_16, before=b'?'),
+            # SrecRecord(SrecTag.DATA_16, validate=False, after=b'?'),
+            SrecRecord(SrecTag.DATA_16, validate=False, before=b'?'),
 
-            SrecRecord(SrecTag.DATA_16, checksum=-1),
-            SrecRecord(SrecTag.DATA_16, checksum=0x100),
+            SrecRecord(SrecTag.DATA_16, validate=False, checksum=-1),
+            SrecRecord(SrecTag.DATA_16, validate=False, checksum=0x100),
 
-            SrecRecord(SrecTag.DATA_16, count=2),
-            SrecRecord(SrecTag.DATA_16, count=0x100),
+            SrecRecord(SrecTag.DATA_16, validate=False, count=2),
+            SrecRecord(SrecTag.DATA_16, validate=False, count=0x100),
 
-            SrecRecord(SrecTag.RESERVED, count=3, checksum=0),
+            SrecRecord(SrecTag.RESERVED, validate=False, count=3, checksum=0),
 
-            SrecRecord(SrecTag.COUNT_16, data=b'x'),
-            SrecRecord(SrecTag.COUNT_24, data=b'x'),
-            SrecRecord(SrecTag.START_32, data=b'x'),
-            SrecRecord(SrecTag.START_24, data=b'x'),
-            SrecRecord(SrecTag.START_16, data=b'x'),
+            SrecRecord(SrecTag.COUNT_16, validate=False, data=b'x'),
+            SrecRecord(SrecTag.COUNT_24, validate=False, data=b'x'),
+            SrecRecord(SrecTag.START_32, validate=False, data=b'x'),
+            SrecRecord(SrecTag.START_24, validate=False, data=b'x'),
+            SrecRecord(SrecTag.START_16, validate=False, data=b'x'),
 
-            SrecRecord(SrecTag.DATA_16, data=(b'x' * 0xFD), count=0xFF),
-            SrecRecord(SrecTag.DATA_24, data=(b'x' * 0xFC), count=0xFF),
-            SrecRecord(SrecTag.DATA_32, data=(b'x' * 0xFB), count=0xFF),
+            SrecRecord(SrecTag.DATA_16, validate=False, data=(b'x' * 0xFD), count=0xFF),
+            SrecRecord(SrecTag.DATA_24, validate=False, data=(b'x' * 0xFC), count=0xFF),
+            SrecRecord(SrecTag.DATA_32, validate=False, data=(b'x' * 0xFB), count=0xFF),
 
-            SrecRecord(SrecTag.HEADER, address=0x10000),
-            SrecRecord(SrecTag.DATA_16, address=0x10000),
-            SrecRecord(SrecTag.DATA_24, address=0x1000000),
-            SrecRecord(SrecTag.DATA_32, address=0x100000000),
-            SrecRecord(SrecTag.COUNT_16, address=0x10000),
-            SrecRecord(SrecTag.COUNT_24, address=0x1000000),
-            SrecRecord(SrecTag.START_32, address=0x100000000),
-            SrecRecord(SrecTag.START_24, address=0x1000000),
-            SrecRecord(SrecTag.START_16, address=0x10000),
+            SrecRecord(SrecTag.HEADER, validate=False, address=0x10000),
+            SrecRecord(SrecTag.DATA_16, validate=False, address=0x10000),
+            SrecRecord(SrecTag.DATA_24, validate=False, address=0x1000000),
+            SrecRecord(SrecTag.DATA_32, validate=False, address=0x100000000),
+            SrecRecord(SrecTag.COUNT_16, validate=False, address=0x10000),
+            SrecRecord(SrecTag.COUNT_24, validate=False, address=0x1000000),
+            SrecRecord(SrecTag.START_32, validate=False, address=0x100000000),
+            SrecRecord(SrecTag.START_24, validate=False, address=0x1000000),
+            SrecRecord(SrecTag.START_16, validate=False, address=0x10000),
         ]
         for match, record in zip(matches, records):
             record.compute_checksum = lambda: record.checksum  # fake
@@ -942,23 +951,115 @@ class TestSrecFile(BaseTestFile):
         file.header = b''
         file.header = bytes(range(0xFC))
 
-    def test_parse_wikipedia(self, datapath):
+    def test_load_file(self, datapath):
+        path = str(datapath / 'simple.srec')
+        records = [
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x12345678, b'abc'),
+            SrecRecord.create_count(1),
+            SrecRecord.create_start(0x89ABCDEF),
+        ]
+        file = SrecFile.load(path)
+        assert file.records == records
+
+    def test_load_stdin(self):
+        buffer = (
+            b'S0070000484452001A\r\n'
+            b'S30812345678616263BD\r\n'
+            b'S5030001FB\r\n'
+            b'S70589ABCDEF0A\r\n'
+        )
+        records = [
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x12345678, b'abc'),
+            SrecRecord.create_count(1),
+            SrecRecord.create_start(0x89ABCDEF),
+        ]
+        for path in [None, '-']:
+            stream = io.BytesIO(buffer)
+            with replace_stdin(stream):
+                file = SrecFile.load(path=path)
+            assert file._records == records
+
+    def test_parse(self):
+        buffer = (
+            b'S0070000484452001A\r\n'
+            b'S30812345678616263BD\r\n'
+            b'S5030001FB\r\n'
+            b'S70589ABCDEF0A\r\n'
+        )
+        records = [
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x12345678, b'abc'),
+            SrecRecord.create_count(1),
+            SrecRecord.create_start(0x89ABCDEF),
+        ]
+        with io.BytesIO(buffer) as stream:
+            file = SrecFile.parse(stream)
+        assert file._records == records
+
+    def test_parse_file_wikipedia(self, datapath):
         path = str(datapath / 'wikipedia.s19')
         records = [
             SrecRecord(SrecTag.HEADER, count=0x0F, checksum=0x3C,
-                       data=unhexlify(b'68656C6C6F20202020200000')),
+                       data=b'\x68\x65\x6C\x6C\x6F\x20\x20\x20\x20\x20\x00\x00'),
             SrecRecord(SrecTag.DATA_16, count=0x1F, address=0x0000, checksum=0x26,
-                       data=unhexlify(b'7C0802A6900100049421FFF07C6C1B787C8C23783C60000038630000')),
+                       data=(b'\x7C\x08\x02\xA6\x90\x01\x00\x04\x94\x21\xFF\xF0\x7C\x6C\x1B\x78'
+                             b'\x7C\x8C\x23\x78\x3C\x60\x00\x00\x38\x63\x00\x00')),
             SrecRecord(SrecTag.DATA_16, count=0x1F, address=0x001C, checksum=0xE9,
-                       data=unhexlify(b'4BFFFFE5398000007D83637880010014382100107C0803A64E800020')),
+                       data=(b'\x4B\xFF\xFF\xE5\x39\x80\x00\x00\x7D\x83\x63\x78\x80\x01\x00\x14'
+                             b'\x38\x21\x00\x10\x7C\x08\x03\xA6\x4E\x80\x00\x20')),
             SrecRecord(SrecTag.DATA_16, count=0x11, address=0x0038, checksum=0x42,
-                       data=unhexlify(b'48656C6C6F20776F726C642E0A00')),
+                       data=b'\x48\x65\x6C\x6C\x6F\x20\x77\x6F\x72\x6C\x64\x2E\x0A\x00'),
             SrecRecord(SrecTag.COUNT_16, count=0x03, address=0x0003, checksum=0xF9),
             SrecRecord(SrecTag.START_16, count=0x03, address=0x0000, checksum=0xFC),
         ]
         with open(path, 'rb') as stream:
             file = SrecFile.parse(stream)
         assert file.records == records
+
+    def test_save_file(self, tmppath):
+        path = str(tmppath / 'test_save_file.srec')
+        records = [
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x12345678, b'abc'),
+            SrecRecord.create_count(1),
+            SrecRecord.create_start(0x89ABCDEF),
+        ]
+        expected = (
+            b'S0070000484452001A\r\n'
+            b'S30812345678616263BD\r\n'
+            b'S5030001FB\r\n'
+            b'S70589ABCDEF0A\r\n'
+        )
+        file = SrecFile.from_records(records)
+        returned = file.save(path)
+        assert returned is file
+        with open(path, 'rb') as stream:
+            actual = stream.read()
+        assert actual == expected
+
+    def test_save_stdout(self):
+        records = [
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x12345678, b'abc'),
+            SrecRecord.create_count(1),
+            SrecRecord.create_start(0x89ABCDEF),
+        ]
+        expected = (
+            b'S0070000484452001A\r\n'
+            b'S30812345678616263BD\r\n'
+            b'S5030001FB\r\n'
+            b'S70589ABCDEF0A\r\n'
+        )
+        for path in [None, '-']:
+            stream = io.BytesIO()
+            file = SrecFile.from_records(records)
+            with replace_stdout(stream):
+                returned = file.save(path=path)
+            assert returned is file
+            actual = stream.getvalue()
+            assert actual == expected
 
     def test_startaddr_getter(self):
         records = [
@@ -1011,7 +1112,7 @@ class TestSrecFile(BaseTestFile):
         with pytest.raises(ValueError, match='invalid start address'):
             file.startaddr = 0x100000000
 
-    def test_update_records_basic(self):
+    def test_update_records(self):
         records = [
             SrecRecord.create_header(b'HDR\0'),
             SrecRecord.create_data(0x1234, b'abc'),
@@ -1023,9 +1124,7 @@ class TestSrecFile(BaseTestFile):
             [0x1234, b'abc'],
             [0x4321, b'xyz'],
         ]
-        memory = Memory.from_blocks(blocks)
-        file = SrecFile.from_memory(memory, header=b'HDR\0', startaddr=0xABCD)
-        file._records = []
+        file = SrecFile.from_blocks(blocks, header=b'HDR\0', startaddr=0xABCD)
         returned = file.update_records(header=True, count=True, start=True)
         assert returned is file
         assert file._records == records
@@ -1042,8 +1141,7 @@ class TestSrecFile(BaseTestFile):
             [0x1234, b'abc'],
             [0x4321, b'xyz'],
         ]
-        memory = Memory.from_blocks(blocks)
-        file = SrecFile.from_memory(memory, header=b'HDR\0', startaddr=0xABCD)
+        file = SrecFile.from_blocks(blocks, header=b'HDR\0', startaddr=0xABCD)
         file.update_records(header=True, data=True, count=True, start=True,
                             data_tag=SrecTag.DATA_32, count_tag=SrecTag.COUNT_24)
         assert file._records == records
@@ -1070,8 +1168,7 @@ class TestSrecFile(BaseTestFile):
             [0x1234, b'abc'],
             [0x4321, b'xyz'],
         ]
-        memory = Memory.from_blocks(blocks)
-        file = SrecFile.from_memory(memory, header=None, startaddr=0xABCD)
+        file = SrecFile.from_blocks(blocks, header=None, startaddr=0xABCD)
         file.update_records(header=False, count=True, start=True)
         assert file._records == records
 
@@ -1086,8 +1183,7 @@ class TestSrecFile(BaseTestFile):
             [0x1234, b'abc'],
             [0x4321, b'xyz'],
         ]
-        memory = Memory.from_blocks(blocks)
-        file = SrecFile.from_memory(memory, header=b'HDR\0', startaddr=0xABCD)
+        file = SrecFile.from_blocks(blocks, header=b'HDR\0', startaddr=0xABCD)
         file.update_records(header=True, count=False, start=True)
         assert file._records == records
 
@@ -1112,8 +1208,7 @@ class TestSrecFile(BaseTestFile):
             [0x1234, b'abc'],
             [0x4321, b'xyz'],
         ]
-        memory = Memory.from_blocks(blocks)
-        file = SrecFile.from_memory(memory, header=b'HDR\0', startaddr=0xABCD)
+        file = SrecFile.from_blocks(blocks, header=b'HDR\0', startaddr=0xABCD)
         file.update_records(header=False, count=True, start=True)
         assert file._records == records
 
@@ -1129,8 +1224,7 @@ class TestSrecFile(BaseTestFile):
             [0x1234, b'abc'],
             [0x4321, b'xyz'],
         ]
-        memory = Memory.from_blocks(blocks)
-        file = SrecFile.from_memory(memory, header=b'HDR\0', startaddr=0xABCD)
+        file = SrecFile.from_blocks(blocks, header=b'HDR\0', startaddr=0xABCD)
         file.update_records(header=True, count=True, start=False)
         assert file._records == records
 
@@ -1147,7 +1241,7 @@ class TestSrecFile(BaseTestFile):
         with pytest.raises(ValueError, match='memory instance required'):
             file.update_records()
 
-    def test_validate_records_basic(self):
+    def test_validate_records(self):
         records = [
             SrecRecord.create_header(b'HDR\0'),
             SrecRecord.create_data(0x1234, b'abc'),

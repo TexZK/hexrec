@@ -130,7 +130,12 @@ class MosRecord(BaseRecord):
         return record
 
     @classmethod
-    def parse(cls, line: AnyBytes) -> 'MosRecord':
+    def parse(
+        cls,
+        line: AnyBytes,
+        eof: bool = False,
+        validate: bool = True,
+    ) -> 'MosRecord':
         # TODO: __doc__
 
         match = cls.LINE_REGEX.match(line)
@@ -145,13 +150,14 @@ class MosRecord(BaseRecord):
         checksum = int(groups['checksum'], 16)
         after = groups['after']
 
-        record = cls(cls.Tag.DATA,
+        record = cls(cls.Tag.EOF if eof else cls.Tag.DATA,
                      address=address,
                      data=data,
                      count=count,
                      checksum=checksum,
                      before=before,
-                     after=after)
+                     after=after,
+                     validate=validate)
         return record
 
     def to_bytestr(

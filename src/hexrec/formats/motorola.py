@@ -287,7 +287,11 @@ class SrecRecord(BaseRecord):
         return record
 
     @classmethod
-    def parse(cls, line: AnyBytes) -> 'SrecRecord':
+    def parse(
+        cls,
+        line: AnyBytes,
+        validate: bool = True,
+    ) -> 'SrecRecord':
         # TODO: __doc__
 
         Tag = cls.Tag
@@ -324,7 +328,8 @@ class SrecRecord(BaseRecord):
                      count=count,
                      checksum=checksum,
                      before=before,
-                     after=after)
+                     after=after,
+                     validate=validate)
         return record
 
     def to_bytestr(self, end: AnyBytes = b'\r\n') -> bytes:

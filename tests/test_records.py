@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 import abc
 import io
-import enum
+import os
 import sys
-from binascii import hexlify
-from typing import Mapping
+from typing import Any
 from typing import cast as _cast
 
 import pytest
@@ -18,7 +17,36 @@ from hexrec.records import BaseTag
 from hexrec.records import colorize_tokens
 from hexrec.records import guess_type_class
 from hexrec.records import guess_type_name
-from hexrec.utils import AnyBytes
+
+
+# ============================================================================
+
+class replace_stdin:
+
+    def __init__(self, stream):
+        self.buffer = stream
+        self.original = sys.stdin
+
+    def __enter__(self):
+        sys.stdin = self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stdin = self.original
+
+
+# ----------------------------------------------------------------------------
+
+class replace_stdout:
+
+    def __init__(self, stream):
+        self.buffer = stream
+        self.original = sys.stdout
+
+    def __enter__(self):
+        sys.stdout = self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stdout = self.original
 
 
 # ============================================================================
@@ -77,15 +105,15 @@ class BaseTestRecord:
         Record = self.Record
         records = [
             Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
-                   before=b'b', after=b'a', coords=(33, 44)),
+                   before=b'b', after=b'a', coords=(33, 44), validate=False),
             Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
-                   before=b'?', after=b'a', coords=(33, 44)),
+                   before=b'?', after=b'a', coords=(33, 44), validate=False),
             Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
-                   before=b'b', after=b'?', coords=(33, 44)),
+                   before=b'b', after=b'?', coords=(33, 44), validate=False),
             Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
-                   before=b'b', after=b'a', coords=(55, 44)),
+                   before=b'b', after=b'a', coords=(55, 44), validate=False),
             Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
-                   before=b'b', after=b'a', coords=(33, 66)),
+                   before=b'b', after=b'a', coords=(33, 66), validate=False),
         ]
         record1 = records[0]
         for record2 in records:
@@ -95,7 +123,7 @@ class BaseTestRecord:
         Tag = self.Record.Tag
         Record = self.Record
         record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
-                        before=b'b', after=b'a', coords=(33, 44))
+                        before=b'b', after=b'a', coords=(33, 44), validate=False)
         assert record.address == 0x1234
         assert record.after == b'a'
         assert record.before == b'b'
@@ -109,7 +137,7 @@ class BaseTestRecord:
         Tag = self.Record.Tag
         Record = self.Record
         record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=..., checksum=...,
-                        before=b'b', after=b'a', coords=(33, 44))
+                        before=b'b', after=b'a', coords=(33, 44), validate=False)
         assert record.address == 0x1234
         assert record.after == b'a'
         assert record.before == b'b'
@@ -123,7 +151,7 @@ class BaseTestRecord:
         Tag = self.Record.Tag
         Record = self.Record
         record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=..., checksum=None,
-                        before=b'b', after=b'a', coords=(33, 44))
+                        before=b'b', after=b'a', coords=(33, 44), validate=False)
         assert record.address == 0x1234
         assert record.after == b'a'
         assert record.before == b'b'
@@ -137,7 +165,7 @@ class BaseTestRecord:
         Tag = self.Record.Tag
         Record = self.Record
         record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=..., checksum=0xA5,
-                        before=b'b', after=b'a', coords=(33, 44))
+                        before=b'b', after=b'a', coords=(33, 44), validate=False)
         assert record.address == 0x1234
         assert record.after == b'a'
         assert record.before == b'b'
@@ -151,7 +179,7 @@ class BaseTestRecord:
         Tag = self.Record.Tag
         Record = self.Record
         record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=None, checksum=0xA5,
-                        before=b'b', after=b'a', coords=(33, 44))
+                        before=b'b', after=b'a', coords=(33, 44), validate=False)
         assert record.address == 0x1234
         assert record.after == b'a'
         assert record.before == b'b'
@@ -180,18 +208,18 @@ class BaseTestRecord:
         Tag_FAKE = _cast(Tag, -1)
         records = [
             Record(Tag_FAKE, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
-                   before=b'b', after=b'a', coords=(33, 44)),
+                   before=b'b', after=b'a', coords=(33, 44), validate=False),
             Record(Tag._DATA, address=0x4321, data=b'xyz', count=3, checksum=0xA5,
-                   before=b'b', after=b'a', coords=(33, 44)),
+                   before=b'b', after=b'a', coords=(33, 44), validate=False),
             Record(Tag._DATA, address=0x1234, data=b'abc', count=3, checksum=0xA5,
-                   before=b'b', after=b'a', coords=(33, 44)),
+                   before=b'b', after=b'a', coords=(33, 44), validate=False),
             Record(Tag._DATA, address=0x1234, data=b'xyz', count=4, checksum=0xA5,
-                   before=b'b', after=b'a', coords=(33, 44)),
+                   before=b'b', after=b'a', coords=(33, 44), validate=False),
             Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0x5A,
-                   before=b'b', after=b'a', coords=(33, 44)),
+                   before=b'b', after=b'a', coords=(33, 44), validate=False),
         ]
         record1 = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
-                         before=b'b', after=b'a', coords=(33, 44))
+                         before=b'b', after=b'a', coords=(33, 44), validate=False)
         for record2 in records:
             assert record2 != record1
 
@@ -199,7 +227,7 @@ class BaseTestRecord:
         Tag = self.Record.Tag
         Record = self.Record
         record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
-                        before=b'', after=b'', coords=(33, 44))
+                        before=b'', after=b'', coords=(33, 44), validate=False)
         text = repr(record)
         assert isinstance(text, str)
         assert text
@@ -208,7 +236,7 @@ class BaseTestRecord:
         Tag = self.Record.Tag
         Record = self.Record
         record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
-                        before=b'', after=b'', coords=(33, 44))
+                        before=b'', after=b'', coords=(33, 44), validate=False)
         text = str(record)
         assert isinstance(text, str)
         assert text
@@ -225,8 +253,8 @@ class BaseTestRecord:
         Tag = self.Record.Tag
         Record = self.Record
         record1 = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
-                         before=b'b', after=b'a', coords=(33, 44))
-        record2 = record1.copy()
+                         before=b'b', after=b'a', coords=(33, 44), validate=False)
+        record2 = record1.copy(validate=False)
         assert record1 is not record2
         assert record1 == record2
 
@@ -318,7 +346,7 @@ class BaseTestRecord:
         Tag = self.Record.Tag
         Record = self.Record
         record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
-                        before=b'b', after=b'a', coords=(33, 44))
+                        before=b'b', after=b'a', coords=(33, 44), validate=False)
         actual = record.get_meta()
         expected = {
             'address': 0x1234,
@@ -340,7 +368,7 @@ class BaseTestRecord:
         Tag = self.Record.Tag
         Record = self.Record
         record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
-                        before=b'', after=b'', coords=(33, 44))
+                        before=b'', after=b'', coords=(33, 44), validate=False)
         plain_stream = io.StringIO()
         record.print(stream=plain_stream, color=False)
         color_stream = io.StringIO()
@@ -355,7 +383,7 @@ class BaseTestRecord:
         Tag = self.Record.Tag
         Record = self.Record
         record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
-                        before=b'', after=b'', coords=(33, 44))
+                        before=b'', after=b'', coords=(33, 44), validate=False)
         stream = io.StringIO()
         stdout = sys.stdout
         try:
@@ -370,7 +398,7 @@ class BaseTestRecord:
         Tag = self.Record.Tag
         Record = self.Record
         record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
-                        before=b'', after=b'', coords=(33, 44))
+                        before=b'', after=b'', coords=(33, 44), validate=False)
         stream = io.BytesIO()
         record.serialize(stream)
         actual = stream.getvalue()
@@ -389,7 +417,7 @@ class BaseTestRecord:
         Tag = self.Record.Tag
         Record = self.Record
         record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=None,
-                        before=b'b', after=b'a', coords=(33, 44))
+                        before=b'b', after=b'a', coords=(33, 44), validate=False)
         assert record.checksum is None
         returned = record.update_checksum()
         assert returned is record
@@ -399,7 +427,7 @@ class BaseTestRecord:
         Tag = self.Record.Tag
         Record = self.Record
         record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=None, checksum=0xA5,
-                        before=b'b', after=b'a', coords=(33, 44))
+                        before=b'b', after=b'a', coords=(33, 44), validate=False)
         assert record.count is None
         returned = record.update_count()
         assert returned is record
@@ -430,13 +458,13 @@ class BaseTestRecord:
         Tag = self.Record.Tag
         Record = self.Record
         records = [
-            Record(Tag._DATA, address=-1, count=0, checksum=0),
+            Record(Tag._DATA, address=-1, count=0, checksum=0, validate=False),
 
-            Record(Tag._DATA, address=0, count=0, checksum=-1),
-            Record(Tag._DATA, address=0, count=0, checksum=42),
+            Record(Tag._DATA, address=0, count=0, checksum=-1, validate=False),
+            Record(Tag._DATA, address=0, count=0, checksum=42, validate=False),
 
-            Record(Tag._DATA, address=0, count=-1, checksum=0),
-            Record(Tag._DATA, address=0, count=42, checksum=0),
+            Record(Tag._DATA, address=0, count=-1, checksum=0, validate=False),
+            Record(Tag._DATA, address=0, count=42, checksum=0, validate=False),
         ]
         matches = [
             'address overflow',
@@ -463,7 +491,7 @@ class BaseTestFile:
 
     def test___add__(self):
         File = self.File
-        file = File.from_memory(Memory.from_bytes(b'abc', offset=5))
+        file = File.from_bytes(b'abc', offset=5)
         assert file._memory.to_blocks() == [[5, b'abc']]
         result = file + b'xyz'
         assert result is not file
@@ -472,7 +500,7 @@ class BaseTestFile:
 
     def test___delitem__(self):
         File = self.File
-        file = File.from_memory(Memory.from_bytes(b'abcxyz', offset=5))
+        file = File.from_bytes(b'abcxyz', offset=5)
         assert file._memory.to_blocks() == [[5, b'abcxyz']]
         del file[6]
         assert file._memory.to_blocks() == [[5, b'acxyz']]
@@ -484,28 +512,28 @@ class BaseTestFile:
     def test___getitem__(self):
         File = self.File
 
-        file = File.from_memory(Memory.from_bytes(b'abcxyz', offset=5))
+        file = File.from_bytes(b'abcxyz', offset=5)
         assert file[6] == ord('b')
         assert file[1] is None
         assert file[7:9] == b'cx'
         assert file[6::2] == b'bxz'
 
         blocks = [[5, b'abc'], [10, b'xyz']]
-        file = File.from_memory(Memory.from_blocks(blocks))
+        file = File.from_blocks(blocks)
         assert file[::b'.'] == b'abc..xyz'
         with pytest.raises(ValueError, match='non-contiguous'):
             assert file[::]
 
     def test___eq__(self):
         File = self.File
-        file1 = File.from_memory(Memory.from_bytes(b'abc', offset=5))
-        file2 = File.from_memory(Memory.from_blocks([[5, b'abc']]))
+        file1 = File.from_bytes(b'abc', offset=5)
+        file2 = File.from_blocks([[5, b'abc']])
         assert file1 is not file2
         assert file1 == file2
 
     def test___iadd__(self):
         File = self.File
-        file = File.from_memory(Memory.from_bytes(b'abc', offset=5))
+        file = File.from_bytes(b'abc', offset=5)
         assert file._memory.to_blocks() == [[5, b'abc']]
         original = file
         file += b'xyz'
@@ -514,8 +542,8 @@ class BaseTestFile:
 
     def test___ior___(self):
         File = self.File
-        file1 = File.from_memory(Memory.from_bytes(b'abc', offset=5))
-        file2 = File.from_memory(Memory.from_blocks([[10, b'xyz']]))
+        file1 = File.from_bytes(b'abc', offset=5)
+        file2 = File.from_blocks([[10, b'xyz']])
         original = file1
         file1 |= file2
         assert file1 is original
@@ -526,20 +554,20 @@ class BaseTestFile:
     def test___neq__(self):
         File = self.File
 
-        file1 = File.from_memory(Memory.from_bytes(b'abc', offset=5))
-        file2 = File.from_memory(Memory.from_blocks([[6, b'abc']]))
+        file1 = File.from_bytes(b'abc', offset=5)
+        file2 = File.from_blocks([[6, b'abc']])
         assert file1 is not file2
         assert file1 != file2
 
-        file1 = File.from_memory(Memory.from_bytes(b'abc', offset=5))
-        file2 = File.from_memory(Memory.from_blocks([[5, b'xyz']]))
+        file1 = File.from_bytes(b'abc', offset=5)
+        file2 = File.from_blocks([[5, b'xyz']])
         assert file1 is not file2
         assert file1 != file2
 
     def test___or__(self):
         File = self.File
-        file1 = File.from_memory(Memory.from_bytes(b'abc', offset=5))
-        file2 = File.from_memory(Memory.from_blocks([[10, b'xyz']]))
+        file1 = File.from_bytes(b'abc', offset=5)
+        file2 = File.from_blocks([[10, b'xyz']])
         result = file1 | file2
         assert result is not file1
         assert result is not file2
@@ -549,7 +577,7 @@ class BaseTestFile:
 
     def test___setitem__(self):
         File = self.File
-        file = File.from_memory(Memory.from_bytes(b'abcxyz', offset=5))
+        file = File.from_bytes(b'abcxyz', offset=5)
         assert file._memory.to_blocks() == [[5, b'abcxyz']]
         file[6] = b'?'
         assert file._memory.to_blocks() == [[5, b'a?cxyz']]
@@ -565,7 +593,7 @@ class BaseTestFile:
 
     def test_append(self):
         File = self.File
-        file = File.from_memory(Memory.from_bytes(b'abc', offset=5))
+        file = File.from_bytes(b'abc', offset=5)
         assert file._memory.to_blocks() == [[5, b'abc']]
         returned = file.append(b'.')
         assert returned is file
@@ -592,9 +620,7 @@ class BaseTestFile:
 
     def test_clear(self):
         File = self.File
-        file = File.from_memory(Memory.from_bytes(b'abcxyz', offset=5))
-        file._records = []
-        assert file._memory.to_blocks() == [[5, b'abcxyz']]
+        file = File.from_bytes(b'abcxyz', offset=5)
         returned = file.clear(start=7, endex=9)
         assert returned is file
         assert file._memory.to_blocks() == [[5, b'ab'], [9, b'yz']]
@@ -604,8 +630,7 @@ class BaseTestFile:
         File = self.File
         blocks = [[5, b'abc'], [10, b'xyz']]
         maxdatalen = max(1, File.DEFAULT_DATALEN - 1)
-        memory = Memory.from_blocks(blocks)
-        original = File.from_memory(memory, maxdatalen=maxdatalen)
+        original = File.from_blocks(blocks, maxdatalen=maxdatalen)
         converted = File.convert(original, meta=True)
         assert converted is not original
         assert converted == original
@@ -617,8 +642,7 @@ class BaseTestFile:
         File = self.File
         blocks = [[5, b'abc'], [10, b'xyz']]
         maxdatalen = max(1, File.DEFAULT_DATALEN - 1)
-        memory = Memory.from_blocks(blocks)
-        original = File.from_memory(memory, maxdatalen=maxdatalen)
+        original = File.from_blocks(blocks, maxdatalen=maxdatalen)
         converted = File.convert(original, meta=False)
         assert converted is not original
         assert converted != original
@@ -632,8 +656,7 @@ class BaseTestFile:
         File = self.File
         blocks = [[5, b'abc'], [10, b'xyz']]
         maxdatalen = max(1, File.DEFAULT_DATALEN - 1)
-        memory = Memory.from_blocks(blocks)
-        original = File.from_memory(memory, maxdatalen=maxdatalen)
+        original = File.from_blocks(blocks, maxdatalen=maxdatalen)
         copied = original.copy(meta=True)
         assert copied is not original
         assert copied == original
@@ -646,8 +669,7 @@ class BaseTestFile:
         File = self.File
         blocks = [[5, b'abc'], [10, b'xyz']]
         maxdatalen = max(1, File.DEFAULT_DATALEN - 1)
-        memory = Memory.from_blocks(blocks)
-        original = File.from_memory(memory, maxdatalen=maxdatalen)
+        original = File.from_blocks(blocks, maxdatalen=maxdatalen)
         copied = original.copy(meta=False)
         assert copied is not original
         assert copied != original
@@ -662,8 +684,7 @@ class BaseTestFile:
         File = self.File
         blocks = [[5, b'abc'], [10, b'xyz']]
         maxdatalen = max(1, File.DEFAULT_DATALEN - 1)
-        memory = Memory.from_blocks(blocks)
-        original = File.from_memory(memory, maxdatalen=maxdatalen)
+        original = File.from_blocks(blocks, maxdatalen=maxdatalen)
         copied = original.copy(start=6, endex=12, meta=True)
         assert copied is not original
         assert copied != original
@@ -674,9 +695,7 @@ class BaseTestFile:
 
     def test_crop(self):
         File = self.File
-        file = File.from_memory(Memory.from_bytes(b'abcxyz', offset=5))
-        file._records = []
-        assert file._memory.to_blocks() == [[5, b'abcxyz']]
+        file = File.from_bytes(b'abcxyz', offset=5)
         returned = file.crop(start=7, endex=9)
         assert returned is file
         assert file._memory.to_blocks() == [[7, b'cx']]
@@ -686,8 +705,7 @@ class BaseTestFile:
         File = self.File
         blocks = [[5, b'abc'], [10, b'xyz']]
         maxdatalen = max(1, File.DEFAULT_DATALEN - 1)
-        memory = Memory.from_blocks(blocks)
-        original = File.from_memory(memory, maxdatalen=maxdatalen)
+        original = File.from_blocks(blocks, maxdatalen=maxdatalen)
         outer = original.copy()
         inner = outer.cut(meta=True)
         assert inner is not original
@@ -707,8 +725,7 @@ class BaseTestFile:
         File = self.File
         blocks = [[5, b'abc'], [10, b'xyz']]
         maxdatalen = max(1, File.DEFAULT_DATALEN - 1)
-        memory = Memory.from_blocks(blocks)
-        original = File.from_memory(memory, maxdatalen=maxdatalen)
+        original = File.from_blocks(blocks, maxdatalen=maxdatalen)
         outer = original.copy()
         inner = outer.cut(meta=False)
         assert inner is not original
@@ -730,8 +747,7 @@ class BaseTestFile:
         File = self.File
         blocks = [[5, b'abc'], [10, b'xyz']]
         maxdatalen = max(1, File.DEFAULT_DATALEN - 1)
-        memory = Memory.from_blocks(blocks)
-        original = File.from_memory(memory, maxdatalen=maxdatalen)
+        original = File.from_blocks(blocks, maxdatalen=maxdatalen)
         outer = original.copy()
         inner = outer.cut(start=6, endex=12, meta=True)
         assert inner is not original
@@ -749,9 +765,7 @@ class BaseTestFile:
 
     def test_delete(self):
         File = self.File
-        file = File.from_memory(Memory.from_bytes(b'abcxyz', offset=5))
-        file._records = []
-        assert file._memory.to_blocks() == [[5, b'abcxyz']]
+        file = File.from_bytes(b'abcxyz', offset=5)
         returned = file.delete(start=7, endex=9)
         assert returned is file
         assert file._memory.to_blocks() == [[5, b'abyz']]
@@ -759,13 +773,23 @@ class BaseTestFile:
 
     def test_discard_records(self):
         File = self.File
-        file = File.from_memory(Memory.from_bytes(b'abcxyz', offset=5))
+        file = File.from_bytes(b'abcxyz', offset=5)
+
         file._records = []
         assert file._memory is not None
         returned = file.discard_records()
         assert returned is file
         assert file._memory is not None
         assert file._records is None
+
+        file.update_records()
+        assert file._records
+        assert file._memory is not None
+        returned = file.discard_records()
+        assert returned is file
+        assert file._memory is not None
+        assert file._records is None
+
         file._memory = None
         returned = file.discard_records()
         assert returned is file
@@ -773,19 +797,17 @@ class BaseTestFile:
         assert file._memory is not None
         assert not file._memory
 
-    @pytest.mark.skip(reason='TODO')
-    def test_discard_records_views(self):
-        raise NotImplementedError('TODO')  # TODO:
-
     def test_discard_memory(self):
         File = self.File
-        file = File.from_memory(Memory.from_bytes(b'abcxyz', offset=5))
+        file = File.from_bytes(b'abcxyz', offset=5)
+
         file.update_records()
         assert file._memory
         assert file._records
         returned = file.discard_memory()
         assert returned is file
         assert file._memory is None
+
         file._records = None
         returned = file.discard_memory()
         assert returned is file
@@ -793,65 +815,156 @@ class BaseTestFile:
         assert file._memory is not None
         assert not file._memory
 
-    @pytest.mark.skip(reason='TODO')
     def test_extend(self):
-        raise NotImplementedError('TODO')  # TODO:
+        File = self.File
+        file = File.from_bytes(b'abc', offset=5)
+        returned = file.extend(b'xyz')
+        assert returned is file
+        assert file._memory.to_blocks() == [[5, b'abcxyz']]
+        assert file._records is None
 
-    @pytest.mark.skip(reason='TODO')
     def test_fill(self):
-        raise NotImplementedError('TODO')  # TODO:
+        File = self.File
+        file = File.from_bytes(b'abcxyz', offset=5)
+        returned = file.fill(start=7, endex=9, pattern=b'.')
+        assert returned is file
+        assert file._memory.to_blocks() == [[5, b'ab..yz']]
+        assert file._records is None
 
-    @pytest.mark.skip(reason='TODO')
     def test_find(self):
-        raise NotImplementedError('TODO')  # TODO:
+        File = self.File
+        file = File.from_blocks([[5, b'abc'], [10, b'xyz']])
+        assert file.find(b'bc') == 6
+        assert file.find(b'y') == 11
+        assert file.find(ord('y')) == 11
+        assert file.find(b'?') < 0
 
-    @pytest.mark.skip(reason='TODO')
     def test_flood(self):
-        raise NotImplementedError('TODO')  # TODO:
+        File = self.File
+        file = File.from_blocks([[5, b'ab'], [9, b'yz']])
+        returned = file.flood(pattern=b'.')
+        assert returned is file
+        assert file._memory.to_blocks() == [[5, b'ab..yz']]
+        assert file._records is None
 
-    @pytest.mark.skip(reason='TODO')
+    def test_from_blocks(self):
+        File = self.File
+        blocks = [
+            [123, b'abc'],
+            [456, b'xyz'],
+        ]
+        file = File.from_blocks(blocks)
+        assert file._memory.to_blocks() == blocks
+
+    def test_from_bytes(self):
+        File = self.File
+        file = File.from_bytes(b'abc', offset=5)
+        assert file._memory.to_blocks() == [[5, b'abc']]
+
     def test_from_records(self):
-        raise NotImplementedError('TODO')  # TODO:
+        File = self.File
+        Record = File.Record
+        records = [
+            Record.create_data(123, b'abc'),
+            Record.create_data(456, b'xyz'),
+        ]
+        file = File.from_records(records)
+        assert file._records is records
+        assert file._memory is None
 
-    @pytest.mark.skip(reason='TODO')
     def test_from_memory(self):
-        raise NotImplementedError('TODO')  # TODO:
+        File = self.File
+        blocks = [
+            [123, b'abc'],
+            [456, b'xyz'],
+        ]
+        memory = Memory.from_blocks(blocks)
+        file = File.from_memory(memory, maxdatalen=9)
+        assert file._records is None
+        assert file._memory is memory
+        assert file._maxdatalen == 9
 
-    @pytest.mark.skip(reason='TODO')
     def test_get_address_max(self):
-        raise NotImplementedError('TODO')  # TODO:
+        File = self.File
+        file = File()
+        assert file.get_address_max() == -1
+        file = File.from_blocks([[5, b'abc'], [10, b'xyz']])
+        assert file.get_address_max() == 12
 
-    @pytest.mark.skip(reason='TODO')
     def test_get_address_min(self):
-        raise NotImplementedError('TODO')  # TODO:
+        File = self.File
+        file = File()
+        assert file.get_address_min() == 0
+        file = File.from_blocks([[5, b'abc'], [10, b'xyz']])
+        assert file.get_address_min() == 5
 
-    @pytest.mark.skip(reason='TODO')
     def test_get_holes(self):
-        raise NotImplementedError('TODO')  # TODO:
+        File = self.File
+        blocks = [
+            [5, b'abc'],
+            [10, b'xyz'],
+            [20, b'?'],
+        ]
+        expected = [
+            (8, 10),
+            (13, 20),
+        ]
+        file = File.from_blocks(blocks)
+        actual = file.get_holes()
+        assert actual == expected
 
-    @pytest.mark.skip(reason='TODO')
     def test_get_spans(self):
-        raise NotImplementedError('TODO')  # TODO:
+        File = self.File
+        blocks = [
+            [5, b'abc'],
+            [10, b'xyz'],
+            [20, b'?'],
+        ]
+        expected = [
+            (5, 8),
+            (10, 13),
+            (20, 21),
+        ]
+        file = File.from_blocks(blocks)
+        actual = file.get_spans()
+        assert actual == expected
 
-    @pytest.mark.skip(reason='TODO')
     def test_get_meta(self):
-        raise NotImplementedError('TODO')  # TODO:
+        File = self.File
+        file = File.from_memory(maxdatalen=9)
+        meta = file.get_meta()
+        assert meta
+        assert meta['maxdatalen'] == 9
 
-    @pytest.mark.skip(reason='TODO')
     def test_index(self):
-        raise NotImplementedError('TODO')  # TODO:
+        File = self.File
+        file = File.from_blocks([[5, b'abc'], [10, b'xyz']])
+        assert file.index(b'bc') == 6
+        assert file.index(b'y') == 11
+        assert file.index(ord('y')) == 11
+        with pytest.raises(ValueError, match='not found'):
+            file.index(b'?')
 
-    @pytest.mark.skip(reason='TODO')
-    def test_load(self):
-        raise NotImplementedError('TODO')  # TODO:
+    @abc.abstractmethod
+    def test_load_file(self, datapath):
+        ...
 
-    @pytest.mark.skip(reason='TODO')
+    @abc.abstractmethod
+    def test_load_stdin(self):
+        ...
+
     def test_maxdatalen_getter(self):
-        raise NotImplementedError('TODO')  # TODO:
+        File = self.File
+        file = File.from_memory(maxdatalen=9)
+        assert file._maxdatalen == 9
+        assert file.maxdatalen == 9
 
-    @pytest.mark.skip(reason='TODO')
     def test_maxdatalen_setter(self):
-        raise NotImplementedError('TODO')  # TODO:
+        File = self.File
+        file = File.from_memory(maxdatalen=9)
+        assert file._maxdatalen == 9
+        file.maxdatalen = 7
+        assert file._maxdatalen == 7
 
     def test_memory_getter(self):
         File = self.File
@@ -884,8 +997,8 @@ class BaseTestFile:
 
     def test_merge(self):
         File = self.File
-        file1 = File.from_memory(Memory.from_bytes(b'abc', offset=5))
-        file2 = File.from_memory(Memory.from_blocks([[10, b'xyz']]))
+        file1 = File.from_bytes(b'abc', offset=5)
+        file2 = File.from_blocks([[10, b'xyz']])
         result = File.merge(file1, file2)
         assert result is not file1
         assert result is not file2
@@ -902,20 +1015,29 @@ class BaseTestFile:
     def test_parse(self):
         ...
 
-    @pytest.mark.skip(reason='TODO')
     def test_print(self):
-        raise NotImplementedError('TODO')  # TODO:
+        File = self.File
+        file = File.from_bytes(b'abc')
+        stream_plain = io.StringIO()
+        returned = file.print(stream=stream_plain, color=False)
+        assert returned is file
+        stream_color = io.StringIO()
+        returned = file.print(stream=stream_color, color=True)
+        assert returned is file
+        buffer_plain = stream_plain.getvalue()
+        buffer_color = stream_color.getvalue()
+        assert len(buffer_plain) <= len(buffer_color)
 
     def test_read(self):
         File = self.File
 
-        file = File.from_memory(Memory.from_bytes(b'abcxyz', offset=5))
+        file = File.from_bytes(b'abcxyz', offset=5)
         assert file.read(start=7, endex=9) == b'cx'
         assert file.read(start=2, endex=14) == b'\0\0\0abcxyz\0\0\0'
         assert file.read(start=2, endex=14, fill=b'.') == b'...abcxyz...'
 
         blocks = [[5, b'abc'], [10, b'xyz']]
-        file = File.from_memory(Memory.from_blocks(blocks))
+        file = File.from_blocks(blocks)
         assert file.read(fill=b'.') == b'abc..xyz'
         assert file.read() == b'abc\0\0xyz'
 
@@ -940,40 +1062,94 @@ class BaseTestFile:
         File = self.File
         blocks = [[5, b'abc'], [10, b'xyz']]
         expected = [[5, b'zyx'], [10, b'cba']]
-        memory = Memory.from_blocks(blocks)
-        file = File.from_memory(memory)
+        file = File.from_blocks(blocks)
         assert file._memory.to_blocks() == blocks
         returned = file.reverse()
         assert returned is file
         actual = file._memory.to_blocks()
         assert actual == expected
 
-    @pytest.mark.skip(reason='TODO')
-    def test_save(self):
-        raise NotImplementedError('TODO')  # TODO:
+    @pytest.mark.skip(reason='TODO')  # TODO:
+    def test_save_file(self, tmppath):
+        ...  # TODO:
 
-    @pytest.mark.skip(reason='TODO')
+    @pytest.mark.skip(reason='TODO')  # TODO:
+    def test_save_stdout(self):
+        ...  # TODO:
+
     def test_set_meta(self):
-        raise NotImplementedError('TODO')  # TODO:
+        File = self.File
+        file = File.from_memory(maxdatalen=9)
+        assert file._maxdatalen == 9
+        returned = file.set_meta(dict(maxdatalen=7))
+        assert returned is file
+        assert file._maxdatalen == 7
 
-    @pytest.mark.skip(reason='TODO')
+    def test_set_meta_raises_strict(self):
+        File = self.File
+        file = File()
+        assert not hasattr(file, 'this_is_an_unknown_meta_')
+        with pytest.raises(KeyError, match='unknown meta'):
+            file.set_meta(dict(this_is_an_unknown_meta_='something'), strict=True)
+
+    def test_set_meta_strict(self):
+        File = self.File
+        file = File()
+        assert not hasattr(file, 'this_is_an_unknown_meta_')
+        returned = file.set_meta(dict(this_is_an_unknown_meta_='something'), strict=False)
+        assert returned is file
+        file = _cast(Any, file)
+        assert file.this_is_an_unknown_meta_ == 'something'
+
     def test_serialize(self):
-        raise NotImplementedError('TODO')  # TODO:
+        File = self.File
+        file = File.from_bytes(b'abc')
+        file.update_records()
+        stream = io.BytesIO()
+        returned = file.serialize(stream)
+        assert returned is file
+        actual = stream.getvalue()
+        expected = b''.join(r.to_bytestr() for r in file._records)
+        assert actual == expected
 
     def test_shift(self):
         File = self.File
         blocks = [[5, b'abc'], [10, b'xyz']]
-        memory = Memory.from_blocks(blocks)
-        file = File.from_memory(memory)
+        file = File.from_blocks(blocks)
         assert file._memory.to_blocks() == blocks
         file.shift(+1)
         assert file._memory.to_blocks() == [[6, b'abc'], [11, b'xyz']]
         file.shift(-1)
         assert file._memory.to_blocks() == blocks
 
-    @pytest.mark.skip(reason='TODO')
     def test_split(self):
-        raise NotImplementedError('TODO')  # TODO:
+        File = self.File
+        file = File.from_bytes(b'abcxyz?!', offset=5)
+        parts = file.split(8, 11)
+        assert len(parts) == 3
+        assert parts[0]._memory.to_blocks() == [[5, b'abc']]
+        assert parts[1]._memory.to_blocks() == [[8, b'xyz']]
+        assert parts[2]._memory.to_blocks() == [[11, b'?!']]
+
+    def test_split_meta(self):
+        File = self.File
+        file = File.from_bytes(b'abcxyz?!', offset=5, maxdatalen=7)
+        parts = file.split(8, 11)
+        assert len(parts) == 3
+        assert parts[0]._memory.to_blocks() == [[5, b'abc']]
+        assert parts[1]._memory.to_blocks() == [[8, b'xyz']]
+        assert parts[2]._memory.to_blocks() == [[11, b'?!']]
+        for part in parts:
+            assert part._maxdatalen == 7
+
+    def test_split_unsorted(self):
+        File = self.File
+        file = File.from_bytes(b'abcxyz?!', offset=5)
+        parts = file.split(11, 8)
+        assert len(parts) == 3
+        assert parts[0]._memory.to_blocks() == [[5, b'abc']]
+        assert parts[1]._memory.to_blocks() == [[8, b'xyz']]
+        assert parts[2]._memory.to_blocks() == [[11, b'?!']]
 
     @abc.abstractmethod
     def test_update_records(self):
@@ -985,7 +1161,7 @@ class BaseTestFile:
 
     def test_view(self):
         File = self.File
-        file = File.from_memory(Memory.from_bytes(b'abcxyz', offset=5))
+        file = File.from_bytes(b'abcxyz', offset=5)
         with file.view() as view:
             assert isinstance(view, memoryview)
             assert view == b'abcxyz'
@@ -996,157 +1172,13 @@ class BaseTestFile:
     def test_view_raises(self):
         File = self.File
         blocks = [[5, b'abc'], [10, b'xyz']]
-        memory = Memory.from_blocks(blocks)
-        file = File.from_memory(memory)
+        file = File.from_blocks(blocks)
         with pytest.raises(ValueError, match='non-contiguous'):
             file.view()
 
     def test_write(self):
         File = self.File
-        file = File.from_memory(Memory.from_bytes(b'abc', offset=5))
+        file = File.from_bytes(b'abc', offset=5)
         assert file._memory.to_blocks() == [[5, b'abc']]
         file.write(10, b'xyz')
         assert file._memory.to_blocks() == [[5, b'abc'], [10, b'xyz']]
-
-
-# ============================================================================
-
-class FakeTag(BaseTag, enum.IntEnum):
-
-    DATA = 0
-    FAKE = -1
-
-    _DATA = DATA
-
-
-# ----------------------------------------------------------------------------
-
-class FakeRecord(BaseRecord):
-
-    Tag = FakeTag
-
-    def compute_checksum(self) -> int:
-        total = 0
-        for key in self.EQUALITY_KEYS:
-            if key != 'checksum':
-                value = getattr(self, key)
-                try:
-                    value = value.__index__()
-                except:
-                    value = sum(value)
-                total ^= value
-        return total
-
-    def compute_count(self) -> int:
-        return len(self.data)
-
-    @classmethod
-    def create_data(cls, address: int, data: AnyBytes) -> 'BaseRecord':
-        return cls(FakeTag.DATA, address=address, data=data)
-
-    def parse(cls, line: AnyBytes, address: int = 0) -> 'FakeRecord':
-        return FakeRecord(FakeTag.DATA, address=address, data=line)
-
-    def to_bytestr(self) -> bytes:
-        return b''.join(self.to_tokens().values())
-
-    def to_tokens(self) -> Mapping[str, bytes]:
-        return {
-            'tag': b'%X' % self.tag,
-            'address': b'%08X' % self.address,
-            'data': hexlify(self.data).upper(),
-        }
-
-
-# ----------------------------------------------------------------------------
-
-class FakeFile(BaseFile):
-
-    Record = FakeRecord
-
-    def update_records(self) -> 'FakeFile':
-
-        if self._memory is None:
-            raise ValueError('memory instance required')
-
-        records = []
-
-        for address, view in self._memory.blocks():
-            with view:
-                data = bytes(view)
-                record = FakeRecord(FakeTag.DATA, address=address, data=data)
-                records.append(record)
-
-        self.discard_records()
-        self._records = records
-        return self
-
-    def validate_records(self) -> 'FakeFile':
-
-        if self._records is None:
-            raise ValueError('records required')
-
-        for record in self._records:
-            record.validate()
-
-        return self
-
-
-# ============================================================================
-
-class TestFakeTag(BaseTestTag):
-
-    Tag = FakeTag
-
-
-# ----------------------------------------------------------------------------
-
-class TestFakeRecord(BaseTestRecord):
-
-    Tag = FakeTag
-    Record = FakeRecord
-
-    def test_compute_checksum(self):
-        Tag = self.Record.Tag
-        Record = self.Record
-        record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
-                        before=b'b', after=b'a', coords=(33, 44))
-        checksum = record.compute_checksum()
-        assert checksum == 4956
-
-    def test_compute_count(self):
-        Tag = self.Record.Tag
-        Record = self.Record
-        record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
-                        before=b'b', after=b'a', coords=(33, 44))
-        count = record.compute_count()
-        assert count == 3
-
-    def test_to_bytestr(self):
-        Tag = self.Record.Tag
-        Record = self.Record
-        record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
-                        before=b'a', after=b'b', coords=(33, 44))
-        actual = record.to_bytestr()
-        expected = b'00000123478797A'
-        assert actual == expected
-
-    def test_to_tokens(self):
-        Tag = self.Record.Tag
-        Record = self.Record
-        record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
-                        before=b'a', after=b'b', coords=(33, 44))
-        actual = record.to_tokens()
-        expected = {
-            'tag': b'0',
-            'address': b'00001234',
-            'data': b'78797A',
-        }
-        assert actual == expected
-
-
-# ----------------------------------------------------------------------------
-
-class TestFakeFile(BaseTestFile):
-
-    File = FakeFile

@@ -13,12 +13,19 @@ from hexrec.formats.binary import RawTag
 from test_records import BaseTestFile
 from test_records import BaseTestRecord
 from test_records import BaseTestTag
+from test_records import replace_stdin
+from test_records import replace_stdout
 
 BYTES = bytes(range(256))
 HEXBYTES = bytes(range(16))
 
 
 # ============================================================================
+
+@pytest.fixture
+def tmppath(tmpdir):  # pragma: no cover
+    return Path(str(tmpdir))
+
 
 @pytest.fixture(scope='module')
 def datadir(request):
@@ -102,8 +109,7 @@ class TestRawRecord(BaseTestRecord):
     def test_to_tokens(self):
         record = RawRecord.create_data(123, b'abc')
         tokens = record.to_tokens()
-        assert len(tokens) == 1
-        assert tokens['data'] == b'abc'
+        assert tokens == {'data': b'abc'}
 
         record.count = -1
         with pytest.raises(ValueError, match='count overflow'):
@@ -123,7 +129,26 @@ class TestRawFile(BaseTestFile):
         assert not RawFile._is_line_empty(b'\r\n')
         assert not RawFile._is_line_empty(b'0')
 
-    def test_parse_bytes(self):
+    def test_load_file(self, datapath):
+        path = str(datapath / 'hexbytes.bin')
+        records = [
+            RawRecord.create_data(0, HEXBYTES),
+        ]
+        file = RawFile.load(path)
+        assert file.records == records
+
+    def test_load_stdin(self):
+        buffer = HEXBYTES
+        records = [
+            RawRecord.create_data(0, HEXBYTES),
+        ]
+        for path in [None, '-']:
+            stream = io.BytesIO(buffer)
+            with replace_stdin(stream):
+                file = RawFile.load(path=path)
+            assert file._records == records
+
+    def test_parse(self):
         with io.BytesIO(BYTES) as stream:
             file = RawFile.parse(stream)
         assert len(file.records) == 1
@@ -148,7 +173,7 @@ class TestRawFile(BaseTestFile):
         assert len(file.records) == 0
         assert file.memory == b''
 
-    def test_parse_file(self, datapath):
+    def test_parse_file_hexbytes(self, datapath):
         path = str(datapath / 'hexbytes.bin')
         with open(path, 'rb') as stream:
             file = RawFile.parse(stream)
@@ -186,7 +211,26 @@ class TestRawFile(BaseTestFile):
         assert actual == records
         assert file._memory is None
 
-    def test_update_records_bytes(self):
+    def test_save_file(self, tmppath):
+        path = str(tmppath / 'test_save_file.bin')
+        file = RawFile.from_bytes(HEXBYTES)
+        returned = file.save(path)
+        assert returned is file
+        with open(path, 'rb') as stream:
+            actual = stream.read()
+        assert actual == HEXBYTES
+
+    def test_save_stdout(self):
+        for path in [None, '-']:
+            stream = io.BytesIO()
+            file = RawFile.from_bytes(HEXBYTES)
+            with replace_stdout(stream):
+                returned = file.save(path=path)
+            assert returned is file
+            actual = stream.getvalue()
+            assert actual == HEXBYTES
+
+    def test_update_records(self):
         memory = Memory.from_bytes(BYTES, offset=0x1000)
         file = RawFile.from_memory(memory, maxdatalen=16)
         file.update_records()
@@ -210,6 +254,12 @@ class TestRawFile(BaseTestFile):
         file = RawFile.from_records(records)
         with pytest.raises(ValueError, match='memory instance required'):
             file.update_records()
+
+    def test_validate_records(self):
+        records = [RawRecord.create_data(10, b'abc'),
+                   RawRecord.create_data(13, b'xyz')]
+        file = RawFile.from_records(records)
+        file.validate_records()
 
     def test_validate_records_contiguity(self):
         records = [RawRecord.create_data(10, b'abc'),

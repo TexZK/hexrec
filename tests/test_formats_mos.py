@@ -12,6 +12,8 @@ from hexrec.formats.mos import MosTag
 from test_records import BaseTestFile
 from test_records import BaseTestRecord
 from test_records import BaseTestTag
+from test_records import replace_stdin
+from test_records import replace_stdout
 
 
 # ============================================================================
@@ -39,17 +41,17 @@ class TestMosTag(BaseTestTag):
 
     Tag = MosTag
 
+    def test_enum(self):
+        assert MosTag.DATA == 0
+        assert MosTag.EOF == 1
+
     def test_is_data(self):
-        tag = MosTag(0)
-        assert tag == 0
-        assert tag.is_data()
-        assert not tag.is_eof()
+        assert MosTag.DATA.is_data() is True
+        assert MosTag.EOF.is_data() is False
 
     def test_is_eof(self):
-        tag = MosTag(1)
-        assert tag == 1
-        assert tag.is_eof()
-        assert not tag.is_data()
+        assert MosTag.DATA.is_eof() is False
+        assert MosTag.EOF.is_eof() is True
 
 
 # ----------------------------------------------------------------------------
@@ -149,97 +151,57 @@ class TestMosRecord(BaseTestRecord):
         with pytest.raises(ValueError, match='count overflow'):
             MosRecord.create_eof(0x10000)
 
-    def test_parse_data_nul(self):
-        line = b';180000FFEEDDCCBBAA0099887766554433221122334455667788990AFC\r\n\0\0\0\0\0\0'
-        record = MosRecord.parse(line)
-        record.validate()
-        assert record.tag == MosTag.DATA
-        assert record.before == b''
-        assert record.count == 0x18
-        assert record.address == 0x0000
-        assert record.data == (b'\xFF\xEE\xDD\xCC\xBB\xAA\x00\x99'
-                               b'\x88\x77\x66\x55\x44\x33\x22\x11'
-                               b'\x22\x33\x44\x55\x66\x77\x88\x99')
-        assert record.checksum == 0x0AFC
-        assert record.after == b''
-
-    def test_parse_data_wonul(self):
-        line = b';180000FFEEDDCCBBAA0099887766554433221122334455667788990AFC\r\n'
-        record = MosRecord.parse(line)
-        record.validate()
-        assert record.tag == MosTag.DATA
-        assert record.before == b''
-        assert record.count == 0x18
-        assert record.address == 0x0000
-        assert record.data == (b'\xFF\xEE\xDD\xCC\xBB\xAA\x00\x99'
-                               b'\x88\x77\x66\x55\x44\x33\x22\x11'
-                               b'\x22\x33\x44\x55\x66\x77\x88\x99')
-        assert record.checksum == 0x0AFC
-        assert record.after == b''
-
-    def test_parse_eof_nul(self):
-        line = b';0000010001\r\n\0\0\0\0\0\0'
-        record = MosRecord.parse(line)
-        record.tag = MosTag.EOF  # patch
-        record.validate()
-        assert record.before == b''
-        assert record.count == 0x00
-        assert record.address == 0x0001
-        assert record.data == b''
-        assert record.checksum == 0x0001
-        assert record.after == b''
-
-    def test_parse_eof_wonul(self):
-        line = b';0000010001\r\n'
-        record = MosRecord.parse(line)
-        record.tag = MosTag.EOF  # patch
-        record.validate()
-        assert record.before == b''
-        assert record.count == 0x00
-        assert record.address == 0x0001
-        assert record.data == b''
-        assert record.checksum == 0x0001
-        assert record.after == b''
+    def test_parse(self):
+        lines = [
+            b';180000FFEEDDCCBBAA0099887766554433221122334455667788990AFC\r\n\0\0\0\0\0\0',
+            b';180000FFEEDDCCBBAA0099887766554433221122334455667788990AFC\r\n',
+            b';0000010001\r\n\0\0\0\0\0\0',
+            b';0000010001\r\n',
+        ]
+        data = (b'\xFF\xEE\xDD\xCC\xBB\xAA\x00\x99'
+                b'\x88\x77\x66\x55\x44\x33\x22\x11'
+                b'\x22\x33\x44\x55\x66\x77\x88\x99')
+        records = [
+            MosRecord.create_data(0x0000, data),
+            MosRecord.create_data(0x0000, data),
+            MosRecord.create_eof(1),
+            MosRecord.create_eof(1),
+        ]
+        for index, (line, expected) in enumerate(zip(lines, records)):
+            actual = MosRecord.parse(line, eof=(index >= 2))
+            actual.validate()
+            assert actual == expected
+            assert actual.after == b''
+            assert actual.before == b''
 
     def test_parse_syntax(self):
-        line = b'(;0000000000\r\n'
-        record = MosRecord.parse(line)
-        assert record.before == b'('
+        lines = [
+            b'(;0000000000\r\n',
+            b';0000000000)\r\n',
+            b';0000000000\n',
+            b';0000000000\r\n\0',
+            b';0000000000\r\n\0\0\0\0\0\0\0',
+            b';0000000000\r',
+            b';0000000000',
+        ]
+        expected = MosRecord.create_data(0x0000, b'')
+        for line in lines:
+            actual = MosRecord.parse(line, validate=False)
+            assert actual == expected
 
-        line = b'.0000000000\r\n'
-        with pytest.raises(ValueError, match='syntax error'):
-            MosRecord.parse(line)
+    def test_parse_syntax_raises(self):
+        lines = [
+            b'.0000000000\r\n',
+            b';..00000000\r\n',
+            b';00....0000\r\n',
+            b';000000....\r\n',
+        ]
+        for line in lines:
+            with pytest.raises(ValueError, match='syntax error'):
+                MosRecord.parse(line)
 
-        line = b';..00000000\r\n'
-        with pytest.raises(ValueError, match='syntax error'):
-            MosRecord.parse(line)
-
-        line = b';00....0000\r\n'
-        with pytest.raises(ValueError, match='syntax error'):
-            MosRecord.parse(line)
-
-        line = b';000000....\r\n'
-        with pytest.raises(ValueError, match='syntax error'):
-            MosRecord.parse(line)
-
-        line = b';0000000000)\r\n'
-        record = MosRecord.parse(line)
-        assert record.after == b')'
-
-        line = b';0000000000\n'
-        MosRecord.parse(line)
-
-        line = b';0000000000\r\n\0'
-        MosRecord.parse(line)
-
-        line = b';0000000000\r\n\0\0\0\0\0\0\0'
-        MosRecord.parse(line)
-
-        line = b';0000000000\r'
-        MosRecord.parse(line)
-
-        line = b';0000000000'
-        MosRecord.parse(line)
+    def test_to_bytestr(self):
+        self.test_to_bytestr_data_nul()
 
     def test_to_bytestr_data_nul(self):
         data = (b'\xFF\xEE\xDD\xCC\xBB\xAA\x00\x99'
@@ -282,6 +244,9 @@ class TestMosRecord(BaseTestRecord):
         line = record.to_bytestr(end=b'\n', nuls=False)
         ref = b';0000010001\n'
         assert line == ref
+
+    def test_to_tokens(self):
+        self.test_to_tokens_data_nul()
 
     def test_to_tokens_data_nul(self):
         data = (b'\xFF\xEE\xDD\xCC\xBB\xAA\x00\x99'
@@ -341,20 +306,20 @@ class TestMosRecord(BaseTestRecord):
         record = MosRecord(MosTag.DATA, after=b' ')
         record.validate()
 
-        record = MosRecord(MosTag.DATA, after=b'?')
+        record = MosRecord(MosTag.DATA, after=b'?', validate=False)
         with pytest.raises(ValueError, match='junk after is not whitespace'):
             record.validate()
 
     def test_validate_before(self):
-        record = MosRecord(MosTag.DATA, before=b'?')
+        record = MosRecord(MosTag.DATA, before=b'?', validate=False)
         record.validate()
 
-        record = MosRecord(MosTag.DATA, before=b';')
+        record = MosRecord(MosTag.DATA, before=b';', validate=False)
         with pytest.raises(ValueError, match='junk before contains ";"'):
             record.validate()
 
     def test_validate_checksum(self):
-        record = MosRecord(MosTag.DATA, checksum=-1)
+        record = MosRecord(MosTag.DATA, checksum=-1, validate=False)
         # record.compute_checksum = lambda: record.checksum  # fake
         with pytest.raises(ValueError, match='checksum'):
             record.validate()
@@ -365,14 +330,14 @@ class TestMosRecord(BaseTestRecord):
         record = MosRecord(MosTag.DATA, checksum=0xFFFF, address=0x00FF, data=(b'\xFF' * 0xFF))
         record.validate()
 
-        record = MosRecord(MosTag.DATA, checksum=0x10000)
+        record = MosRecord(MosTag.DATA, checksum=0x10000, validate=False)
         record.compute_checksum = lambda: record.checksum  # fake
         with pytest.raises(ValueError, match='checksum'):
             record.validate()
 
     def test_validate_count(self):
 
-        record = MosRecord(MosTag.DATA, count=-1)
+        record = MosRecord(MosTag.DATA, count=-1, validate=False)
         with pytest.raises(ValueError, match='count'):
             record.validate()
 
@@ -382,7 +347,7 @@ class TestMosRecord(BaseTestRecord):
         record = MosRecord(MosTag.DATA, count=0xFF, data=(b'\0' * 0xFF))
         record.validate()
 
-        record = MosRecord(MosTag.DATA, count=0x100)
+        record = MosRecord(MosTag.DATA, count=0x100, validate=False)
         record.compute_count = lambda: record.count  # fake
         with pytest.raises(ValueError, match='count'):
             record.validate()
@@ -401,7 +366,7 @@ class TestMosRecord(BaseTestRecord):
             record.validate()
 
     def test_validate_address(self):
-        record = MosRecord(MosTag.DATA, address=-1)
+        record = MosRecord(MosTag.DATA, address=-1, validate=False)
         with pytest.raises(ValueError, match='address'):
             record.validate()
 
@@ -411,7 +376,7 @@ class TestMosRecord(BaseTestRecord):
         record = MosRecord(MosTag.DATA, address=0xFFFF)
         record.validate()
 
-        record = MosRecord(MosTag.DATA, address=0x10000)
+        record = MosRecord(MosTag.DATA, address=0x10000, validate=False)
         with pytest.raises(ValueError, match='address'):
             record.validate()
 
@@ -436,63 +401,85 @@ class TestMosFile(BaseTestFile):
         assert not MosFile._is_line_empty(b' \t\v\r\n\0;')
         assert not MosFile._is_line_empty(b' \t\v\0;\r\n')
 
-    def test_parse_basic(self, datapath):
-        path = str(datapath / 'basic.mos')
-        with open(path, 'rb') as stream:
+    def test_load_file(self, datapath):
+        path = str(datapath / 'basic_nul_xoff.mos')
+        data = (b'\xFF\xEE\xDD\xCC\xBB\xAA\x00\x99'
+                b'\x88\x77\x66\x55\x44\x33\x22\x11'
+                b'\x22\x33\x44\x55\x66\x77\x88\x99')
+        records = [
+            MosRecord.create_data(0x0000, data),
+            MosRecord.create_eof(1),
+        ]
+        file = MosFile.load(path)
+        assert file.records == records
+
+    def test_load_stdin(self):
+        buffer = (
+            b';180000FFEEDDCCBBAA0099887766554433221122334455667788990AFC\r\n\0\0\0\0\0\0'
+            b';0000010001\r\n\0\0\0\0\0\0'
+            b'\x13'
+        )
+        data = (b'\xFF\xEE\xDD\xCC\xBB\xAA\x00\x99'
+                b'\x88\x77\x66\x55\x44\x33\x22\x11'
+                b'\x22\x33\x44\x55\x66\x77\x88\x99')
+        records = [
+            MosRecord.create_data(0x0000, data),
+            MosRecord.create_eof(1),
+        ]
+        for path in [None, '-']:
+            stream = io.BytesIO(buffer)
+            with replace_stdin(stream):
+                file = MosFile.load(path=path)
+            assert file._records == records
+
+    def test_parse(self):
+        buffer = (
+            b';031234616263016F\r\n\x00\x00\x00\x00\x00\x00'
+            b';0000010001\r\n\x00\x00\x00\x00\x00\x00'
+            b'\x13'
+        )
+        records = [
+            MosRecord.create_data(0x1234, b'abc'),
+            MosRecord.create_eof(1),
+        ]
+        with io.BytesIO(buffer) as stream:
             file = MosFile.parse(stream)
-        assert len(file.records) == 2
-
-        record0 = file.records[0].validate()
-        assert record0.tag == MosTag.DATA
-        assert record0.before == b''
-        assert record0.count == 0x18
-        assert record0.address == 0x0000
-        assert record0.checksum == 0x0AFC
-        assert record0.after == b''
-
-        record1 = file.records[1].validate()
-        assert record1.tag == MosTag.EOF
-        assert record0.before == b''
-        assert record1.count == 0x00
-        assert record1.address == 0x0001
-        assert record1.checksum == 0x0001
-        assert record0.after == b''
-
-    def test_parse_junk(self, datapath):
-        path = str(datapath / 'basic_nul_xoff_junk.mos')
-        with open(path, 'rb') as stream:
-            file = MosFile.parse(stream)
-        assert len(file.records) == 2
-
-        record0 = file.records[0].validate()
-        assert record0.tag == MosTag.DATA
-        assert record0.before == b''
-        assert record0.count == 0x18
-        assert record0.address == 0x0000
-        assert record0.checksum == 0x0AFC
-        assert record0.after == b''
-
-        record1 = file.records[1].validate()
-        assert record1.tag == MosTag.EOF
-        assert record1.before == b''
-        assert record1.count == 0x00
-        assert record1.address == 0x0001
-        assert record1.checksum == 0x0001
-        assert record1.after == b''
+        assert file._records == records
 
     def test_parse_empty(self):
         line = b';0000000000\r\n'
+        records = [
+            MosRecord.create_eof(0),
+        ]
         with io.BytesIO(line) as stream:
             file = MosFile.parse(stream)
-        assert len(file.records) == 1
+        assert file._records == records
 
-        record = file.records[0].validate()
-        assert record.tag == MosTag.EOF
-        assert record.before == b''
-        assert record.count == 0x00
-        assert record.address == 0x0000
-        assert record.checksum == 0x0000
-        assert record.after == b''
+    def test_parse_file_basic(self, datapath):
+        path = str(datapath / 'basic.mos')
+        data = (b'\xFF\xEE\xDD\xCC\xBB\xAA\x00\x99'
+                b'\x88\x77\x66\x55\x44\x33\x22\x11'
+                b'\x22\x33\x44\x55\x66\x77\x88\x99')
+        records = [
+            MosRecord.create_data(0x0000, data),
+            MosRecord.create_eof(1),
+        ]
+        with open(path, 'rb') as stream:
+            file = MosFile.parse(stream)
+        assert file._records == records
+
+    def test_parse_file_junk(self, datapath):
+        path = str(datapath / 'basic_nul_xoff_junk.mos')
+        data = (b'\xFF\xEE\xDD\xCC\xBB\xAA\x00\x99'
+                b'\x88\x77\x66\x55\x44\x33\x22\x11'
+                b'\x22\x33\x44\x55\x66\x77\x88\x99')
+        records = [
+            MosRecord.create_data(0x0000, data),
+            MosRecord.create_eof(1),
+        ]
+        with open(path, 'rb') as stream:
+            file = MosFile.parse(stream)
+        assert file._records == records
 
     def test_parse_ignore_eof(self):
         with io.BytesIO(b'') as stream:
@@ -512,12 +499,63 @@ class TestMosFile(BaseTestFile):
             with io.BytesIO(b'') as stream:
                 MosFile.parse(stream)
 
+    def test_save_file(self, tmppath):
+        path = str(tmppath / 'test_save_file.mos')
+        records = [
+            MosRecord.create_data(0x1234, b'abc'),
+            MosRecord.create_eof(1),
+        ]
+        expected = (
+            b';031234616263016F\r\n\x00\x00\x00\x00\x00\x00'
+            b';0000010001\r\n\x00\x00\x00\x00\x00\x00'
+            b'\x13'
+        )
+        file = MosFile.from_records(records)
+        returned = file.save(path)
+        assert returned is file
+        with open(path, 'rb') as stream:
+            actual = stream.read()
+        assert actual == expected
+
+    def test_save_stdout(self):
+        records = [
+            MosRecord.create_data(0x1234, b'abc'),
+            MosRecord.create_eof(1),
+        ]
+        expected = (
+            b';031234616263016F\r\n\x00\x00\x00\x00\x00\x00'
+            b';0000010001\r\n\x00\x00\x00\x00\x00\x00'
+            b'\x13'
+        )
+        for path in [None, '-']:
+            stream = io.BytesIO()
+            file = MosFile.from_records(records)
+            with replace_stdout(stream):
+                returned = file.save(path=path)
+            assert returned is file
+            actual = stream.getvalue()
+            assert actual == expected
+
+    def test_serialize(self):
+        File = self.File
+        file = File.from_bytes(b'abc')
+        file.update_records()
+        stream = io.BytesIO()
+        returned = file.serialize(stream)
+        assert returned is file
+        actual = stream.getvalue()
+        expected = b''.join(r.to_bytestr() for r in file._records)
+        expected += b'\x13'
+        assert actual == expected
+
     def test_serialize_nul_xoff(self, datapath):
         data = (b'\xFF\xEE\xDD\xCC\xBB\xAA\x00\x99'
                 b'\x88\x77\x66\x55\x44\x33\x22\x11'
                 b'\x22\x33\x44\x55\x66\x77\x88\x99')
-        records = [MosRecord.create_data(0x0000, data),
-                   MosRecord.create_eof(1)]
+        records = [
+            MosRecord.create_data(0x0000, data),
+            MosRecord.create_eof(1),
+        ]
         file = MosFile.from_records(records)
 
         outstream = io.BytesIO()
@@ -533,8 +571,10 @@ class TestMosFile(BaseTestFile):
         data = (b'\xFF\xEE\xDD\xCC\xBB\xAA\x00\x99'
                 b'\x88\x77\x66\x55\x44\x33\x22\x11'
                 b'\x22\x33\x44\x55\x66\x77\x88\x99')
-        records = [MosRecord.create_data(0x0000, data),
-                   MosRecord.create_eof(1)]
+        records = [
+            MosRecord.create_data(0x0000, data),
+            MosRecord.create_eof(1),
+        ]
         file = MosFile.from_records(records)
 
         outstream = io.BytesIO()
@@ -550,8 +590,10 @@ class TestMosFile(BaseTestFile):
         data = (b'\xFF\xEE\xDD\xCC\xBB\xAA\x00\x99'
                 b'\x88\x77\x66\x55\x44\x33\x22\x11'
                 b'\x22\x33\x44\x55\x66\x77\x88\x99')
-        records = [MosRecord.create_data(0x0000, data),
-                   MosRecord.create_eof(1)]
+        records = [
+            MosRecord.create_data(0x0000, data),
+            MosRecord.create_eof(1),
+        ]
         file = MosFile.from_records(records)
 
         outstream = io.BytesIO()
@@ -600,8 +642,10 @@ class TestMosFile(BaseTestFile):
         data = (b'\xFF\xEE\xDD\xCC\xBB\xAA\x00\x99'
                 b'\x88\x77\x66\x55\x44\x33\x22\x11'
                 b'\x22\x33\x44\x55\x66\x77\x88\x99')
-        records = [MosRecord.create_data(0x0000, data),
-                   MosRecord.create_eof(1)]
+        records = [
+            MosRecord.create_data(0x0000, data),
+            MosRecord.create_eof(1),
+        ]
         file = MosFile.from_records(records)
         with pytest.raises(ValueError, match='memory instance required'):
             file.update_records()
@@ -610,8 +654,10 @@ class TestMosFile(BaseTestFile):
         data = (b'\xFF\xEE\xDD\xCC\xBB\xAA\x00\x99'
                 b'\x88\x77\x66\x55\x44\x33\x22\x11'
                 b'\x22\x33\x44\x55\x66\x77\x88\x99')
-        records = [MosRecord.create_data(0x0000, data),
-                   MosRecord.create_eof(1)]
+        records = [
+            MosRecord.create_data(0x0000, data),
+            MosRecord.create_eof(1),
+        ]
         file = MosFile.from_records(records)
         file.validate_records(data_ordering=True, eof_record_required=True)
 

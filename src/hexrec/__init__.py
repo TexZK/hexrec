@@ -30,7 +30,7 @@ from .formats.binary import RawFile
 from .formats.intel import IhexFile
 from .formats.mos import MosFile
 from .formats.motorola import SrecFile
-from .formats.tektronix import TekExtFile
+from .formats.tektronix import XtekFile
 from .records import FILE_TYPES
 from .xxd import xxd
 
@@ -42,5 +42,5 @@ FILE_TYPES.update({
     'mos': MosFile,
     'raw': RawFile,
     'srec': SrecFile,
-    'tekext': TekExtFile,
+    'tekext': XtekFile,
 })

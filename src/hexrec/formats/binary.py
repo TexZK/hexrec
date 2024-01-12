@@ -75,8 +75,14 @@ class RawRecord(BaseRecord):
         return record
 
     @classmethod
-    def parse(cls, line: AnyBytes, address: int = 0) -> 'RawRecord':
+    def parse(
+        cls,
+        line: AnyBytes,
+        address: int = 0,
+        validate: bool = True,
+    ) -> 'RawRecord':
 
+        del validate
         return cls.create_data(address, line)
 
     def to_bytestr(self) -> bytes:

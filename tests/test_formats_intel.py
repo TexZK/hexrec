@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
+import io
 import os
-from binascii import unhexlify
 from pathlib import Path
 from typing import cast as _cast
 
@@ -14,6 +14,8 @@ from hexrec.formats.intel import IhexTag
 from test_records import BaseTestFile
 from test_records import BaseTestRecord
 from test_records import BaseTestTag
+from test_records import replace_stdin
+from test_records import replace_stdout
 
 DATA = IhexTag.DATA
 EOF = IhexTag.END_OF_FILE
@@ -24,6 +26,11 @@ SLA = IhexTag.START_LINEAR_ADDRESS
 
 
 # ============================================================================
+
+@pytest.fixture
+def tmppath(tmpdir):  # pragma: no cover
+    return Path(str(tmpdir))
+
 
 @pytest.fixture(scope='module')
 def datadir(request):
@@ -91,7 +98,7 @@ class TestIhexRecord(BaseTestRecord):
     Record = IhexRecord
 
     # https://en.wikipedia.org/wiki/Intel_HEX#Record_types
-    def test_compute_checksum_misc(self):
+    def test_compute_checksum(self):
         vector = [
             (0xA7, b':0B0010006164647265737320676170A7\r\n'),
             (0xFF, b':00000001FF\r\n'),
@@ -333,6 +340,8 @@ class TestIhexRecord(BaseTestRecord):
             expected = _cast(IhexRecord, expected)
             expected.validate()
             assert actual == expected
+            assert actual.after == b''
+            assert actual.before == b''
 
     def test_parse_raises_syntax(self):
         lines = [
@@ -440,24 +449,25 @@ class TestIhexRecord(BaseTestRecord):
 
     def test_to_tokens(self):
         lines = [
-            b':0000000000\r\n',
-            b':00FFFF0002\r\n',
-            b':FF000000' + (b'FF' * 0xFF) + b'00\r\n',
-            b':FFFFFF00' + (b'FF' * 0xFF) + b'02\r\n',
+            b'|:|00|0000|00||00||\r\n',
+            b'|:|00|FFFF|00||02||\r\n',
 
-            b':00000001FF\r\n',
+            b'|:|FF|0000|00|' + (b'FF' * 0xFF) + b'|00||\r\n',
+            b'|:|FF|FFFF|00|' + (b'FF' * 0xFF) + b'|02||\r\n',
 
-            b':020000020000FC\r\n',
-            b':02000002FFFFFE\r\n',
+            b'|:|00|0000|01||FF||\r\n',
 
-            b':0400000300000000F9\r\n',
-            b':04000003FFFFFFFFFD\r\n',
+            b'|:|02|0000|02|0000|FC||\r\n',
+            b'|:|02|0000|02|FFFF|FE||\r\n',
 
-            b':020000040000FA\r\n',
-            b':02000004FFFFFC\r\n',
+            b'|:|04|0000|03|00000000|F9||\r\n',
+            b'|:|04|0000|03|FFFFFFFF|FD||\r\n',
 
-            b':0400000500000000F7\r\n',
-            b':04000005FFFFFFFFFB\r\n',
+            b'|:|02|0000|04|0000|FA||\r\n',
+            b'|:|02|0000|04|FFFF|FC||\r\n',
+
+            b'|:|04|0000|05|00000000|F7||\r\n',
+            b'|:|04|0000|05|FFFFFFFF|FB||\r\n',
         ]
         records = [
             IhexRecord.create_data(0x0000, b''),
@@ -494,7 +504,7 @@ class TestIhexRecord(BaseTestRecord):
             record = _cast(IhexRecord, record)
             tokens = record.to_tokens()
             assert all((key in keys) for key in tokens.keys())
-            actual = b''.join(tokens.get(key, b'?') for key in keys)
+            actual = b'|'.join(tokens.get(key, b'?') for key in keys)
             assert actual == expected
 
     def test_validate_raises(self):
@@ -525,28 +535,28 @@ class TestIhexRecord(BaseTestRecord):
         ]
         records = [
             # IhexRecord(IhexTag.DATA, after=b'?'),
-            IhexRecord(IhexTag.DATA, before=b':'),
+            IhexRecord(IhexTag.DATA, validate=False, before=b':'),
 
-            IhexRecord(IhexTag.DATA, checksum=-1),
-            IhexRecord(IhexTag.DATA, checksum=0x100),
+            IhexRecord(IhexTag.DATA, validate=False, checksum=-1),
+            IhexRecord(IhexTag.DATA, validate=False, checksum=0x100),
 
-            IhexRecord(IhexTag.DATA, count=-1),
-            IhexRecord(IhexTag.DATA, count=0x100),
+            IhexRecord(IhexTag.DATA, validate=False, count=-1),
+            IhexRecord(IhexTag.DATA, validate=False, count=0x100),
 
-            IhexRecord(IhexTag.DATA, data=(b'x' * 0x100), count=0xFF),
+            IhexRecord(IhexTag.DATA, validate=False, data=(b'x' * 0x100), count=0xFF),
 
-            IhexRecord(IhexTag.DATA, address=-1),
-            IhexRecord(IhexTag.DATA, address=0x10000),
+            IhexRecord(IhexTag.DATA, validate=False, address=-1),
+            IhexRecord(IhexTag.DATA, validate=False, address=0x10000),
 
-            IhexRecord(IhexTag.EXTENDED_SEGMENT_ADDRESS, data=b'00000'),
-            IhexRecord(IhexTag.EXTENDED_LINEAR_ADDRESS, data=b'00000'),
+            IhexRecord(IhexTag.EXTENDED_SEGMENT_ADDRESS, validate=False, data=b'00000'),
+            IhexRecord(IhexTag.EXTENDED_LINEAR_ADDRESS, validate=False, data=b'00000'),
 
-            IhexRecord(IhexTag.START_SEGMENT_ADDRESS, data=b'000000000'),
-            IhexRecord(IhexTag.START_LINEAR_ADDRESS, data=b'000000000'),
+            IhexRecord(IhexTag.START_SEGMENT_ADDRESS, validate=False, data=b'000000000'),
+            IhexRecord(IhexTag.START_LINEAR_ADDRESS, validate=False, data=b'000000000'),
 
-            IhexRecord(IhexTag.END_OF_FILE, data=b'0'),
+            IhexRecord(IhexTag.END_OF_FILE, validate=False, data=b'0'),
 
-            IhexRecord(_cast(IhexTag, 666)),
+            IhexRecord(_cast(IhexTag, 666), validate=False),
         ]
         for match, record in zip(matches, records):
             record = _cast(IhexRecord, record)
@@ -721,29 +731,121 @@ class TestIhexFile(BaseTestFile):
         assert file.linear is True
         assert file._records is None
 
+    def test_load_file(self, datapath):
+        path = str(datapath / 'simple.hex')
+        records = [
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_extended_linear_address(0xABCD),
+            IhexRecord.create_data(0x5678, b'xyz'),
+            IhexRecord.create_start_linear_address(0xABCD5678),
+            IhexRecord.create_end_of_file(),
+        ]
+        file = IhexFile.load(path)
+        assert file.records == records
+
+    def test_load_stdin(self):
+        buffer = (
+            b':0312340061626391\r\n'
+            b':02000004ABCD82\r\n'
+            b':0356780078797AC4\r\n'
+            b':04000005ABCD5678B1\r\n'
+            b':00000001FF\r\n'
+        )
+        records = [
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_extended_linear_address(0xABCD),
+            IhexRecord.create_data(0x5678, b'xyz'),
+            IhexRecord.create_start_linear_address(0xABCD5678),
+            IhexRecord.create_end_of_file(),
+        ]
+        for path in [None, '-']:
+            stream = io.BytesIO(buffer)
+            with replace_stdin(stream):
+                file = IhexFile.load(path=path)
+            assert file._records == records
+
+    def test_parse(self):
+        buffer = (
+            b':0312340061626391\r\n'
+            b':02000004ABCD82\r\n'
+            b':0356780078797AC4\r\n'
+            b':04000005ABCD5678B1\r\n'
+            b':00000001FF\r\n'
+        )
+        records = [
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_extended_linear_address(0xABCD),
+            IhexRecord.create_data(0x5678, b'xyz'),
+            IhexRecord.create_start_linear_address(0xABCD5678),
+            IhexRecord.create_end_of_file(),
+        ]
+        with io.BytesIO(buffer) as stream:
+            file = IhexFile.parse(stream)
+        assert file._records == records
+
     # https://en.wikipedia.org/wiki/Intel_HEX#File_example
-    def test_parse_wikipedia(self, datapath):
+    def test_parse_file_wikipedia(self, datapath):
         path = str(datapath / 'wikipedia.hex')
         records = [
             IhexRecord(IhexTag.DATA, count=0x10, address=0x0100, checksum=0x40,
-                       data=unhexlify(b'214601360121470136007EFE09D21901')),
+                       data=b'\x21\x46\x01\x36\x01\x21\x47\x01\x36\x00\x7E\xFE\x09\xD2\x19\x01'),
             IhexRecord(IhexTag.DATA, count=0x10, address=0x0110, checksum=0x28,
-                       data=unhexlify(b'2146017E17C20001FF5F160021480119')),
+                       data=b'\x21\x46\x01\x7E\x17\xC2\x00\x01\xFF\x5F\x16\x00\x21\x48\x01\x19'),
             IhexRecord(IhexTag.DATA, count=0x10, address=0x0120, checksum=0xA7,
-                       data=unhexlify(b'194E79234623965778239EDA3F01B2CA')),
+                       data=b'\x19\x4E\x79\x23\x46\x23\x96\x57\x78\x23\x9E\xDA\x3F\x01\xB2\xCA'),
             IhexRecord(IhexTag.DATA, count=0x10, address=0x0130, checksum=0xC7,
-                       data=unhexlify(b'3F0156702B5E712B722B732146013421')),
+                       data=b'\x3F\x01\x56\x70\x2B\x5E\x71\x2B\x72\x2B\x73\x21\x46\x01\x34\x21'),
             IhexRecord(IhexTag.END_OF_FILE, count=0x00, address=0x0000, checksum=0xFF, data=b''),
         ]
         with open(path, 'rb') as stream:
             file = IhexFile.parse(stream)
+        assert file._records == records
 
-        file = _cast(IhexFile, file)
-        assert len(file.records) == len(records)
+    def test_save_file(self, tmppath):
+        path = str(tmppath / 'test_save_file.hex')
+        records = [
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_extended_linear_address(0xABCD),
+            IhexRecord.create_data(0x5678, b'xyz'),
+            IhexRecord.create_start_linear_address(0xABCD5678),
+            IhexRecord.create_end_of_file(),
+        ]
+        expected = (
+            b':0312340061626391\r\n'
+            b':02000004ABCD82\r\n'
+            b':0356780078797AC4\r\n'
+            b':04000005ABCD5678B1\r\n'
+            b':00000001FF\r\n'
+        )
+        file = IhexFile.from_records(records)
+        returned = file.save(path)
+        assert returned is file
+        with open(path, 'rb') as stream:
+            actual = stream.read()
+        assert actual == expected
 
-        for actual, expected in zip(file._records, records):
-            actual = _cast(IhexRecord, actual)
-            expected = _cast(IhexRecord, expected)
+    def test_save_stdout(self):
+        records = [
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_extended_linear_address(0xABCD),
+            IhexRecord.create_data(0x5678, b'xyz'),
+            IhexRecord.create_start_linear_address(0xABCD5678),
+            IhexRecord.create_end_of_file(),
+        ]
+        expected = (
+            b':0312340061626391\r\n'
+            b':02000004ABCD82\r\n'
+            b':0356780078797AC4\r\n'
+            b':04000005ABCD5678B1\r\n'
+            b':00000001FF\r\n'
+        )
+        for path in [None, '-']:
+            stream = io.BytesIO()
+            file = IhexFile.from_records(records)
+            with replace_stdout(stream):
+                returned = file.save(path=path)
+            assert returned is file
+            actual = stream.getvalue()
             assert actual == expected
 
     def test_startaddr_getter_linear(self):
@@ -884,6 +986,9 @@ class TestIhexFile(BaseTestFile):
         with pytest.raises(ValueError, match='invalid start address'):
             file.startaddr = 0x100000000
 
+    def test_update_records(self):
+        self.test_update_records_basic_linear()
+
     def test_update_records_basic_linear(self):
         records = [
             IhexRecord.create_data(0x1234, b'abc'),
@@ -976,6 +1081,9 @@ class TestIhexFile(BaseTestFile):
         file = IhexFile.from_memory(memory, linear=False)
         with pytest.raises(ValueError, match='segment overflow'):
             file.update_records()
+
+    def test_validate_records(self):
+        self.test_validate_records_basic_linear()
 
     def test_validate_records_basic_linear(self):
         records = [

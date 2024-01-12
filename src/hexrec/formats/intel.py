@@ -199,7 +199,11 @@ class IhexRecord(BaseRecord):
         return record
 
     @classmethod
-    def parse(cls, line: AnyBytes) -> 'IhexRecord':
+    def parse(
+        cls,
+        line: AnyBytes,
+        validate: bool = True,
+    ) -> 'IhexRecord':
         # TODO: __doc__
 
         match = cls.LINE_REGEX.match(line)
@@ -221,7 +225,8 @@ class IhexRecord(BaseRecord):
                      count=count,
                      checksum=checksum,
                      before=before,
-                     after=after)
+                     after=after,
+                     validate=validate)
         return record
 
     def to_bytestr(self, end: AnyBytes = b'\r\n') -> bytes:

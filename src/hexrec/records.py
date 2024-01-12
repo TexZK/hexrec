@@ -44,10 +44,12 @@ from typing import cast as _cast
 
 import colorama
 from bytesparse import Memory
+from bytesparse.base import BlockSequence
 from bytesparse.base import ImmutableMemory
 from bytesparse.base import MutableMemory
 
 from .utils import AnyBytes
+from .utils import AnyPath
 from .utils import EllipsisType
 
 
@@ -221,6 +223,7 @@ class BaseRecord(abc.ABC):
         before: Union[bytes, bytearray] = b'',
         after: Union[bytes, bytearray] = b'',
         coords: Tuple[int, int] = (-1, -1),
+        validate: bool = True,
     ):
 
         self.address: int = address.__index__()
@@ -241,6 +244,11 @@ class BaseRecord(abc.ABC):
             self.update_checksum()
         elif checksum is not None:
             self.checksum = checksum.__index__()
+
+        if validate:
+            _count = count is not None
+            _checksum = checksum is not None and _count
+            self.validate(checksum=_checksum, count=_count)
 
     def __ne__(self, other: 'BaseRecord') -> bool:
         # TODO: __doc__
@@ -279,13 +287,13 @@ class BaseRecord(abc.ABC):
 
         return None
 
-    def copy(self) -> 'BaseRecord':  # shallow
+    def copy(self, validate: bool = True) -> 'BaseRecord':  # shallow
         # TODO: __doc__
 
         meta = self.get_meta()
         tag = meta.pop('tag')
         cls = type(self)
-        return cls(tag, **meta)
+        return cls(tag, validate=validate, **meta)
 
     @classmethod
     @abc.abstractmethod
@@ -311,7 +319,11 @@ class BaseRecord(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def parse(cls, line: AnyBytes) -> 'BaseRecord':
+    def parse(
+        cls,
+        line: AnyBytes,
+        validate: bool = True,
+    ) -> 'BaseRecord':
         # TODO: __doc__
         ...
 
@@ -609,13 +621,8 @@ class BaseFile(abc.ABC):
         self.discard_records()
         return self
 
-    def discard_records(self, release_views: bool = True) -> 'BaseFile':
+    def discard_records(self) -> 'BaseFile':
         # TODO: __doc__
-
-        if release_views and self._records:
-            for record in self._records:
-                if isinstance(record.data, memoryview):
-                    record.data.release()
 
         self._records = None
         if self._memory is None:
@@ -676,6 +683,22 @@ class BaseFile(abc.ABC):
         self.memory.flood(start=start, endex=endex, pattern=pattern)
         self.discard_records()
         return self
+
+    @classmethod
+    def from_blocks(cls, blocks: BlockSequence, **meta) -> 'BaseFile':
+        # TODO: __doc__
+
+        memory = Memory.from_blocks(blocks)
+        file = cls.from_memory(memory, **meta)
+        return file
+
+    @classmethod
+    def from_bytes(cls, data: AnyBytes, offset: int = 0, **meta) -> 'BaseFile':
+        # TODO: __doc__
+
+        memory = Memory.from_bytes(data, offset=offset)
+        file = cls.from_memory(memory, **meta)
+        return file
 
     @classmethod
     def from_records(cls, records: MutableSequence[BaseRecord]) -> 'BaseFile':
@@ -749,14 +772,14 @@ class BaseFile(abc.ABC):
         return offset
 
     @classmethod
-    def load(cls, path: Any, ignore_errors: bool = True) -> 'BaseFile':
+    def load(cls, path: Optional[AnyPath], *args, **kwargs) -> 'BaseFile':
         # TODO: __doc__
 
-        if path == '-':
-            return cls.parse(sys.stdin, ignore_errors=ignore_errors)
+        if path is None or path == '-':
+            return cls.parse(sys.stdin.buffer, *args, **kwargs)
         else:
             with open(path, 'rb') as stream:
-                return cls.parse(stream, ignore_errors=ignore_errors)
+                return cls.parse(stream, *args, **kwargs)
 
     @property
     def maxdatalen(self) -> int:
@@ -861,14 +884,14 @@ class BaseFile(abc.ABC):
         self.discard_records()
         return self
 
-    def save(self, path: Any) -> 'BaseFile':
+    def save(self, path: Optional[AnyPath], *args, **kwargs) -> 'BaseFile':
         # TODO: __doc__
 
-        if path == '-':
-            return self.serialize(sys.stdout)
+        if path is None or path == '-':
+            return self.serialize(sys.stdout.buffer, *args, **kwargs)
         else:
             with open(path, 'wb') as stream:
-                return self.serialize(stream)
+                return self.serialize(stream, *args, **kwargs)
 
     def set_meta(
         self,
@@ -877,10 +900,10 @@ class BaseFile(abc.ABC):
     ) -> 'BaseFile':
         # TODO: __doc__
 
-        for key, value in meta:
-            if key in self.META_KEYS:
+        for key, value in meta.items():
+            if key in self.META_KEYS or not strict:
                 setattr(self, key, value)
-            elif strict:
+            else:
                 raise KeyError(f'unknown meta: {key!r}')
         self.discard_records()
         return self

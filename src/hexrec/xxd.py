@@ -274,8 +274,8 @@ def xxd(
     elif oseek is not None and oseek < 0:
         raise ValueError('invalid seeking')
 
-    instream = None
-    outstream = None
+    instream: Optional[IO] = None
+    outstream: Optional[IO] = None
     try:
         # Input stream binding
         if infile is None or infile == '-':
@@ -337,9 +337,8 @@ def xxd(
             if postscript:
                 # Plain hexadecimal input
                 for line in instream:
-                    data = unhexlify(_cast(str, line))
+                    data = unhexlify(line)
                     outstream.write(data)
-
             else:
                 if cols is None:
                     cols = 16
