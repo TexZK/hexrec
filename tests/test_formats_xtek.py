@@ -6,9 +6,9 @@ from pathlib import Path
 import pytest
 from bytesparse import Memory
 
-from hexrec.formats.tektronix import XtekFile
-from hexrec.formats.tektronix import XtekRecord
-from hexrec.formats.tektronix import XtekTag
+from hexrec.formats.xtek import XtekFile
+from hexrec.formats.xtek import XtekRecord
+from hexrec.formats.xtek import XtekTag
 
 from test_records import BaseTestFile
 from test_records import BaseTestRecord

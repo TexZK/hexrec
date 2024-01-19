@@ -7,9 +7,9 @@ from typing import cast as _cast
 import pytest
 from bytesparse import Memory
 
-from hexrec.formats.ascii_hex import AsciiHexFile
-from hexrec.formats.ascii_hex import AsciiHexRecord
-from hexrec.formats.ascii_hex import AsciiHexTag
+from hexrec.formats.asciihex import AsciiHexFile
+from hexrec.formats.asciihex import AsciiHexRecord
+from hexrec.formats.asciihex import AsciiHexTag
 
 from test_records import BaseTestFile
 from test_records import BaseTestRecord

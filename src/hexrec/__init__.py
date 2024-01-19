@@ -25,12 +25,12 @@
 
 __version__ = '0.4.dev0'
 
-from .formats.ascii_hex import AsciiHexFile
-from .formats.binary import RawFile
-from .formats.intel import IhexFile
+from .formats.asciihex import AsciiHexFile
+from .formats.raw import RawFile
+from .formats.ihex import IhexFile
 from .formats.mos import MosFile
-from .formats.motorola import SrecFile
-from .formats.tektronix import XtekFile
+from .formats.srec import SrecFile
+from .formats.xtek import XtekFile
 from .records import FILE_TYPES
 from .xxd import xxd
 
@@ -42,5 +42,5 @@ FILE_TYPES.update({
     'mos': MosFile,
     'raw': RawFile,
     'srec': SrecFile,
-    'tekext': XtekFile,
+    'xtek': XtekFile,
 })

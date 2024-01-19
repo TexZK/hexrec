@@ -6,9 +6,9 @@ from pathlib import Path
 import pytest
 from bytesparse import Memory
 
-from hexrec.formats.motorola import SrecFile
-from hexrec.formats.motorola import SrecRecord
-from hexrec.formats.motorola import SrecTag
+from hexrec.formats.srec import SrecFile
+from hexrec.formats.srec import SrecRecord
+from hexrec.formats.srec import SrecTag
 
 from test_records import BaseTestFile
 from test_records import BaseTestRecord

@@ -6,9 +6,9 @@ from pathlib import Path
 import pytest
 
 from bytesparse import Memory
-from hexrec.formats.binary import RawFile
-from hexrec.formats.binary import RawRecord
-from hexrec.formats.binary import RawTag
+from hexrec.formats.raw import RawFile
+from hexrec.formats.raw import RawRecord
+from hexrec.formats.raw import RawTag
 
 from test_records import BaseTestFile
 from test_records import BaseTestRecord

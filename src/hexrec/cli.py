@@ -52,8 +52,8 @@ import click
 
 from .__init__ import __version__
 from .__init__ import FILE_TYPES
-from .formats.motorola import SrecFile
-from .formats.motorola import SrecRecord
+from .formats.srec import SrecFile
+from .formats.srec import SrecRecord
 from .records import BaseFile
 from .records import guess_type_name
 from .utils import hexlify

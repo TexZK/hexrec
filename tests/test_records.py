@@ -9,8 +9,8 @@ from typing import cast as _cast
 import pytest
 from bytesparse import Memory
 from hexrec import FILE_TYPES
-from hexrec.formats.intel import IhexFile
-from hexrec.formats.motorola import SrecFile
+from hexrec.formats.ihex import IhexFile
+from hexrec.formats.srec import SrecFile
 from hexrec.records import BaseFile
 from hexrec.records import BaseRecord
 from hexrec.records import BaseTag
