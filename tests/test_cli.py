@@ -157,7 +157,7 @@ def test_by_filename(tmppath, datapath):
         cmdline = filename[len(prefix):].replace('_', ' ')
         args: List[str] = cmdline.split()
         path_in = str(datapath / args[-1])
-        args = args[:-1] + [str(path_in), str(path_out)]
+        args = args[:-1] + [path_in, path_out]
 
         runner = CliRunner()
         runner.invoke(main, args, catch_exceptions=False)
@@ -185,6 +185,25 @@ def test_merge_nothing():
 
     assert result.exit_code == 0
     assert result.output == ''
+
+
+# ============================================================================
+
+def test_merge_multi(datapath, tmppath):
+    runner = CliRunner()
+    path_ins = [str(datapath / 'reversed.mot'),
+                str(datapath / 'holes.mot')]
+    path_out = str(tmppath / 'test_merge_multi.hex')
+    args = ['merge'] + path_ins + [path_out]
+    result = runner.invoke(main, args)
+
+    assert result.exit_code == 0
+    assert result.output == ''
+
+    path_ref = str(datapath / 'merge_reversed_holes.hex')
+    ans_out = read_text(path_out)
+    ans_ref = read_text(path_ref)
+    assert ans_out == ans_ref
 
 
 # ============================================================================

@@ -401,6 +401,21 @@ class TestMosFile(BaseTestFile):
         assert not MosFile._is_line_empty(b' \t\v\r\n\0;')
         assert not MosFile._is_line_empty(b' \t\v\0;\r\n')
 
+    def test_apply_records_tags(self):
+        data = (b'\xFF\xEE\xDD\xCC\xBB\xAA\x00\x99'
+                b'\x88\x77\x66\x55\x44\x33\x22\x11'
+                b'\x22\x33\x44\x55\x66\x77\x88\x99')
+        records = [
+            MosRecord.create_data(0x0000, data),
+            MosRecord.create_eof(1),
+        ]
+        file = MosFile.from_records(records)
+        assert file._records is records
+        returned = file.apply_records()
+        assert returned is file
+        assert file._memory.to_blocks() == [[0, data]]
+        assert file._records is records
+
     def test_load_file(self, datapath):
         path = str(datapath / 'basic_nul_xoff.mos')
         data = (b'\xFF\xEE\xDD\xCC\xBB\xAA\x00\x99'

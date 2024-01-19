@@ -783,6 +783,15 @@ class TestIhexFile(BaseTestFile):
             file = IhexFile.parse(stream)
         assert file._records == records
 
+    def test_parse_errors(self):
+        buffer = (
+            b'::0312340061626391\r\n'
+            b':00000001FF\r\n'
+        )
+        with pytest.raises(ValueError, match='syntax error'):
+            with io.BytesIO(buffer) as stream:
+                IhexFile.parse(stream, ignore_errors=False)
+
     # https://en.wikipedia.org/wiki/Intel_HEX#File_example
     def test_parse_file_wikipedia(self, datapath):
         path = str(datapath / 'wikipedia.hex')
@@ -799,6 +808,19 @@ class TestIhexFile(BaseTestFile):
         ]
         with open(path, 'rb') as stream:
             file = IhexFile.parse(stream)
+        assert file._records == records
+
+    def test_parse_ignore_errors(self):
+        buffer = (
+            b'::0312340061626391\r\n'
+            b':00000001FF\r\n'
+        )
+        records = [
+            # IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_end_of_file(),
+        ]
+        with io.BytesIO(buffer) as stream:
+            file = IhexFile.parse(stream, ignore_errors=True)
         assert file._records == records
 
     def test_save_file(self, tmppath):

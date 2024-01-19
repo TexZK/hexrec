@@ -617,8 +617,7 @@ def merge(
     input_formats = [input_format] * len(infiles)
 
     with MultiFileInOutCtxMgr(infiles, input_formats, outfile, output_format, width) as ctx:
-        for input_file in ctx.input_files:
-            ctx.output_file.merge(input_file, clear=clear_holes)
+        ctx.output_file.merge(*ctx.input_files, clear=clear_holes)
 
 
 # ----------------------------------------------------------------------------

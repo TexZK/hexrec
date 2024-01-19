@@ -35,12 +35,26 @@ from .records import FILE_TYPES
 from .xxd import xxd
 
 
-# Register default record file types
-FILE_TYPES.update({
-    'asciihex': AsciiHexFile,
-    'ihex': IhexFile,
-    'mos': MosFile,
-    'raw': RawFile,
-    'srec': SrecFile,
-    'xtek': XtekFile,
-})
+def _register_default_file_types():
+    # TODO: __doc__
+
+    defaults = {
+        # Most common come first
+        'ihex': IhexFile,
+        'srec': SrecFile,
+
+        # Least common
+        'asciihex': AsciiHexFile,
+        'xtek': XtekFile,
+        'mos': MosFile,
+
+        # Raw file parses anything, keep last
+        'raw': RawFile
+    }
+
+    for key, value in defaults.items():
+        FILE_TYPES.setdefault(key, value)
+
+
+# Automatically register default file types on module load
+_register_default_file_types()

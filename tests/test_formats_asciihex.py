@@ -187,10 +187,6 @@ class TestAsciiHexRecord(BaseTestRecord):
             assert actual.before == b''
             assert actual.after == b''
 
-    def test_parse_raises_addrlen(self):
-        with pytest.raises(ValueError, match='invalid address length'):
-            AsciiHexRecord.parse(b'$A0', addrlen=-1)
-
     def test_parse_raises_syntax(self):
         lines = [
             b'$A,',
@@ -398,6 +394,7 @@ class TestAsciiHexRecord(BaseTestRecord):
             b'|||$S0000,||\r\n',
             b'|||$SFFFF,||\r\n',
 
+            b'|||||\r\n',
             b'||00 |||\r\n',
             b'||FF |||\r\n',
             b'||' + (b'FF ' * 0x1000) + b'|||\r\n',
@@ -411,6 +408,7 @@ class TestAsciiHexRecord(BaseTestRecord):
             AsciiHexRecord.create_checksum(0x0000),
             AsciiHexRecord.create_checksum(0xFFFF),
 
+            AsciiHexRecord.create_data(0, b''),
             AsciiHexRecord.create_data(0, b'\x00'),
             AsciiHexRecord.create_data(0, b'\xFF'),
             AsciiHexRecord.create_data(0, b'\xFF' * 0x1000),
@@ -425,6 +423,31 @@ class TestAsciiHexRecord(BaseTestRecord):
         ]
         for expected, record in zip(lines, records):
             tokens = record.to_tokens()
+            assert all((key in keys) for key in tokens.keys())
+            actual = b'|'.join(tokens.get(key, b'?') for key in keys)
+            assert actual == expected
+
+    def test_to_tokens_no_exelast(self):
+        lines = [
+            b'||00|||\r\n',
+            b'||FF|||\r\n',
+            b'||' + (b'FF ' * 0xFFF) + b'FF|||\r\n',
+        ]
+        records = [
+            AsciiHexRecord.create_data(0, b'\x00'),
+            AsciiHexRecord.create_data(0, b'\xFF'),
+            AsciiHexRecord.create_data(0, b'\xFF' * 0x1000),
+        ]
+        keys = [
+            'before',
+            'address',
+            'data',
+            'checksum',
+            'after',
+            'end',
+        ]
+        for expected, record in zip(lines, records):
+            tokens = record.to_tokens(exelast=False)
             assert all((key in keys) for key in tokens.keys())
             actual = b'|'.join(tokens.get(key, b'?') for key in keys)
             assert actual == expected
@@ -455,6 +478,8 @@ class TestAsciiHexRecord(BaseTestRecord):
             AsciiHexRecord(AsciiHexTag.ADDRESS, count=None, validate=False),
             AsciiHexRecord(AsciiHexTag.ADDRESS, count=-1, validate=False),
             AsciiHexRecord(AsciiHexTag.ADDRESS, count=4, address=0x10000, validate=False),
+
+            AsciiHexRecord(AsciiHexTag.ADDRESS, count=4, data=b'abc', validate=False),
         ]
         for match, record in zip(matches, records):
             record = _cast(AsciiHexRecord, record)
@@ -549,6 +574,23 @@ class TestAsciiHexFile(BaseTestFile):
             file = AsciiHexFile.parse(stream)
         assert file._records == records
 
+    def test_parse_ignore_errors(self):
+        buffer = (
+            b'\x02'
+            b'61 62 63 \r\n'
+            b'$$A1234,\r\n'
+            b'78 79 7A \r\n'
+            b'\x03'
+        )
+        records = [
+            AsciiHexRecord.create_data(0x0000, b'abc'),
+            AsciiHexRecord.create_address(0x1234, addrlen=4),
+            AsciiHexRecord.create_data(0x1234, b'xyz'),
+        ]
+        with io.BytesIO(buffer) as stream:
+            file = AsciiHexFile.parse(stream, ignore_errors=True)
+        assert file._records == records
+
     def test_parse_plain(self):
         buffer = (
             b'61 62 63 \r\n'
@@ -585,6 +627,18 @@ class TestAsciiHexFile(BaseTestFile):
         with pytest.raises(ValueError, match='missing STX character'):
             with io.BytesIO(buffer) as stream:
                 AsciiHexFile.parse(stream, stxetx=True)
+
+    def test_parse_raises_syntax_error(self):
+        buffer = (
+            b'\x02'
+            b'61 62 63 \r\n'
+            b'$$A1234,\r\n'
+            b'78 79 7A \r\n'
+            b'\x03'
+        )
+        with pytest.raises(ValueError, match='syntax error'):
+            with io.BytesIO(buffer) as stream:
+                AsciiHexFile.parse(stream, ignore_errors=False)
 
     def test_save_file(self, tmppath):
         path = str(tmppath / 'test_save_file.ascii_hex')
@@ -722,14 +776,9 @@ class TestAsciiHexFile(BaseTestFile):
         assert file._records == []
 
     def test_update_records_raises_addrlen(self):
-        records = [
-            AsciiHexRecord.create_data(0x0000, b'abc'),
-            AsciiHexRecord.create_address(0x1234, addrlen=4),
-            AsciiHexRecord.create_data(0x1234, b'xyz'),
-        ]
-        file = AsciiHexFile.from_records(records)
-        with pytest.raises(ValueError, match='memory instance required'):
-            file.update_records()
+        file = AsciiHexFile()
+        with pytest.raises(ValueError, match='invalid address length'):
+            file.update_records(addrlen=0)
 
     def test_update_records_raises_memory(self):
         records = [
@@ -759,6 +808,7 @@ class TestAsciiHexFile(BaseTestFile):
         ]
         file = AsciiHexFile.from_records(records)
         file.validate_records(checksum_values=True)
+        file.validate_records(checksum_values=False)
 
     def test_validate_records_data_ordering(self):
         records = [
@@ -768,6 +818,7 @@ class TestAsciiHexFile(BaseTestFile):
         ]
         file = AsciiHexFile.from_records(records)
         file.validate_records(data_ordering=True)
+        file.validate_records(data_ordering=False)
 
     def test_validate_records_raises_checksum_values(self):
         records = [

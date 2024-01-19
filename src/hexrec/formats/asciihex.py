@@ -148,16 +148,10 @@ class AsciiHexRecord(BaseRecord):
     def parse(
         cls,
         line: AnyBytes,
-        addrlen: Optional[int] = None,
         address: int = 0,
         validate: bool = True,
     ) -> 'AsciiHexRecord':
         # TODO: __doc__
-
-        if addrlen is not None:
-            addrlen = addrlen.__index__()
-            if addrlen < 1:
-                raise ValueError('invalid address length')
 
         match = cls.LINE_REGEX.match(line)
         if not match:
@@ -342,9 +336,9 @@ class AsciiHexFile(BaseFile):
                 record = Record.parse(chunk, address=address)
             except Exception:
                 if ignore_errors:
+                    offset += 1
                     continue
                 raise
-
             pos, endpos = record.coords
             pos += offset
             endpos += offset

@@ -83,9 +83,8 @@ def colorize_tokens(
     # TODO: __doc__
 
     codes = TOKEN_COLOR_CODES
-    # noinspection PyDictCreation
     colorized = {}
-    colorized['<'] = codes['<']
+    colorized.setdefault('<', codes['<'])
 
     for key, value in tokens.items():
         if key not in codes:
@@ -105,14 +104,14 @@ def colorize_tokens(
                     buffer.append(value[i + 1])
 
                 if length & 1:
-                    buffer.extend(altcode if i & 2 else code)
-                    buffer.append(value[i])
+                    buffer.extend(code if i & 2 else altcode)
+                    buffer.append(value[length - 1])
 
                 colorized[key] = bytes(buffer)
             else:
                 colorized[key] = code + value
 
-    colorized['>'] = codes['>']
+    colorized.setdefault('>', codes['>'])
     return colorized
 
 
@@ -134,11 +133,6 @@ def guess_type_name(file_path: str) -> str:
     if len(names_found) == 1:
         return names_found[0]
 
-    has_raw = 'raw' in names_found
-    if has_raw:
-        names_found.remove('raw')
-    names_found.sort()
-
     for name in names_found:
         file_type = FILE_TYPES[name]
         try:
@@ -148,8 +142,6 @@ def guess_type_name(file_path: str) -> str:
         except Exception:
             pass
 
-    if has_raw:
-        return 'raw'
     raise ValueError(f'cannot guess record file type')
 
 
@@ -170,10 +162,10 @@ class BaseTag:
     _DATA = ...
     # TODO: __doc__
 
+    @abc.abstractmethod
     def is_data(self) -> bool:
         # TODO: __doc__
-
-        return self == self._DATA
+        ...
 
 
 class BaseRecord(abc.ABC):
@@ -479,11 +471,7 @@ class BaseFile(abc.ABC):
             if self_records != other_records:
                 return True
         else:
-            # raise ValueError('both memory or both records required')
-            return False
-
-        if self.META_KEYS != other.META_KEYS:
-            return True
+            raise ValueError('both memory or both records required')
 
         for key in self.META_KEYS:
             if not hasattr(other, key):  # ensure
@@ -500,7 +488,7 @@ class BaseFile(abc.ABC):
     def __or__(self, other: 'BaseFile') -> 'BaseFile':
         # TODO: __doc__
 
-        return self.merge(self, other)
+        return self.copy().merge(other)
 
     def __setitem__(
         self,
@@ -701,20 +689,6 @@ class BaseFile(abc.ABC):
         return file
 
     @classmethod
-    def from_records(cls, records: MutableSequence[BaseRecord]) -> 'BaseFile':
-        # TODO: __doc__
-
-        maxdatalen = max((len(r.data) for r in records if r.tag.is_data()), default=0)
-        if maxdatalen < 1:
-            maxdatalen = cls.DEFAULT_DATALEN
-
-        file = cls()
-        file._records = records
-        file._memory = None
-        file._maxdatalen = maxdatalen
-        return file
-
-    @classmethod
     def from_memory(cls, memory: Optional[MutableMemory] = None, **meta) -> 'BaseFile':
         # TODO: __doc__
 
@@ -729,6 +703,30 @@ class BaseFile(abc.ABC):
             else:
                 raise KeyError(f'invalid meta: {key}')
 
+        return file
+
+    @classmethod
+    def from_records(
+        cls,
+        records: MutableSequence[BaseRecord],
+        maxdatalen: Optional[int] = None,
+    ) -> 'BaseFile':
+        # TODO: __doc__
+
+        if maxdatalen is None:
+            dataiter = (len(r.data) for r in records if r.tag.is_data())
+            maxdatalen = max(dataiter, default=0)
+            if maxdatalen < 1:
+                maxdatalen = cls.DEFAULT_DATALEN
+        else:
+            maxdatalen = maxdatalen.__index__()
+            if maxdatalen < 1:
+                raise ValueError('invalid maximum data length')
+
+        file = cls()
+        file._records = records
+        file._memory = None
+        file._maxdatalen = maxdatalen
         return file
 
     def get_address_max(self) -> int:
@@ -804,14 +802,12 @@ class BaseFile(abc.ABC):
             self.apply_records()
         return self._memory
 
-    @classmethod
-    def merge(cls, *files: 'BaseFile', clear: bool = False) -> 'BaseFile':
+    def merge(self, *files: 'BaseFile', clear: bool = False) -> 'BaseFile':
         # TODO: __doc__
 
-        merged = cls()
         for file in files:
-            merged.write(0, file.memory, clear=clear)
-        return merged
+            self.write(0, file, clear=clear)
+        return self
 
     @classmethod
     def parse(cls, stream: IO, ignore_errors: bool = False) -> 'BaseFile':
@@ -935,9 +931,6 @@ class BaseFile(abc.ABC):
         previous = None
         parts: List[BaseFile] = []
 
-        if self._memory is None:
-            self.apply_records()
-
         for address in pivots:
             part = self.copy(start=previous, endex=address, meta=meta)
             parts.append(part)
@@ -968,11 +961,13 @@ class BaseFile(abc.ABC):
     def write(
         self,
         address: int,
-        data: Union[AnyBytes, int, ImmutableMemory],
+        data: Union['BaseFile', AnyBytes, int, ImmutableMemory],
         clear: bool = False,
     ) -> 'BaseFile':
         # TODO: __doc__
 
+        if isinstance(data, BaseFile):
+            data = data.memory
         self.memory.write(address, data, clear=clear)
         self.discard_records()
         return self

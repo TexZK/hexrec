@@ -38,7 +38,7 @@ def datapath(datadir):
 
 # ============================================================================
 
-class TesXtekTag(BaseTestTag):
+class TestXtekTag(BaseTestTag):
 
     Tag = XtekTag
 
@@ -60,6 +60,29 @@ class TesXtekTag(BaseTestTag):
 class TestXtekRecord(BaseTestRecord):
 
     Record = XtekRecord
+
+    def test___init___addrlen(self):
+        XtekRecord(XtekTag.EOF, addrlen=1)
+        XtekRecord(XtekTag.EOF, addrlen=2)
+        XtekRecord(XtekTag.EOF, addrlen=3)
+        XtekRecord(XtekTag.EOF, addrlen=4)
+        XtekRecord(XtekTag.EOF, addrlen=5)
+        XtekRecord(XtekTag.EOF, addrlen=6)
+        XtekRecord(XtekTag.EOF, addrlen=7)
+        XtekRecord(XtekTag.EOF, addrlen=8)
+        XtekRecord(XtekTag.EOF, addrlen=9)
+        XtekRecord(XtekTag.EOF, addrlen=10)
+        XtekRecord(XtekTag.EOF, addrlen=11)
+        XtekRecord(XtekTag.EOF, addrlen=12)
+        XtekRecord(XtekTag.EOF, addrlen=13)
+        XtekRecord(XtekTag.EOF, addrlen=14)
+        XtekRecord(XtekTag.EOF, addrlen=15)
+
+    def test___init___raises_addrlen(self):
+        with pytest.raises(ValueError, match='invalid address length'):
+            XtekRecord(XtekTag.EOF, addrlen=0)
+        with pytest.raises(ValueError, match='invalid address length'):
+            XtekRecord(XtekTag.EOF, addrlen=16)
 
     def test_compute_address_max(self):
         vector = [
@@ -121,6 +144,12 @@ class TestXtekRecord(BaseTestRecord):
             record.validate()
             actual = record.compute_checksum()
             assert actual == expected
+
+    def test_compute_checksum_raises(self):
+        record = XtekRecord.create_data(0x00000000, b'', addrlen=4)
+        record.count = None
+        with pytest.raises(ValueError, match='missing count'):
+            record.compute_checksum()
 
     def test_compute_count(self):
         vector = [
@@ -744,6 +773,16 @@ class TestXtekFile(BaseTestFile):
         file = XtekFile.from_records(records)
         file.validate_records()
 
+    def test_validate_records_data_ordering(self):
+        records = [
+            XtekRecord.create_data(0x1234, b'abc'),
+            XtekRecord.create_data(0x4321, b'xyz'),
+            XtekRecord.create_eof(0xABCD),
+        ]
+        file = XtekFile.from_records(records)
+        file.validate_records(data_ordering=True)
+        file.validate_records(data_ordering=False)
+
     def test_validate_records_raises_records(self):
         file = XtekFile()
         with pytest.raises(ValueError, match='records required'):
@@ -778,7 +817,7 @@ class TestXtekFile(BaseTestFile):
         with pytest.raises(ValueError, match='missing end of file record'):
             file.validate_records()
 
-    def test_validate_records_startaddr_within_data(self):
+    def test_validate_records_raises_startaddr_within_data(self):
         records = [
             XtekRecord.create_data(0x1234, b'abc'),
             XtekRecord.create_data(0x4321, b'xyz'),
@@ -787,3 +826,13 @@ class TestXtekFile(BaseTestFile):
         file = XtekFile.from_records(records)
         with pytest.raises(ValueError, match='no data at start address'):
             file.validate_records(startaddr_within_data=True)
+
+    def test_validate_records_startaddr_within_data(self):
+        records = [
+            XtekRecord.create_data(0x1234, b'abc'),
+            XtekRecord.create_data(0x4321, b'xyz'),
+            XtekRecord.create_eof(0x1234),
+        ]
+        file = XtekFile.from_records(records)
+        assert file.startaddr == 0x1234
+        file.validate_records(startaddr_within_data=True)
