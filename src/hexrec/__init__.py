@@ -26,9 +26,9 @@
 __version__ = '0.4.dev0'
 
 from .formats.asciihex import AsciiHexFile
-from .formats.raw import RawFile
 from .formats.ihex import IhexFile
 from .formats.mos import MosFile
+from .formats.raw import RawFile
 from .formats.srec import SrecFile
 from .formats.xtek import XtekFile
 from .records import FILE_TYPES

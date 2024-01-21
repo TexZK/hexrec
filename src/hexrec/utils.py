@@ -32,7 +32,6 @@ from typing import Any
 from typing import AnyStr
 from typing import ByteString
 from typing import Iterator
-from typing import List
 from typing import Mapping
 from typing import Optional
 from typing import Sequence

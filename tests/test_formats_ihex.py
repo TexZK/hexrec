@@ -6,16 +6,15 @@ from typing import cast as _cast
 
 import pytest
 from bytesparse import Memory
-
-from hexrec.formats.ihex import IhexFile
-from hexrec.formats.ihex import IhexRecord
-from hexrec.formats.ihex import IhexTag
-
 from test_records import BaseTestFile
 from test_records import BaseTestRecord
 from test_records import BaseTestTag
 from test_records import replace_stdin
 from test_records import replace_stdout
+
+from hexrec.formats.ihex import IhexFile
+from hexrec.formats.ihex import IhexRecord
+from hexrec.formats.ihex import IhexTag
 
 DATA = IhexTag.DATA
 EOF = IhexTag.END_OF_FILE

@@ -5,17 +5,15 @@ from pathlib import Path
 
 import pytest
 from bytesparse import Memory
-
-from hexrec.formats.srec import SrecFile
-from hexrec.formats.srec import SrecRecord
-from hexrec.formats.srec import SrecTag
-
 from test_records import BaseTestFile
 from test_records import BaseTestRecord
 from test_records import BaseTestTag
 from test_records import replace_stdin
 from test_records import replace_stdout
 
+from hexrec.formats.srec import SrecFile
+from hexrec.formats.srec import SrecRecord
+from hexrec.formats.srec import SrecTag
 
 # ============================================================================
 

@@ -52,7 +52,6 @@ from .utils import AnyBytes
 from .utils import AnyPath
 from .utils import EllipsisType
 
-
 FILE_TYPES: MutableMapping[str, Type['BaseFile']] = {}
 r"""Registered record file types."""
 
@@ -142,7 +141,7 @@ def guess_type_name(file_path: str) -> str:
         except Exception:
             pass
 
-    raise ValueError(f'cannot guess record file type')
+    raise ValueError('cannot guess record file type')
 
 
 def guess_type_class(file_path: str) -> Type['BaseFile']:
@@ -550,8 +549,8 @@ class BaseFile(abc.ABC):
         if meta:
             source_meta = source.get_meta()
             copied_meta = {key: source_meta[key]
-                          for key in cls.META_KEYS
-                          if key in source_meta}
+                           for key in cls.META_KEYS
+                           if key in source_meta}
         else:
             copied_meta = {}
 

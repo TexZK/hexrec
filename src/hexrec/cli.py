@@ -50,8 +50,8 @@ from typing import cast as _cast
 
 import click
 
-from .__init__ import __version__
 from .__init__ import FILE_TYPES
+from .__init__ import __version__
 from .formats.srec import SrecFile
 from .formats.srec import SrecRecord
 from .records import BaseFile

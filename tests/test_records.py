@@ -7,9 +7,10 @@ from pathlib import Path
 from typing import Any
 from typing import cast as _cast
 
-import hexrec.records as _hr
 import pytest
 from bytesparse import Memory
+
+import hexrec.records as _hr
 from hexrec.formats.ihex import IhexFile
 from hexrec.formats.srec import SrecFile
 from hexrec.records import BaseFile
@@ -18,7 +19,6 @@ from hexrec.records import BaseTag
 from hexrec.records import colorize_tokens
 from hexrec.records import guess_type_class
 from hexrec.records import guess_type_name
-
 
 # ============================================================================
 

@@ -1,7 +1,7 @@
-﻿hexrec.formats.mos
-==================
+﻿hexrec.formats.asciihex
+=======================
 
-.. automodule:: hexrec.formats.mos
+.. automodule:: hexrec.formats.asciihex
 
    
    
@@ -20,9 +20,9 @@
       :template: custom-class-template.rst
       :nosignatures:
    
-      MosFile
-      MosRecord
-      MosTag
+      AsciiHexFile
+      AsciiHexRecord
+      AsciiHexTag
    
    
 

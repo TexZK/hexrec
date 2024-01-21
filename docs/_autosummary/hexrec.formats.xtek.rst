@@ -1,7 +1,7 @@
-﻿hexrec.formats.mos
-==================
+﻿hexrec.formats.xtek
+===================
 
-.. automodule:: hexrec.formats.mos
+.. automodule:: hexrec.formats.xtek
 
    
    
@@ -20,9 +20,9 @@
       :template: custom-class-template.rst
       :nosignatures:
    
-      MosFile
-      MosRecord
-      MosTag
+      XtekFile
+      XtekRecord
+      XtekTag
    
    
 

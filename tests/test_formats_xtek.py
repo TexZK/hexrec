@@ -5,17 +5,15 @@ from pathlib import Path
 
 import pytest
 from bytesparse import Memory
-
-from hexrec.formats.xtek import XtekFile
-from hexrec.formats.xtek import XtekRecord
-from hexrec.formats.xtek import XtekTag
-
 from test_records import BaseTestFile
 from test_records import BaseTestRecord
 from test_records import BaseTestTag
 from test_records import replace_stdin
 from test_records import replace_stdout
 
+from hexrec.formats.xtek import XtekFile
+from hexrec.formats.xtek import XtekRecord
+from hexrec.formats.xtek import XtekTag
 
 # ============================================================================
 

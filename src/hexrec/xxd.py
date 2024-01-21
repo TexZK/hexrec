@@ -34,7 +34,6 @@ from typing import Mapping
 from typing import Optional
 from typing import Tuple
 from typing import Union
-from typing import cast as _cast
 
 from .utils import BIN8_TO_STR
 from .utils import AnyBytes

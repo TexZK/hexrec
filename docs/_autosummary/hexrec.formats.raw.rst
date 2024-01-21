@@ -1,7 +1,7 @@
-﻿hexrec.formats.mos
+﻿hexrec.formats.raw
 ==================
 
-.. automodule:: hexrec.formats.mos
+.. automodule:: hexrec.formats.raw
 
    
    
@@ -20,9 +20,9 @@
       :template: custom-class-template.rst
       :nosignatures:
    
-      MosFile
-      MosRecord
-      MosTag
+      RawFile
+      RawRecord
+      RawTag
    
    
 

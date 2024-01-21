@@ -4,17 +4,16 @@ import os
 from pathlib import Path
 
 import pytest
-
 from bytesparse import Memory
-from hexrec.formats.raw import RawFile
-from hexrec.formats.raw import RawRecord
-from hexrec.formats.raw import RawTag
-
 from test_records import BaseTestFile
 from test_records import BaseTestRecord
 from test_records import BaseTestTag
 from test_records import replace_stdin
 from test_records import replace_stdout
+
+from hexrec.formats.raw import RawFile
+from hexrec.formats.raw import RawRecord
+from hexrec.formats.raw import RawTag
 
 BYTES = bytes(range(256))
 HEXBYTES = bytes(range(16))

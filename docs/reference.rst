@@ -7,12 +7,12 @@ Reference
 
     hexrec
     hexrec.formats
-    hexrec.formats.ascii_hex
-    hexrec.formats.binary
-    hexrec.formats.intel
+    hexrec.formats.asciihex
+    hexrec.formats.ihex
     hexrec.formats.mos
-    hexrec.formats.motorola
-    hexrec.formats.tektronix
+    hexrec.formats.raw
+    hexrec.formats.srec
+    hexrec.formats.xtek
     hexrec.records
     hexrec.utils
     hexrec.xxd

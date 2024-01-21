@@ -4,17 +4,15 @@ import os
 from pathlib import Path
 
 import pytest
-
-from hexrec.formats.mos import MosFile
-from hexrec.formats.mos import MosRecord
-from hexrec.formats.mos import MosTag
-
 from test_records import BaseTestFile
 from test_records import BaseTestRecord
 from test_records import BaseTestTag
 from test_records import replace_stdin
 from test_records import replace_stdout
 
+from hexrec.formats.mos import MosFile
+from hexrec.formats.mos import MosRecord
+from hexrec.formats.mos import MosTag
 
 # ============================================================================
 
