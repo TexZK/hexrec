@@ -55,7 +55,6 @@ from .utils import EllipsisType
 FILE_TYPES: MutableMapping[str, Type['BaseFile']] = {}
 r"""Registered record file types."""
 
-
 TOKEN_COLOR_CODES: Mapping[str, bytes] = {
     '':         colorama.Style.RESET_ALL.encode(),
     '<':        colorama.Style.RESET_ALL.encode(),
@@ -114,7 +113,24 @@ def colorize_tokens(
     return colorized
 
 
-def guess_type_name(file_path: str) -> str:
+def convert(
+    in_path: str,
+    out_path: str,
+    in_format: Optional[str] = None,
+    out_format: Optional[str] = None,
+) -> Tuple['BaseFile', 'BaseFile']:
+    # TODO: __doc__
+
+    if out_format is None:
+        out_format = guess_format_name(out_path)
+    out_type = FILE_TYPES[out_format]
+    in_file = load(in_path, in_format)
+    out_file = out_type.convert(in_file)
+    out_file.save(out_path)
+    return in_file, out_file
+
+
+def guess_format_name(file_path: str) -> str:
     # TODO: __doc__
 
     file_ext = os.path.splitext(file_path)[1]
@@ -144,15 +160,65 @@ def guess_type_name(file_path: str) -> str:
     raise ValueError('cannot guess record file type')
 
 
-def guess_type_class(file_path: str) -> Type['BaseFile']:
+def guess_format_type(file_path: str) -> Type['BaseFile']:
     # TODO: __doc__
 
-    name = guess_type_name(file_path)
+    name = guess_format_name(file_path)
     return FILE_TYPES[name]
 
 
-# TODO: class RecordError
-# embeds also information about line, field, etc
+def load(
+    in_path: str,
+    *load_args: Any,
+    in_format: Optional[str] = None,
+    **load_kwargs: Any,
+) -> 'BaseFile':
+    # TODO: __doc__
+
+    in_path = str(in_path)
+    if in_format is None:
+        in_format = guess_format_name(in_path)
+    file_type = FILE_TYPES[in_format]
+
+    file = file_type.load(in_path, *load_args, **load_kwargs)
+    return file
+
+
+def merge(
+    in_paths: Sequence[str],
+    out_path: Optional[str] = None,
+    in_formats: Optional[Sequence[Optional[str]]] = None,
+    out_format: Optional[str] = None,
+) -> Tuple[Sequence['BaseFile'], 'BaseFile']:
+    # TODO: __doc__
+
+    in_paths = list(map(str, in_paths))
+    out_path = str(out_path) if out_path else None
+    in_formats = list(in_formats or ())
+    in_formats += [None] * (len(in_paths) - len(in_formats))
+
+    in_types = []
+    for i, in_path in enumerate(in_paths):
+        in_format = in_formats[i]
+        if in_format is None:
+            in_format = guess_format_name(in_path)
+            in_formats[i] = in_format
+        in_type = FILE_TYPES[in_format]
+        in_types.append(in_type)
+
+    if out_format is None and out_path is not None:
+        out_format = guess_format_name(out_path)
+    out_type = FILE_TYPES[out_format]
+
+    in_files = [in_type.load(in_path) for in_type, in_path in zip(in_types, in_paths)]
+
+    out_file = out_type()
+    out_file.merge(*in_files)
+
+    if out_path is not None:
+        out_file.save(out_path)
+
+    return in_files, out_file
 
 
 class BaseTag:

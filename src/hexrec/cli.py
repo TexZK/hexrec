@@ -55,7 +55,7 @@ from .__init__ import __version__
 from .formats.srec import SrecFile
 from .formats.srec import SrecRecord
 from .records import BaseFile
-from .records import guess_type_name
+from .records import guess_format_name
 from .utils import hexlify
 from .utils import parse_int
 from .utils import unhexlify
@@ -93,36 +93,36 @@ FILE_PATH_OUT = click.Path(dir_okay=False, allow_dash=True, writable=True)
 
 RECORD_FORMAT_CHOICE = click.Choice(list(sorted(FILE_TYPES.keys())))
 
-DATA_FMT_FORMATTERS: Mapping[str, Callable[[bytes], str]] = {
-    'ascii': lambda b: b.decode('ascii'),
+DATA_FMT_FORMATTERS: Mapping[str, Callable[[bytes], bytes]] = {
+    'ascii': lambda b: b,
     'hex': lambda b: hexlify(b, upper=False),
     'HEX': lambda b: hexlify(b, upper=True),
-    'hex.': lambda b: hexlify(b, sep='.', upper=False),
-    'HEX.': lambda b: hexlify(b, sep='.', upper=True),
-    'hex-': lambda b: hexlify(b, sep='-', upper=False),
-    'HEX-': lambda b: hexlify(b, sep='-', upper=True),
-    'hex:': lambda b: hexlify(b, sep=':', upper=False),
-    'HEX:': lambda b: hexlify(b, sep=':', upper=True),
-    'hex_': lambda b: hexlify(b, sep='_', upper=False),
-    'HEX_': lambda b: hexlify(b, sep='_', upper=True),
-    'hex ': lambda b: hexlify(b, sep=' ', upper=False),
-    'HEX ': lambda b: hexlify(b, sep=' ', upper=True),
+    'hex.': lambda b: hexlify(b, sep=b'.', upper=False),
+    'HEX.': lambda b: hexlify(b, sep=b'.', upper=True),
+    'hex-': lambda b: hexlify(b, sep=b'-', upper=False),
+    'HEX-': lambda b: hexlify(b, sep=b'-', upper=True),
+    'hex:': lambda b: hexlify(b, sep=b':', upper=False),
+    'HEX:': lambda b: hexlify(b, sep=b':', upper=True),
+    'hex_': lambda b: hexlify(b, sep=b'_', upper=False),
+    'HEX_': lambda b: hexlify(b, sep=b'_', upper=True),
+    'hex ': lambda b: hexlify(b, sep=b' ', upper=False),
+    'HEX ': lambda b: hexlify(b, sep=b' ', upper=True),
 }
 
-DATA_FMT_PARSERS: Mapping[str, Callable[[str], bytes]] = {
-    'ascii': lambda t: t.encode('ascii'),
-    'hex': lambda t: unhexlify(t),
-    'HEX': lambda t: unhexlify(t),
-    'hex.': lambda t: unhexlify(t.replace('.', '')),
-    'HEX.': lambda t: unhexlify(t.replace('.', '')),
-    'hex-': lambda t: unhexlify(t.replace('-', '')),
-    'HEX-': lambda t: unhexlify(t.replace('-', '')),
-    'hex:': lambda t: unhexlify(t.replace(':', '')),
-    'HEX:': lambda t: unhexlify(t.replace(':', '')),
-    'hex_': lambda t: unhexlify(t.replace('_', '')),
-    'HEX_': lambda t: unhexlify(t.replace('_', '')),
-    'hex ': lambda t: unhexlify(t),
-    'HEX ': lambda t: unhexlify(t),
+DATA_FMT_PARSERS: Mapping[str, Callable[[bytes], bytes]] = {
+    'ascii': lambda b: b,
+    'hex': lambda b: unhexlify(b),
+    'HEX': lambda b: unhexlify(b),
+    'hex.': lambda b: unhexlify(b.replace(b'.', b'')),
+    'HEX.': lambda b: unhexlify(b.replace(b'.', b'')),
+    'hex-': lambda b: unhexlify(b.replace(b'-', b'')),
+    'HEX-': lambda b: unhexlify(b.replace(b'-', b'')),
+    'hex:': lambda b: unhexlify(b.replace(b':', b'')),
+    'HEX:': lambda b: unhexlify(b.replace(b':', b'')),
+    'hex_': lambda b: unhexlify(b.replace(b'_', b'')),
+    'HEX_': lambda b: unhexlify(b.replace(b'_', b'')),
+    'hex ': lambda b: unhexlify(b),
+    'HEX ': lambda b: unhexlify(b),
 }
 
 DATA_FMT_CHOICE = click.Choice(list(DATA_FMT_FORMATTERS.keys()))
@@ -140,7 +140,7 @@ def guess_input_type(
     elif input_path == '-':
         raise ValueError('standard input requires input format')
     else:
-        name = guess_type_name(input_path)
+        name = guess_format_name(input_path)
         input_type = FILE_TYPES[name]
     return input_type
 
@@ -156,7 +156,7 @@ def guess_output_type(
     elif output_path == '-':
         output_type = input_type
     else:
-        name = guess_type_name(output_path)
+        name = guess_format_name(output_path)
         output_type = FILE_TYPES[name]
     return output_type
 
@@ -752,7 +752,7 @@ def get_header(
 
     if records and records[0].tag == 0:
         formatter = DATA_FMT_FORMATTERS[format]
-        text = formatter(records[0].data)
+        text = formatter(records[0].data).decode()
         print(text)
 
 
@@ -786,7 +786,7 @@ def set_header(
     """
 
     parser = DATA_FMT_PARSERS[format]
-    header_data = parser(header)
+    header_data = parser(header.encode())
     file = SrecFile.load(infile)
     records = _cast(List[SrecRecord], file.records)
 

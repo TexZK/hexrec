@@ -6,6 +6,8 @@ from pathlib import Path
 import pytest
 
 from hexrec.xxd import *
+from test_records import replace_stdin
+from test_records import replace_stdout
 
 
 @pytest.fixture
@@ -25,8 +27,6 @@ def datapath(datadir):
     return Path(str(datadir))
 
 
-# ============================================================================
-
 def read_text(path):
     path = str(path)
     with open(path, 'rt') as file:
@@ -35,16 +35,12 @@ def read_text(path):
     return data
 
 
-# ============================================================================
-
 def read_bytes(path):
     path = str(path)
     with open(path, 'rb') as file:
         data = file.read()
     return data
 
-
-# ============================================================================
 
 def normalize_whitespace(text):
     return ' '.join(text.split())
@@ -55,8 +51,6 @@ def test_normalize_whitespace():
     ans_out = normalize_whitespace('abc\tdef')
     assert ans_ref == ans_out
 
-
-# ============================================================================
 
 def run_cli(args=None, namespace=None):
     FLAG = 'store_true'
@@ -86,13 +80,9 @@ def run_cli(args=None, namespace=None):
     xxd(**kwargs)
 
 
-# ============================================================================
-
 def test_parse_seek():
     assert parse_seek(None) == ('', 0)
 
-
-# ============================================================================
 
 def test_by_filename_xxd(tmppath, datapath):
     prefix = 'test_xxd_'
@@ -112,7 +102,7 @@ def test_by_filename_xxd(tmppath, datapath):
 
         ans_out = read_text(path_out)
         ans_ref = read_text(path_ref)
-        #if ans_out != ans_ref: raise AssertionError(str(path_ref))
+        # if ans_out != ans_ref: raise AssertionError(str(path_ref))
         assert ans_out == ans_ref
 
 
@@ -134,7 +124,7 @@ def test_by_filename_bin(tmppath, datapath):
 
         ans_out = read_bytes(path_out)
         ans_ref = read_bytes(path_ref)
-        #if ans_out != ans_ref: raise AssertionError(str(path_ref))
+        # if ans_out != ans_ref: raise AssertionError(str(path_ref))
         assert ans_out == ans_ref
 
 
@@ -156,7 +146,7 @@ def test_by_filename_c(tmppath, datapath):
 
         ans_out = read_text(path_out)
         ans_ref = read_text(path_ref)
-        #if ans_out != ans_ref: raise AssertionError(str(path_ref))
+        # if ans_out != ans_ref: raise AssertionError(str(path_ref))
         assert ans_out == ans_ref
 
 
@@ -223,103 +213,127 @@ def test_xxd(datapath):
 
 
 def test_xxd_stdinout(datapath):
-    stdin_backup = sys.stdin
-    stdout_backup = sys.stdout
-    text_out = None
-    text_ref = None
+    with open(str(datapath / 'bytes.bin'), 'rb') as stream:
+        data_in = stream.read()
+    stream_in = io.BytesIO(data_in)
+    stream_out = io.BytesIO()
 
-    try:
-        with open(str(datapath / 'bytes.bin'), 'rb') as stream:
-            data_in = memoryview(stream.read())
-        sys.stdin = io.BytesIO(data_in)
-        sys.stdout = io.StringIO()
-
+    with replace_stdin(stream_in), replace_stdout(stream_out):
         xxd()
 
-        with open(str(datapath / 'test_xxd_bytes.bin.xxd'), 'rt') as stream:
-            text_ref = stream.read().replace('\r\n', '\n')
-        text_out = sys.stdout.getvalue().replace('\r\n', '\n')
+    with open(str(datapath / 'test_xxd_bytes.bin.xxd'), 'rb') as stream:
+        text_ref = stream.read().replace(b'\r\n', b'\n')
 
-    finally:
-        sys.stdin = stdin_backup
-        sys.stdout = stdout_backup
-
+    text_out = stream_out.getvalue().replace(b'\r\n', b'\n')
     assert text_out == text_ref
 
 
 def test_xxd_bytes(datapath):
     with open(str(datapath / 'bytes.bin'), 'rb') as stream:
-        data_in = memoryview(stream.read())
-    text_out = io.StringIO()
+        data_in = stream.read()
+    text_out = io.BytesIO()
 
     xxd(data_in, text_out)
 
-    with open(str(datapath / 'test_xxd_bytes.bin.xxd'), 'rt') as stream:
-        text_ref = stream.read().replace('\r\n', '\n')
-    text_out = text_out.getvalue().replace('\r\n', '\n')
+    with open(str(datapath / 'test_xxd_bytes.bin.xxd'), 'rb') as stream:
+        text_ref = stream.read().replace(b'\r\n', b'\n')
 
+    text_out = text_out.getvalue().replace(b'\r\n', b'\n')
     assert text_out == text_ref
 
 
 def test_xxd_bytes_seek(datapath):
-    stdin_backup = sys.stdin
-    stdout_backup = sys.stdout
-    text_out = None
-    text_ref = None
+    with open(str(datapath / 'bytes.bin'), 'rb') as stream:
+        data_in = stream.read()
+    stream_in = io.BytesIO(data_in)
+    stream_out = io.BytesIO()
 
-    try:
-        with open(str(datapath / 'bytes.bin'), 'rb') as stream:
-            data_in = memoryview(stream.read())
-        sys.stdin = io.BytesIO(data_in)
-        sys.stdout = io.StringIO()
-
-        sys.stdin.seek(96, io.SEEK_CUR)
-
+    with replace_stdin(stream_in), replace_stdout(stream_out):
+        sys.stdin.buffer.seek(96, io.SEEK_CUR)
         xxd(iseek='+-64')
 
-        filename = 'test_xxd_-s_32_bytes.bin.xxd'
-        with open(str(datapath / filename), 'rt') as stream:
-            text_ref = stream.read().replace('\r\n', '\n')
-        text_out = sys.stdout.getvalue().replace('\r\n', '\n')
+    filename = 'test_xxd_-s_32_bytes.bin.xxd'
+    with open(str(datapath / filename), 'rb') as stream:
+        text_ref = stream.read().replace(b'\r\n', b'\n')
 
-    finally:
-        sys.stdin = stdin_backup
-        sys.stdout = stdout_backup
-
+    text_out = stream_out.getvalue().replace(b'\r\n', b'\n')
     assert text_out == text_ref
 
 
 def test_xxd_include_stdin(datapath):
     with open(str(datapath / 'bytes.bin'), 'rb') as stream:
-        data_in = memoryview(stream.read())
-    text_out = io.StringIO()
+        data_in = stream.read()
+    text_out = io.BytesIO()
 
     xxd(data_in, text_out, include=True)
 
-    with open(str(datapath / 'bytes-stdin.c'), 'rt') as stream:
-        text_ref = stream.read().replace('\r\n', '\n')
-    text_out = text_out.getvalue().replace('\r\n', '\n')
+    with open(str(datapath / 'bytes-stdin.c'), 'rb') as stream:
+        text_ref = stream.read().replace(b'\r\n', b'\n')
+    text_out = text_out.getvalue().replace(b'\r\n', b'\n')
 
     assert text_out == text_ref
 
 
-def test_xxd_ellipsis(datapath):
-    with open(str(datapath / 'test_xxd_bytes.bin.xxd'), 'rt') as stream:
-        text_ref = stream.read().replace('\r\n', '\n')
+def test_xxd_none(datapath):
+    with open(str(datapath / 'test_xxd_bytes.bin.xxd'), 'rb') as stream:
+        text_ref = stream.read().replace(b'\r\n', b'\n')
 
-    with open(str(datapath / 'bytes.bin'), 'rb') as stream_in:
-        stream_out = xxd(stream_in, Ellipsis)
+    fake_stdout = io.BytesIO()
+    with replace_stdout(fake_stdout):
+        with open(str(datapath / 'bytes.bin'), 'rb') as stream_in:
+            xxd(stream_in, linesep=b'\n')
 
-    text_out = stream_out.getvalue()
+    text_out = fake_stdout.getvalue()
     assert text_out == text_ref
 
 
-def test_xxd_ellipsis_reverse(datapath):
+def test_xxd_none_revert(datapath):
     with open(str(datapath / 'bytes.bin'), 'rb') as stream:
-        data_ref = memoryview(stream.read())
+        data_ref = stream.read()
 
-    with open(str(datapath / 'bytes.xxd'), 'rt') as stream_in:
-        stream_out = xxd(stream_in, Ellipsis, revert=True)
+    fake_stdout = io.BytesIO()
+    with replace_stdout(fake_stdout):
+        with open(str(datapath / 'bytes.xxd'), 'rb') as stream_in:
+            xxd(stream_in, revert=True)
+
+    data_out = fake_stdout.getvalue()
+    assert data_out == data_ref
+
+
+def test_xxd_none_revert_oseek(datapath):
+    skip = (ZERO_BLOCK_SIZE * 2) + (ZERO_BLOCK_SIZE // 4)
+    data_in = b'ABCD'
+
+    stream_in = io.BytesIO(data_in)
+    stream_out = io.BytesIO()
+    xxd(stream_in, stream_out)
+    xxd_in = stream_out.getvalue()
+
+    stream_in = io.BytesIO(xxd_in)
+    stream_out = io.BytesIO()
+    xxd(stream_in, stream_out, oseek=skip, revert=True)
 
     data_out = stream_out.getvalue()
+    data_ref = (b'\0' * skip) + data_in
     assert data_out == data_ref
+
+
+def test_xxd_none_revert_offset(datapath):
+    skip = (ZERO_BLOCK_SIZE * 2) + (ZERO_BLOCK_SIZE // 4)
+    data_in = b'ABCD'
+
+    stream_in = io.BytesIO(data_in)
+    stream_out = io.BytesIO()
+    xxd(stream_in, stream_out, offset=skip)
+    xxd_in = stream_out.getvalue()
+
+    stream_in = io.BytesIO(xxd_in)
+    stream_out = io.BytesIO()
+    xxd(stream_in, stream_out, revert=True)
+
+    data_out = stream_out.getvalue()
+    data_ref = (b'\0' * skip) + data_in
+    assert data_out == data_ref
+
+
+# TODO: outoffset

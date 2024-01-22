@@ -8,8 +8,6 @@ from hexrec.utils import *
 HEXBYTES = bytes(range(16))
 
 
-# ============================================================================
-
 PARSE_INT_PASS: Mapping[Any, int] = {
     None: None,
 
@@ -51,22 +49,16 @@ PARSE_INT_FAIL: Mapping[Any, Type[BaseException]] = {
 }
 
 
-# ============================================================================
-
-def test_check_empty_args_kwargs():
-    check_empty_args_kwargs([], {})
-    check_empty_args_kwargs(None, {})
-    check_empty_args_kwargs([], None)
-    check_empty_args_kwargs(None, None)
-
-    with pytest.raises(ValueError, match='unexpected positional argument'):
-        check_empty_args_kwargs([Ellipsis], {})
-
-    with pytest.raises(ValueError, match='unexpected keyword argument'):
-        check_empty_args_kwargs([], {'_': Ellipsis})
+def test_chop():
+    with pytest.raises(ValueError):
+        next(chop(b'ABDEFG', -1))
 
 
-# ============================================================================
+def test_chop_doctest():
+    assert list(chop(b'ABCDEFG', 2)) == [b'AB', b'CD', b'EF', b'G']
+    assert b':'.join(chop(b'ABCDEFG', 2)) == b'AB:CD:EF:G'
+    assert list(chop(b'ABCDEFG', 4, 3)) == [b'A', b'BCDE', b'FG']
+
 
 def test_parse_int_doctest():
     assert parse_int('-0xABk') == -175104
@@ -86,74 +78,27 @@ def test_parse_int_fail():
             parse_int(value_in)
 
 
-# ============================================================================
-
-def test_chop_doctest():
-    assert list(chop('ABCDEFG', 2)) == ['AB', 'CD', 'EF', 'G']
-    assert ':'.join(chop('ABCDEFG', 2)) == 'AB:CD:EF:G'
-    assert list(chop('ABCDEFG', 4, 3)) == ['A', 'BCDE', 'FG']
-
-
-def test_chop():
-    with pytest.raises(ValueError):
-        next(chop('ABDEFG', -1))
-
-
-# ============================================================================
-
-def test_columnize_doctest():
-    ans_out = columnize('ABCDEFGHIJKLMNOPQRSTUVWXYZ', 6, sep=' ', window=3)
-    ans_ref = 'ABC DEF\nGHI JKL\nMNO PQR\nSTU VWX\nYZ'
-    assert ans_out == ans_ref
-
-
-# ============================================================================
-
-def test_hexlify_doctest():
-    ans_out = hexlify(b'Hello, World!', sep='.')
-    ans_ref = '48.65.6C.6C.6F.2C.20.57.6F.72.6C.64.21'
-    assert ans_out == ans_ref
-
-    ans_out = hexlify(b'Hello, World!', 6, ' ')
-    ans_ref = '48 65 6C\n6C 6F 2C\n20 57 6F\n72 6C 64\n21'
-    assert ans_out == ans_ref
-
-
 def test_hexlify():
     bytes_in = HEXBYTES
 
-    sep = ''
-    ans_ref = sep.join('{:02x}'.format(b) for b in bytes_in)
-    ans_out = hexlify(bytes_in, sep=sep, upper=False)
+    ans_ref = b''.join((b'%02x' % b) for b in bytes_in)
+    ans_out = hexlify(bytes_in, upper=False)
     assert ans_out == ans_ref
 
-    ans_ref = ans_ref[:16] + '\n' + ans_ref[16:]
-    ans_out = hexlify(bytes_in, sep=sep, upper=False, width=16)
-    assert ans_out == ans_ref
-
-    ans_ref = sep.join('{:02X}'.format(b) for b in bytes_in)
-    ans_out = hexlify(bytes_in, sep=sep, upper=True)
-    assert ans_out == ans_ref
-
-    sep = '.'
-    ans_ref = sep.join('{:02X}'.format(b) for b in bytes_in)
-    ans_out = hexlify(bytes_in, sep=sep, upper=True)
-    assert ans_out == ans_ref
-
-
-# ============================================================================
-
-def test_unhexlify_doctest():
-    ans_out = unhexlify('48656C6C 6F2C2057 6F726C64 21')
-    ans_ref = b'Hello, World!'
+    ans_ref = b''.join((b'%02X' % b) for b in bytes_in)
+    ans_out = hexlify(bytes_in, upper=True)
     assert ans_out == ans_ref
 
 
 def test_unhexlify():
     bytes_ref = HEXBYTES
 
-    str_in = ' '.join('{:02x}'.format(b) for b in bytes_ref)
-    assert unhexlify(str_in) == bytes_ref
+    bytes_in = b' '.join((b'%02x' % b) for b in bytes_ref)
+    assert unhexlify(bytes_in) == bytes_ref
 
-    str_in = ' '.join('{:02X}'.format(b) for b in bytes_ref)
-    assert unhexlify(str_in) == bytes_ref
+    bytes_in = b' '.join((b'%02X' % b) for b in bytes_ref)
+    assert unhexlify(bytes_in) == bytes_ref
+
+    ans_out = unhexlify(b'48656C6C 6F2C2057 6F726C64 21')
+    ans_ref = b'Hello, World!'
+    assert ans_out == ans_ref

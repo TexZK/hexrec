@@ -17,10 +17,17 @@ from hexrec.records import BaseFile
 from hexrec.records import BaseRecord
 from hexrec.records import BaseTag
 from hexrec.records import colorize_tokens
-from hexrec.records import guess_type_class
-from hexrec.records import guess_type_name
+from hexrec.records import convert
+from hexrec.records import guess_format_type
+from hexrec.records import guess_format_name
+from hexrec.records import load
+from hexrec.records import merge
 
-# ============================================================================
+
+@pytest.fixture
+def tmppath(tmpdir):
+    return Path(str(tmpdir))
+
 
 @pytest.fixture(scope='module')
 def datadir(request):
@@ -34,8 +41,6 @@ def datapath(datadir):
     return Path(str(datadir))
 
 
-# ----------------------------------------------------------------------------
-
 @pytest.fixture
 def fake_token_color_codes(request):
     backup = _hr.TOKEN_COLOR_CODES
@@ -43,8 +48,6 @@ def fake_token_color_codes(request):
     yield
     _hr.TOKEN_COLOR_CODES = backup
 
-
-# ----------------------------------------------------------------------------
 
 @pytest.fixture
 def fake_file_types(request):
@@ -59,14 +62,11 @@ def fake_file_types(request):
     _hr.FILE_TYPES = backup
 
 
-# ----------------------------------------------------------------------------
-
 class replace_stdin:
 
     def __init__(self, stream):
         self.buffer = stream
         self.original = sys.stdin
-        self.read = stream.read
 
     def __enter__(self):
         sys.stdin = self
@@ -74,8 +74,6 @@ class replace_stdin:
     def __exit__(self, exc_type, exc_val, exc_tb):
         sys.stdin = self.original
 
-
-# ----------------------------------------------------------------------------
 
 class replace_stdout:
 
@@ -90,8 +88,6 @@ class replace_stdout:
     def __exit__(self, exc_type, exc_val, exc_tb):
         sys.stdout = self.original
 
-
-# ============================================================================
 
 def test_colorize_tokens_altdata(fake_token_color_codes):
 
@@ -165,51 +161,185 @@ def test_colorize_tokens_plaindata(fake_token_color_codes):
     assert actual == expected
 
 
-# ----------------------------------------------------------------------------
+def test_convert(datapath, tmppath):
+    in_path = str(datapath / 'simple.hex')
+    out_path = str(tmppath / 'simple.srec')
+    ref_path = str(datapath / 'simple.srec')
+    in_file, out_file = convert(in_path, out_path)
+    assert in_file is not out_file
+    assert in_file.memory is not out_file.memory
+    blocks = [[0x1234, b'abc'], [0xABCD5678, b'xyz']]
+    assert in_file.memory.to_blocks() == blocks
+    assert out_file.memory.to_blocks() == blocks
+    with open(out_path, 'rb') as out_stream:
+        out_content = out_stream.read()
+    with open(ref_path, 'rb') as ref_stream:
+        ref_content = ref_stream.read()
+    assert out_content == ref_content
 
-def test_guess_type_name():
+
+def test_convert_out_format(datapath, tmppath):
+    in_path = str(datapath / 'simple.hex')
+    out_path = str(tmppath / 'simple.srec')
+    ref_path = str(datapath / 'simple.srec')
+    in_file, out_file = convert(in_path, out_path, out_format='srec')
+    assert in_file is not out_file
+    assert in_file.memory is not out_file.memory
+    blocks = [[0x1234, b'abc'], [0xABCD5678, b'xyz']]
+    assert in_file.memory.to_blocks() == blocks
+    assert out_file.memory.to_blocks() == blocks
+    with open(out_path, 'rb') as out_stream:
+        out_content = out_stream.read()
+    with open(ref_path, 'rb') as ref_stream:
+        ref_content = ref_stream.read()
+    assert out_content == ref_content
+
+
+def test_guess_format_name():
     vector = [
         ('ihex', 'example.hex'),
         ('srec', 'example.srec'),
     ]
     for expected, path in vector:
-        actual = guess_type_name(path)
+        actual = guess_format_name(path)
         assert actual == expected
 
 
-def test_guess_type_name_hex(fake_file_types, datapath):
+def test_guess_format_name_hex(fake_file_types, datapath):
     path = str(datapath / 'simple.hex')
-    name = guess_type_name(path)
+    name = guess_format_name(path)
     assert name == 'ihex'
 
 
-def test_guess_type_name_raw(fake_file_types, datapath):
+def test_guess_format_name_raw(fake_file_types, datapath):
     path = str(datapath / 'data.dat')
-    name = guess_type_name(path)
+    name = guess_format_name(path)
     assert name == 'raw'
 
 
-def test_guess_type_name_raises_missing():
+def test_guess_format_name_raises_missing():
     with pytest.raises(ValueError, match='extension not found'):
-        guess_type_name('file._some_unexisting_extension_')
+        guess_format_name('file._some_unexisting_extension_')
 
 
-def test_guess_type_name_raises_guess_hex(fake_file_types):
+def test_guess_format_name_raises_guess_hex(fake_file_types):
     with pytest.raises(ValueError, match='cannot guess record file type'):
-        guess_type_name('file.hex')
+        guess_format_name('file.hex')
 
 
-def test_guess_type_class():
+def test_guess_format_type():
     vector = [
         (IhexFile, 'example.hex'),
         (SrecFile, 'example.srec'),
     ]
     for expected, path in vector:
-        actual = guess_type_class(path)
+        actual = guess_format_type(path)
         assert actual is expected
 
 
-# ============================================================================
+def test_load(datapath):
+    IhexRecord = IhexFile.Record
+    in_path = str(datapath / 'simple.hex')
+    records = [
+        IhexRecord.create_data(0x1234, b'abc'),
+        IhexRecord.create_extended_linear_address(0xABCD),
+        IhexRecord.create_data(0x5678, b'xyz'),
+        IhexRecord.create_start_linear_address(0xABCD5678),
+        IhexRecord.create_end_of_file(),
+    ]
+    in_file = load(in_path)
+    assert in_file.records == records
+
+
+def test_load_in_format(datapath):
+    IhexRecord = IhexFile.Record
+    in_path = str(datapath / 'simple.hex')
+    records = [
+        IhexRecord.create_data(0x1234, b'abc'),
+        IhexRecord.create_extended_linear_address(0xABCD),
+        IhexRecord.create_data(0x5678, b'xyz'),
+        IhexRecord.create_start_linear_address(0xABCD5678),
+        IhexRecord.create_end_of_file(),
+    ]
+    in_file = load(in_path, in_format='ihex')
+    assert in_file.records == records
+
+
+def test_merge(datapath, tmppath):
+    in_paths = [
+        str(datapath / 'data.dat'),
+        str(datapath / 'simple.hex'),
+    ]
+    out_path = str(tmppath / 'merged.xtek')
+    ref_path = str(datapath / 'merged.xtek')
+    in_files, out_file = merge(in_paths, out_path)
+    out_blocks = [
+        [0, b'first\nsecond\n'],
+        [0x1234, b'abc'],
+        [0xABCD5678, b'xyz'],
+    ]
+    assert out_file.memory.to_blocks() == out_blocks
+    for in_file in in_files:
+        assert in_file is not out_file
+        assert in_file.memory is not out_file.memory
+        assert in_file.memory != out_file.memory
+    with open(out_path, 'rb') as out_stream:
+        out_content = out_stream.read()
+    with open(ref_path, 'rb') as ref_stream:
+        ref_content = ref_stream.read()
+    assert out_content == ref_content
+
+
+def test_merge_formats(datapath, tmppath):
+    in_paths = [
+        str(datapath / 'data.dat'),
+        str(datapath / 'simple.hex'),
+    ]
+    out_path = str(tmppath / 'merged.xtek')
+    ref_path = str(datapath / 'merged.xtek')
+    in_formats = ['raw', 'ihex']
+    out_format = 'xtek'
+    in_files, out_file = merge(in_paths, out_path,
+                               in_formats=in_formats,
+                               out_format=out_format)
+    out_blocks = [
+        [0, b'first\nsecond\n'],
+        [0x1234, b'abc'],
+        [0xABCD5678, b'xyz'],
+    ]
+    assert out_file.memory.to_blocks() == out_blocks
+    for in_file in in_files:
+        assert in_file is not out_file
+        assert in_file.memory is not out_file.memory
+        assert in_file.memory != out_file.memory
+    with open(out_path, 'rb') as out_stream:
+        out_content = out_stream.read()
+    with open(ref_path, 'rb') as ref_stream:
+        ref_content = ref_stream.read()
+    assert out_content == ref_content
+
+
+def test_merge_out_none(datapath, tmppath):
+    in_paths = [
+        str(datapath / 'data.dat'),
+        str(datapath / 'simple.hex'),
+    ]
+    in_formats = ['raw', 'ihex']
+    out_format = 'xtek'
+    in_files, out_file = merge(in_paths,
+                               in_formats=in_formats,
+                               out_format=out_format)
+    out_blocks = [
+        [0, b'first\nsecond\n'],
+        [0x1234, b'abc'],
+        [0xABCD5678, b'xyz'],
+    ]
+    assert out_file.memory.to_blocks() == out_blocks
+    for in_file in in_files:
+        assert in_file is not out_file
+        assert in_file.memory is not out_file.memory
+        assert in_file.memory != out_file.memory
+
 
 class BaseTestTag:
 
@@ -220,8 +350,6 @@ class BaseTestTag:
     def test_is_data(self):
         ...
 
-
-# ----------------------------------------------------------------------------
 
 class BaseTestRecord:
 
@@ -624,8 +752,6 @@ class BaseTestRecord:
             with pytest.raises(ValueError, match=match):
                 record.validate()
 
-
-# ----------------------------------------------------------------------------
 
 class BaseTestFile:
 

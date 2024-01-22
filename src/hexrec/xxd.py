@@ -35,7 +35,7 @@ from typing import Optional
 from typing import Tuple
 from typing import Union
 
-from .utils import BIN8_TO_STR
+from .utils import BIN8_TO_BYTES
 from .utils import AnyBytes
 from .utils import chop
 from .utils import hexlify
@@ -44,51 +44,53 @@ from .utils import unhexlify
 
 _SEEKING_REGEX = re.compile(r'^(?P<sign>\+?-?)-?(?P<absolute>\w+)$')
 
-_REVERSE_REGEX = re.compile(r'^\s*(?P<address>[A-Fa-f0-9]+)\s*:\s*'
-                            r'(?P<data>([A-Fa-f0-9]{2}\s*)+)'
-                            r'(?P<garbage>.*)$')
+_REVERSE_REGEX = re.compile(b'^\\s*(?P<address>[A-Fa-f0-9]+)\\s*:\\s*'
+                            b'(?P<data>([A-Fa-f0-9]{2}\\s*)+)'
+                            b'[ ]{2}(?P<garbage>.*)$')
 
-HUMAN_ASCII = (r'................'
-               r'................'
-               r' !"#$%&' r"'()*+,-./"
-               r'0123456789:;<=>?'
-               r'@ABCDEFGHIJKLMNO'
-               r'PQRSTUVWXYZ[\]^_'
-               r'`abcdefghijklmno'
-               r'pqrstuvwxyz{|}~.'
-               r'................'
-               r'................'
-               r'................'
-               r'................'
-               r'................'
-               r'................'
-               r'................'
-               r'................')
+ZERO_BLOCK_SIZE = 1 << 20  # 1 MiB
+
+HUMAN_ASCII = (b'................'
+               b'................'
+               b' !"#$%&\'()*+,-./'
+               b'0123456789:;<=>?'
+               b'@ABCDEFGHIJKLMNO'
+               b'PQRSTUVWXYZ[\\]^_'
+               b'`abcdefghijklmno'
+               b'pqrstuvwxyz{|}~.'
+               b'................'
+               b'................'
+               b'................'
+               b'................'
+               b'................'
+               b'................'
+               b'................'
+               b'................')
 r"""Mapping from byte to human-readable ASCII characters."""
 
-HUMAN_EBCDIC = (r'................'
-                r'................'
-                r'................'
-                r'................'
-                r' ...........<(+|'
-                r'&.........!$*);~'
-                r'-/.........,%_>?'
-                r".........`:#@'=" r'"'
-                r'.abcdefghi......'
-                r'.jklmnopqr^.....'
-                r'..stuvwxyz...[..'
-                r'.............]..'
-                r'{ABCDEFGHI......'
-                r'}JKLMNOPQR......'
-                r'\.STUVWXYZ......'
-                r'0123456789......')
+HUMAN_EBCDIC = (b'................'
+                b'................'
+                b'................'
+                b'................'
+                b' ...........<(+|'
+                b'&.........!$*);~'
+                b'-/.........,%_>?'
+                b'.........`:#@\'="'
+                b'.abcdefghi......'
+                b'.jklmnopqr^.....'
+                b'..stuvwxyz...[..'
+                b'.............]..'
+                b'{ABCDEFGHI......'
+                b'}JKLMNOPQR......'
+                b'\\.STUVWXYZ......'
+                b'0123456789......')
 r"""Mapping from byte to human-readable EBCDIC characters."""
 
 
 def humanize(
     chunk: AnyBytes,
-    charset: Union[str, Mapping[int, str]],
-) -> str:
+    charset: Union[bytes, Mapping[int, bytes]],
+) -> bytes:
     r"""Translates bytes to a human-readable representation.
 
     Arguments:
@@ -101,12 +103,11 @@ def humanize(
     Returns:
         str: Human-readable byte string.
     """
-    return ''.join(charset[b] for b in chunk)
+
+    return bytes(charset[b] for b in chunk)
 
 
-def parse_seek(
-    value: Optional[str],
-) -> Tuple[str, int]:
+def parse_seek(value: Optional[str]) -> Tuple[str, int]:
     r"""Parses the seek option string.
 
     Argument:
@@ -118,6 +119,7 @@ def parse_seek(
     Returns:
         tuple: ``(sign_string, unsigned_value)``.
     """
+
     if value is None:
         return '', 0
     else:
@@ -140,6 +142,7 @@ def xxd(
     groupsize: Optional[int] = None,
     include: bool = False,
     length: Optional[int] = None,
+    linesep: Optional[bytes] = None,
     offset: Optional[int] = None,
     postscript: bool = False,
     quadword: bool = False,
@@ -148,7 +151,7 @@ def xxd(
     iseek: Optional[Union[int, str]] = None,
     upper_all: bool = False,
     upper: bool = False,
-) -> None:
+) -> IO:
     r"""Emulation of the xxd utility core.
 
     Arguments:
@@ -213,6 +216,10 @@ def xxd(
         length (int):
             Stops after writing ``length`` octets.
 
+        linesep (bytes):
+            Line separator characters.
+            If ``None``, it defaults to ``os.linesep.encode()``.
+
         offset (int):
             Adds ``offset`` to the displayed file position.
 
@@ -273,18 +280,18 @@ def xxd(
     elif oseek is not None and oseek < 0:
         raise ValueError('invalid seeking')
 
+    if linesep is None:
+        linesep = os.linesep.encode()
+
     instream: Optional[IO] = None
     outstream: Optional[IO] = None
     try:
         # Input stream binding
         if infile is None or infile == '-':
             infile = None
-            instream = sys.stdin
+            instream = sys.stdin.buffer
         elif isinstance(infile, str):
-            if revert:
-                instream = open(infile, 'rt')
-            else:
-                instream = open(infile, 'rb')
+            instream = open(infile, 'rb')
         elif isinstance(infile, (bytes, bytearray, memoryview)):
             instream = io.BytesIO(infile)
         else:
@@ -293,20 +300,9 @@ def xxd(
         # Output stream binding
         if outfile is None or outfile == '-':
             outfile = None
-            outstream = sys.stdout
+            outstream = sys.stdout.buffer
         elif isinstance(outfile, str):
-            if revert:
-                if oseek:
-                    outstream = open(outfile, 'w+b')
-                else:
-                    outstream = open(outfile, 'wb')
-            else:
-                outstream = open(outfile, 'wt')
-        elif outfile is Ellipsis:
-            if revert:
-                outstream = io.BytesIO()
-            else:
-                outstream = io.StringIO()
+            outstream = open(outfile, 'w+b' if revert and oseek else 'wb')
         else:
             outstream = outfile
 
@@ -322,14 +318,18 @@ def xxd(
                 instream.seek(-sv, io.SEEK_CUR)
             elif ss == '-':
                 instream.seek(-sv, io.SEEK_END)
-            else:  # ss == ''
+            else:  # elif ss == '':
                 instream.seek(sv, io.SEEK_SET)
 
             offset += instream.tell()
 
         # Output seeking
         if revert:
-            outstream.write(bytearray(oseek or 0))
+            zero_block = bytes(ZERO_BLOCK_SIZE)
+            for _ in range((oseek or 0) // ZERO_BLOCK_SIZE):
+                outstream.write(zero_block)
+            del zero_block
+            outstream.write(bytes((oseek or 0) % ZERO_BLOCK_SIZE))
 
         # Output mode handling
         if revert:
@@ -343,19 +343,23 @@ def xxd(
                     cols = 16
 
                 for line in instream:
-                    m = _REVERSE_REGEX.match(line)
-                    if m:
+                    match = _REVERSE_REGEX.match(line)
+                    if match:
                         # Interpret line contents
-                        groups = m.groupdict()
+                        groups = match.groupdict()
                         address = (oseek or 0) + int(groups['address'], 16)
-                        data = unhexlify(''.join(groups['data'].split()))
+                        data = unhexlify(groups['data'])
                         data = data[:cols]
 
                         # Write line data (fill gaps if needed)
                         outstream.seek(0, io.SEEK_END)
                         outoffset = outstream.tell()
                         if outoffset < address:
-                            outstream.write(bytearray(address - outoffset))
+                            zero_block = bytes(ZERO_BLOCK_SIZE)
+                            for _ in range((address - outoffset) // ZERO_BLOCK_SIZE):
+                                outstream.write(zero_block)
+                            del zero_block
+                            outstream.write(bytes((address - outoffset) % ZERO_BLOCK_SIZE))
                         outstream.seek(address, io.SEEK_SET)
                         outstream.write(data)
 
@@ -375,7 +379,7 @@ def xxd(
 
                 if chunk:
                     outstream.write(hexlify(chunk, upper=upper))
-                    outstream.write('\n')
+                    outstream.write(linesep)
                     count += len(chunk)
                 else:
                     raise StopIteration  # End of input stream
@@ -393,15 +397,17 @@ def xxd(
             # Data variable definition
             if isinstance(infile, str):
                 label = os.path.basename(infile)
-                label = re.sub('[^0-9a-zA-Z]+', '_', label)
-                outstream.write(f'unsigned char {label}[] = {{\n')
+                label = re.sub('[^0-9a-zA-Z]+', '_', label).encode()
+                outstream.write(b'unsigned char %s[] = {%s'
+                                % (label, linesep))
             else:
                 label = None
 
-            indent = '  0X' if upper_all else '  0x'
-            sep = ', 0X' if upper_all else ', 0x'
+            indent = b'  0X' if upper_all else b'  0x'
+            sep = b', 0X' if upper_all else b', 0x'
 
             count = 0
+            comma_linesep = b',' + linesep
             while True:
                 if length is None:
                     chunk = instream.read(cols)
@@ -410,18 +416,20 @@ def xxd(
 
                 if chunk:
                     if count:
-                        outstream.write(',\n')
+                        outstream.write(comma_linesep)
                     outstream.write(indent)
-                    outstream.write(hexlify(chunk, upper=upper, sep=sep))
+                    token_fmt = b'%02X' if upper else b'%02x'
+                    text = sep.join((token_fmt % b) for b in chunk)
+                    outstream.write(text)
                     count += len(chunk)
 
                 else:
                     # Data end and length variable definition
                     if isinstance(infile, str):
-                        outstream.write(f'\n}};\nunsigned int {label}_len'
-                                        f' = {count};\n')
+                        outstream.write(b'%s};%sunsigned int %s_len = %d;%s'
+                                        % (linesep, linesep, label, count, linesep))
                     else:
-                        outstream.write('\n')
+                        outstream.write(linesep)
 
                     raise StopIteration  # End of input stream
 
@@ -437,12 +445,12 @@ def xxd(
         data_width = (cols * (8 if bits else 2) +
                       ((cols - 1) // groupsize if groupsize else 0))
 
-        line_fmt = (f'{{:0'
-                    f'{16 if quadword else 8}'
-                    f'{"X" if upper_all else "x"}'
-                    f'}}: '
-                    f'{{:{data_width}s}}  '
-                    f'{{}}\n')
+        line_fmt = b'%%0%d%s: %%-%ds  %%s%s' % (
+            (16 if quadword else 8),
+            (b'X' if upper_all else b'x'),
+            data_width,
+            linesep
+        )
 
         # Hex dump
         if not 0 <= offset < 0xFFFFFFFF:
@@ -475,24 +483,17 @@ def xxd(
                     tokens = (chunk,)
 
                 if bits:
-                    tokens = ' '.join(''.join(BIN8_TO_STR[bits]
-                                              for bits in token)
-                                      for token in tokens)
+                    tokens = b' '.join(b''.join(BIN8_TO_BYTES[bits] for bits in token) for token in tokens)
                 elif groupsize:
-                    tokens = ' '.join(hexlify(token[::-1] if endian else token,
-                                              upper=upper)
-                                      for token in tokens)
+                    tokens = b' '.join(hexlify(token[::-1] if endian else token, upper=upper) for token in tokens)
                 else:
                     tokens = hexlify(*tokens, upper=upper)
 
                 # Comment text generation
-                if ebcdic:
-                    text = humanize(chunk, HUMAN_EBCDIC)
-                else:
-                    text = humanize(chunk, HUMAN_ASCII)
+                text = humanize(chunk, HUMAN_EBCDIC if ebcdic else HUMAN_ASCII)
 
                 # Line output
-                line = line_fmt.format(offset, tokens, text)
+                line = line_fmt % (offset, tokens, text)
                 outstream.write(line)
 
                 offset += len(chunk)
@@ -500,7 +501,8 @@ def xxd(
 
                 if last_zero is Ellipsis:
                     last_zero = True
-                    outstream.write('*\n')
+                    outstream.write(b'*')
+                    outstream.write(linesep)
 
             else:
                 raise StopIteration  # End of input stream
