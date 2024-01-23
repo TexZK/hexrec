@@ -1,7 +1,7 @@
 Changelog
 =========
 
-0.3.1 (TBD)
+0.3.1 (2024-01-23)
 ------------------
 
 * Added support for Python 3.12.
