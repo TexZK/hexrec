@@ -24,8 +24,6 @@ ELA = IhexTag.EXTENDED_LINEAR_ADDRESS
 SLA = IhexTag.START_LINEAR_ADDRESS
 
 
-# ============================================================================
-
 @pytest.fixture
 def tmppath(tmpdir):  # pragma: no cover
     return Path(str(tmpdir))
@@ -42,8 +40,6 @@ def datadir(request):
 def datapath(datadir):
     return Path(str(datadir))
 
-
-# ============================================================================
 
 class TestIhexTag(BaseTestTag):
 
@@ -89,8 +85,6 @@ class TestIhexTag(BaseTestTag):
         assert IhexTag.EXTENDED_LINEAR_ADDRESS.is_extension() is True
         assert IhexTag.START_LINEAR_ADDRESS.is_extension() is False
 
-
-# ============================================================================
 
 class TestIhexRecord(BaseTestRecord):
 
@@ -599,8 +593,6 @@ class TestIhexRecord(BaseTestRecord):
             returned = record.validate()
             assert returned is record
 
-
-# ============================================================================
 
 class TestIhexFile(BaseTestFile):
 

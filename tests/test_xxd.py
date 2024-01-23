@@ -334,6 +334,3 @@ def test_xxd_none_revert_offset(datapath):
     data_out = stream_out.getvalue()
     data_ref = (b'\0' * skip) + data_in
     assert data_out == data_ref
-
-
-# TODO: outoffset

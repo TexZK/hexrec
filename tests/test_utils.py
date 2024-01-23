@@ -60,24 +60,6 @@ def test_chop_doctest():
     assert list(chop(b'ABCDEFG', 4, 3)) == [b'A', b'BCDE', b'FG']
 
 
-def test_parse_int_doctest():
-    assert parse_int('-0xABk') == -175104
-    assert parse_int(None) is None
-    assert parse_int(123) == 123
-    assert parse_int(135.7) == 135
-
-
-def test_parse_int_pass():
-    for value_in, value_out in PARSE_INT_PASS.items():
-        assert parse_int(value_in) == value_out
-
-
-def test_parse_int_fail():
-    for value_in, raised_exception in PARSE_INT_FAIL.items():
-        with pytest.raises(raised_exception):
-            parse_int(value_in)
-
-
 def test_hexlify():
     bytes_in = HEXBYTES
 
@@ -88,6 +70,24 @@ def test_hexlify():
     ans_ref = b''.join((b'%02X' % b) for b in bytes_in)
     ans_out = hexlify(bytes_in, upper=True)
     assert ans_out == ans_ref
+
+
+def test_parse_int_doctest():
+    assert parse_int('-0xABk') == -175104
+    assert parse_int(None) is None
+    assert parse_int(123) == 123
+    assert parse_int(135.7) == 135
+
+
+def test_parse_int_fail():
+    for value_in, raised_exception in PARSE_INT_FAIL.items():
+        with pytest.raises(raised_exception):
+            parse_int(value_in)
+
+
+def test_parse_int_pass():
+    for value_in, value_out in PARSE_INT_PASS.items():
+        assert parse_int(value_in) == value_out
 
 
 def test_unhexlify():

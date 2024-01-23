@@ -1,6 +1,13 @@
 Changelog
 =========
 
+0.4.0 (TBD)
+------------------
+
+* Library rewritten from scratch (not backwards compatible).
+* Added new object oriented API, hopefully more user friendly.
+
+
 0.3.1 (2024-01-23)
 ------------------
 

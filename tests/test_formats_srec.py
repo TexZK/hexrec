@@ -15,7 +15,6 @@ from hexrec.formats.srec import SrecFile
 from hexrec.formats.srec import SrecRecord
 from hexrec.formats.srec import SrecTag
 
-# ============================================================================
 
 @pytest.fixture
 def tmppath(tmpdir):  # pragma: no cover
@@ -33,8 +32,6 @@ def datadir(request):
 def datapath(datadir):
     return Path(str(datadir))
 
-
-# ============================================================================
 
 class TestSrecTag(BaseTestTag):
 
@@ -184,8 +181,6 @@ class TestSrecTag(BaseTestTag):
         assert SrecTag.START_24.is_start() is True
         assert SrecTag.START_16.is_start() is True
 
-
-# ----------------------------------------------------------------------------
 
 class TestSrecRecord(BaseTestRecord):
 

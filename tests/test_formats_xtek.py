@@ -15,7 +15,6 @@ from hexrec.formats.xtek import XtekFile
 from hexrec.formats.xtek import XtekRecord
 from hexrec.formats.xtek import XtekTag
 
-# ============================================================================
 
 @pytest.fixture
 def tmppath(tmpdir):  # pragma: no cover
@@ -34,8 +33,6 @@ def datapath(datadir):
     return Path(str(datadir))
 
 
-# ============================================================================
-
 class TestXtekTag(BaseTestTag):
 
     Tag = XtekTag
@@ -52,8 +49,6 @@ class TestXtekTag(BaseTestTag):
         assert XtekTag.DATA.is_eof() is False
         assert XtekTag.EOF.is_eof() is True
 
-
-# ----------------------------------------------------------------------------
 
 class TestXtekRecord(BaseTestRecord):
 
@@ -536,8 +531,6 @@ class TestXtekRecord(BaseTestRecord):
             with pytest.raises(ValueError, match=match):
                 record.validate()
 
-
-# ----------------------------------------------------------------------------
 
 class TestXtekFile(BaseTestFile):
 

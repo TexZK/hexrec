@@ -19,8 +19,6 @@ BYTES = bytes(range(256))
 HEXBYTES = bytes(range(16))
 
 
-# ============================================================================
-
 @pytest.fixture
 def tmppath(tmpdir):  # pragma: no cover
     return Path(str(tmpdir))
@@ -38,8 +36,6 @@ def datapath(datadir):
     return Path(str(datadir))
 
 
-# ============================================================================
-
 class TestRawTag(BaseTestTag):
 
     Tag = RawTag
@@ -49,8 +45,6 @@ class TestRawTag(BaseTestTag):
         assert tag is RawTag.DATA
         assert tag.is_data()
 
-
-# ----------------------------------------------------------------------------
 
 class TestRawRecord(BaseTestRecord):
 
@@ -114,8 +108,6 @@ class TestRawRecord(BaseTestRecord):
         with pytest.raises(ValueError, match='count overflow'):
             record.to_bytestr()
 
-
-# ----------------------------------------------------------------------------
 
 class TestRawFile(BaseTestFile):
 

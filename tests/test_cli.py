@@ -17,8 +17,6 @@ from hexrec.cli import *
 main = _cast(BaseCommand, main)  # suppress warnings
 
 
-# ============================================================================
-
 @pytest.fixture
 def tmppath(tmpdir):
     return Path(str(tmpdir))
@@ -36,8 +34,6 @@ def datapath(datadir):
     return Path(str(datadir))
 
 
-# ============================================================================
-
 def read_text(path):
     path = str(path)
     with open(path, 'rt') as file:
@@ -45,8 +41,6 @@ def read_text(path):
     data = data.replace('\r\n', '\n').replace('\r', '\n')  # normalize
     return data
 
-
-# ============================================================================
 
 class TestSingleFileInOutCtxMgr:
 
@@ -67,8 +61,6 @@ class TestSingleFileInOutCtxMgr:
         assert ctx.output_width == 33
 
 
-# ============================================================================
-
 class TestMultiFileInOutCtxMgr:
 
     def test___init__(self):
@@ -88,16 +80,12 @@ class TestMultiFileInOutCtxMgr:
         assert ctx.output_width == 33
 
 
-# ============================================================================
-
 def test_main():
     try:
         _main('__main__')
     except SystemExit:
         pass
 
-
-# ============================================================================
 
 def test_guess_input_type():
     assert guess_input_type('x.mot') is SrecFile
@@ -115,8 +103,6 @@ def test_guess_output_type():
     assert guess_output_type('y.tek', 'ihex') is IhexFile
 
 
-# ============================================================================
-
 def test_missing_input_format():
     commands = ('clear', 'convert', 'crop', 'delete', 'fill', 'flood', 'merge',
                 'reverse', 'shift')
@@ -130,8 +116,6 @@ def test_missing_input_format():
         assert match in str(result.exception)
 
 
-# ============================================================================
-
 def test_help():
     commands = ('clear', 'convert', 'crop', 'delete', 'fill', 'flood', 'merge',
                 'reverse', 'shift', 'xxd')
@@ -142,8 +126,6 @@ def test_help():
         assert result.exit_code == 0
         assert result.output.strip().startswith('Usage:')
 
-
-# ============================================================================
 
 def test_by_filename(tmppath, datapath):
     prefix = 'test_hexrec_'
@@ -167,8 +149,6 @@ def test_by_filename(tmppath, datapath):
         assert ans_out == ans_ref, filename
 
 
-# ============================================================================
-
 def test_fill_parse_byte_fail():
     runner = CliRunner()
     result = runner.invoke(main, 'fill -v 256 - -'.split())
@@ -177,8 +157,6 @@ def test_fill_parse_byte_fail():
     assert "invalid byte: '256'" in result.output
 
 
-# ============================================================================
-
 def test_merge_nothing():
     runner = CliRunner()
     result = runner.invoke(main, 'merge -i raw -'.split())
@@ -186,8 +164,6 @@ def test_merge_nothing():
     assert result.exit_code == 0
     assert result.output == ''
 
-
-# ============================================================================
 
 def test_merge_multi(datapath, tmppath):
     runner = CliRunner()
@@ -206,8 +182,6 @@ def test_merge_multi(datapath, tmppath):
     assert ans_out == ans_ref
 
 
-# ============================================================================
-
 def test_validate(datapath):
     runner = CliRunner()
     path_in = str(datapath / 'bytes.mot')
@@ -216,8 +190,6 @@ def test_validate(datapath):
     assert result.exit_code == 0
     assert result.output == ''
 
-
-# ============================================================================
 
 def test_motorola_dummy(datapath):
     runner = CliRunner()
@@ -261,8 +233,6 @@ def test_motorola_get_header_hex(datapath):
     assert result.output == '414243\n'
 
 
-# ============================================================================
-
 def test_xxd_version():
     runner = CliRunner()
     result = runner.invoke(main, 'xxd -v'.split())
@@ -270,8 +240,6 @@ def test_xxd_version():
     assert result.exit_code == 0
     assert result.output.strip() == str(_version)
 
-
-# ----------------------------------------------------------------------------
 
 def test_xxd_empty():
     runner = CliRunner()
@@ -281,8 +249,6 @@ def test_xxd_empty():
     assert result.output == ''
 
 
-# ----------------------------------------------------------------------------
-
 def test_xxd_parse_int_pass():
     runner = CliRunner()
     result = runner.invoke(main, 'xxd -c 0x10 - -'.split())
@@ -290,8 +256,6 @@ def test_xxd_parse_int_pass():
     assert result.exit_code == 0
     assert result.output == ''
 
-
-# ----------------------------------------------------------------------------
 
 def test_xxd_parse_int_fail():
     runner = CliRunner()

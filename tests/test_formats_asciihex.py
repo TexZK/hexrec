@@ -16,7 +16,6 @@ from hexrec.formats.asciihex import AsciiHexFile
 from hexrec.formats.asciihex import AsciiHexRecord
 from hexrec.formats.asciihex import AsciiHexTag
 
-# ============================================================================
 
 @pytest.fixture
 def tmppath(tmpdir):  # pragma: no cover
@@ -34,8 +33,6 @@ def datadir(request):
 def datapath(datadir):
     return Path(str(datadir))
 
-
-# ============================================================================
 
 class TestAsciiHexTag(BaseTestTag):
 
@@ -61,8 +58,6 @@ class TestAsciiHexTag(BaseTestTag):
         assert AsciiHexTag.ADDRESS.is_data() is False
         assert AsciiHexTag.CHECKSUM.is_data() is False
 
-
-# ----------------------------------------------------------------------------
 
 class TestAsciiHexRecord(BaseTestRecord):
 
@@ -502,8 +497,6 @@ class TestAsciiHexRecord(BaseTestRecord):
             returned = record.validate()
             assert returned is record
 
-
-# ----------------------------------------------------------------------------
 
 class TestAsciiHexFile(BaseTestFile):
 

@@ -14,7 +14,6 @@ from hexrec.formats.mos import MosFile
 from hexrec.formats.mos import MosRecord
 from hexrec.formats.mos import MosTag
 
-# ============================================================================
 
 @pytest.fixture
 def tmppath(tmpdir):  # pragma: no cover
@@ -33,8 +32,6 @@ def datapath(datadir):
     return Path(str(datadir))
 
 
-# ============================================================================
-
 class TestMosTag(BaseTestTag):
 
     Tag = MosTag
@@ -51,8 +48,6 @@ class TestMosTag(BaseTestTag):
         assert MosTag.DATA.is_eof() is False
         assert MosTag.EOF.is_eof() is True
 
-
-# ----------------------------------------------------------------------------
 
 class TestMosRecord(BaseTestRecord):
 
