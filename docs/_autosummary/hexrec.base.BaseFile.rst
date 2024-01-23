@@ -1,7 +1,7 @@
-hexrec.records.BaseFile
-=======================
+hexrec.base.BaseFile
+====================
 
-.. currentmodule:: hexrec.records
+.. currentmodule:: hexrec.base
 
 .. autoclass:: BaseFile
    :members:

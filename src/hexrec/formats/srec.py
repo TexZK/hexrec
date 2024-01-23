@@ -41,10 +41,10 @@ from typing import cast as _cast
 
 from bytesparse import Memory
 
-from ..records import BaseFile
-from ..records import BaseRecord
-from ..records import BaseTag
-from ..utils import AnyBytes
+from ..base import AnyBytes
+from ..base import BaseFile
+from ..base import BaseRecord
+from ..base import BaseTag
 
 
 class SrecTag(BaseTag, enum.IntEnum):

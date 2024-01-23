@@ -52,10 +52,10 @@ import click
 
 from .__init__ import FILE_TYPES
 from .__init__ import __version__
+from .base import BaseFile
+from .base import guess_format_name
 from .formats.srec import SrecFile
 from .formats.srec import SrecRecord
-from .records import BaseFile
-from .records import guess_format_name
 from .utils import hexlify
 from .utils import parse_int
 from .utils import unhexlify

@@ -4,10 +4,10 @@ import glob
 from pathlib import Path
 
 import pytest
+from test_base import replace_stdin
+from test_base import replace_stdout
 
 from hexrec.xxd import *
-from test_records import replace_stdin
-from test_records import replace_stdout
 
 
 @pytest.fixture

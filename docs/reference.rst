@@ -6,6 +6,7 @@ Reference
     :template: custom-module-template.rst
 
     hexrec
+    hexrec.base
     hexrec.formats
     hexrec.formats.asciihex
     hexrec.formats.ihex
@@ -13,6 +14,5 @@ Reference
     hexrec.formats.raw
     hexrec.formats.srec
     hexrec.formats.xtek
-    hexrec.records
     hexrec.utils
     hexrec.xxd

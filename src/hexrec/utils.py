@@ -26,26 +26,16 @@
 r"""Generic utility functions.
 """
 import binascii
-import os
 import re
 import sys
 from typing import Any
-from typing import ByteString
 from typing import Iterator
 from typing import List
 from typing import Mapping
 from typing import Optional
-from typing import Type
 from typing import Union
 
-try:
-    from typing import TypeAlias
-except ImportError:  # pragma: no cover
-    TypeAlias = Any  # Python < 3.10
-
-AnyBytes: TypeAlias = Union[ByteString, bytes, bytearray, memoryview]
-AnyPath: TypeAlias = Union[bytes, bytearray, str, os.PathLike]
-EllipsisType: TypeAlias = Type['Ellipsis']
+from .base import AnyBytes
 
 BIN8_TO_STR: List[str] = [bin(i)[2:].zfill(8) for i in range(256)]
 STR_TO_BIN8: Mapping[str, int] = {s: i for i, s in enumerate(BIN8_TO_STR)}

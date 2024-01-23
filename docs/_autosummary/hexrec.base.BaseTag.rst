@@ -1,7 +1,7 @@
-hexrec.records.BaseTag
-======================
+hexrec.base.BaseTag
+===================
 
-.. currentmodule:: hexrec.records
+.. currentmodule:: hexrec.base
 
 .. autoclass:: BaseTag
    :members:

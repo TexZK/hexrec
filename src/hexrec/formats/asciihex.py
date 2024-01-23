@@ -38,10 +38,10 @@ from typing import Optional
 from typing import Type
 from typing import cast as _cast
 
-from ..records import BaseFile
-from ..records import BaseRecord
-from ..records import BaseTag
-from ..utils import AnyBytes
+from ..base import AnyBytes
+from ..base import BaseFile
+from ..base import BaseRecord
+from ..base import BaseTag
 
 
 class AsciiHexTag(BaseTag, enum.IntEnum):

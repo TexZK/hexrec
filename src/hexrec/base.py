@@ -48,9 +48,14 @@ from bytesparse.base import BlockSequence
 from bytesparse.base import ImmutableMemory
 from bytesparse.base import MutableMemory
 
-from .utils import AnyBytes
-from .utils import AnyPath
-from .utils import EllipsisType
+try:
+    from typing import TypeAlias
+except ImportError:  # pragma: no cover
+    TypeAlias = Any  # Python < 3.10
+
+AnyBytes: TypeAlias = Union[bytes, bytearray, memoryview]
+AnyPath: TypeAlias = Union[bytes, bytearray, str, os.PathLike]
+EllipsisType: TypeAlias = Type['Ellipsis']
 
 FILE_TYPES: MutableMapping[str, Type['BaseFile']] = {}
 r"""Registered record file types."""

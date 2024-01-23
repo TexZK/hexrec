@@ -6,11 +6,11 @@ from typing import cast as _cast
 
 import pytest
 from bytesparse import Memory
-from test_records import BaseTestFile
-from test_records import BaseTestRecord
-from test_records import BaseTestTag
-from test_records import replace_stdin
-from test_records import replace_stdout
+from test_base import BaseTestFile
+from test_base import BaseTestRecord
+from test_base import BaseTestTag
+from test_base import replace_stdin
+from test_base import replace_stdout
 
 from hexrec.formats.asciihex import AsciiHexFile
 from hexrec.formats.asciihex import AsciiHexRecord

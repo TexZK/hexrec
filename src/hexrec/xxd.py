@@ -35,8 +35,8 @@ from typing import Optional
 from typing import Tuple
 from typing import Union
 
+from .base import AnyBytes
 from .utils import BIN8_TO_BYTES
-from .utils import AnyBytes
 from .utils import chop
 from .utils import hexlify
 from .utils import parse_int

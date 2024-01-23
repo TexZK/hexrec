@@ -35,10 +35,10 @@ from typing import Mapping
 from typing import Sequence
 from typing import Type
 
-from ..records import BaseFile
-from ..records import BaseRecord
-from ..records import BaseTag
-from ..utils import AnyBytes
+from ..base import AnyBytes
+from ..base import BaseFile
+from ..base import BaseRecord
+from ..base import BaseTag
 
 
 class RawTag(BaseTag, enum.Enum):

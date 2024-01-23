@@ -110,12 +110,12 @@ Architecture
 Within the ``hexrec`` package itself are the symbols of the most commonly used
 classes and functions.
 
-As the core of this library are record files, the ``hexrec.records`` is the
+As the core of this library are record files, the ``hexrec.base`` is the
 first module a user should look up.
 It provides high-level functions to deal with record files, as well as classes
 holding record data.
 
-The ``hexrec.records`` allows to load ``bytesparse`` virtual memories, which
+The ``hexrec.base`` allows to load ``bytesparse`` virtual memories, which
 are as easy to use as the native ``bytearray``, but with sparse data blocks.
 
 The ``hexrec.utils`` module provides some miscellaneous utility stuff.

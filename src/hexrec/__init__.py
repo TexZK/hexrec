@@ -25,13 +25,13 @@
 
 __version__ = '0.4.dev0'
 
+from .base import FILE_TYPES
 from .formats.asciihex import AsciiHexFile
 from .formats.ihex import IhexFile
 from .formats.mos import MosFile
 from .formats.raw import RawFile
 from .formats.srec import SrecFile
 from .formats.xtek import XtekFile
-from .records import FILE_TYPES
 from .xxd import xxd
 
 

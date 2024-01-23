@@ -1,7 +1,7 @@
-﻿hexrec.records
-==============
+﻿hexrec.base
+===========
 
-.. automodule:: hexrec.records
+.. automodule:: hexrec.base
 
    
    
@@ -23,8 +23,11 @@
       :nosignatures:
    
       colorize_tokens
-      guess_type_class
-      guess_type_name
+      convert
+      guess_format_name
+      guess_format_type
+      load
+      merge
    
    
 

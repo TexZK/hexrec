@@ -10,18 +10,18 @@ from typing import cast as _cast
 import pytest
 from bytesparse import Memory
 
-import hexrec.records as _hr
+import hexrec.base as _hr
+from hexrec.base import BaseFile
+from hexrec.base import BaseRecord
+from hexrec.base import BaseTag
+from hexrec.base import colorize_tokens
+from hexrec.base import convert
+from hexrec.base import guess_format_name
+from hexrec.base import guess_format_type
+from hexrec.base import load
+from hexrec.base import merge
 from hexrec.formats.ihex import IhexFile
 from hexrec.formats.srec import SrecFile
-from hexrec.records import BaseFile
-from hexrec.records import BaseRecord
-from hexrec.records import BaseTag
-from hexrec.records import colorize_tokens
-from hexrec.records import convert
-from hexrec.records import guess_format_type
-from hexrec.records import guess_format_name
-from hexrec.records import load
-from hexrec.records import merge
 
 
 @pytest.fixture
