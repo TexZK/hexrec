@@ -372,7 +372,7 @@ class AsciiHexFile(BaseFile):
 
     def update_records(
         self,
-        align: bool = True,
+        align: bool = False,
         checksum: bool = False,
         addrlen: int = 8,
     ) -> 'AsciiHexFile':

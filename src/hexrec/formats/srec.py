@@ -503,7 +503,7 @@ class SrecFile(BaseFile):
 
     def update_records(
         self,
-        align: bool = True,
+        align: bool = False,
         header: bool = True,
         data: bool = False,
         count: bool = True,

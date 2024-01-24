@@ -149,7 +149,7 @@ class RawFile(BaseFile):
 
     def update_records(
         self,
-        align: bool = True,
+        align: bool = False,
     ) -> 'RawFile':
         # TODO: __doc__
 

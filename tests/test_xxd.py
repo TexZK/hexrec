@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import argparse
 import glob
 from pathlib import Path

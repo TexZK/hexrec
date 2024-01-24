@@ -1,6 +1,9 @@
 sphinx >= 7
 sphinx-click
 sphinx-autodoc-typehints
+
+bytesparse
+colorama
 furo
 twine
 -e .

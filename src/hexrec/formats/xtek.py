@@ -383,7 +383,7 @@ class XtekFile(BaseFile):
 
     def update_records(
         self,
-        align: bool = True,
+        align: bool = False,
         addrlen: int = 8,
     ) -> 'XtekFile':
         # TODO: __doc__

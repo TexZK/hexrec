@@ -151,8 +151,9 @@ In this example, a HEX file is converted to SREC.
 
 .. code-block:: python3
 
-    from hexrec import convert_file
-    convert_file('data.hex', 'data.srec')
+    from hexrec import convert
+
+    convert('data.hex', 'data.srec')
 
 This can also be done by running `hexrec` as a command line tool:
 
@@ -180,28 +181,29 @@ configuration data into a single file, in the order they are listed.
 
 .. code-block:: python3
 
-    from hexrec import merge_files
-    input_files = ['bootloader.hex', 'executable.mot', 'configuration.s19']
-    merge_files(input_files, 'merged.srec')
+    from hexrec import merge
 
-This can also be done by running the `hexrec` package as a command line tool:
+    in_paths = ['bootloader.hex', 'executable.mot', 'configuration.xtek']
+    out_path = 'merged.srec'
+    merge(in_paths, out_path)
 
-.. code-block:: sh
-
-    $ hexrec merge bootloader.hex executable.mot configuration.s19 merged.srec
-
-Alternatively, these files can be merged manually via *virtual memory*:
+Alternatively, these files can be merged via manual load:
 
 .. code-block:: python3
 
-    from hexrec import load_memory, save_memory
-    from bytesparse import bytesparse
-    input_files = ['bootloader.hex', 'executable.mot', 'configuration.s19']
-    input_memories = [load_memory(filename) for filename in input_files]
-    merged_memory = bytesparse()
-    for input_memory in input_memories:
-        merged_memory.write(0, input_memory)
-    save_memory('merged.srec', merged_memory)
+    from hexrec import load, SrecFile
+
+    in_paths = ['bootloader.hex', 'executable.mot', 'configuration.xtek']
+    in_files = [load(path) for path in in_paths]
+    out_file = SrecFile().merge(*in_files)
+    out_file.save('merged.srec')
+
+This can also be accomplished by running the `hexrec` package itself as a
+command line tool:
+
+.. code-block:: sh
+
+    $ hexrec merge bootloader.hex executable.mot configuration.xtek merged.srec
 
 
 Dataset generator
@@ -218,11 +220,13 @@ For the sake of simplicity, the data structure consists of 4096 random values
 .. code-block:: python3
 
     import struct, random
-    from hexrec import save_chunk
+    from hexrec import SrecFile
+
     for index in range(100):
         values = [random.random() for _ in range(4096)]
         data = struct.pack('<4096f', *values)
-        save_chunk(f'dataset_{index:02d}.mot', data, 0xDA7A0000)
+        file = SrecFile.from_bytes(data, offset=0xDA7A0000)
+        file.save(f'dataset_{index:02d}.mot')
 
 
 Write a CRC
@@ -242,11 +246,15 @@ The rest of the data is left untouched.
 .. code-block:: python3
 
     import binascii, struct
-    from hexrec import save_memory
-    memory = load_memory('data.srec')
-    crc = binascii.crc32(memory[0x1000:0x3FFC]) & 0xFFFFFFFF  # remove sign
-    memory.write(0x3FFC, struct.pack('>L', crc))
-    save_memory('data_crc.srec', memory)
+    from hexrec import load
+
+    file = load('checkme.srec')
+
+    with file.view(0x1000, 0x3FFC) as view:
+        crc = binascii.crc32(view) & 0xFFFFFFFF  # remove sign
+
+    file.write(0x3FFC, struct.pack('>L', crc))
+    file.save('checkme_crc.srec')
 
 
 Trim for bootloader
@@ -264,16 +272,19 @@ memory, unused memory byte cells default to ``0xFF``.
 
 .. code-block:: python3
 
-    from hexrec import save_chunk
-    memory = load_memory('app_original.hex')
-    data = memory[0x8000:0x20000:b'\xFF']
-    save_chunk('app_trimmed.srec', data, 0x8000)
+    from hexrec import load, SrecFile
+
+    in_file = load('application.mot')
+    data = in_file.read(0x8000, 0x1FFFF+1, fill=0xFF)
+
+    out_file = SrecFile.from_bytes(data, offset=0x8000)
+    out_file.save('app_trimmed.mot')
 
 This can also be done by running the `hexrec` package as a command line tool:
 
 .. code-block:: sh
 
-    $ hexrec cut -s 0x8000 -e 0x20000 -v 0xFF app_original.hex app_trimmed.srec
+    $ hexrec crop -s 0x8000 -e 0x20000 -v 0xFF app_original.hex app_trimmed.srec
 
 By contrast, we need to fill the application range within the bootloader image
 with ``0xFF``, so that no existing application will be available again.
@@ -282,49 +293,56 @@ already contains some important data.
 
 .. code-block:: python3
 
-    from hexrec import load_memory, save_memory
-    memory = load_memory('boot_original.hex')
-    memory.fill(0x8000, 0x20000, b'\xFF')
-    memory.clear(0x3F800, 0x40000)
-    save_memory('boot_fixed.srec', memory)
+    from hexrec import load
+
+    file = load('bootloader.hex')
+    file.fill(0x8000, 0x1FFFF+1, 0xFF)
+    file.clear(0x3F800, 0x3FFFF+1)
+    file.save('boot_fixed.hex')
 
 With the command line interface, it can be done via a two-pass processing,
 first to fill the application range, then to clear the reserved range.
 Please note that the first command is chained to the second one via standard
-output/input buffering (the virtual ``-`` file path, in ``intel`` format as
+output/input buffering (the virtual ``-`` file path, in ``ihex`` format as
 per ``boot_original.hex``).
 
 .. code-block:: sh
 
     $ hexrec fill -s 0x8000 -e 0x20000 -v 0xFF boot_original.hex - | \
-      hexrec clear -s 0x3F800 -e 0x40000 -i intel - boot_fixed.srec
+      hexrec clear -s 0x3F800 -e 0x40000 -i ihex - boot_fixed.srec
 
 (newline continuation is backslash ``\`` for a *Unix-like* shell, caret ``^``
 for a *DOS* prompt).
 
 
-Export ELF physical program
----------------------------
+Export ELF sections
+-------------------
 
-The following example shows how to export *physical program* stored within an
+The following example shows how to export *sections* stored within an
 *Executable and Linkable File* (*ELF*), compiled for a microcontroller.
 As per the previous example, only data within the range ``0x8000``-``0x1FFFF``
 are kept, with the rest of the memory filled with the ``0xFF`` value.
 
 .. code-block:: python3
 
-    from hexrec import save_memory
-    from bytesparse import bytesparse
-    from elftools.elf.elffile import ELFFile
-    with open('app.elf', 'rb') as elf_stream:
+    from hexrec import SrecFile
+    from bytesparse import Memory
+    from elftools.elf.elffile import ELFFile  # "pyelftools" package
+
+    with open('appelf.elf', 'rb') as elf_stream:
         elf_file = ELFFile(elf_stream)
-        memory = bytesparse(start=0x8000, endex=0x20000)  # bounds set
-        memory.fill(pattern=b'\xFF')  # between bounds
-        for segment in elf_file.iter_segments(type='PT_LOAD'):
-            addr = segment.header.p_paddr
-            data = segment.data()
-            memory.write(addr, data)
-    save_memory('app.srec', memory)
+
+        memory = Memory(start=0x8000, endex=0x1FFFF+1)  # bounds set
+        memory.fill(pattern=0xFF)  # between bounds
+
+        for section in elf_file.iter_sections():
+            if (section.header.sh_flags & 3) == 3:  # SHF_WRITE | SHF_ALLOC
+                address = section.header.sh_addr
+                data = section.data()
+                memory.write(address, data)
+
+    out_file = SrecFile.from_memory(memory, header=b'Source: appelf.elf\0')
+    out_file.save('appelf.srec')
 
 
 Installation

@@ -26,6 +26,11 @@
 __version__ = '0.4.dev0'
 
 from .base import FILE_TYPES
+from .base import convert
+from .base import guess_format_name
+from .base import guess_format_type
+from .base import load
+from .base import merge
 from .formats.asciihex import AsciiHexFile
 from .formats.ihex import IhexFile
 from .formats.mos import MosFile
@@ -39,7 +44,7 @@ def _register_default_file_types():
     # TODO: __doc__
 
     defaults = {
-        # Most common come first
+        # The most common formats come first
         'ihex': IhexFile,
         'srec': SrecFile,
 
@@ -48,7 +53,7 @@ def _register_default_file_types():
         'xtek': XtekFile,
         'mos': MosFile,
 
-        # Raw file parses anything, keep last
+        # Raw file parses anything, keep as last
         'raw': RawFile
     }
 

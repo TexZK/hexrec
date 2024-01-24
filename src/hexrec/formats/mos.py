@@ -303,7 +303,7 @@ class MosFile(BaseFile):
 
     def update_records(
         self,
-        align: bool = True,
+        align: bool = False,
         start: bool = True,
     ) -> 'MosFile':
         # TODO: __doc__
