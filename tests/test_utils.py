@@ -59,15 +59,21 @@ def test_chop_doctest():
     assert list(chop(b'ABCDEFG', 4, 3)) == [b'A', b'BCDE', b'FG']
 
 
-def test_hexlify():
-    bytes_in = HEXBYTES
-
-    ans_ref = b''.join((b'%02x' % b) for b in bytes_in)
-    ans_out = hexlify(bytes_in, upper=False)
+def test_hexlify_doctest():
+    ans_out = hexlify(b'\xAA\xBB\xCC')
+    ans_ref = b'AABBCC'
     assert ans_out == ans_ref
 
-    ans_ref = b''.join((b'%02X' % b) for b in bytes_in)
-    ans_out = hexlify(bytes_in, upper=True)
+    ans_out = hexlify(b'\xAA\xBB\xCC', sep=b' ')
+    ans_ref = b'AA BB CC'
+    assert ans_out == ans_ref
+
+    ans_out = hexlify(b'\xAA\xBB\xCC', sep=b'-')
+    ans_ref = b'AA-BB-CC'
+    assert ans_out == ans_ref
+
+    ans_out = hexlify(b'\xAA\xBB\xCC', upper=False)
+    ans_ref = b'aabbcc'
     assert ans_out == ans_ref
 
 
@@ -89,15 +95,19 @@ def test_parse_int_pass():
         assert parse_int(value_in) == value_out
 
 
-def test_unhexlify():
-    bytes_ref = HEXBYTES
+def test_unhexlify_doctest():
+    ans_out = unhexlify(b'AABBCC')
+    ans_ref = b'\xaa\xbb\xcc'
+    assert ans_out == ans_ref
 
-    bytes_in = b' '.join((b'%02x' % b) for b in bytes_ref)
-    assert unhexlify(bytes_in) == bytes_ref
+    ans_out = unhexlify(b'AA BB CC', delete=...)
+    ans_ref = b'\xaa\xbb\xcc'
+    assert ans_out == ans_ref
 
-    bytes_in = b' '.join((b'%02X' % b) for b in bytes_ref)
-    assert unhexlify(bytes_in) == bytes_ref
+    ans_out = unhexlify(b'AA-BB-CC', delete=...)
+    ans_ref = b'\xaa\xbb\xcc'
+    assert ans_out == ans_ref
 
-    ans_out = unhexlify(b'48656C6C 6F2C2057 6F726C64 21')
-    ans_ref = b'Hello, World!'
+    ans_out = unhexlify(b'AA/BB/CC', delete=b'/')
+    ans_ref = b'\xaa\xbb\xcc'
     assert ans_out == ans_ref

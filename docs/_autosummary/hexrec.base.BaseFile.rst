@@ -1,4 +1,4 @@
-hexrec.base.BaseFile
+﻿hexrec.base.BaseFile
 ====================
 
 .. currentmodule:: hexrec.base
@@ -46,7 +46,6 @@ hexrec.base.BaseFile
       ~BaseFile.parse
       ~BaseFile.print
       ~BaseFile.read
-      ~BaseFile.reverse
       ~BaseFile.save
       ~BaseFile.serialize
       ~BaseFile.set_meta

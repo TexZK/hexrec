@@ -29,7 +29,6 @@ See Also:
     `<https://en.wikipedia.org/wiki/Tektronix_extended_HEX>`_
 """
 
-import binascii
 import enum
 import re
 from typing import IO
@@ -44,6 +43,8 @@ from ..base import AnyBytes
 from ..base import BaseFile
 from ..base import BaseRecord
 from ..base import BaseTag
+from ..utils import hexlify
+from ..utils import unhexlify
 
 
 class XtekTag(BaseTag, enum.IntEnum):
@@ -233,7 +234,7 @@ class XtekRecord(BaseRecord):
             raise ValueError('syntax error')
         groups = match.groupdict()
         address = int(groups['address'], 16)
-        data = binascii.unhexlify(groups['data'])
+        data = unhexlify(groups['data'])
         after = groups['after']
 
         record = cls(tag,
@@ -258,7 +259,7 @@ class XtekRecord(BaseRecord):
             (self.checksum or 0) & 0xFF,
             self.addrlen & 0xF,
             (b'%%0%dX' % self.addrlen) % (self.address & 0xFFFFFFFF),
-            binascii.hexlify(self.data).upper(),
+            hexlify(self.data),
             self.after,
             end,
         )
@@ -275,7 +276,7 @@ class XtekRecord(BaseRecord):
             'checksum': b'%02X' % ((self.checksum or 0) & 0xFF),
             'addrlen': b'%X' % (self.addrlen & 0xF),
             'address': (b'%%0%dX' % self.addrlen) % (self.address & 0xFFFFFFFF),
-            'data': binascii.hexlify(self.data).upper(),
+            'data': hexlify(self.data),
             'after': self.after,
             'end': end,
         }
@@ -336,6 +337,7 @@ class XtekFile(BaseFile):
         self._startaddr: int = 0
 
     def apply_records(self) -> 'XtekFile':
+        # TODO: __doc__
 
         if not self._records:
             raise ValueError('records required')

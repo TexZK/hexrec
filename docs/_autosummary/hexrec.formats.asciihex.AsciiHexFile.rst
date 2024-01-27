@@ -1,4 +1,4 @@
-hexrec.formats.asciihex.AsciiHexFile
+﻿hexrec.formats.asciihex.AsciiHexFile
 ====================================
 
 .. currentmodule:: hexrec.formats.asciihex
@@ -46,7 +46,6 @@ hexrec.formats.asciihex.AsciiHexFile
       ~AsciiHexFile.parse
       ~AsciiHexFile.print
       ~AsciiHexFile.read
-      ~AsciiHexFile.reverse
       ~AsciiHexFile.save
       ~AsciiHexFile.serialize
       ~AsciiHexFile.set_meta

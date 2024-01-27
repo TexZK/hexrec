@@ -1,4 +1,4 @@
-hexrec.formats.xtek.XtekFile
+﻿hexrec.formats.xtek.XtekFile
 ============================
 
 .. currentmodule:: hexrec.formats.xtek
@@ -46,7 +46,6 @@ hexrec.formats.xtek.XtekFile
       ~XtekFile.parse
       ~XtekFile.print
       ~XtekFile.read
-      ~XtekFile.reverse
       ~XtekFile.save
       ~XtekFile.serialize
       ~XtekFile.set_meta

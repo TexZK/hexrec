@@ -31,7 +31,7 @@ dependencies = [
     "bytesparse >= 0.0.8",  # comment out and use the one below for development instead
     # "bytesparse @ git+https://github.com/TexZK/bytesparse.git",  # only for development
     "click",
-    "Deprecated",
+    "colorama",
 ]
 description = "Library to handle hexadecimal record files"
 dynamic = ["version"]

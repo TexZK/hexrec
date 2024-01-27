@@ -29,7 +29,6 @@ See Also:
     `<https://srecord.sourceforge.net/man/man5/srec_mos_tech.5.html>`_
 """
 
-import binascii
 import enum
 import io
 import re
@@ -42,6 +41,8 @@ from ..base import AnyBytes
 from ..base import BaseFile
 from ..base import BaseRecord
 from ..base import BaseTag
+from ..utils import hexlify
+from ..utils import unhexlify
 
 
 class MosTag(BaseTag, enum.IntEnum):
@@ -146,7 +147,7 @@ class MosRecord(BaseRecord):
         before = groups['before']
         count = int(groups['count'], 16)
         address = int(groups['address'], 16)
-        data = binascii.unhexlify(groups['data'])
+        data = unhexlify(groups['data'])
         checksum = int(groups['checksum'], 16)
         after = groups['after']
 
@@ -173,7 +174,7 @@ class MosRecord(BaseRecord):
             self.before,
             (self.count or 0) & 0xFF,
             self.address & 0xFFFF,
-            binascii.hexlify(self.data).upper(),
+            hexlify(self.data),
             (self.checksum or 0) & 0xFFFF,
             self.after,
             end,
@@ -195,7 +196,7 @@ class MosRecord(BaseRecord):
             'begin': b';',
             'count': b'%02X' % ((self.count or 0) & 0xFF),
             'address': b'%04X' % (self.address & 0xFFFF),
-            'data': binascii.hexlify(self.data).upper(),
+            'data': hexlify(self.data),
             'checksum': b'%04X' % ((self.checksum or 0) & 0xFFFF),
             'after': self.after,
             'end': end,

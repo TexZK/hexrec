@@ -5,6 +5,13 @@
 
    
    
+   .. rubric:: Module attributes
+
+   .. autosummary::
+      :toctree:
+   
+      DEFAULT_DELETE
+   
    
 
    

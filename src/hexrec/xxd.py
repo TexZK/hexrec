@@ -336,7 +336,7 @@ def xxd(
             if postscript:
                 # Plain hexadecimal input
                 for line in instream:
-                    data = unhexlify(line)
+                    data = unhexlify(line, delete=...)
                     outstream.write(data)
             else:
                 if cols is None:
@@ -348,7 +348,7 @@ def xxd(
                         # Interpret line contents
                         groups = match.groupdict()
                         address = (oseek or 0) + int(groups['address'], 16)
-                        data = unhexlify(groups['data'])
+                        data = unhexlify(groups['data'], delete=...)
                         data = data[:cols]
 
                         # Write line data (fill gaps if needed)

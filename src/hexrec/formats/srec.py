@@ -29,7 +29,6 @@ See Also:
     `<https://en.wikipedia.org/wiki/SREC_(file_format)>`_
 """
 
-import binascii
 import enum
 import re
 from typing import IO
@@ -45,6 +44,8 @@ from ..base import AnyBytes
 from ..base import BaseFile
 from ..base import BaseRecord
 from ..base import BaseTag
+from ..utils import hexlify
+from ..utils import unhexlify
 
 
 class SrecTag(BaseTag, enum.IntEnum):
@@ -318,7 +319,7 @@ class SrecRecord(BaseRecord):
         if not match:
             raise ValueError('syntax error')
         groups = match.groupdict()
-        data = binascii.unhexlify(groups['data'])
+        data = unhexlify(groups['data'])
         checksum = int(groups['checksum'], 16)
         after = groups['after']
 
@@ -343,7 +344,7 @@ class SrecRecord(BaseRecord):
             tag & 0xF,
             (self.count or 0) & 0xFF,
             addrfmt % (self.address & 0xFFFFFFFF),
-            binascii.hexlify(self.data).upper(),
+            hexlify(self.data),
             (self.checksum or 0) & 0xFF,
             self.after,
             end,
@@ -362,7 +363,7 @@ class SrecRecord(BaseRecord):
             'tag': b'%X' % (tag & 0xF),
             'count': b'%02X' % ((self.count or 0) & 0xFF),
             'address': addrfmt % (self.address & 0xFFFFFFFF),
-            'data': binascii.hexlify(self.data).upper(),
+            'data': hexlify(self.data),
             'checksum': b'%02X' % ((self.checksum or 0) & 0xFF),
             'after': self.after,
             'end': end,

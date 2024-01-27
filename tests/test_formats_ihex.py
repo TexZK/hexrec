@@ -521,7 +521,7 @@ class TestIhexRecord(BaseTestRecord):
             'start address data size overflow',
             'start address data size overflow',
 
-            'end of file record data',
+            'unexpected data',
 
             'is not a valid IhexTag',
         ]
@@ -748,11 +748,10 @@ class TestIhexFile(BaseTestFile):
             IhexRecord.create_start_linear_address(0xABCD5678),
             IhexRecord.create_end_of_file(),
         ]
-        for path in [None, '-']:
-            stream = io.BytesIO(buffer)
-            with replace_stdin(stream):
-                file = IhexFile.load(path=path)
-            assert file._records == records
+        stream = io.BytesIO(buffer)
+        with replace_stdin(stream):
+            file = IhexFile.load(None)
+        assert file._records == records
 
     def test_parse(self):
         buffer = (
@@ -851,14 +850,13 @@ class TestIhexFile(BaseTestFile):
             b':04000005ABCD5678B1\r\n'
             b':00000001FF\r\n'
         )
-        for path in [None, '-']:
-            stream = io.BytesIO()
-            file = IhexFile.from_records(records)
-            with replace_stdout(stream):
-                returned = file.save(path=path)
-            assert returned is file
-            actual = stream.getvalue()
-            assert actual == expected
+        stream = io.BytesIO()
+        file = IhexFile.from_records(records)
+        with replace_stdout(stream):
+            returned = file.save(None)
+        assert returned is file
+        actual = stream.getvalue()
+        assert actual == expected
 
     def test_startaddr_getter_linear(self):
         records = [

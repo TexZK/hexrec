@@ -1,4 +1,4 @@
-hexrec.formats.mos.MosFile
+﻿hexrec.formats.mos.MosFile
 ==========================
 
 .. currentmodule:: hexrec.formats.mos
@@ -46,7 +46,6 @@ hexrec.formats.mos.MosFile
       ~MosFile.parse
       ~MosFile.print
       ~MosFile.read
-      ~MosFile.reverse
       ~MosFile.save
       ~MosFile.serialize
       ~MosFile.set_meta

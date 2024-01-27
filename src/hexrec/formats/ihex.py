@@ -29,7 +29,6 @@ See Also:
     `<https://en.wikipedia.org/wiki/Intel_HEX>`_
 """
 
-import binascii
 import enum
 import re
 from typing import IO
@@ -45,6 +44,8 @@ from ..base import AnyBytes
 from ..base import BaseFile
 from ..base import BaseRecord
 from ..base import BaseTag
+from ..utils import hexlify
+from ..utils import unhexlify
 
 
 class IhexTag(BaseTag, enum.IntEnum):
@@ -215,7 +216,7 @@ class IhexRecord(BaseRecord):
         count = int(groups['count'], 16)
         address = int(groups['address'], 16)
         tag = cls.Tag(int(groups['tag'], 16))
-        data = binascii.unhexlify(groups['data'])
+        data = unhexlify(groups['data'])
         checksum = int(groups['checksum'], 16)
         after = groups['after']
 
@@ -238,7 +239,7 @@ class IhexRecord(BaseRecord):
             (self.count or 0) & 0xFF,
             self.address & 0xFFFF,
             _cast(IhexTag, self.tag) & 0xFF,
-            binascii.hexlify(self.data).upper(),
+            hexlify(self.data),
             (self.checksum or 0) & 0xFF,
             self.after,
             end,
@@ -254,7 +255,7 @@ class IhexRecord(BaseRecord):
             'count': b'%02X' % ((self.count or 0) & 0xFF),
             'address': b'%04X' % (self.address & 0xFFFF),
             'tag': b'%02X' % (_cast(IhexTag, self.tag) & 0xFF),
-            'data': binascii.hexlify(self.data).upper(),
+            'data': hexlify(self.data),
             'checksum': b'%02X' % ((self.checksum or 0) & 0xFF),
             'after': self.after,
             'end': end,
@@ -301,7 +302,7 @@ class IhexRecord(BaseRecord):
                 raise ValueError('extension data size overflow')
         else:  # elif tag.is_eof():
             if data_size:
-                raise ValueError('end of file record data')
+                raise ValueError('unexpected data')
 
         return self
 

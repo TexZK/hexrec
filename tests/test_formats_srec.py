@@ -967,11 +967,10 @@ class TestSrecFile(BaseTestFile):
             SrecRecord.create_count(1),
             SrecRecord.create_start(0x89ABCDEF),
         ]
-        for path in [None, '-']:
-            stream = io.BytesIO(buffer)
-            with replace_stdin(stream):
-                file = SrecFile.load(path=path)
-            assert file._records == records
+        stream = io.BytesIO(buffer)
+        with replace_stdin(stream):
+            file = SrecFile.load(None)
+        assert file._records == records
 
     def test_parse(self):
         buffer = (
@@ -1044,14 +1043,13 @@ class TestSrecFile(BaseTestFile):
             b'S5030001FB\r\n'
             b'S70589ABCDEF0A\r\n'
         )
-        for path in [None, '-']:
-            stream = io.BytesIO()
-            file = SrecFile.from_records(records)
-            with replace_stdout(stream):
-                returned = file.save(path=path)
-            assert returned is file
-            actual = stream.getvalue()
-            assert actual == expected
+        stream = io.BytesIO()
+        file = SrecFile.from_records(records)
+        with replace_stdout(stream):
+            returned = file.save(None)
+        assert returned is file
+        actual = stream.getvalue()
+        assert actual == expected
 
     def test_startaddr_getter(self):
         records = [

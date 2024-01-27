@@ -11,6 +11,7 @@
       :toctree:
    
       FILE_TYPES
+      TOKEN_COLOR_CODES
    
    
 

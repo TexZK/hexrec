@@ -1,4 +1,4 @@
-hexrec.formats.raw.RawFile
+﻿hexrec.formats.raw.RawFile
 ==========================
 
 .. currentmodule:: hexrec.formats.raw
@@ -46,7 +46,6 @@ hexrec.formats.raw.RawFile
       ~RawFile.parse
       ~RawFile.print
       ~RawFile.read
-      ~RawFile.reverse
       ~RawFile.save
       ~RawFile.serialize
       ~RawFile.set_meta

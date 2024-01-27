@@ -433,11 +433,10 @@ class TestMosFile(BaseTestFile):
             MosRecord.create_data(0x0000, data),
             MosRecord.create_eof(1),
         ]
-        for path in [None, '-']:
-            stream = io.BytesIO(buffer)
-            with replace_stdin(stream):
-                file = MosFile.load(path=path)
-            assert file._records == records
+        stream = io.BytesIO(buffer)
+        with replace_stdin(stream):
+            file = MosFile.load(None)
+        assert file._records == records
 
     def test_parse(self):
         buffer = (
@@ -534,14 +533,13 @@ class TestMosFile(BaseTestFile):
             b';0000010001\r\n\x00\x00\x00\x00\x00\x00'
             b'\x13'
         )
-        for path in [None, '-']:
-            stream = io.BytesIO()
-            file = MosFile.from_records(records)
-            with replace_stdout(stream):
-                returned = file.save(path=path)
-            assert returned is file
-            actual = stream.getvalue()
-            assert actual == expected
+        stream = io.BytesIO()
+        file = MosFile.from_records(records)
+        with replace_stdout(stream):
+            returned = file.save(None)
+        assert returned is file
+        actual = stream.getvalue()
+        assert actual == expected
 
     def test_serialize(self):
         File = self.File

@@ -524,11 +524,10 @@ class TestAsciiHexFile(BaseTestFile):
             AsciiHexRecord.create_address(0x1234, addrlen=4),
             AsciiHexRecord.create_data(0x1234, b'xyz'),
         ]
-        for path in [None, '-']:
-            stream = io.BytesIO(buffer)
-            with replace_stdin(stream):
-                file = AsciiHexFile.load(path=path)
-            assert file._records == records
+        stream = io.BytesIO(buffer)
+        with replace_stdin(stream):
+            file = AsciiHexFile.load(None)
+        assert file._records == records
 
     def test_parse(self):
         buffer = (
@@ -664,14 +663,13 @@ class TestAsciiHexFile(BaseTestFile):
             b'78 79 7A \r\n'
             b'\x03'
         )
-        for path in [None, '-']:
-            stream = io.BytesIO()
-            file = AsciiHexFile.from_records(records)
-            with replace_stdout(stream):
-                returned = file.save(path=path)
-            assert returned is file
-            actual = stream.getvalue()
-            assert actual == expected
+        stream = io.BytesIO()
+        file = AsciiHexFile.from_records(records)
+        with replace_stdout(stream):
+            returned = file.save(None)
+        assert returned is file
+        actual = stream.getvalue()
+        assert actual == expected
 
     def test_serialize(self):
         expected = (

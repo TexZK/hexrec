@@ -23,8 +23,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-r"""Generic utility functions.
-"""
+r"""Generic utility functions."""
+
 import binascii
 import re
 import sys
@@ -36,6 +36,7 @@ from typing import Optional
 from typing import Union
 
 from .base import AnyBytes
+from .base import EllipsisType
 
 BIN8_TO_STR: List[str] = [bin(i)[2:].zfill(8) for i in range(256)]
 STR_TO_BIN8: Mapping[str, int] = {s: i for i, s in enumerate(BIN8_TO_STR)}
@@ -48,6 +49,13 @@ INT_REGEX = re.compile(r'^\s*(?P<sign>[+-]?)\s*'
                        r'(?P<value>[a-f0-9]+)'
                        r'(?P<suffix>h?)'
                        r'(?P<scale>[km]?)\s*$')
+
+DEFAULT_DELETE: bytes = b' \t.-:\r\n'
+r"""Delete from hex strings.
+
+Default values to delete from hexadecimal strings via :meth:`unhexlify`.
+These are commonly used as byte separators or whitespace in hex strings.
+"""
 
 __BINASCII_HEXLIFY_HAS_SEP = (sys.version_info >= (3, 8))
 
@@ -100,10 +108,40 @@ def chop(
         yield vector[i:(i + window)]
 
 
-def hexlify(bytestr: Union[bytes, bytearray], sep=None, upper=False) -> bytes:
-    # TODO: __doc__
+def hexlify(
+    bytestr: Union[bytes, bytearray],
+    sep: Optional[Union[bytes, bytearray]] = None,
+    upper: bool = True,
+) -> bytes:
+    r"""Converts raw bytes into a hexadecimal byte string.
+
+    Args:
+        bytestr (bytes):
+            Source byte string.
+
+        sep (bytes):
+            Optional byte separator.
+
+        upper (bool):
+            Uppercase hexadecimal string.
+
+    Returns:
+        bytes: Hexadecimal byte string.
+
+    Examples:
+        >>> from hexrec.utils import hexlify
+        >>> hexlify(b'\xAA\xBB\xCC')
+        b'AABBCC'
+        >>> hexlify(b'\xAA\xBB\xCC', sep=b' ')
+        b'AA BB CC'
+        >>> hexlify(b'\xAA\xBB\xCC', sep=b'-')
+        b'AA-BB-CC'
+        >>> hexlify(b'\xAA\xBB\xCC', upper=False)
+        b'aabbcc'
+    """
 
     if sep:
+        pass  # coverage
         if __BINASCII_HEXLIFY_HAS_SEP:  # pragma: no cover
             hexstr = binascii.hexlify(bytestr, sep)
         else:  # pragma: no cover
@@ -141,8 +179,8 @@ def parse_int(
         >>> parse_int('-0xABk')
         -175104
 
-        >>> parse_int(None)
-
+        >>> parse_int(None) is None
+        True
 
         >>> parse_int(123)
         123
@@ -190,8 +228,42 @@ def parse_int(
         return int(value)
 
 
-def unhexlify(hexstr: Union[bytes, bytearray]) -> bytes:
-    # TODO: __doc__
+def unhexlify(
+    hexstr: Union[bytes, bytearray],
+    delete: Optional[Union[bytes, bytearray, EllipsisType]] = None,
+) -> bytes:
+    r"""Converts a hexadecimal byte string into raw bytes.
 
-    bytestr = binascii.unhexlify(b''.join(hexstr.split()))
+    If `delete`, its byte values are deleted from `hexstr` before evaluation.
+    Useful to remove whitespace and separators.
+
+    Args:
+        hexstr (bytes):
+            Source hexadecimal byte string.
+
+        delete (bytes):
+            If empty or ``None``, no deletion occurs.
+            If ``Ellipsis``, :data:``DEFAULT_DELETE`` is used.
+
+    Returns:
+        bytes: Raw byte string.
+
+    Examples:
+        >>> from hexrec.utils import unhexlify
+        >>> unhexlify(b'AABBCC')
+        b'\xaa\xbb\xcc'
+        >>> unhexlify(b'AA BB CC', delete=...)
+        b'\xaa\xbb\xcc'
+        >>> unhexlify(b'AA-BB-CC', delete=...)
+        b'\xaa\xbb\xcc'
+        >>> unhexlify(b'AA/BB/CC', delete=b'/')
+        b'\xaa\xbb\xcc'
+    """
+
+    if delete:
+        if delete is Ellipsis:
+            delete = DEFAULT_DELETE
+        hexstr = hexstr.translate(None, delete)
+
+    bytestr = binascii.unhexlify(hexstr)
     return bytestr

@@ -1,4 +1,4 @@
-hexrec.formats.ihex.IhexFile
+﻿hexrec.formats.ihex.IhexFile
 ============================
 
 .. currentmodule:: hexrec.formats.ihex
@@ -46,7 +46,6 @@ hexrec.formats.ihex.IhexFile
       ~IhexFile.parse
       ~IhexFile.print
       ~IhexFile.read
-      ~IhexFile.reverse
       ~IhexFile.save
       ~IhexFile.serialize
       ~IhexFile.set_meta

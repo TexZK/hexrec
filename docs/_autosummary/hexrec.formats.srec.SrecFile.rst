@@ -1,4 +1,4 @@
-hexrec.formats.srec.SrecFile
+﻿hexrec.formats.srec.SrecFile
 ============================
 
 .. currentmodule:: hexrec.formats.srec
@@ -46,7 +46,6 @@ hexrec.formats.srec.SrecFile
       ~SrecFile.parse
       ~SrecFile.print
       ~SrecFile.read
-      ~SrecFile.reverse
       ~SrecFile.save
       ~SrecFile.serialize
       ~SrecFile.set_meta

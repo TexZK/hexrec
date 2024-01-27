@@ -577,11 +577,10 @@ class TestXtekFile(BaseTestFile):
             XtekRecord.create_data(0x4321, b'xyz'),
             XtekRecord.create_eof(0xABCD),
         ]
-        for path in [None, '-']:
-            stream = io.BytesIO(buffer)
-            with replace_stdin(stream):
-                file = XtekFile.load(path=path)
-            assert file._records == records
+        stream = io.BytesIO(buffer)
+        with replace_stdin(stream):
+            file = XtekFile.load(None)
+        assert file._records == records
 
     def test_parse(self):
         buffer = (
@@ -641,14 +640,13 @@ class TestXtekFile(BaseTestFile):
             b'%1464D80000432178797A\r\n'
             b'%0E84C80000ABCD\r\n'
         )
-        for path in [None, '-']:
-            stream = io.BytesIO()
-            file = XtekFile.from_records(records)
-            with replace_stdout(stream):
-                returned = file.save(path=path)
-            assert returned is file
-            actual = stream.getvalue()
-            assert actual == expected
+        stream = io.BytesIO()
+        file = XtekFile.from_records(records)
+        with replace_stdout(stream):
+            returned = file.save(None)
+        assert returned is file
+        actual = stream.getvalue()
+        assert actual == expected
 
     def test_startaddr_getter(self):
         records = [

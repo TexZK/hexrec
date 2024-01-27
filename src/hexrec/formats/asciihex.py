@@ -29,7 +29,6 @@ See Also:
     `<https://srecord.sourceforge.net/man/man5/srec_ascii_hex.5.html>`_
 """
 
-import binascii
 import enum
 import re
 from typing import IO
@@ -42,6 +41,8 @@ from ..base import AnyBytes
 from ..base import BaseFile
 from ..base import BaseRecord
 from ..base import BaseTag
+from ..utils import hexlify
+from ..utils import unhexlify
 
 
 class AsciiHexTag(BaseTag, enum.IntEnum):
@@ -180,7 +181,7 @@ class AsciiHexRecord(BaseRecord):
         else:
             tag = Tag.DATA
             data = groups_data.translate(None, delete=cls.DATA_EXECHARS)
-            data = binascii.unhexlify(data)
+            data = unhexlify(data)
 
         record = cls(tag,
                      address=address,
@@ -211,10 +212,9 @@ class AsciiHexRecord(BaseRecord):
             valstr = b'$S%04X%s' % ((self.checksum & 0xFFFF), dollarend)
 
         elif self.data:
-            valstr = binascii.hexlify(self.data, exechar)
+            valstr = hexlify(self.data, exechar)
             if exelast:
                 valstr += exechar
-            valstr = valstr.upper()
 
         bytestr = b'%s%s%s%s' % (self.before, valstr, self.after, end)
         return bytestr
@@ -241,10 +241,9 @@ class AsciiHexRecord(BaseRecord):
             chksstr = b'$S%04X%s' % ((self.checksum & 0xFFFF), dollarend)
 
         elif self.data:
-            datastr = binascii.hexlify(self.data, exechar)
+            datastr = hexlify(self.data, exechar)
             if exelast:
                 datastr += exechar
-            datastr = datastr.upper()
 
         return {
             'before': self.before,

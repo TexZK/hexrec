@@ -1,8 +1,8 @@
+# isort: skip_file
 import os
 from pathlib import Path
 
 import pytest
-from test_base import replace_stdin
 from test_base import replace_stdout
 
 
@@ -28,15 +28,52 @@ def _read(path) -> bytes:
         return stream.read()
 
 
+def test_colorize_tokens():
+    from hexrec.base import colorize_tokens
+    from hexrec import IhexFile
+    from pprint import pprint
+
+    record = IhexFile.Record.create_end_of_file()
+    tokens = record.to_tokens()
+
+    with replace_stdout() as stdout:
+        pprint(tokens)
+        stdout.assert_normalized(r"""
+        {'address': b'0000',
+         'after': b'',
+         'before': b'',
+         'begin': b':',
+         'checksum': b'FF',
+         'count': b'00',
+         'data': b'',
+         'end': b'\r\n',
+         'tag': b'01'}
+        """)
+
+    colorized = colorize_tokens(tokens)
+    with replace_stdout() as stdout:
+        pprint(colorized)
+        stdout.assert_normalized(r"""
+        {'<': b'\x1b[0m',
+         '>': b'\x1b[0m',
+         'address': b'\x1b[31m0000',
+         'begin': b'\x1b[33m:',
+         'checksum': b'\x1b[35mFF',
+         'count': b'\x1b[34m00',
+         'end': b'\x1b[0m\r\n',
+         'tag': b'\x1b[32m01'}
+        """)
+
+
 def test_convert(datapath, tmppath):
-    from hexrec import convert  # isort: skip
+    from hexrec import convert
 
     convert(str(datapath / 'data.hex'),
             str(tmppath / 'data.srec'))
 
     ans_out = _read(tmppath / 'data.srec')
     ans_ref = _read(datapath / 'data.srec')
-    assert ans_out == ans_ref  # isort: skip
+    assert ans_out == ans_ref
 
 
 def test_merge_files(datapath, tmppath):
@@ -53,7 +90,7 @@ def test_merge_files(datapath, tmppath):
 
 
 def test_merge_manual(datapath, tmppath):
-    from hexrec import load, SrecFile  # isort: skip
+    from hexrec import load, SrecFile
 
     in_paths = ['bootloader.hex', 'executable.mot', 'configuration.xtek']
     in_files = [load(str(datapath / path)) for path in in_paths]
@@ -66,8 +103,8 @@ def test_merge_manual(datapath, tmppath):
 
 
 def test_dataset_generator(datapath, tmppath):
-    import struct  # isort: skip
-    from hexrec import SrecFile  # isort: skip
+    import struct
+    from hexrec import SrecFile
 
     for index in range(1):
         out_path = str(tmppath / f'dataset_{index:02d}.mot')
@@ -84,8 +121,8 @@ def test_dataset_generator(datapath, tmppath):
 
 
 def test_write_crc(datapath, tmppath):
-    import binascii, struct  # isort: skip
-    from hexrec import load  # isort: skip
+    import binascii, struct
+    from hexrec import load
 
     in_path = str(datapath / 'checkme.srec')
     out_path = str(tmppath / 'checkme_crc.srec')
@@ -105,7 +142,7 @@ def test_write_crc(datapath, tmppath):
 
 
 def test_trim_app(datapath, tmppath):
-    from hexrec import load, SrecFile  # isort: skip
+    from hexrec import load, SrecFile
 
     in_path = str(datapath / 'application.mot')
     out_path = str(tmppath / 'app_trimmed.mot')
@@ -123,7 +160,7 @@ def test_trim_app(datapath, tmppath):
 
 
 def test_trim_boot(datapath, tmppath):
-    from hexrec import load  # isort: skip
+    from hexrec import load
 
     in_path = str(datapath / 'bootloader.hex')
     out_path = str(tmppath / 'boot_fixed.hex')
@@ -140,9 +177,9 @@ def test_trim_boot(datapath, tmppath):
 
 
 def test_export_elf(datapath, tmppath):
-    from hexrec import SrecFile  # isort: skip
-    from bytesparse import Memory  # isort: skip
-    from elftools.elf.elffile import ELFFile  # "pyelftools" package  # isort: skip
+    from hexrec import SrecFile
+    from bytesparse import Memory
+    from elftools.elf.elffile import ELFFile  # "pyelftools" package
 
     in_path = str(datapath / 'appelf.elf')
     out_path = str(tmppath / 'appelf.srec')

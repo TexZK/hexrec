@@ -131,13 +131,13 @@ DATA_FMT_CHOICE = click.Choice(list(DATA_FMT_FORMATTERS.keys()))
 # ----------------------------------------------------------------------------
 
 def guess_input_type(
-    input_path: str,
+    input_path: Optional[str],
     input_format: Optional[str] = None,
 ) -> Type[BaseFile]:
 
     if input_format:
         input_type = FILE_TYPES[input_format]
-    elif input_path == '-':
+    elif input_path is None or input_path == '-':
         raise ValueError('standard input requires input format')
     else:
         name = guess_format_name(input_path)
@@ -146,14 +146,14 @@ def guess_input_type(
 
 
 def guess_output_type(
-    output_path: str,
+    output_path: Optional[str],
     output_format: Optional[str] = None,
     input_type: Optional[Type[BaseFile]] = None,
 ) -> Type[BaseFile]:
 
     if output_format:
         output_type = FILE_TYPES[output_format]
-    elif output_path == '-':
+    elif output_path is None or output_path == '-':
         output_type = input_type
     else:
         name = guess_format_name(output_path)
@@ -183,15 +183,20 @@ class SingleFileInOutCtxMgr:
         output_width: Optional[int],
     ):
 
+        if input_path == '-':
+            input_path = None
+
         if not output_path:
             output_path = input_path
+        if output_path == '-':
+            output_path = None
 
-        self.input_path: str = input_path
+        self.input_path: Optional[str] = input_path
         self.input_format: Optional[str] = input_format
         self.input_type: Optional[Type[BaseFile]] = None
         self.input_file: Optional[BaseFile] = None
 
-        self.output_path: str = output_path
+        self.output_path: Optional[str] = output_path
         self.output_format: Optional[str] = output_format
         self.output_type: Optional[Type[BaseFile]] = None
         self.output_file: Optional[BaseFile] = None
@@ -231,15 +236,22 @@ class MultiFileInOutCtxMgr:
         output_width: Optional[int],
     ):
 
+        input_paths = list(input_paths)
+        for i, input_path in enumerate(input_paths):
+            if input_path == '-':
+                input_paths[i] = None
+
         if not output_path:
             output_path = input_paths[0]
+        if output_path == '-':
+            output_path = None
 
-        self.input_paths: Sequence[str] = input_paths
+        self.input_paths: Sequence[Optional[str]] = input_paths
         self.input_formats: Sequence[Optional[str]] = input_formats
         self.input_types: List[Optional[Type[BaseFile]]] = [None] * len(self.input_paths)
         self.input_files: List[Optional[BaseFile]] = [None] * len(self.input_paths)
 
-        self.output_path: str = output_path
+        self.output_path: Optional[str] = output_path
         self.output_format: Optional[str] = output_format
         self.output_type: Optional[Type[BaseFile]] = None
         self.output_file: Optional[BaseFile] = None
@@ -613,49 +625,11 @@ def merge(
     """
 
     if not infiles:
-        infiles = ['-']
+        infiles = [None]
     input_formats = [input_format] * len(infiles)
 
     with MultiFileInOutCtxMgr(infiles, input_formats, outfile, output_format, width) as ctx:
         ctx.output_file.merge(*ctx.input_files, clear=clear_holes)
-
-
-# ----------------------------------------------------------------------------
-
-@main.command()
-@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
-Forces the input file format.
-Required for the standard input.
-""")
-@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
-Forces the output file format.
-By default it is that of the input file.
-""")
-@click.option('-w', '--width', type=BASED_INT, help="""
-Sets the length of the record data field, in bytes.
-By default it is that of the input file.
-""")
-@click.argument('infile', type=FILE_PATH_IN)
-@click.argument('outfile', type=FILE_PATH_OUT)
-def reverse(
-    input_format: Optional[str],
-    output_format: Optional[str],
-    width: Optional[int],
-    infile: str,
-    outfile: str,
-) -> None:
-    r"""Reverses data.
-
-    ``INFILE`` is the path of the input file.
-    Set to ``-`` to read from standard input; input format required.
-
-    ``OUTFILE`` is the path of the output file.
-    Set to ``-`` to write to standard output.
-    Leave empty to overwrite ``INFILE``.
-    """
-
-    with SingleFileInOutCtxMgr(infile, input_format, outfile, output_format, width) as ctx:
-        ctx.output_file.reverse()
 
 
 # ----------------------------------------------------------------------------

@@ -132,11 +132,10 @@ class TestRawFile(BaseTestFile):
         records = [
             RawRecord.create_data(0, HEXBYTES),
         ]
-        for path in [None, '-']:
-            stream = io.BytesIO(buffer)
-            with replace_stdin(stream):
-                file = RawFile.load(path=path)
-            assert file._records == records
+        stream = io.BytesIO(buffer)
+        with replace_stdin(stream):
+            file = RawFile.load(None)
+        assert file._records == records
 
     def test_parse(self):
         with io.BytesIO(BYTES) as stream:
@@ -211,14 +210,13 @@ class TestRawFile(BaseTestFile):
         assert actual == HEXBYTES
 
     def test_save_stdout(self):
-        for path in [None, '-']:
-            stream = io.BytesIO()
-            file = RawFile.from_bytes(HEXBYTES)
-            with replace_stdout(stream):
-                returned = file.save(path=path)
-            assert returned is file
-            actual = stream.getvalue()
-            assert actual == HEXBYTES
+        stream = io.BytesIO()
+        file = RawFile.from_bytes(HEXBYTES)
+        with replace_stdout(stream):
+            returned = file.save(None)
+        assert returned is file
+        actual = stream.getvalue()
+        assert actual == HEXBYTES
 
     def test_update_records(self):
         memory = Memory.from_bytes(BYTES, offset=0x1000)

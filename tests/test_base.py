@@ -3,13 +3,17 @@ import io
 import os
 import sys
 from pathlib import Path
+from typing import IO
 from typing import Any
+from typing import Optional
+from typing import Union
 from typing import cast as _cast
 
 import pytest
 from bytesparse import Memory
 
 import hexrec.base as _hr
+from hexrec.base import AnyBytes
 from hexrec.base import BaseFile
 from hexrec.base import BaseRecord
 from hexrec.base import BaseTag
@@ -63,12 +67,13 @@ def fake_file_types(request):
 
 class replace_stdin:
 
-    def __init__(self, stream):
+    def __init__(self, stream: IO):
         self.buffer = stream
         self.original = sys.stdin
 
     def __enter__(self):
         sys.stdin = self
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         sys.stdin = self.original
@@ -76,16 +81,33 @@ class replace_stdin:
 
 class replace_stdout:
 
-    def __init__(self, stream):
+    def __init__(self, stream: Optional[IO] = None):
+        if stream is None:
+            stream = io.StringIO()
         self.buffer = stream
         self.original = sys.stdout
         self.write = stream.write
 
     def __enter__(self):
         sys.stdout = self
+        return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         sys.stdout = self.original
+
+    def assert_normalized(self, expected: Union[str, AnyBytes]):  # pragma: no cover
+        if isinstance(self.buffer, io.StringIO):
+            actual = ''.join(self.buffer.getvalue().split())
+        else:
+            actual = _cast(io.BytesIO, self.buffer)
+            actual = b''.join(actual.getvalue().split())
+
+        if isinstance(expected, str):
+            expected = ''.join(expected.split())
+        else:
+            expected = b''.join(expected.split())
+
+        assert actual == expected
 
 
 def test_colorize_tokens_altdata(fake_token_color_codes):
@@ -181,7 +203,7 @@ def test_convert_out_format(datapath, tmppath):
     in_path = str(datapath / 'simple.hex')
     out_path = str(tmppath / 'simple.srec')
     ref_path = str(datapath / 'simple.srec')
-    in_file, out_file = convert(in_path, out_path, out_format='srec')
+    in_file, out_file = convert(in_path, out_path, in_format='ihex', out_format='srec')
     assert in_file is not out_file
     assert in_file.memory is not out_file.memory
     blocks = [[0x1234, b'abc'], [0xABCD5678, b'xyz']]
@@ -222,7 +244,7 @@ def test_guess_format_name_raises_missing():
 
 
 def test_guess_format_name_raises_guess_hex(fake_file_types):
-    with pytest.raises(ValueError, match='cannot guess record file type'):
+    with pytest.raises(ValueError, match='cannot guess record file format'):
         guess_format_name('file.hex')
 
 
@@ -638,9 +660,9 @@ class BaseTestRecord:
         Record = self.Record
         record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
                         before=b'', after=b'', coords=(33, 44), validate=False)
-        plain_stream = io.StringIO()
+        plain_stream = io.BytesIO()
         record.print(stream=plain_stream, color=False)
-        color_stream = io.StringIO()
+        color_stream = io.BytesIO()
         record.print(stream=color_stream, color=True)
         plain_text = plain_stream.getvalue()
         color_text = color_stream.getvalue()
@@ -653,7 +675,7 @@ class BaseTestRecord:
         Record = self.Record
         record = Record(Tag._DATA, address=0x1234, data=b'xyz', count=3, checksum=0xA5,
                         before=b'', after=b'', coords=(33, 44), validate=False)
-        stream = io.StringIO()
+        stream = io.BytesIO()
         stdout = sys.stdout
         try:
             sys.stdout = stream
@@ -764,6 +786,20 @@ class BaseTestFile:
         assert result is not file
         assert file._memory.to_blocks() == [[5, b'abc']]
         assert result._memory.to_blocks() == [[5, b'abcxyz']]
+
+    def test___bool___(self):
+        File = self.File
+
+        file = File()
+        assert bool(file) is False
+        file.append(0)
+        assert bool(file) is True
+
+        file = File.from_records(File().records)
+        assert bool(file) is False
+
+        file = File.from_records(File.from_bytes(b'\0').records)
+        assert bool(file) is True
 
     def test___delitem__(self):
         File = self.File
@@ -1412,12 +1448,12 @@ class BaseTestFile:
     def test_print(self):
         File = self.File
         file = File.from_bytes(b'abc')
-        stream_plain = io.StringIO()
+        stream_plain = io.BytesIO()
         returned = file.print(stream=stream_plain, color=False)
         assert returned is file
         buffer_plain = stream_plain.getvalue()
         assert len(buffer_plain) > 0
-        stream_color = io.StringIO()
+        stream_color = io.BytesIO()
         returned = file.print(stream=stream_color, color=True)
         assert returned is file
         buffer_color = stream_color.getvalue()
@@ -1427,7 +1463,7 @@ class BaseTestFile:
     def test_print_stdout(self):
         File = self.File
         file = File.from_bytes(b'abc')
-        stream_plain = io.StringIO()
+        stream_plain = io.BytesIO()
         with replace_stdout(stream_plain):
             returned = file.print(stream=None, color=False)
             assert returned is file
@@ -1463,17 +1499,6 @@ class BaseTestFile:
         assert actual is file._records
         assert len(actual) >= 2
         assert file._memory is None
-
-    def test_reverse(self):
-        File = self.File
-        blocks = [[5, b'abc'], [10, b'xyz']]
-        expected = [[5, b'zyx'], [10, b'cba']]
-        file = File.from_blocks(blocks)
-        assert file._memory.to_blocks() == blocks
-        returned = file.reverse()
-        assert returned is file
-        actual = file._memory.to_blocks()
-        assert actual == expected
 
     @abc.abstractmethod
     def test_save_file(self, tmppath):

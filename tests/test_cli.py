@@ -7,9 +7,9 @@ import pytest
 from click.core import BaseCommand
 from click.testing import CliRunner
 
-from hexrec.__init__ import IhexFile
-from hexrec.__init__ import SrecFile
-from hexrec.__init__ import __version__ as _version
+from hexrec import IhexFile
+from hexrec import SrecFile
+from hexrec import __version__ as _version
 from hexrec.__main__ import main as _main
 from hexrec.cli import *
 
@@ -104,7 +104,7 @@ def test_guess_output_type():
 
 def test_missing_input_format():
     commands = ('clear', 'convert', 'crop', 'delete', 'fill', 'flood', 'merge',
-                'reverse', 'shift')
+                'shift')
     match = 'standard input requires input format'
     runner = CliRunner()
 
@@ -117,7 +117,7 @@ def test_missing_input_format():
 
 def test_help():
     commands = ('clear', 'convert', 'crop', 'delete', 'fill', 'flood', 'merge',
-                'reverse', 'shift', 'xxd')
+                'shift', 'xxd')
     runner = CliRunner()
 
     for command in commands:
