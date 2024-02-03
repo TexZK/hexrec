@@ -1,4 +1,4 @@
-hexrec.formats.ihex.IhexTag
+﻿hexrec.formats.ihex.IhexTag
 ===========================
 
 .. currentmodule:: hexrec.formats.ihex
@@ -17,8 +17,8 @@ hexrec.formats.ihex.IhexTag
       :nosignatures:
    
       ~IhexTag.is_eof
-      ~IhexTag.is_start
       ~IhexTag.is_extension
+      ~IhexTag.is_start
       ~IhexTag.__init__
       ~IhexTag.as_integer_ratio
       ~IhexTag.bit_count

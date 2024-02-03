@@ -55,44 +55,100 @@ class IhexTag(BaseTag, enum.IntEnum):
     r"""Binary data."""
 
     END_OF_FILE = 1
-    r"""End of file."""
+    r"""End Of File."""
 
     EXTENDED_SEGMENT_ADDRESS = 2
-    r"""Extended segment address."""
+    r"""Extended Segment Address."""
 
     START_SEGMENT_ADDRESS = 3
-    r"""Start segment address."""
+    r"""Start Segment Address."""
 
     EXTENDED_LINEAR_ADDRESS = 4
-    r"""Extended linear address."""
+    r"""Extended Linear Address."""
 
     START_LINEAR_ADDRESS = 5
-    r"""Start linear address."""
+    r"""Start Linear Address."""
 
     _DATA = DATA
 
     def is_data(self) -> bool:
 
-        return self == 0
+        return self == self.DATA
 
     def is_eof(self) -> bool:
-        # TODO: __doc__
+        r"""Tells whether this is an End Of File record tag.
 
-        return self == 1
+        This method returns true if this record tag is used for *End Of File*
+        records.
 
-    def is_start(self) -> bool:
-        # TODO: __doc__
+        Returns:
+            bool: This is an End Of File record tag.
 
-        return self == 3 or self == 5
+        Examples:
+            >>> from hexrec import IhexFile
+            >>> record = IhexFile.Record.create_end_of_file()
+            >>> record.tag.is_eof()
+            True
+            >>> record = IhexFile.Record.create_data(123, b'abc')
+            >>> record.tag.is_eof()
+            False
+        """
+
+        return self == self.END_OF_FILE
 
     def is_extension(self) -> bool:
-        # TODO: __doc__
+        r"""Tells whether this is an address extension record tag.
 
-        return self == 2 or self == 4
+        This method returns true if this record tag is used for
+        *address extension* records.
+
+        Returns:
+            bool: This is a start address record tag.
+
+        Examples:
+            >>> from hexrec import IhexFile
+            >>> record = IhexFile.Record.create_extended_linear_address(0x1234)
+            >>> record.tag.is_start()
+            True
+            >>> record = IhexFile.Record.create_extended_segment_address(0x1234)
+            >>> record.tag.is_start()
+            True
+            >>> record = IhexFile.Record.create_data(123, b'abc')
+            >>> record.tag.is_start()
+            False
+        """
+
+        return ((self == self.EXTENDED_SEGMENT_ADDRESS) or
+                (self == self.EXTENDED_LINEAR_ADDRESS))
+
+    def is_start(self) -> bool:
+        r"""Tells whether this is start address record tag.
+
+        This method returns true if this record tag is used for *start address*
+        records.
+
+        Returns:
+            bool: This is a start address record tag.
+
+        Examples:
+            >>> from hexrec import IhexFile
+            >>> record = IhexFile.Record.create_start_linear_address(0x12345678)
+            >>> record.tag.is_start()
+            True
+            >>> record = IhexFile.Record.create_start_segment_address(0x12345678)
+            >>> record.tag.is_start()
+            True
+            >>> record = IhexFile.Record.create_data(123, b'abc')
+            >>> record.tag.is_start()
+            False
+        """
+
+        return ((self == self.START_SEGMENT_ADDRESS) or
+                (self == self.START_LINEAR_ADDRESS))
 
 
 class IhexRecord(BaseRecord):
-    # TODO: __doc__
+    r"""Intel HEX record."""
 
     Tag: Type[IhexTag] = IhexTag
 
@@ -105,7 +161,7 @@ class IhexRecord(BaseRecord):
         b'(?P<checksum>[0-9A-Fa-f]{2})'
         b'(?P<after>[^\\r\\n]*)\\r?\\n?$'
     )
-    # TODO: __doc__
+    r"""Line parser regex."""
 
     def compute_checksum(self) -> int:
 
@@ -131,7 +187,6 @@ class IhexRecord(BaseRecord):
         address: int,
         data: AnyBytes,
     ) -> 'IhexRecord':
-        # TODO: __doc__
 
         address = address.__index__()
         if not 0 <= address <= 0xFFFF:
@@ -146,14 +201,38 @@ class IhexRecord(BaseRecord):
 
     @classmethod
     def create_end_of_file(cls) -> 'IhexRecord':
-        # TODO: __doc__
+        r"""Creates an End Of File record.
+
+        Returns:
+            :class:`IhexRecord`: End Of File record object.
+
+        Examples:
+            >>> from hexrec import IhexFile
+            >>> record = IhexFile.Record.create_end_of_file()
+            >>> str(record)
+            ':00000001FF\r\n'
+        """
 
         record = cls(cls.Tag.END_OF_FILE)
         return record
 
     @classmethod
     def create_extended_linear_address(cls, extension: int) -> 'IhexRecord':
-        # TODO: __doc__
+        r"""Creates an Extended Linear Address record.
+
+        Args:
+            extension (int):
+                Address extension value.
+
+        Returns:
+            :class:`IhexRecord`: Extended Linear Address record object.
+
+        Examples:
+            >>> from hexrec import IhexFile
+            >>> record = IhexFile.Record.create_extended_linear_address(0x1234)
+            >>> str(record)
+            ':020000041234B4\r\n'
+        """
 
         extension = extension.__index__()
         if not 0 <= extension <= 0xFFFF:
@@ -165,7 +244,21 @@ class IhexRecord(BaseRecord):
 
     @classmethod
     def create_extended_segment_address(cls, extension: int) -> 'IhexRecord':
-        # TODO: __doc__
+        r"""Creates an Extended Segment Address record.
+
+        Args:
+            extension (int):
+                Address extension value.
+
+        Returns:
+            :class:`IhexRecord`: Extended Segment Address record object.
+
+        Examples:
+            >>> from hexrec import IhexFile
+            >>> record = IhexFile.Record.create_extended_segment_address(0x1234)
+            >>> str(record)
+            ':020000021234B6\r\n'
+        """
 
         extension = extension.__index__()
         if not 0 <= extension <= 0xFFFF:
@@ -177,7 +270,21 @@ class IhexRecord(BaseRecord):
 
     @classmethod
     def create_start_linear_address(cls, address: int) -> 'IhexRecord':
-        # TODO: __doc__
+        r"""Creates a Start Linear Address record.
+
+        Args:
+            address (int):
+                Start address.
+
+        Returns:
+            :class:`IhexRecord`: Start Linear Address record object.
+
+        Examples:
+            >>> from hexrec import IhexFile
+            >>> record = IhexFile.Record.create_start_linear_address(0x12345678)
+            >>> str(record)
+            ':0400000512345678E3\r\n'
+        """
 
         address = address.__index__()
         if not 0 <= address <= 0xFFFFFFFF:
@@ -189,7 +296,21 @@ class IhexRecord(BaseRecord):
 
     @classmethod
     def create_start_segment_address(cls, address: int) -> 'IhexRecord':
-        # TODO: __doc__
+        r"""Creates a Start Segment Address record.
+
+        Args:
+            address (int):
+                Start address.
+
+        Returns:
+            :class:`IhexRecord`: Start Segment Address record object.
+
+        Examples:
+            >>> from hexrec import IhexFile
+            >>> record = IhexFile.Record.create_start_segment_address(0x12345678)
+            >>> str(record)
+            ':0400000312345678E5\r\n'
+        """
 
         address = address.__index__()
         if not 0 <= address <= 0xFFFFFFFF:
@@ -205,7 +326,6 @@ class IhexRecord(BaseRecord):
         line: AnyBytes,
         validate: bool = True,
     ) -> 'IhexRecord':
-        # TODO: __doc__
 
         match = cls.LINE_REGEX.match(line)
         if not match:
@@ -372,6 +492,45 @@ class IhexFile(BaseFile):
 
     @property
     def linear(self) -> bool:
+        r"""bool: Linear addressing.
+
+        This property sets the linear addressing mode (the default).
+
+        This is usually taken into account by :meth:`update_records` while
+        splitting :attr:`memory` into :attr:`records`.
+
+        Setting a different value triggers :meth:`discard_records`.
+
+        When true, :attr:`records` are generated to support
+        *linear addressing*, i.e. full 32-bit addressing.
+        Each *data* record holds the 16-bit *offset*, which is the lower part
+        of a 32-bit address, while *Extended Linear Address* records set the
+        upper 16-bit *segment*.
+
+        When false, :attr:`records` are generated to support
+        *segment addressing*, i.e. 20-bit addressing.
+        Each *data* record holds the 16-bit *offset*, which is the lower part
+        of a 20-bit address, while *Extended Segment Address* records set
+        a 16-bit added value, as bits *20:4* of the address.
+
+        Examples:
+            >>> from hexrec import IhexFile
+            >>> blocks = [[0x1234, b'abc'], [0x000F4321, b'xyz']]
+            >>> file = IhexFile.from_blocks(blocks)
+            >>> file.linear
+            True
+            >>> _ = file.print()
+            :0312340061626391
+            :02000004000FEB
+            :0343210078797A2E
+            :00000001FF
+            >>> file.linear = False
+            >>> _ = file.print()
+            :0312340061626391
+            :02000002F0000C
+            :0343210078797A2E
+            :00000001FF
+        """
 
         if self._memory is None:
             self.apply_records()
@@ -393,6 +552,44 @@ class IhexFile(BaseFile):
 
     @property
     def startaddr(self) -> Optional[int]:
+        r"""Start address.
+
+        This property sets the *start address* of the serialized record file.
+
+        This is usually taken into account by :meth:`update_records` while
+        splitting :attr:`memory` into :attr:`records`.
+
+        Setting a different value triggers :meth:`discard_records`.
+
+        If provided, the start address is stated either by a
+        *Start Linear Address* record when :attr:`linear` is true, or by a
+        *Start Segment Address* record when :attr:`linear` is false.
+
+        If ``None`` (the default), no start address record is generated.
+
+        Examples:
+            >>> from hexrec import IhexFile
+            >>> blocks = [[0x1234, b'abc'], [0x4321, b'xyz']]
+            >>> file = IhexFile.from_blocks(blocks)
+            >>> file.startaddr is None
+            True
+            >>> _ = file.print()
+            :0312340061626391
+            :0343210078797A2E
+            :00000001FF
+            >>> file.startaddr = 0x87654321
+            >>> _ = file.print()
+            :0312340061626391
+            :0343210078797A2E
+            :0400000587654321A7
+            :00000001FF
+            >>> file.linear = False
+            >>> _ = file.print()
+            :0312340061626391
+            :0343210078797A2E
+            :0400000387654321A9
+            :00000001FF
+        """
 
         if self._memory is None:
             self.apply_records()

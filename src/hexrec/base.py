@@ -468,14 +468,31 @@ class BaseTag:
 
     @abc.abstractmethod
     def is_data(self) -> bool:
-        r"""Tells if this is a data record tag.
+        r"""Tells whether this is a data record tag.
 
-        This method returns true if this data tag is used for records
+        This method returns true if this data record is used for records
         containing plain data (i.e. without special meaning for the record file
         format).
 
         Returns:
-            bool: record data tag.
+            bool: This is a data record tag.
+
+        Examples:
+            >>> from hexrec import IhexFile
+            >>> record = IhexFile.Record.create_data(123, b'abc')
+            >>> record.tag.is_data()
+            True
+            >>> record = IhexFile.Record.create_end_of_file()
+            >>> record.tag.is_data()
+            False
+
+            >>> from hexrec import SrecFile
+            >>> record = SrecFile.Record.create_data(123, b'abc')
+            >>> record.tag.is_data()
+            True
+            >>> record = SrecFile.Record.create_header(b'HDR\0')
+            >>> record.tag.is_data()
+            False
         """
         ...
 
@@ -982,6 +999,9 @@ class BaseRecord(abc.ABC):
     ) -> 'BaseRecord':
         r"""Parses a record from bytes.
 
+        Please refer to the actual implementation provided by the record
+        *format* for more details.
+
         Args:
             line (bytes):
                 String of bytes to parse.
@@ -991,6 +1011,19 @@ class BaseRecord(abc.ABC):
 
         Returns:
             :class:`BaseRecord`: Parsed record.
+
+        Raises:
+            ValueError: Syntax error.
+
+        Examples:
+            >>> from hexrec import IhexFile
+            >>> record = IhexFile.Record.parse(b':00000001FF\r\n')
+            >>> record.tag
+            <IhexTag.END_OF_FILE: 1>
+            >>> IhexFile.Record.parse(b'::00000001FF\r\n')
+            Traceback (most recent call last):
+                ...
+            ValueError: syntax error
         """
         ...
 
@@ -2815,7 +2848,7 @@ class BaseFile(abc.ABC):
             >>> file = SrecFile.from_bytes(buffer)
             >>> file.maxdatalen
             16
-            >>> _ = file.print(color=True)
+            >>> _ = file.print()
             S0030000FC
             S1130000000102030405060708090A0B0C0D0E0F74
             S1130010101112131415161718191A1B1C1D1E1F64
@@ -2824,7 +2857,7 @@ class BaseFile(abc.ABC):
             S5030004F8
             S9030000FC
             >>> file.maxdatalen = 8
-            >>> _ = file.print(color=True)
+            >>> _ = file.print()
             S0030000FC
             S10B00000001020304050607D8
             S10B000808090A0B0C0D0E0F90
@@ -2881,7 +2914,7 @@ class BaseFile(abc.ABC):
         Examples:
             >>> from hexrec import SrecFile
             >>> blocks = [[123, b'abc'], [456, b'xyz']]
-            >>> file = SrecFile.from_blocks(blocks, startaddr=789)
+            >>> file = SrecFile.from_blocks(blocks)
             >>> file.memory.to_blocks()
             [[123, b'abc'], [456, b'xyz']]
             >>> _ = file.write(789, b'?!')
@@ -3019,7 +3052,7 @@ class BaseFile(abc.ABC):
                 If ``None``, *stdout* is used.
 
             color (bool):
-                Colorize record tokens with ANSI colors.
+                Colorize record tokens with ANSI color codes.
 
             start (int):
                 Inclusive start record index of the specified range.
@@ -3040,7 +3073,7 @@ class BaseFile(abc.ABC):
             >>> from hexrec import SrecFile
             >>> buffer = bytes(range(64))
             >>> file = SrecFile.from_bytes(buffer)
-            >>> _ = file.print(color=True)
+            >>> _ = file.print()
             S0030000FC
             S1130000000102030405060708090A0B0C0D0E0F74
             S1130010101112131415161718191A1B1C1D1E1F64
@@ -3134,14 +3167,14 @@ class BaseFile(abc.ABC):
             >>> file = SrecFile.from_blocks(blocks, startaddr=789)
             >>> len(file.records)
             5
-            >>> _ = file.print(color=True)
+            >>> _ = file.print()
             S0030000FC
             S106007B61626358
             S10601C878797AC5
             S5030002FA
             S9030315E4
             >>> _ = file.update_records(data_tag=SrecFile.Record.Tag.DATA_32)
-            >>> _ = file.print(color=True)
+            >>> _ = file.print()
             S0030000FC
             S3080000007B61626356
             S308000001C878797AC3
