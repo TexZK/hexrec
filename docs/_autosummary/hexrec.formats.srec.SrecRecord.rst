@@ -5,7 +5,6 @@ hexrec.formats.srec.SrecRecord
 
 .. autoclass:: SrecRecord
    :members:
-   :inherited-members:
    :private-members:
    :special-members:
 

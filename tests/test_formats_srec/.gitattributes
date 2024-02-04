@@ -1,6 +1,0 @@
-*.mot text eol=crlf
-*.s19 text eol=crlf
-*.s28 text eol=crlf
-*.s37 text eol=crlf
-*.srec text eol=crlf
-*.exo text eol=crlf

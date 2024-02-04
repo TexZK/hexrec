@@ -1,11 +1,10 @@
-hexrec.base.BaseTag
+﻿hexrec.base.BaseTag
 ===================
 
 .. currentmodule:: hexrec.base
 
 .. autoclass:: BaseTag
    :members:
-   :inherited-members:
    :private-members:
    :special-members:
 

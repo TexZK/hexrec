@@ -5,7 +5,6 @@ hexrec.formats.srec.SrecTag
 
 .. autoclass:: SrecTag
    :members:
-   :inherited-members:
    :private-members:
    :special-members:
 
@@ -18,6 +17,7 @@ hexrec.formats.srec.SrecTag
    
       ~SrecTag.fit_count_tag
       ~SrecTag.fit_data_tag
+      ~SrecTag.fit_start_tag
       ~SrecTag.get_address_max
       ~SrecTag.get_address_size
       ~SrecTag.get_data_max

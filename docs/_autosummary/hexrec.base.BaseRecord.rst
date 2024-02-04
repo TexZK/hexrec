@@ -1,11 +1,10 @@
-hexrec.base.BaseRecord
+﻿hexrec.base.BaseRecord
 ======================
 
 .. currentmodule:: hexrec.base
 
 .. autoclass:: BaseRecord
    :members:
-   :inherited-members:
    :private-members:
    :special-members:
 

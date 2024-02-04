@@ -1,11 +1,10 @@
-hexrec.formats.mos.MosRecord
+﻿hexrec.formats.mos.MosRecord
 ============================
 
 .. currentmodule:: hexrec.formats.mos
 
 .. autoclass:: MosRecord
    :members:
-   :inherited-members:
    :private-members:
    :special-members:
 

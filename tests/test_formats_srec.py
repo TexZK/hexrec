@@ -82,13 +82,31 @@ class TestSrecTag(BaseTestTag):
         with pytest.raises(ValueError, match='address overflow'):
             SrecTag.fit_data_tag(0x100000000)
 
+    def test_fit_start_tag_16(self):
+        assert SrecTag.fit_start_tag(0x00000000) == SrecTag.START_16
+        assert SrecTag.fit_start_tag(0x0000FFFF) == SrecTag.START_16
+
+    def test_fit_start_tag_24(self):
+        assert SrecTag.fit_start_tag(0x00010000) == SrecTag.START_24
+        assert SrecTag.fit_start_tag(0x00FFFFFF) == SrecTag.START_24
+
+    def test_fit_start_tag_32(self):
+        assert SrecTag.fit_start_tag(0x01000000) == SrecTag.START_32
+        assert SrecTag.fit_start_tag(0xFFFFFFFF) == SrecTag.START_32
+
+    def test_fit_start_tag_raises(self):
+        with pytest.raises(ValueError, match='address overflow'):
+            SrecTag.fit_start_tag(-1)
+
+        with pytest.raises(ValueError, match='address overflow'):
+            SrecTag.fit_start_tag(0x100000000)
+
     def test_get_address_max(self):
         assert SrecTag.HEADER.get_address_max() == 0x0000FFFF
         assert SrecTag.DATA_16.get_address_max() == 0x0000FFFF
         assert SrecTag.DATA_24.get_address_max() == 0x00FFFFFF
         assert SrecTag.DATA_32.get_address_max() == 0xFFFFFFFF
-        with pytest.raises(TypeError):
-            SrecTag.RESERVED.get_address_max()
+        assert SrecTag.RESERVED.get_address_max() == 0
         assert SrecTag.COUNT_16.get_address_max() == 0x0000FFFF
         assert SrecTag.COUNT_24.get_address_max() == 0x00FFFFFF
         assert SrecTag.START_32.get_address_max() == 0xFFFFFFFF
@@ -100,7 +118,7 @@ class TestSrecTag(BaseTestTag):
         assert SrecTag.DATA_16.get_address_size() == 2
         assert SrecTag.DATA_24.get_address_size() == 3
         assert SrecTag.DATA_32.get_address_size() == 4
-        assert SrecTag.RESERVED.get_address_size() is None
+        assert SrecTag.RESERVED.get_address_size() == 0
         assert SrecTag.COUNT_16.get_address_size() == 2
         assert SrecTag.COUNT_24.get_address_size() == 3
         assert SrecTag.START_32.get_address_size() == 4
@@ -112,13 +130,12 @@ class TestSrecTag(BaseTestTag):
         assert SrecTag.DATA_16.get_data_max() == 0xFC
         assert SrecTag.DATA_24.get_data_max() == 0xFB
         assert SrecTag.DATA_32.get_data_max() == 0xFA
-        with pytest.raises(TypeError):
-            SrecTag.RESERVED.get_data_max()
-        assert SrecTag.COUNT_16.get_data_max() == 0xFC
-        assert SrecTag.COUNT_24.get_data_max() == 0xFB
-        assert SrecTag.START_32.get_data_max() == 0xFA
-        assert SrecTag.START_24.get_data_max() == 0xFB
-        assert SrecTag.START_16.get_data_max() == 0xFC
+        assert SrecTag.RESERVED.get_data_max() == 0
+        assert SrecTag.COUNT_16.get_data_max() == 0
+        assert SrecTag.COUNT_24.get_data_max() == 0
+        assert SrecTag.START_32.get_data_max() == 0
+        assert SrecTag.START_24.get_data_max() == 0
+        assert SrecTag.START_16.get_data_max() == 0
 
     def test_get_tag_match(self):
         assert SrecTag.HEADER.get_tag_match() is None
@@ -943,6 +960,11 @@ class TestSrecFile(BaseTestFile):
         file.header = b''
         file.header = bytes(range(0xFC))
 
+    def test_header_setter_raises(self):
+        file = SrecFile()
+        with pytest.raises(ValueError, match='data size overflow'):
+            file.header = bytes(range(0xFD))
+
     def test_load_file(self, datapath):
         path = str(datapath / 'simple.srec')
         records = [
@@ -1050,6 +1072,15 @@ class TestSrecFile(BaseTestFile):
         assert returned is file
         actual = stream.getvalue()
         assert actual == expected
+
+    def test_startaddr_empty(self):
+        file = SrecFile()
+        assert not file._memory
+        assert file._startaddr == 0
+        assert file.startaddr == 0
+        file.startaddr = 0xFFFFFFFF
+        assert file._startaddr == 0xFFFFFFFF
+        assert file.startaddr == 0xFFFFFFFF
 
     def test_startaddr_getter(self):
         records = [

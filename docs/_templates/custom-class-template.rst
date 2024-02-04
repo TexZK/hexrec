@@ -1,10 +1,9 @@
-{{ fullname | escape | underline}}
+{{ fullname | escape | underline }}
 
 .. currentmodule:: {{ module }}
 
 .. autoclass:: {{ objname }}
    :members:
-   :inherited-members:
    :private-members:
    :special-members:
 

@@ -1,11 +1,10 @@
-hexrec.formats.mos.MosTag
+﻿hexrec.formats.mos.MosTag
 =========================
 
 .. currentmodule:: hexrec.formats.mos
 
 .. autoclass:: MosTag
    :members:
-   :inherited-members:
    :private-members:
    :special-members:
 

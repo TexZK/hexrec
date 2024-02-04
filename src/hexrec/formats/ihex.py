@@ -95,35 +95,32 @@ class IhexTag(BaseTag, enum.IntEnum):
 
         Examples:
             >>> from hexrec import IhexFile
-            >>> record = IhexFile.Record.create_end_of_file()
-            >>> record.tag.is_eof()
+            >>> IhexTag = IhexFile.Record.Tag
+            >>> IhexTag.END_OF_FILE.is_eof()
             True
-            >>> record = IhexFile.Record.create_data(123, b'abc')
-            >>> record.tag.is_eof()
+            >>> IhexTag.DATA.is_eof()
             False
         """
 
         return self == self.END_OF_FILE
 
     def is_extension(self) -> bool:
-        r"""Tells whether this is an address extension record tag.
+        r"""Tells whether this is an Extended Address record tag.
 
         This method returns true if this record tag is used for
         *address extension* records.
 
         Returns:
-            bool: This is a start address record tag.
+            bool: This is an Extended Address record tag.
 
         Examples:
             >>> from hexrec import IhexFile
-            >>> record = IhexFile.Record.create_extended_linear_address(0x1234)
-            >>> record.tag.is_start()
+            >>> IhexTag = IhexFile.Record.Tag
+            >>> IhexTag.EXTENDED_LINEAR_ADDRESS.is_extension()
             True
-            >>> record = IhexFile.Record.create_extended_segment_address(0x1234)
-            >>> record.tag.is_start()
+            >>> IhexTag.EXTENDED_SEGMENT_ADDRESS.is_extension()
             True
-            >>> record = IhexFile.Record.create_data(123, b'abc')
-            >>> record.tag.is_start()
+            >>> IhexTag.DATA.is_extension()
             False
         """
 
@@ -131,24 +128,22 @@ class IhexTag(BaseTag, enum.IntEnum):
                 (self == self.EXTENDED_LINEAR_ADDRESS))
 
     def is_start(self) -> bool:
-        r"""Tells whether this is start address record tag.
+        r"""Tells whether this is a Start Address record tag.
 
         This method returns true if this record tag is used for *start address*
         records.
 
         Returns:
-            bool: This is a start address record tag.
+            bool: This is a Start Address record tag.
 
         Examples:
             >>> from hexrec import IhexFile
-            >>> record = IhexFile.Record.create_start_linear_address(0x12345678)
-            >>> record.tag.is_start()
+            >>> IhexTag = IhexFile.Record.Tag
+            >>> IhexTag.START_LINEAR_ADDRESS.is_start()
             True
-            >>> record = IhexFile.Record.create_start_segment_address(0x12345678)
-            >>> record.tag.is_start()
+            >>> IhexTag.START_SEGMENT_ADDRESS.is_start()
             True
-            >>> record = IhexFile.Record.create_data(123, b'abc')
-            >>> record.tag.is_start()
+            >>> IhexTag.DATA.is_extension()
             False
         """
 
@@ -162,7 +157,7 @@ if not __TYPING_HAS_SELF:  # pragma: no cover
 
 
 class IhexRecord(BaseRecord):
-    r"""Intel HEX record."""
+    r"""Intel HEX record object."""
 
     Tag: Type[IhexTag] = IhexTag
 
@@ -447,6 +442,7 @@ if not __TYPING_HAS_SELF:  # pragma: no cover
 
 
 class IhexFile(BaseFile):
+    r"""Intel HEX file object."""
 
     FILE_EXT: Sequence[str] = [
         # https://en.wikipedia.org/wiki/Intel_HEX
@@ -564,7 +560,12 @@ class IhexFile(BaseFile):
         self._linear = linear
 
     @classmethod
-    def parse(cls, stream: IO, ignore_errors: bool = False) -> Self:
+    def parse(
+        cls,
+        stream: IO,
+        ignore_errors: bool = False,
+        # TODO: ignore_after_termination: bool = True,
+    ) -> Self:
 
         file = super().parse(stream, ignore_errors=ignore_errors)
         return _cast(IhexFile, file)
@@ -588,24 +589,17 @@ class IhexFile(BaseFile):
 
         Examples:
             >>> from hexrec import IhexFile
-            >>> blocks = [[0x1234, b'abc'], [0x4321, b'xyz']]
-            >>> file = IhexFile.from_blocks(blocks)
+            >>> file = IhexFile()
             >>> file.startaddr is None
             True
             >>> _ = file.print()
-            :0312340061626391
-            :0343210078797A2E
             :00000001FF
             >>> file.startaddr = 0x87654321
             >>> _ = file.print()
-            :0312340061626391
-            :0343210078797A2E
             :0400000587654321A7
             :00000001FF
             >>> file.linear = False
             >>> _ = file.print()
-            :0312340061626391
-            :0343210078797A2E
             :0400000387654321A9
             :00000001FF
         """

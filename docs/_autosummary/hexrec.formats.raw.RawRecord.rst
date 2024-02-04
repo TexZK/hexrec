@@ -1,11 +1,10 @@
-hexrec.formats.raw.RawRecord
+﻿hexrec.formats.raw.RawRecord
 ============================
 
 .. currentmodule:: hexrec.formats.raw
 
 .. autoclass:: RawRecord
    :members:
-   :inherited-members:
    :private-members:
    :special-members:
 

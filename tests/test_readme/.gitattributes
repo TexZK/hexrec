@@ -1,4 +1,0 @@
-*.bin binary
-*.hex text eol=crlf
-*.srec text eol=crlf
-*.xtek text eol=crlf

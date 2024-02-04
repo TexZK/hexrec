@@ -1,11 +1,10 @@
-hexrec.formats.xtek.XtekRecord
+﻿hexrec.formats.xtek.XtekRecord
 ==============================
 
 .. currentmodule:: hexrec.formats.xtek
 
 .. autoclass:: XtekRecord
    :members:
-   :inherited-members:
    :private-members:
    :special-members:
 

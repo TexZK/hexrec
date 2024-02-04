@@ -1,11 +1,10 @@
-hexrec.formats.ihex.IhexRecord
+﻿hexrec.formats.ihex.IhexRecord
 ==============================
 
 .. currentmodule:: hexrec.formats.ihex
 
 .. autoclass:: IhexRecord
    :members:
-   :inherited-members:
    :private-members:
    :special-members:
 

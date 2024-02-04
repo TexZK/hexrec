@@ -5,6 +5,13 @@
 
    
    
+   .. rubric:: Module attributes
+
+   .. autosummary::
+      :toctree:
+   
+      SIZE_TO_ADDRESS_FORMAT
+   
    
 
    

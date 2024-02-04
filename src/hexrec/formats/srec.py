@@ -99,7 +99,32 @@ class SrecTag(BaseTag, enum.IntEnum):
 
     @classmethod
     def fit_count_tag(cls, count: int) -> Self:
-        # TODO: __doc__
+        r"""Fits count record tag.
+
+        Given the record sequence count, it fits the most compact *count* tag.
+
+        Args:
+            count (int):
+                Record sequence *count*.
+
+        Returns:
+            :class:`SrecTag`: *Count* record tag.
+
+        Raises:
+            ValueError: invalid `count`.
+
+        Examples:
+            >>> from hexrec import SrecFile
+            >>> SrecTag = SrecFile.Record.Tag
+            >>> SrecTag.fit_count_tag(0xFFFF)
+            <SrecTag.COUNT_16: 5>
+            >>> SrecTag.fit_count_tag(0xFFFFFF)
+            <SrecTag.COUNT_24: 6>
+            >>> SrecTag.fit_count_tag(0x1000000)
+            Traceback (most recent call last):
+                ...
+            ValueError: count overflow
+        """
 
         if count < 0:
             raise ValueError('count overflow')
@@ -111,7 +136,35 @@ class SrecTag(BaseTag, enum.IntEnum):
 
     @classmethod
     def fit_data_tag(cls, address_max: int) -> Self:
-        # TODO: __doc__
+        r"""Fits data record tag.
+
+        Given the maximum *address* of the involved *data* records, it fits the
+        most compact *data* tag.
+
+        Args:
+            address_max (int):
+                Maximum *address* of the involved *data* records.
+
+        Returns:
+            :class:`SrecTag`: *Data* record tag.
+
+        Raises:
+            ValueError: invalid `address_max`.
+
+        Examples:
+            >>> from hexrec import SrecFile
+            >>> SrecTag = SrecFile.Record.Tag
+            >>> SrecTag.fit_data_tag(0xFFFF)
+            <SrecTag.DATA_16: 1>
+            >>> SrecTag.fit_data_tag(0xFFFFFF)
+            <SrecTag.DATA_24: 2>
+            >>> SrecTag.fit_data_tag(0xFFFFFFFF)
+            <SrecTag.DATA_32: 3>
+            >>> SrecTag.fit_data_tag(0x100000000)
+            Traceback (most recent call last):
+                ...
+            ValueError: address overflow
+        """
 
         if address_max < 0:
             raise ValueError('address overflow')
@@ -123,28 +176,144 @@ class SrecTag(BaseTag, enum.IntEnum):
             return cls.DATA_32
         raise ValueError('address overflow')
 
-    def get_address_max(self) -> Optional[int]:
-        # TODO: __doc__
+    @classmethod
+    def fit_start_tag(cls, address: int) -> Self:
+        r"""Fits data record tag.
 
-        size = self.get_address_size()
-        mask = (1 << (size << 3)) - 1
+        Given the *start address*, it fits the most compact *start address* tag.
+
+        Args:
+            address (int):
+                Start address.
+
+        Returns:
+            :class:`SrecTag`: *Start address* record tag.
+
+        Raises:
+            ValueError: invalid `address`.
+
+        Examples:
+            >>> from hexrec import SrecFile
+            >>> SrecTag = SrecFile.Record.Tag
+            >>> SrecTag.fit_start_tag(0xFFFF)
+            <SrecTag.START_16: 9>
+            >>> SrecTag.fit_start_tag(0xFFFFFF)
+            <SrecTag.START_24: 8>
+            >>> SrecTag.fit_start_tag(0xFFFFFFFF)
+            <SrecTag.START_32: 7>
+            >>> SrecTag.fit_start_tag(0x100000000)
+            Traceback (most recent call last):
+                ...
+            ValueError: address overflow
+        """
+
+        if address < 0:
+            raise ValueError('address overflow')
+        if address <= 0xFFFF:
+            return cls.START_16
+        if address <= 0xFFFFFF:
+            return cls.START_24
+        if address <= 0xFFFFFFFF:
+            return cls.START_32
+        raise ValueError('address overflow')
+
+    def get_address_max(self) -> Optional[int]:
+        r"""Calculates the maximum address.
+
+        It calculates the maximum *address* field for the calling tag.
+        If the *address* field is not supported, it returns ``None``.
+
+        Returns:
+            int: Maximum *address* value, or ``None``.
+
+        Examples:
+            >>> from hexrec import SrecFile
+            >>> SrecTag = SrecFile.Record.Tag
+            >>> hex(SrecTag.DATA_32.get_address_max())
+            '0xffffffff'
+            >>> hex(SrecTag.START_32.get_address_max())
+            '0xffffffff'
+            >>> hex(SrecTag.COUNT_24.get_address_max())
+            '0xffffff'
+            >>> SrecTag.RESERVED.get_address_max()
+            0
+        """
+
+        mask = self.get_address_size()
+        if mask:
+            mask = (1 << (mask << 3)) - 1
         return mask
 
     def get_address_size(self) -> Optional[int]:
-        # TODO: __doc__
+        r"""Calculates the maximum address size.
 
-        SIZES = (2, 2, 3, 4, None, 2, 3, 4, 3, 2)
+        It calculates the maximum *address* field size for the calling tag.
+        If the *address* field is not supported, it returns zero.
+
+        Returns:
+            int: Maximum *address* size, or ``None``.
+
+        Examples:
+            >>> from hexrec import SrecFile
+            >>> SrecTag = SrecFile.Record.Tag
+            >>> SrecTag.DATA_32.get_address_size()
+            4
+            >>> SrecTag.START_32.get_address_size()
+            4
+            >>> SrecTag.COUNT_24.get_address_size()
+            3
+            >>> SrecTag.RESERVED.get_address_size()
+            0
+        """
+
+        SIZES = (2, 2, 3, 4, 0, 2, 3, 4, 3, 2)
         size = SIZES[self]
         return size
 
     def get_data_max(self) -> Optional[int]:
-        # TODO: __doc__
+        r"""Calculates the maximum data size.
 
-        size = 0xFE - self.get_address_size()
+        It calculates the maximum *data* field size for the calling tag.
+        If the *data* field is not supported, it returns ``None``.
+
+        Returns:
+            int: Maximum *data* size, or ``None``.
+
+        Examples:
+            >>> from hexrec import SrecFile
+            >>> SrecTag = SrecFile.Record.Tag
+            >>> SrecTag.DATA_16.get_data_max()
+            252
+            >>> SrecTag.DATA_32.get_data_max()
+            250
+            >>> SrecTag.START_32.get_data_max()
+            0
+        """
+
+        SIZES = (2, 2, 3, 4, 0, 0, 0, 0, 0, 0)
+        size = SIZES[self]
+        if size:
+            size = 0xFE - size
         return size
 
     def get_tag_match(self) -> Optional['SrecTag']:
-        # TODO: __doc__
+        r"""Calculates the matching tag.
+
+        Given *data* or *start address* records, it returns the matching tag.
+
+        Returns:
+            :class:`SrecTag`: Matching tag for *self*, or ``None``
+
+        Examples:
+            >>> from hexrec import SrecFile
+            >>> SrecTag = SrecFile.Record.Tag
+            >>> SrecTag.DATA_16.get_tag_match()
+            <SrecTag.START_16: 9>
+            >>> SrecTag.START_32.get_tag_match()
+            <SrecTag.DATA_32: 3>
+            >>> SrecTag.HEADER.get_tag_match() is None
+            True
+        """
 
         MATCHES = (None, 9, 8, 7, None, None, None, 3, 2, 1)
         match = MATCHES[self]
@@ -154,24 +323,94 @@ class SrecTag(BaseTag, enum.IntEnum):
         return tag_type(match)
 
     def is_count(self) -> bool:
-        # TODO: __doc__
+        r"""Tells whether this is a record count tag.
 
-        return self == 5 or self == 6
+        This method returns true if this record tag is used for *record count*
+        records.
+
+        Returns:
+            bool: This is a record count tag.
+
+        Examples:
+            >>> from hexrec import SrecFile
+            >>> SrecTag = SrecFile.Record.Tag
+            >>> SrecTag.COUNT_16.is_count()
+            True
+            >>> SrecTag.COUNT_24.is_count()
+            True
+            >>> SrecTag.DATA_16.is_count()
+            False
+        """
+
+        return ((self == self.COUNT_16) or
+                (self == self.COUNT_24))
 
     def is_data(self) -> bool:
-        # TODO: __doc__
+        r"""Tells whether this is a data record tag.
 
-        return self == 1 or self == 2 or self == 3
+        This method returns true if this record tag is used for *data* records.
+
+        Returns:
+            bool: This is a data record tag.
+
+        Examples:
+            >>> from hexrec import SrecFile
+            >>> SrecTag = SrecFile.Record.Tag
+            >>> SrecTag.DATA_16.is_data()
+            True
+            >>> SrecTag.DATA_32.is_data()
+            True
+            >>> SrecTag.HEADER.is_data()
+            False
+        """
+
+        return ((self == self.DATA_16) or
+                (self == self.DATA_24) or
+                (self == self.DATA_32))
 
     def is_header(self) -> bool:
-        # TODO: __doc__
+        r"""Tells whether this is a header record tag.
 
-        return self == 0
+        This method returns true if this record tag is used for *header*
+        records.
+
+        Returns:
+            bool: This is a header record tag.
+
+        Examples:
+            >>> from hexrec import SrecFile
+            >>> SrecTag = SrecFile.Record.Tag
+            >>> SrecTag.HEADER.is_header()
+            True
+            >>> SrecTag.DATA_16.is_header()
+            False
+        """
+
+        return self == self.HEADER
 
     def is_start(self) -> bool:
-        # TODO: __doc__
+        r"""Tells whether this is a start address record tag.
 
-        return self == 7 or self == 8 or self == 9
+        This method returns true if this record tag is used for *start address*
+        records.
+
+        Returns:
+            bool: This is a start address record tag.
+
+        Examples:
+            >>> from hexrec import SrecFile
+            >>> SrecTag = SrecFile.Record.Tag
+            >>> SrecTag.START_16.is_start()
+            True
+            >>> SrecTag.START_32.is_start()
+            True
+            >>> SrecTag.DATA_16.is_start()
+            False
+        """
+
+        return ((self == self.START_16) or
+                (self == self.START_24) or
+                (self == self.START_32))
 
 
 SIZE_TO_ADDRESS_FORMAT: Mapping[int, bytes] = {
@@ -179,7 +418,7 @@ SIZE_TO_ADDRESS_FORMAT: Mapping[int, bytes] = {
     3: b'%06X',
     4: b'%08X',
 }
-# TODO: __doc__
+r"""Format byte string for each supported address size."""
 
 
 if not __TYPING_HAS_SELF:  # pragma: no cover
@@ -188,7 +427,7 @@ if not __TYPING_HAS_SELF:  # pragma: no cover
 
 
 class SrecRecord(BaseRecord):
-    # TODO: __doc__
+    r"""Motorola S-record record object."""
 
     Tag: Type[SrecTag] = SrecTag
 
@@ -197,19 +436,19 @@ class SrecRecord(BaseRecord):
         b'(?P<tag>[0-9A-Fa-f])'
         b'(?P<count>[0-9A-Fa-f]{2})'
     )
-    # TODO: __doc__
+    r"""Line parser regex, part 1."""
 
     LINE2_REGEX = [re.compile(
         b'^(?P<address>[0-9A-Fa-f]{%d})' % (4 + (i * 2))
     ) for i in range(3)]
-    # TODO: __doc__
+    r"""Line parser regex, part 2."""
 
     LINE3_REGEX = re.compile(
         b'^(?P<data>([0-9A-Fa-f]{2})*)'
         b'(?P<checksum>[0-9A-Fa-f]{2})'
         b'(?P<after>[^\\r\\n]*)\\r?\\n?$'
     )
-    # TODO: __doc__
+    r"""Line parser regex, part 3."""
 
     def compute_checksum(self) -> int:
 
@@ -234,7 +473,33 @@ class SrecRecord(BaseRecord):
         count: int,
         tag: Optional[SrecTag] = None,
     ) -> Self:
-        # TODO: __doc__
+        r"""Creates a record count record.
+
+        This is method instantiates a *record count* record, optionally
+        choosing the desired count size.
+
+        Args:
+            count (int):
+                Record count.
+
+            tag (:class:`SrecTag`):
+                Chosen *record count* tag.
+                If ``None``, it uses the one returned by
+                :meth:`SrecTag.fit_count_tag`.
+
+        Returns:
+            :class:`SrecRecord`: Record count record object.
+
+        Examples:
+            >>> from hexrec import SrecFile
+            >>> record = SrecFile.Record.create_count(0x1234)
+            >>> str(record)
+            'S5031234B6\r\n'
+            >>> tag = SrecFile.Record.Tag.COUNT_24
+            >>> record = SrecFile.Record.create_count(0x1234, tag=tag)
+            >>> str(record)
+            'S604001234B5\r\n'
+        """
 
         Tag = cls.Tag
         if tag is None:
@@ -256,7 +521,36 @@ class SrecRecord(BaseRecord):
         data: AnyBytes,
         tag: Optional[SrecTag] = None,
     ) -> Self:
-        # TODO: __doc__
+        r"""Creates a data record.
+
+        This is method instantiates a *data* record, optionally choosing the
+        desired address size.
+
+        Args:
+            address (int):
+                Record address.
+
+            data (bytes):
+                Record byte data.
+
+            tag (:class:`SrecTag`):
+                Chosen *data* tag.
+                If ``None``, it uses the one returned by
+                :meth:`SrecTag.fit_data_tag`.
+
+        Returns:
+            :class:`SrecRecord`: Data record object.
+
+        Examples:
+            >>> from hexrec import SrecFile
+            >>> record = SrecFile.Record.create_data(0x1234, b'abc')
+            >>> str(record)
+            'S10612346162638D\r\n'
+            >>> tag = SrecFile.Record.Tag.DATA_32
+            >>> record = SrecFile.Record.create_data(0x1234, b'abc', tag=tag)
+            >>> str(record)
+            'S308000012346162638B\r\n'
+        """
 
         Tag = cls.Tag
         if tag is None:
@@ -276,7 +570,27 @@ class SrecRecord(BaseRecord):
 
     @classmethod
     def create_header(cls, data: AnyBytes = b'') -> Self:
-        # TODO: __doc__
+        r"""Creates a header record.
+
+        Args:
+            data (bytes):
+                Header byte data.
+
+        Returns:
+            :class:`IhexRecord`: Header record.
+
+        Raises:
+            ValueError: data size overflow.
+
+        Examples:
+            >>> from hexrec import SrecFile
+            >>> record = SrecFile.Record.create_header()
+            >>> str(record)
+            'S0030000FC\r\n'
+            >>> record = SrecFile.Record.create_header(b'HDR\0')
+            >>> str(record)
+            'S0070000484452001A\r\n'
+        """
 
         if len(data) > 0xFC:
             raise ValueError('data size overflow')
@@ -291,11 +605,37 @@ class SrecRecord(BaseRecord):
         address: int = 0,
         tag: Optional[SrecTag] = None,
     ) -> Self:
-        # TODO: __doc__
+        r"""Creates a start address record.
+
+        This is method instantiates a *start address* record, optionally
+        choosing the desired address size.
+
+        Args:
+            address (int):
+                Start address.
+
+            tag (:class:`SrecTag`):
+                Chosen *start* tag.
+                If ``None``, it uses the one matching
+                :meth:`SrecTag.fit_start_tag`.
+
+        Returns:
+            :class:`SrecRecord`: Start address record object.
+
+        Examples:
+            >>> from hexrec import SrecFile
+            >>> record = SrecFile.Record.create_start(0x1234)
+            >>> str(record)
+            'S9031234B6\r\n'
+            >>> tag = SrecFile.Record.Tag.START_32
+            >>> record = SrecFile.Record.create_start(0x1234, tag=tag)
+            >>> str(record)
+            'S70500001234B4\r\n'
+        """
 
         Tag = cls.Tag
         if tag is None:
-            tag = Tag.fit_data_tag(address).get_tag_match()
+            tag = Tag.fit_start_tag(address)
         else:
             if not Tag.START_32 <= tag <= Tag.START_16:
                 raise ValueError('invalid start tag')
@@ -437,7 +777,7 @@ if not __TYPING_HAS_SELF:  # pragma: no cover
 
 
 class SrecFile(BaseFile):
-    # TODO: __doc__
+    r"""Motorola S-record file object."""
 
     FILE_EXT: Sequence[str] = [
         # https://en.wikipedia.org/wiki/SREC_(file_format)
@@ -486,6 +826,41 @@ class SrecFile(BaseFile):
 
     @property
     def header(self) -> Optional[AnyBytes]:
+        r"""bytes: Header byte string.
+
+        This property sets the file *header* byte string; ``None`` to disable.
+
+        This is usually taken into account by :meth:`update_records` while
+        splitting :attr:`memory` into :attr:`records`.
+
+        Setting a different value triggers :meth:`discard_records`.
+
+        Raises:
+            ValueError: data size overflow.
+
+        See Also:
+            :meth:`update_records`
+            :meth:`discard_records`
+
+        Examples:
+            >>> from hexrec import SrecFile
+            >>> file = SrecFile()
+            >>> file.header
+            b''
+            >>> _ = file.print()
+            S0030000FC
+            S5030000FC
+            S9030000FC
+            >>> file.header = b'HDR\0'
+            >>> _ = file.print()
+            S0070000484452001A
+            S5030000FC
+            S9030000FC
+            >>> file.header = None
+            >>> _ = file.print()
+            S5030000FC
+            S9030000FC
+        """
 
         if self._memory is None:
             self.apply_records()
@@ -493,6 +868,11 @@ class SrecFile(BaseFile):
 
     @header.setter
     def header(self, header: Optional[AnyBytes]) -> None:
+
+        if header is not None:
+            size = len(header)
+            if size > self.Record.Tag.HEADER.get_data_max():
+                raise ValueError('data size overflow')
 
         if header != self._header:
             self.discard_records()
@@ -510,6 +890,30 @@ class SrecFile(BaseFile):
 
     @property
     def startaddr(self) -> int:
+        r"""Start address.
+
+        This property sets the *start address* of the serialized record file.
+
+        This is usually taken into account by :meth:`update_records` while
+        splitting :attr:`memory` into :attr:`records`.
+
+        Setting a different value triggers :meth:`discard_records`.
+
+        Examples:
+            >>> from hexrec import SrecFile
+            >>> file = SrecFile()
+            >>> file.startaddr
+            0
+            >>> _ = file.print()
+            S0030000FC
+            S5030000FC
+            S9030000FC
+            >>> file.startaddr = 0x87654321
+            >>> _ = file.print()
+            S0030000FC
+            S5030000FC
+            S70587654321AA
+        """
 
         if self._memory is None:
             self.apply_records()
@@ -546,7 +950,8 @@ class SrecFile(BaseFile):
         Record = self.Record
         Tag = Record.Tag
         if data_tag is None:
-            data_tag = Tag.fit_data_tag(max(0, memory.endin))
+            address_max = max(0, memory.endin) if memory else self.startaddr
+            data_tag = Tag.fit_data_tag(address_max)
         chunk_views = []
         data_record_count = 0
         try:

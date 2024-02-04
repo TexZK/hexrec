@@ -1,11 +1,10 @@
-hexrec.formats.asciihex.AsciiHexRecord
+﻿hexrec.formats.asciihex.AsciiHexRecord
 ======================================
 
 .. currentmodule:: hexrec.formats.asciihex
 
 .. autoclass:: AsciiHexRecord
    :members:
-   :inherited-members:
    :private-members:
    :special-members:
 

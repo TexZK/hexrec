@@ -83,7 +83,7 @@ if not __TYPING_HAS_SELF:  # pragma: no cover
 
 
 class XtekRecord(BaseRecord):
-    # TODO: __doc__
+    r"""Tektronix Extended record object."""
 
     Tag: Type[XtekTag] = XtekTag
 
@@ -342,6 +342,7 @@ if not __TYPING_HAS_SELF:  # pragma: no cover
 
 
 class XtekFile(BaseFile):
+    r"""Tektronix Extended file object."""
 
     FILE_EXT: Sequence[int] = ['.tek', '.xtek']
 
@@ -379,13 +380,19 @@ class XtekFile(BaseFile):
         return self
 
     @classmethod
-    def parse(cls, stream: IO, ignore_errors: bool = False) -> Self:
+    def parse(
+        cls,
+        stream: IO,
+        ignore_errors: bool = False,
+        # TODO: ignore_after_termination: bool = True,
+    ) -> Self:
 
         file = super().parse(stream, ignore_errors=ignore_errors)
         return _cast(XtekFile, file)
 
     @property
     def startaddr(self) -> int:
+        # TODO: __doc__
 
         if self._memory is None:
             self.apply_records()

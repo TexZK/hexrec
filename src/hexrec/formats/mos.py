@@ -81,7 +81,7 @@ if not __TYPING_HAS_SELF:  # pragma: no cover
 
 
 class MosRecord(BaseRecord):
-    # TODO: __doc__
+    r"""MOS Technology record object."""
 
     Tag: Type[MosTag] = MosTag
 
@@ -255,6 +255,7 @@ if not __TYPING_HAS_SELF:  # pragma: no cover
 
 
 class MosFile(BaseFile):
+    r"""MOS Technology file object."""
 
     DEFAULT_DATALEN: int = 24
 
@@ -272,6 +273,7 @@ class MosFile(BaseFile):
         cls,
         stream: IO,
         ignore_errors: bool = False,
+        # TODO: ignore_after_termination: bool = True,
         eof_record: bool = True,
     ) -> Self:
         # TODO: __doc__

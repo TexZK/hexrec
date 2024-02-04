@@ -1,11 +1,10 @@
-﻿hexrec.formats.srec.SrecFile
+hexrec.formats.srec.SrecFile
 ============================
 
 .. currentmodule:: hexrec.formats.srec
 
 .. autoclass:: SrecFile
    :members:
-   :inherited-members:
    :private-members:
    :special-members:
 

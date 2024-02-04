@@ -1,11 +1,10 @@
-hexrec.formats.xtek.XtekTag
+﻿hexrec.formats.xtek.XtekTag
 ===========================
 
 .. currentmodule:: hexrec.formats.xtek
 
 .. autoclass:: XtekTag
    :members:
-   :inherited-members:
    :private-members:
    :special-members:
 

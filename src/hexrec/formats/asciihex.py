@@ -89,7 +89,7 @@ if not __TYPING_HAS_SELF:  # pragma: no cover
 
 
 class AsciiHexRecord(BaseRecord):
-    # TODO: __doc__
+    r"""ASCII-HEX record object."""
 
     Tag: Type[AsciiHexTag] = AsciiHexTag
 
@@ -314,6 +314,7 @@ if not __TYPING_HAS_SELF:  # pragma: no cover
 
 
 class AsciiHexFile(BaseFile):
+    r"""ASCII-HEX file object."""
 
     Record: Type[AsciiHexRecord] = AsciiHexRecord
 

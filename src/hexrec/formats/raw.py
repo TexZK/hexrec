@@ -51,7 +51,7 @@ __TYPING_HAS_SELF = Self is not Any
 
 
 class RawTag(BaseTag, enum.Enum):
-    r"""Binary tag."""
+    r"""Raw binary tag."""
 
     DATA = ...
     r"""Data."""
@@ -69,7 +69,7 @@ if not __TYPING_HAS_SELF:  # pragma: no cover
 
 
 class RawRecord(BaseRecord):
-    # TODO: __doc__
+    r"""Raw binary record object."""
 
     Tag: Type[RawTag] = RawTag
 
@@ -118,6 +118,7 @@ if not __TYPING_HAS_SELF:  # pragma: no cover
 
 
 class RawFile(BaseFile):
+    r"""Raw binary file object."""
 
     DEFAULT_DATALEN: int = sys.maxsize
 

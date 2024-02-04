@@ -1,11 +1,10 @@
-hexrec.formats.asciihex.AsciiHexTag
+﻿hexrec.formats.asciihex.AsciiHexTag
 ===================================
 
 .. currentmodule:: hexrec.formats.asciihex
 
 .. autoclass:: AsciiHexTag
    :members:
-   :inherited-members:
    :private-members:
    :special-members:
 

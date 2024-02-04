@@ -5,7 +5,6 @@
 
 .. autoclass:: BaseFile
    :members:
-   :inherited-members:
    :private-members:
    :special-members:
 

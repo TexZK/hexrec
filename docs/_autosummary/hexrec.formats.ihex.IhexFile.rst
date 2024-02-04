@@ -5,7 +5,6 @@
 
 .. autoclass:: IhexFile
    :members:
-   :inherited-members:
    :private-members:
    :special-members:
 
