@@ -32,9 +32,11 @@ See Also:
 import enum
 import re
 from typing import IO
+from typing import Any
 from typing import Mapping
 from typing import Sequence
 from typing import Type
+from typing import TypeVar
 from typing import cast as _cast
 
 from bytesparse import Memory
@@ -43,8 +45,15 @@ from ..base import AnyBytes
 from ..base import BaseFile
 from ..base import BaseRecord
 from ..base import BaseTag
+from ..base import TypeAlias
 from ..utils import hexlify
 from ..utils import unhexlify
+
+try:
+    from typing import Self
+except ImportError:  # pragma: no cover
+    Self: TypeAlias = Any
+__TYPING_HAS_SELF = Self is not Any
 
 
 class XtekTag(BaseTag, enum.IntEnum):
@@ -66,6 +75,11 @@ class XtekTag(BaseTag, enum.IntEnum):
         # TODO: __doc__
 
         return self == 8
+
+
+if not __TYPING_HAS_SELF:  # pragma: no cover
+    del Self
+    Self = TypeVar('Self', bound='XtekRecord')
 
 
 class XtekRecord(BaseRecord):
@@ -162,7 +176,7 @@ class XtekRecord(BaseRecord):
         address: int,
         data: AnyBytes,
         addrlen: int = 8,
-    ) -> 'XtekRecord':
+    ) -> Self:
         # TODO: __doc__
 
         addrlen = addrlen.__index__()
@@ -185,7 +199,7 @@ class XtekRecord(BaseRecord):
         cls,
         start: int = 0,
         addrlen: int = 8,
-    ) -> 'XtekRecord':
+    ) -> Self:
         # TODO: __doc__
 
         addrlen = addrlen.__index__()
@@ -214,7 +228,7 @@ class XtekRecord(BaseRecord):
         cls,
         line: AnyBytes,
         validate: bool = True,
-    ) -> 'XtekRecord':
+    ) -> Self:
         # TODO: __doc__
 
         line = memoryview(line)
@@ -285,7 +299,7 @@ class XtekRecord(BaseRecord):
         self,
         checksum: bool = True,
         count: bool = True,
-    ) -> 'XtekRecord':
+    ) -> Self:
 
         super().validate(checksum=checksum, count=count)
 
@@ -322,6 +336,11 @@ class XtekRecord(BaseRecord):
         return self
 
 
+if not __TYPING_HAS_SELF:  # pragma: no cover
+    del Self
+    Self = TypeVar('Self', bound='XtekFile')
+
+
 class XtekFile(BaseFile):
 
     FILE_EXT: Sequence[int] = ['.tek', '.xtek']
@@ -336,7 +355,7 @@ class XtekFile(BaseFile):
 
         self._startaddr: int = 0
 
-    def apply_records(self) -> 'XtekFile':
+    def apply_records(self) -> Self:
         # TODO: __doc__
 
         if not self._records:
@@ -360,7 +379,7 @@ class XtekFile(BaseFile):
         return self
 
     @classmethod
-    def parse(cls, stream: IO, ignore_errors: bool = False) -> 'XtekFile':
+    def parse(cls, stream: IO, ignore_errors: bool = False) -> Self:
 
         file = super().parse(stream, ignore_errors=ignore_errors)
         return _cast(XtekFile, file)
@@ -387,7 +406,7 @@ class XtekFile(BaseFile):
         self,
         align: bool = False,
         addrlen: int = 8,
-    ) -> 'XtekFile':
+    ) -> Self:
         # TODO: __doc__
 
         memory = self._memory
@@ -423,7 +442,7 @@ class XtekFile(BaseFile):
         self,
         data_ordering: bool = False,
         startaddr_within_data: bool = False,
-    ) -> 'XtekFile':
+    ) -> Self:
         # TODO: __doc__
 
         records = self._records
@@ -459,3 +478,7 @@ class XtekFile(BaseFile):
                 raise ValueError('no data at start address')
 
         return self
+
+
+if not __TYPING_HAS_SELF:  # pragma: no cover
+    del Self

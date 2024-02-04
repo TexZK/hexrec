@@ -32,17 +32,26 @@ See Also:
 import enum
 import re
 from typing import IO
+from typing import Any
 from typing import Mapping
 from typing import Optional
 from typing import Type
+from typing import TypeVar
 from typing import cast as _cast
 
 from ..base import AnyBytes
 from ..base import BaseFile
 from ..base import BaseRecord
 from ..base import BaseTag
+from ..base import TypeAlias
 from ..utils import hexlify
 from ..utils import unhexlify
+
+try:
+    from typing import Self
+except ImportError:  # pragma: no cover
+    Self: TypeAlias = Any
+__TYPING_HAS_SELF = Self is not Any
 
 
 class AsciiHexTag(BaseTag, enum.IntEnum):
@@ -72,6 +81,11 @@ class AsciiHexTag(BaseTag, enum.IntEnum):
     def is_data(self) -> bool:
 
         return self == 0
+
+
+if not __TYPING_HAS_SELF:  # pragma: no cover
+    del Self
+    Self = TypeVar('Self', bound='AsciiHexRecord')
 
 
 class AsciiHexRecord(BaseRecord):
@@ -118,7 +132,7 @@ class AsciiHexRecord(BaseRecord):
         cls,
         address: int,
         addrlen: int = 8,
-    ) -> 'AsciiHexRecord':
+    ) -> Self:
         # TODO: __doc__
 
         record = cls(cls.Tag.ADDRESS, address=address, count=addrlen)
@@ -128,7 +142,7 @@ class AsciiHexRecord(BaseRecord):
     def create_checksum(
         cls,
         checksum: int,
-    ) -> 'AsciiHexRecord':
+    ) -> Self:
         # TODO: __doc__
 
         record = cls(cls.Tag.CHECKSUM, checksum=checksum)
@@ -139,7 +153,7 @@ class AsciiHexRecord(BaseRecord):
         cls,
         address: int,
         data: AnyBytes,
-    ) -> 'AsciiHexRecord':
+    ) -> Self:
         # TODO: __doc__
 
         record = cls(cls.Tag.DATA, data=data, address=address)
@@ -151,7 +165,7 @@ class AsciiHexRecord(BaseRecord):
         line: AnyBytes,
         address: int = 0,
         validate: bool = True,
-    ) -> 'AsciiHexRecord':
+    ) -> Self:
         # TODO: __doc__
 
         match = cls.LINE_REGEX.match(line)
@@ -258,7 +272,7 @@ class AsciiHexRecord(BaseRecord):
         self,
         checksum: bool = True,
         count: bool = True,
-    ) -> 'AsciiHexRecord':
+    ) -> Self:
 
         super().validate(checksum=checksum, count=count)
         Tag = self.Tag
@@ -294,6 +308,11 @@ class AsciiHexRecord(BaseRecord):
         return self
 
 
+if not __TYPING_HAS_SELF:  # pragma: no cover
+    del Self
+    Self = TypeVar('Self', bound='AsciiHexFile')
+
+
 class AsciiHexFile(BaseFile):
 
     Record: Type[AsciiHexRecord] = AsciiHexRecord
@@ -304,7 +323,7 @@ class AsciiHexFile(BaseFile):
         stream: IO,
         ignore_errors: bool = False,
         stxetx: bool = True,
-    ) -> 'AsciiHexFile':
+    ) -> Self:
         # TODO: __doc__
 
         buffer: bytes = stream.read()
@@ -374,7 +393,7 @@ class AsciiHexFile(BaseFile):
         align: bool = False,
         checksum: bool = False,
         addrlen: int = 8,
-    ) -> 'AsciiHexFile':
+    ) -> Self:
         # TODO: __doc__
 
         memory = self._memory
@@ -422,7 +441,7 @@ class AsciiHexFile(BaseFile):
         self,
         data_ordering: bool = False,
         checksum_values: bool = True,
-    ) -> 'AsciiHexFile':
+    ) -> Self:
         # TODO: __doc__
 
         records = self._records
@@ -455,3 +474,7 @@ class AsciiHexFile(BaseFile):
                 file_checksum = (file_checksum + sum_data) & 0xFFFF
 
         return self
+
+
+if not __TYPING_HAS_SELF:  # pragma: no cover
+    del Self

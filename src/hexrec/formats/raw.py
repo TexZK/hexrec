@@ -31,14 +31,23 @@ This format is actually used to hold binary chunks of raw data (`bytes`).
 import enum
 import sys
 from typing import IO
+from typing import Any
 from typing import Mapping
 from typing import Sequence
 from typing import Type
+from typing import TypeVar
 
 from ..base import AnyBytes
 from ..base import BaseFile
 from ..base import BaseRecord
 from ..base import BaseTag
+from ..base import TypeAlias
+
+try:
+    from typing import Self
+except ImportError:  # pragma: no cover
+    Self: TypeAlias = Any
+__TYPING_HAS_SELF = Self is not Any
 
 
 class RawTag(BaseTag, enum.Enum):
@@ -52,6 +61,11 @@ class RawTag(BaseTag, enum.Enum):
     def is_data(self) -> bool:
 
         return True
+
+
+if not __TYPING_HAS_SELF:  # pragma: no cover
+    del Self
+    Self = TypeVar('Self', bound='RawRecord')
 
 
 class RawRecord(BaseRecord):
@@ -96,6 +110,11 @@ class RawRecord(BaseRecord):
         return {
             'data': self.data,
         }
+
+
+if not __TYPING_HAS_SELF:  # pragma: no cover
+    del Self
+    Self = TypeVar('Self', bound='RawFile')
 
 
 class RawFile(BaseFile):
@@ -204,3 +223,7 @@ class RawFile(BaseFile):
             last_data_end = address + len(record.data)
 
         return self
+
+
+if not __TYPING_HAS_SELF:  # pragma: no cover
+    del Self

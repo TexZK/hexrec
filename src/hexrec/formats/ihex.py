@@ -32,10 +32,12 @@ See Also:
 import enum
 import re
 from typing import IO
+from typing import Any
 from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Type
+from typing import TypeVar
 from typing import cast as _cast
 
 from bytesparse import Memory
@@ -44,8 +46,15 @@ from ..base import AnyBytes
 from ..base import BaseFile
 from ..base import BaseRecord
 from ..base import BaseTag
+from ..base import TypeAlias
 from ..utils import hexlify
 from ..utils import unhexlify
+
+try:
+    from typing import Self
+except ImportError:  # pragma: no cover
+    Self: TypeAlias = Any
+__TYPING_HAS_SELF = Self is not Any
 
 
 class IhexTag(BaseTag, enum.IntEnum):
@@ -147,6 +156,11 @@ class IhexTag(BaseTag, enum.IntEnum):
                 (self == self.START_LINEAR_ADDRESS))
 
 
+if not __TYPING_HAS_SELF:  # pragma: no cover
+    del Self
+    Self = TypeVar('Self', bound='IhexRecord')
+
+
 class IhexRecord(BaseRecord):
     r"""Intel HEX record."""
 
@@ -186,7 +200,7 @@ class IhexRecord(BaseRecord):
         cls,
         address: int,
         data: AnyBytes,
-    ) -> 'IhexRecord':
+    ) -> Self:
 
         address = address.__index__()
         if not 0 <= address <= 0xFFFF:
@@ -200,7 +214,7 @@ class IhexRecord(BaseRecord):
         return record
 
     @classmethod
-    def create_end_of_file(cls) -> 'IhexRecord':
+    def create_end_of_file(cls) -> Self:
         r"""Creates an End Of File record.
 
         Returns:
@@ -217,7 +231,7 @@ class IhexRecord(BaseRecord):
         return record
 
     @classmethod
-    def create_extended_linear_address(cls, extension: int) -> 'IhexRecord':
+    def create_extended_linear_address(cls, extension: int) -> Self:
         r"""Creates an Extended Linear Address record.
 
         Args:
@@ -243,7 +257,7 @@ class IhexRecord(BaseRecord):
         return record
 
     @classmethod
-    def create_extended_segment_address(cls, extension: int) -> 'IhexRecord':
+    def create_extended_segment_address(cls, extension: int) -> Self:
         r"""Creates an Extended Segment Address record.
 
         Args:
@@ -269,7 +283,7 @@ class IhexRecord(BaseRecord):
         return record
 
     @classmethod
-    def create_start_linear_address(cls, address: int) -> 'IhexRecord':
+    def create_start_linear_address(cls, address: int) -> Self:
         r"""Creates a Start Linear Address record.
 
         Args:
@@ -295,7 +309,7 @@ class IhexRecord(BaseRecord):
         return record
 
     @classmethod
-    def create_start_segment_address(cls, address: int) -> 'IhexRecord':
+    def create_start_segment_address(cls, address: int) -> Self:
         r"""Creates a Start Segment Address record.
 
         Args:
@@ -325,7 +339,7 @@ class IhexRecord(BaseRecord):
         cls,
         line: AnyBytes,
         validate: bool = True,
-    ) -> 'IhexRecord':
+    ) -> Self:
 
         match = cls.LINE_REGEX.match(line)
         if not match:
@@ -385,7 +399,7 @@ class IhexRecord(BaseRecord):
         self,
         checksum: bool = True,
         count: bool = True,
-    ) -> 'IhexRecord':
+    ) -> Self:
 
         super().validate(checksum=checksum, count=count)
 
@@ -427,6 +441,11 @@ class IhexRecord(BaseRecord):
         return self
 
 
+if not __TYPING_HAS_SELF:  # pragma: no cover
+    del Self
+    Self = TypeVar('Self', bound='IhexFile')
+
+
 class IhexFile(BaseFile):
 
     FILE_EXT: Sequence[str] = [
@@ -452,7 +471,7 @@ class IhexFile(BaseFile):
         self._linear: bool = True
         self._startaddr: Optional[int] = None
 
-    def apply_records(self) -> 'IhexFile':
+    def apply_records(self) -> Self:
 
         if not self._records:
             raise ValueError('records required')
@@ -545,7 +564,7 @@ class IhexFile(BaseFile):
         self._linear = linear
 
     @classmethod
-    def parse(cls, stream: IO, ignore_errors: bool = False) -> 'IhexFile':
+    def parse(cls, stream: IO, ignore_errors: bool = False) -> Self:
 
         file = super().parse(stream, ignore_errors=ignore_errors)
         return _cast(IhexFile, file)
@@ -611,8 +630,54 @@ class IhexFile(BaseFile):
         self,
         align: bool = False,
         start: bool = True,
-    ) -> 'IhexFile':
-        # TODO: __doc__
+    ) -> Self:
+        r"""Applies memory and meta to records.
+
+        This method processes the stored :attr:`memory` and *meta* information
+        to generate the sequence of :attr:`records`.
+
+        This effectively converts the *memory role* into the *records role*
+        (keeping both).
+
+        The :attr:`records` is assigned upon return.
+        Any exceptions being raised should not alter the file object.
+
+        Args:
+            align (bool):
+                Aligns data record chunk address bounds to :attr:`maxdatalen`.
+
+            start (bool):
+                Generates the *start address* record, if :attr:`startaddr` is
+                not ``None``.
+
+        Returns:
+            :class:`IhexFile`: *self*.
+
+        Raises:
+            ValueError: :attr:`memory` attribute not populated.
+
+        See Also:
+            :attr:`records`
+            :attr:`memory`
+            :meth:`get_meta`
+            :meth:`apply_records`
+
+        Examples:
+            >>> from hexrec import IhexFile
+            >>> blocks = [[123, b'abc']]
+            >>> file = IhexFile.from_blocks(blocks, maxdatalen=16, startaddr=456)
+            >>> file.memory.to_blocks()
+            [[123, b'abc']]
+            >>> file.get_meta()
+            {'linear': True, 'maxdatalen': 16, 'startaddr': 456}
+            >>> _ = file.update_records()
+            >>> len(file.records)
+            3
+            >>> _ = file.print()
+            :03007B006162635C
+            :04000005000001C82E
+            :00000001FF
+        """
 
         memory = self._memory
         if memory is None:
@@ -673,8 +738,41 @@ class IhexFile(BaseFile):
         start_required: bool = False,
         start_penultimate: bool = True,
         start_within_data: bool = False,
-    ) -> 'IhexFile':
-        # TODO: __doc__
+    ) -> Self:
+        r"""Validates records.
+
+        It performs consistency checks for the underlying :attr:`records`.
+
+        Args:
+            data_ordering (bool):
+                Checks that the *data* record sequence has monotonically
+                increasing addresses, without any overlapping.
+
+            start_required (bool):
+                Requires the *start address* record be present.
+
+            start_penultimate (bool):
+                Requires the *start address* record be the penultimate one.
+
+            start_within_data (bool):
+                Requires *start address* fall within data carried by some
+                *data* record.
+
+        Returns:
+            :class:`IhexFile`: *self*.
+
+        Raises:
+            ValueError: Invalid record sequence.
+
+        Examples:
+            >>> from hexrec import IhexFile
+            >>> records = [IhexFile.Record.create_data(123, b'abc')]
+            >>> file = IhexFile.from_records(records)
+            >>> file.validate_records()
+            Traceback (most recent call last):
+                ...
+            ValueError: missing end of file record
+        """
 
         records = self._records
         if records is None:
@@ -729,3 +827,7 @@ class IhexFile(BaseFile):
                     raise ValueError('no data at start address')
 
         return self
+
+
+if not __TYPING_HAS_SELF:  # pragma: no cover
+    del Self

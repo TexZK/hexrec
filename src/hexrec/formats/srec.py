@@ -32,10 +32,12 @@ See Also:
 import enum
 import re
 from typing import IO
+from typing import Any
 from typing import Mapping
 from typing import Optional
 from typing import Sequence
 from typing import Type
+from typing import TypeVar
 from typing import cast as _cast
 
 from bytesparse import Memory
@@ -44,8 +46,20 @@ from ..base import AnyBytes
 from ..base import BaseFile
 from ..base import BaseRecord
 from ..base import BaseTag
+from ..base import TypeAlias
 from ..utils import hexlify
 from ..utils import unhexlify
+
+try:
+    from typing import Self
+except ImportError:  # pragma: no cover
+    Self: TypeAlias = Any
+__TYPING_HAS_SELF = Self is not Any
+
+
+if not __TYPING_HAS_SELF:  # pragma: no cover
+    del Self
+    Self = TypeVar('Self', bound='SrecTag')
 
 
 class SrecTag(BaseTag, enum.IntEnum):
@@ -84,7 +98,7 @@ class SrecTag(BaseTag, enum.IntEnum):
     _DATA = DATA_16
 
     @classmethod
-    def fit_count_tag(cls, count: int) -> 'SrecTag':
+    def fit_count_tag(cls, count: int) -> Self:
         # TODO: __doc__
 
         if count < 0:
@@ -96,7 +110,7 @@ class SrecTag(BaseTag, enum.IntEnum):
         raise ValueError('count overflow')
 
     @classmethod
-    def fit_data_tag(cls, address_max: int) -> 'SrecTag':
+    def fit_data_tag(cls, address_max: int) -> Self:
         # TODO: __doc__
 
         if address_max < 0:
@@ -168,6 +182,11 @@ SIZE_TO_ADDRESS_FORMAT: Mapping[int, bytes] = {
 # TODO: __doc__
 
 
+if not __TYPING_HAS_SELF:  # pragma: no cover
+    del Self
+    Self = TypeVar('Self', bound='SrecRecord')
+
+
 class SrecRecord(BaseRecord):
     # TODO: __doc__
 
@@ -214,7 +233,7 @@ class SrecRecord(BaseRecord):
         cls,
         count: int,
         tag: Optional[SrecTag] = None,
-    ) -> 'SrecRecord':
+    ) -> Self:
         # TODO: __doc__
 
         Tag = cls.Tag
@@ -236,7 +255,7 @@ class SrecRecord(BaseRecord):
         address: int,
         data: AnyBytes,
         tag: Optional[SrecTag] = None,
-    ) -> 'SrecRecord':
+    ) -> Self:
         # TODO: __doc__
 
         Tag = cls.Tag
@@ -256,7 +275,7 @@ class SrecRecord(BaseRecord):
         return record
 
     @classmethod
-    def create_header(cls, data: AnyBytes = b'') -> 'SrecRecord':
+    def create_header(cls, data: AnyBytes = b'') -> Self:
         # TODO: __doc__
 
         if len(data) > 0xFC:
@@ -271,7 +290,7 @@ class SrecRecord(BaseRecord):
         cls,
         address: int = 0,
         tag: Optional[SrecTag] = None,
-    ) -> 'SrecRecord':
+    ) -> Self:
         # TODO: __doc__
 
         Tag = cls.Tag
@@ -292,7 +311,7 @@ class SrecRecord(BaseRecord):
         cls,
         line: AnyBytes,
         validate: bool = True,
-    ) -> 'SrecRecord':
+    ) -> Self:
         # TODO: __doc__
 
         Tag = cls.Tag
@@ -373,7 +392,7 @@ class SrecRecord(BaseRecord):
         self,
         checksum: bool = True,
         count: bool = True,
-    ) -> 'SrecRecord':
+    ) -> Self:
 
         super().validate(checksum=checksum, count=count)
         address = self.address
@@ -412,6 +431,11 @@ class SrecRecord(BaseRecord):
         return self
 
 
+if not __TYPING_HAS_SELF:  # pragma: no cover
+    del Self
+    Self = TypeVar('Self', bound='SrecFile')
+
+
 class SrecFile(BaseFile):
     # TODO: __doc__
 
@@ -433,7 +457,7 @@ class SrecFile(BaseFile):
         self._header: Optional[AnyBytes] = b''
         self._startaddr: int = 0
 
-    def apply_records(self) -> 'SrecFile':
+    def apply_records(self) -> Self:
 
         if not self._records:
             raise ValueError('records required')
@@ -479,7 +503,7 @@ class SrecFile(BaseFile):
         cls, stream: IO,
         ignore_errors: bool = False,
         # TODO: ignore_after_termination: bool = True,
-    ) -> 'SrecFile':
+    ) -> Self:
 
         file = super().parse(stream, ignore_errors=ignore_errors)
         return _cast(SrecFile, file)
@@ -511,7 +535,7 @@ class SrecFile(BaseFile):
         start: bool = True,
         data_tag: Optional[SrecTag] = None,
         count_tag: Optional[SrecTag] = None,
-    ) -> 'SrecFile':
+    ) -> Self:
         # TODO: __doc__
 
         memory = self._memory
@@ -571,7 +595,7 @@ class SrecFile(BaseFile):
         count_penultimate: bool = True,
         start_last: bool = True,
         start_within_data: bool = False,
-    ) -> 'SrecFile':
+    ) -> Self:
         # TODO: __doc__
 
         records = self._records
@@ -654,3 +678,7 @@ class SrecFile(BaseFile):
                 raise ValueError('start record tag not uniform')
 
         return self
+
+
+if not __TYPING_HAS_SELF:  # pragma: no cover
+    del Self

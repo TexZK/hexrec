@@ -33,16 +33,25 @@ import enum
 import io
 import re
 from typing import IO
+from typing import Any
 from typing import Mapping
 from typing import Type
+from typing import TypeVar
 from typing import cast as _cast
 
 from ..base import AnyBytes
 from ..base import BaseFile
 from ..base import BaseRecord
 from ..base import BaseTag
+from ..base import TypeAlias
 from ..utils import hexlify
 from ..utils import unhexlify
+
+try:
+    from typing import Self
+except ImportError:  # pragma: no cover
+    Self: TypeAlias = Any
+__TYPING_HAS_SELF = Self is not Any
 
 
 class MosTag(BaseTag, enum.IntEnum):
@@ -64,6 +73,11 @@ class MosTag(BaseTag, enum.IntEnum):
         # TODO: __doc__
 
         return self == 1
+
+
+if not __TYPING_HAS_SELF:  # pragma: no cover
+    del Self
+    Self = TypeVar('Self', bound='MosRecord')
 
 
 class MosRecord(BaseRecord):
@@ -102,7 +116,7 @@ class MosRecord(BaseRecord):
         cls,
         address: int,
         data: AnyBytes,
-    ) -> 'MosRecord':
+    ) -> Self:
         # TODO: __doc__
 
         address = address.__index__()
@@ -120,7 +134,7 @@ class MosRecord(BaseRecord):
     def create_eof(
         cls,
         record_count: int,
-    ) -> 'MosRecord':
+    ) -> Self:
         # TODO: __doc__
 
         record_count = record_count.__index__()
@@ -136,7 +150,7 @@ class MosRecord(BaseRecord):
         line: AnyBytes,
         eof: bool = False,
         validate: bool = True,
-    ) -> 'MosRecord':
+    ) -> Self:
         # TODO: __doc__
 
         match = cls.LINE_REGEX.match(line)
@@ -207,7 +221,7 @@ class MosRecord(BaseRecord):
         self,
         checksum: bool = True,
         count: bool = True,
-    ) -> 'MosRecord':
+    ) -> Self:
 
         super().validate(checksum=checksum, count=count)
 
@@ -235,6 +249,11 @@ class MosRecord(BaseRecord):
         return self
 
 
+if not __TYPING_HAS_SELF:  # pragma: no cover
+    del Self
+    Self = TypeVar('Self', bound='MosFile')
+
+
 class MosFile(BaseFile):
 
     DEFAULT_DATALEN: int = 24
@@ -254,7 +273,7 @@ class MosFile(BaseFile):
         stream: IO,
         ignore_errors: bool = False,
         eof_record: bool = True,
-    ) -> 'MosFile':
+    ) -> Self:
         # TODO: __doc__
 
         data = stream.read()
@@ -306,7 +325,7 @@ class MosFile(BaseFile):
         self,
         align: bool = False,
         start: bool = True,
-    ) -> 'MosFile':
+    ) -> Self:
         # TODO: __doc__
 
         memory = self._memory
@@ -338,7 +357,7 @@ class MosFile(BaseFile):
         self,
         data_ordering: bool = False,
         eof_record_required: bool = True,
-    ) -> 'MosFile':
+    ) -> Self:
         # TODO: __doc__
 
         records = self._records
@@ -374,3 +393,7 @@ class MosFile(BaseFile):
             raise ValueError('missing end of file record')
 
         return self
+
+
+if not __TYPING_HAS_SELF:  # pragma: no cover
+    del Self
