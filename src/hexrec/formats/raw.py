@@ -79,7 +79,6 @@ class RawRecord(BaseRecord):
         address: int,
         data: AnyBytes,
     ) -> 'RawRecord':
-        # TODO: __doc__
 
         address = address.__index__()
         if address < 0:
@@ -142,8 +141,52 @@ class RawFile(BaseFile):
         maxdatalen: int = sys.maxsize,
         address: int = 0,
     ) -> 'RawFile':
-        # TODO: __doc__
+        r"""Parses records from a byte stream.
 
+        It executes :meth:`RawRecord.parse` for each line of the incoming
+        `stream`, creating a new file object with the collected records calling
+        :meth:`from_records`.
+
+        Notes:
+            Please refer to the actual implementation of each record file
+            *format*, because it may be more specialized.
+
+        Args:
+            stream (bytes IO):
+                Stream to serialize records onto.
+
+            ignore_errors (bool):
+                Ignore :class:`Exception` raised by :meth:`RawRecord.parse`.
+
+            maxdatalen (int):
+                Maximum *data* record data size, to chop the incoming stream.
+
+            address (int):
+                Initial address.
+
+        Returns:
+            :class:`RawFile`: *self*.
+
+        See Also:
+            :meth:`parse`
+            :meth:`BaseRecord.parse`
+            :meth:`from_records`
+
+        Examples:
+            >>> from hexrec import RawFile
+            >>> import io
+            >>> stream = io.BytesIO(b'Hello, World!')
+            >>> file = RawFile.parse(stream, maxdatalen=5, address=1000)
+            >>> for record in file.records:
+            ...     print(f'{record.address}: {record.data!r}')
+            1000: b'Hello'
+            1005: b', Wor'
+            1010: b'ld!'
+            >>> file.get_meta()
+            {'maxdatalen': 5}
+        """
+
+        del ignore_errors  # unused
         maxdatalen = maxdatalen.__index__()
         if maxdatalen < 1:
             raise ValueError('invalid maximum data length')
@@ -171,7 +214,47 @@ class RawFile(BaseFile):
         self,
         align: bool = False,
     ) -> 'RawFile':
-        # TODO: __doc__
+        r"""Applies memory and meta to records.
+
+        This method processes the stored :attr:`memory` and *meta* information
+        to generate the sequence of :attr:`records`.
+
+        This effectively converts the *memory role* into the *records role*
+        (keeping both).
+
+        The :attr:`records` is assigned upon return.
+        Any exceptions being raised should not alter the file object.
+
+        Args:
+            align (bool):
+                Aligns data record chunk address bounds to :attr:`maxdatalen`.
+
+        Returns:
+            :class:`RawFile`: *self*.
+
+        Raises:
+            ValueError: :attr:`memory` attribute not populated.
+
+        See Also:
+            :attr:`records`
+            :attr:`memory`
+            :meth:`get_meta`
+            :meth:`apply_records`
+
+        Examples:
+            >>> from hexrec import RawFile
+            >>> blocks = [[123, b'abc']]
+            >>> file = RawFile.from_blocks(blocks, maxdatalen=16)
+            >>> file.memory.to_blocks()
+            [[123, b'abc']]
+            >>> file.get_meta()
+            {'maxdatalen': 16}
+            >>> _ = file.update_records()
+            >>> len(file.records)
+            1
+            >>> _ = file.print()
+            abc
+        """
 
         memory = self._memory
         if memory is None:
@@ -199,13 +282,47 @@ class RawFile(BaseFile):
 
     def validate_records(
         self,
+        data_start: bool = True,
         data_contiguity: bool = True,
         data_ordering: bool = True,
     ) -> 'RawFile':
-        # TODO: __doc__
+        r"""Validates records.
+
+        It performs consistency checks for the underlying :attr:`records`.
+
+        Args:
+            data_start (bool):
+                Data records must start from address zero.
+
+            data_contiguity (bool):
+                Requires *data* records be ordered and contiguous.
+
+            data_ordering (bool):
+                Checks that the *data* record sequence has monotonically
+                increasing addresses, without any overlapping.
+
+        Returns:
+            :class:`RawFile`: *self*.
+
+        Raises:
+            ValueError: Invalid record sequence.
+
+        Examples:
+            >>> from hexrec import RawFile
+            >>> records = [RawFile.Record.create_data(123, b'abc')]
+            >>> file = RawFile.from_records(records)
+            >>> file.validate_records()
+            Traceback (most recent call last):
+                ...
+            ValueError: first record address not zero
+        """
 
         if self._records is None:
             raise ValueError('records required')
+
+        if data_start and self._records:
+            if self._records[0].address != 0:
+                raise ValueError('first record address not zero')
 
         last_data_end = None
 

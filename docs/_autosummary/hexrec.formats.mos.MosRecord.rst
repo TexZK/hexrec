@@ -5,6 +5,7 @@
 
 .. autoclass:: MosRecord
    :members:
+   :inherited-members:
    :private-members:
    :special-members:
 

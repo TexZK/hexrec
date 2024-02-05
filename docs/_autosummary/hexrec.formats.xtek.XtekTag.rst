@@ -5,6 +5,7 @@
 
 .. autoclass:: XtekTag
    :members:
+   :inherited-members:
    :private-members:
    :special-members:
 

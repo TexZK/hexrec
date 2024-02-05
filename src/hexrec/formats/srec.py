@@ -652,7 +652,6 @@ class SrecRecord(BaseRecord):
         line: AnyBytes,
         validate: bool = True,
     ) -> Self:
-        # TODO: __doc__
 
         Tag = cls.Tag
         line = memoryview(line)
@@ -940,7 +939,68 @@ class SrecFile(BaseFile):
         data_tag: Optional[SrecTag] = None,
         count_tag: Optional[SrecTag] = None,
     ) -> Self:
-        # TODO: __doc__
+        r"""Applies memory and meta to records.
+
+        This method processes the stored :attr:`memory` and *meta* information
+        to generate the sequence of :attr:`records`.
+
+        This effectively converts the *memory role* into the *records role*
+        (keeping both).
+
+        The :attr:`records` is assigned upon return.
+        Any exceptions being raised should not alter the file object.
+
+        Args:
+            align (bool):
+                Aligns data record chunk address bounds to :attr:`maxdatalen`.
+
+            header (bool):
+                Generates the *header* record if :attr:`header`.
+
+            data (bool):
+                Requires at least one *data* record be present, even if empty.
+
+            count (bool):
+                Generates the *count* record.
+
+            start (bool):
+                Generates the *start address* record.
+
+            data_tag (:class:`SrecTag):
+                Specific *data* record tag to use.
+
+            count_tag (:class:`SrecTag):
+                Specific *count* record tag to use.
+
+        Returns:
+            :class:`SrecFile`: *self*.
+
+        Raises:
+            ValueError: :attr:`memory` attribute not populated.
+
+        See Also:
+            :attr:`records`
+            :attr:`memory`
+            :meth:`get_meta`
+            :meth:`apply_records`
+
+        Examples:
+            >>> from hexrec import SrecFile
+            >>> blocks = [[123, b'abc']]
+            >>> file = SrecFile.from_blocks(blocks, maxdatalen=16, startaddr=456)
+            >>> file.memory.to_blocks()
+            [[123, b'abc']]
+            >>> file.get_meta()
+            {'header': b'', 'maxdatalen': 16, 'startaddr': 456}
+            >>> _ = file.update_records()
+            >>> len(file.records)
+            4
+            >>> _ = file.print()
+            S0030000FC
+            S106007B61626358
+            S5030001FB
+            S90301C833
+        """
 
         memory = self._memory
         if memory is None:
@@ -961,8 +1021,8 @@ class SrecFile(BaseFile):
 
             for chunk_start, chunk_view in memory.chop(self.maxdatalen, align=align):
                 chunk_views.append(chunk_view)
-                data = bytes(chunk_view)
-                record = Record.create_data(chunk_start, data, tag=data_tag)
+                chunk_data = bytes(chunk_view)
+                record = Record.create_data(chunk_start, chunk_data, tag=data_tag)
                 records.append(record)
                 data_record_count += 1
 
@@ -1001,7 +1061,52 @@ class SrecFile(BaseFile):
         start_last: bool = True,
         start_within_data: bool = False,
     ) -> Self:
-        # TODO: __doc__
+        r"""Validates records.
+
+        It performs consistency checks for the underlying :attr:`records`.
+
+        Args:
+            header_required (bool):
+                Requires the *header* record be present.
+
+            header_first (bool):
+                Requires the *header* record be the first of the sequence.
+
+            data_ordering (bool):
+                Checks that the *data* record sequence has monotonically
+                increasing addresses, without any overlapping.
+
+            data_uniform (bool):
+                Requires *data* records have the same tag.
+
+            count_required (bool):
+                Requires the *count* record be present.
+
+            count_penultimate (bool):
+                Requires the *start address* record be the penultimate one.
+
+            start_last (bool):
+                Requires the *start address* record be the last of the sequence.
+
+            start_within_data (bool):
+                Requires *start address* fall within data carried by some
+                *data* record.
+
+        Returns:
+            :class:`SrecFile`: *self*.
+
+        Raises:
+            ValueError: Invalid record sequence.
+
+        Examples:
+            >>> from hexrec import SrecFile
+            >>> records = [SrecFile.Record.create_data(123, b'abc')]
+            >>> file = SrecFile.from_records(records)
+            >>> file.validate_records()
+            Traceback (most recent call last):
+                ...
+            ValueError: missing start record
+        """
 
         records = self._records
         if records is None:

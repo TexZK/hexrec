@@ -244,61 +244,103 @@ class TestRawFile(BaseTestFile):
             file.update_records()
 
     def test_validate_records(self):
-        records = [RawRecord.create_data(10, b'abc'),
-                   RawRecord.create_data(13, b'xyz')]
+        records = [RawRecord.create_data(0, b'abc'),
+                   RawRecord.create_data(3, b'xyz')]
         file = RawFile.from_records(records)
         file.validate_records()
+
+        file.validate_records(data_start=True,
+                              data_contiguity=True,
+                              data_ordering=True)
+
+        file.validate_records(data_start=False,
+                              data_contiguity=False,
+                              data_ordering=False)
 
     def test_validate_records_contiguity(self):
         records = [RawRecord.create_data(10, b'abc'),
                    RawRecord.create_data(13, b'xyz')]
         file = RawFile.from_records(records)
-        file.validate_records(data_contiguity=True, data_ordering=False)
+        file.validate_records(data_start=False,
+                              data_contiguity=True,
+                              data_ordering=False)
+
+        records = [RawRecord.create_data(10, b'abc'),
+                   RawRecord.create_data(13, b'xyz')]
+        file = RawFile.from_records(records)
+        file.validate_records(data_start=False,
+                              data_contiguity=True,
+                              data_ordering=False)
 
     def test_validate_records_ordering(self):
         records = [RawRecord.create_data(10, b'abc'),
                    RawRecord.create_data(13, b'xyz')]
         file = RawFile.from_records(records)
-        file.validate_records(data_contiguity=False, data_ordering=True)
+        file.validate_records(data_start=False,
+                              data_contiguity=False,
+                              data_ordering=True)
 
         records = [RawRecord.create_data(10, b'abc'),
                    RawRecord.create_data(14, b'xyz')]
         file = RawFile.from_records(records)
-        file.validate_records(data_contiguity=False, data_ordering=True)
+        file.validate_records(data_start=False,
+                              data_contiguity=False,
+                              data_ordering=True)
+
+    def test_validate_records_start(self):
+        records = [RawRecord.create_data(0, b'abc'),
+                   RawRecord.create_data(3, b'xyz')]
+        file = RawFile.from_records(records)
+        file.validate_records(data_start=True,
+                              data_contiguity=False,
+                              data_ordering=False)
 
     def test_validate_records_raises_contiguity(self):
-        records = [RawRecord.create_data(123, b'abc'),
-                   RawRecord.create_data(456, b'xyz')]
+        records = [RawRecord.create_data(0, b'abc'),
+                   RawRecord.create_data(4, b'xyz')]
         file = RawFile.from_records(records)
         with pytest.raises(ValueError, match='contiguous'):
-            file.validate_records(data_contiguity=True, data_ordering=False)
+            file.validate_records(data_start=False,
+                                  data_contiguity=True,
+                                  data_ordering=False)
 
     def test_validate_records_raises_ordering(self):
-        records = [RawRecord.create_data(14, b'xyz'),
-                   RawRecord.create_data(10, b'abc')]
+        records = [RawRecord.create_data(3, b'xyz'),
+                   RawRecord.create_data(0, b'abc')]
         file = RawFile.from_records(records)
         with pytest.raises(ValueError, match='unordered data record'):
-            file.validate_records(data_contiguity=False, data_ordering=True)
+            file.validate_records(data_start=False,
+                                  data_contiguity=False,
+                                  data_ordering=True)
 
-        records = [RawRecord.create_data(13, b'xyz'),
-                   RawRecord.create_data(10, b'abc')]
+        records = [RawRecord.create_data(0, b'abc'),
+                   RawRecord.create_data(0, b'xyz')]
         file = RawFile.from_records(records)
         with pytest.raises(ValueError, match='unordered data record'):
-            file.validate_records(data_contiguity=False, data_ordering=True)
+            file.validate_records(data_start=False,
+                                  data_contiguity=False,
+                                  data_ordering=True)
 
-        records = [RawRecord.create_data(10, b'abc'),
-                   RawRecord.create_data(10, b'xyz')]
+        records = [RawRecord.create_data(0, b'abc'),
+                   RawRecord.create_data(2, b'xyz')]
         file = RawFile.from_records(records)
         with pytest.raises(ValueError, match='unordered data record'):
-            file.validate_records(data_contiguity=False, data_ordering=True)
-
-        records = [RawRecord.create_data(10, b'abc'),
-                   RawRecord.create_data(12, b'xyz')]
-        file = RawFile.from_records(records)
-        with pytest.raises(ValueError, match='unordered data record'):
-            file.validate_records(data_contiguity=False, data_ordering=True)
+            file.validate_records(data_start=False,
+                                  data_contiguity=False,
+                                  data_ordering=True)
 
     def test_validate_records_raises_records(self):
         file = RawFile.from_memory(maxdatalen=16)
         with pytest.raises(ValueError, match='records required'):
-            file.validate_records(data_contiguity=False, data_ordering=False)
+            file.validate_records(data_start=False,
+                                  data_contiguity=False,
+                                  data_ordering=False)
+
+    def test_validate_records_raises_start(self):
+        records = [RawRecord.create_data(10, b'abc'),
+                   RawRecord.create_data(13, b'xyz')]
+        file = RawFile.from_records(records)
+        with pytest.raises(ValueError, match='first record address not zero'):
+            file.validate_records(data_start=True,
+                                  data_contiguity=False,
+                                  data_ordering=False)

@@ -69,12 +69,27 @@ class XtekTag(BaseTag, enum.IntEnum):
 
     def is_data(self) -> bool:
 
-        return self == 6
+        return self == self.DATA
 
     def is_eof(self) -> bool:
-        # TODO: __doc__
+        r"""Tells whether this is an End Of File record tag.
 
-        return self == 8
+        This method returns true if this record tag is used for *End Of File*
+        records.
+
+        Returns:
+            bool: This is an End Of File record tag.
+
+        Examples:
+            >>> from hexrec import XtekFile
+            >>> XtekTag = XtekFile.Record.Tag
+            >>> XtekTag.EOF.is_eof()
+            True
+            >>> XtekTag.DATA.is_eof()
+            False
+        """
+
+        return self == self.EOF
 
 
 if not __TYPING_HAS_SELF:  # pragma: no cover
@@ -98,7 +113,7 @@ class XtekRecord(BaseRecord):
         b'(?P<checksum>[0-9A-Fa-f]{2})'
         b'(?P<addrlen>[1-9A-Fa-f])'
     )
-    # TODO: __doc__
+    r"""Line parser regex, part 1."""
 
     LINE2_REGEX = [re.compile(
         b'^(?P<address>[0-9A-Fa-f]{%d})'
@@ -106,7 +121,7 @@ class XtekRecord(BaseRecord):
         b'(?P<after>[^\\r\\n]*)\\r?\\n$'
         % (i, ((249 - i) // 2))
     ) for i in range(1, 16)]
-    # TODO: __doc__
+    r"""Line parser regex, part 2."""
 
     def __init__(
         self,
@@ -126,7 +141,31 @@ class XtekRecord(BaseRecord):
 
     @classmethod
     def compute_address_max(cls, addrlen: int) -> int:
-        # TODO: __doc__
+        r"""Calculates the maximum address.
+
+        It calculates the maximum *address* field given the number of
+        *nibbles*.
+
+        Args:
+            addrlen (int):
+                Address length, in *nibbles* (4-bit units).
+
+        Returns:
+            int: Maximum *address* value.
+
+        Raises:
+            ValueError: invalid `addrlen`.
+
+        Examples:
+            >>> from hexrec import XtekFile
+            >>> XtekRecord = XtekFile.Record
+            >>> hex(XtekRecord.compute_address_max(4))
+            '0xffff'
+            >>> hex(XtekRecord.compute_address_max(6))
+            '0xffffff'
+            >>> hex(XtekRecord.compute_address_max(8))
+            '0xffffffff'
+        """
 
         if not 1 <= addrlen <= 15:
             raise ValueError('invalid address length')
@@ -162,7 +201,31 @@ class XtekRecord(BaseRecord):
 
     @classmethod
     def compute_data_max(cls, addrlen: int) -> int:
-        # TODO: __doc__
+        r"""Calculates the maximum data size.
+
+        It calculates the maximum *data* field size given the number of
+        *nibbles*
+
+        Args:
+            addrlen (int):
+                Address length, in *nibbles* (4-bit units).
+
+        Returns:
+            int: Maximum *data* size.
+
+        Raises:
+            ValueError: invalid `addrlen`.
+
+        Examples:
+            >>> from hexrec import XtekFile
+            >>> XtekRecord = XtekFile.Record
+            >>> XtekRecord.compute_data_max(4)
+            122
+            >>> XtekRecord.compute_data_max(6)
+            121
+            >>> XtekRecord.compute_data_max(8)
+            120
+        """
 
         if not 1 <= addrlen <= 15:
             raise ValueError('invalid address length')
@@ -177,7 +240,32 @@ class XtekRecord(BaseRecord):
         data: AnyBytes,
         addrlen: int = 8,
     ) -> Self:
-        # TODO: __doc__
+        r"""Creates a data record.
+
+        This is a mandatory class method to instantiate a *data* record.
+
+        Args:
+            address (int):
+                Record address. If not supported, set zero.
+
+            data (bytes):
+                Record byte data.
+
+            addrlen (int):
+                Address length, in *nibbles* (4-bit units).
+
+        Returns:
+            :class:`XtekRecord`: Data record object.
+
+        Raises:
+            ValueError: invalid parameter.
+
+        Examples:
+            >>> from hexrec import XtekFile
+            >>> record = XtekFile.Record.create_data(0x1234, b'abc')
+            >>> str(record)
+            '%14635800001234616263\r\n'
+        """
 
         addrlen = addrlen.__index__()
         if not 1 <= addrlen <= 15:
@@ -200,7 +288,26 @@ class XtekRecord(BaseRecord):
         start: int = 0,
         addrlen: int = 8,
     ) -> Self:
-        # TODO: __doc__
+        r"""Creates an End Of File record.
+
+        The End Of File record also carries the *start address*.
+
+        Args:
+            start (int):
+                Start address.
+
+            addrlen (int):
+                Address length, in *nibbles* (4-bit units).
+
+        Returns:
+            :class:`XtekRecord`: End Of File record object.
+
+        Examples:
+            >>> from hexrec import XtekFile
+            >>> record = XtekFile.Record.create_eof(start=0x12345678)
+            >>> str(record)
+            '%0E842812345678\r\n'
+        """
 
         addrlen = addrlen.__index__()
         if not 1 <= addrlen <= 15:
@@ -214,12 +321,55 @@ class XtekRecord(BaseRecord):
         return cls(cls.Tag.EOF, address=startaddr, addrlen=addrlen)
 
     def get_address_max(self) -> int:
-        # TODO: __doc__
+        r"""Calculates the maximum address.
+
+        It calculates the maximum *address* field for the calling tag.
+        If the *address* field is not supported, it returns ``None``.
+
+        Returns:
+            int: Maximum *address* value, or ``None``.
+
+        Examples:
+            >>> from hexrec import XtekFile
+            >>> XtekRecord = XtekFile.Record
+            >>> record = XtekRecord.create_data(0xFFFF, b'abc', addrlen=4)
+            >>> hex(record.get_address_max())
+            '0xffff'
+            >>> record = XtekRecord.create_data(0xFFFF, b'abc', addrlen=6)
+            >>> hex(record.get_address_max())
+            '0xffffff'
+            >>> record = XtekRecord.create_data(0xFFFF, b'abc', addrlen=8)
+            >>> hex(record.get_address_max())
+            '0xffffffff'
+        """
 
         return self.compute_address_max(self.addrlen)
 
     def get_data_max(self) -> int:
-        # TODO: __doc__
+        r"""Calculates the maximum data size.
+
+        It calculates the maximum *data* field size given the number of
+        *nibbles*
+
+        Returns:
+            int: Maximum *data* size.
+
+        Raises:
+            ValueError: invalid `addrlen`.
+
+        Examples:
+            >>> from hexrec import XtekFile
+            >>> XtekRecord = XtekFile.Record
+            >>> record = XtekRecord.create_data(0xFFFF, b'abc', addrlen=4)
+            >>> record.get_data_max()
+            122
+            >>> record = XtekRecord.create_data(0xFFFF, b'abc', addrlen=6)
+            >>> record.get_data_max()
+            121
+            >>> record = XtekRecord.create_data(0xFFFF, b'abc', addrlen=8)
+            >>> record.get_data_max()
+            120
+        """
 
         return self.compute_data_max(self.addrlen)
 
@@ -229,7 +379,6 @@ class XtekRecord(BaseRecord):
         line: AnyBytes,
         validate: bool = True,
     ) -> Self:
-        # TODO: __doc__
 
         line = memoryview(line)
         match = cls.LINE1_REGEX.match(line)
@@ -357,7 +506,6 @@ class XtekFile(BaseFile):
         self._startaddr: int = 0
 
     def apply_records(self) -> Self:
-        # TODO: __doc__
 
         if not self._records:
             raise ValueError('records required')
@@ -392,7 +540,26 @@ class XtekFile(BaseFile):
 
     @property
     def startaddr(self) -> int:
-        # TODO: __doc__
+        r"""Start address.
+
+        This property sets the *start address* of the serialized record file.
+
+        This is usually taken into account by :meth:`update_records` while
+        splitting :attr:`memory` into :attr:`records`.
+
+        Setting a different value triggers :meth:`discard_records`.
+
+        Examples:
+            >>> from hexrec import XtekFile
+            >>> file = XtekFile()
+            >>> file.startaddr
+            0
+            >>> _ = file.print()
+            %0E81E800000000
+            >>> file.startaddr = 0x87654321
+            >>> _ = file.print()
+            %0E842887654321
+        """
 
         if self._memory is None:
             self.apply_records()
@@ -414,7 +581,51 @@ class XtekFile(BaseFile):
         align: bool = False,
         addrlen: int = 8,
     ) -> Self:
-        # TODO: __doc__
+        r"""Applies memory and meta to records.
+
+        This method processes the stored :attr:`memory` and *meta* information
+        to generate the sequence of :attr:`records`.
+
+        This effectively converts the *memory role* into the *records role*
+        (keeping both).
+
+        The :attr:`records` is assigned upon return.
+        Any exceptions being raised should not alter the file object.
+
+        Args:
+            align (bool):
+                Aligns data record chunk address bounds to :attr:`maxdatalen`.
+
+            addrlen (int):
+                Address length, in *nibbles* (4-bit units).
+
+        Returns:
+            :class:`XtekFile`: *self*.
+
+        Raises:
+            ValueError: :attr:`memory` attribute not populated.
+
+        See Also:
+            :attr:`records`
+            :attr:`memory`
+            :meth:`get_meta`
+            :meth:`apply_records`
+
+        Examples:
+            >>> from hexrec import XtekFile
+            >>> blocks = [[123, b'abc']]
+            >>> file = XtekFile.from_blocks(blocks, maxdatalen=16, startaddr=456)
+            >>> file.memory.to_blocks()
+            [[123, b'abc']]
+            >>> file.get_meta()
+            {'maxdatalen': 16, 'startaddr': 456}
+            >>> _ = file.update_records()
+            >>> len(file.records)
+            2
+            >>> _ = file.print()
+            %1463D80000007B616263
+            %0E8338000001C8
+        """
 
         memory = self._memory
         if memory is None:
@@ -448,9 +659,36 @@ class XtekFile(BaseFile):
     def validate_records(
         self,
         data_ordering: bool = False,
-        startaddr_within_data: bool = False,
+        start_within_data: bool = False,
     ) -> Self:
-        # TODO: __doc__
+        r"""Validates records.
+
+        It performs consistency checks for the underlying :attr:`records`.
+
+        Args:
+            data_ordering (bool):
+                Checks that the *data* record sequence has monotonically
+                increasing addresses, without any overlapping.
+
+            start_within_data (bool):
+                Requires *start address* fall within data carried by some
+                *data* record.
+
+        Returns:
+            :class:`SrecFile`: *self*.
+
+        Raises:
+            ValueError: Invalid record sequence.
+
+        Examples:
+            >>> from hexrec import XtekFile
+            >>> records = [XtekFile.Record.create_data(123, b'abc')]
+            >>> file = XtekFile.from_records(records)
+            >>> file.validate_records()
+            Traceback (most recent call last):
+                ...
+            ValueError: missing end of file record
+        """
 
         records = self._records
         if records is None:
@@ -479,7 +717,7 @@ class XtekFile(BaseFile):
         if eof_record is None:
             raise ValueError('missing end of file record')
 
-        if startaddr_within_data:
+        if start_within_data:
             start_datum = self.memory.peek(eof_record.address)
             if start_datum is None:
                 raise ValueError('no data at start address')

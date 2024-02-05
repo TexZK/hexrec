@@ -5,6 +5,7 @@
 
 .. autoclass:: BaseRecord
    :members:
+   :inherited-members:
    :private-members:
    :special-members:
 

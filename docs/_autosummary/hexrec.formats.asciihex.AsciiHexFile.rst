@@ -5,6 +5,7 @@
 
 .. autoclass:: AsciiHexFile
    :members:
+   :inherited-members:
    :private-members:
    :special-members:
 

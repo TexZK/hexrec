@@ -805,7 +805,7 @@ class TestXtekFile(BaseTestFile):
         with pytest.raises(ValueError, match='missing end of file record'):
             file.validate_records()
 
-    def test_validate_records_raises_startaddr_within_data(self):
+    def test_validate_records_raises_start_within_data(self):
         records = [
             XtekRecord.create_data(0x1234, b'abc'),
             XtekRecord.create_data(0x4321, b'xyz'),
@@ -813,9 +813,9 @@ class TestXtekFile(BaseTestFile):
         ]
         file = XtekFile.from_records(records)
         with pytest.raises(ValueError, match='no data at start address'):
-            file.validate_records(startaddr_within_data=True)
+            file.validate_records(start_within_data=True)
 
-    def test_validate_records_startaddr_within_data(self):
+    def test_validate_records_start_within_data(self):
         records = [
             XtekRecord.create_data(0x1234, b'abc'),
             XtekRecord.create_data(0x4321, b'xyz'),
@@ -823,4 +823,4 @@ class TestXtekFile(BaseTestFile):
         ]
         file = XtekFile.from_records(records)
         assert file.startaddr == 0x1234
-        file.validate_records(startaddr_within_data=True)
+        file.validate_records(start_within_data=True)

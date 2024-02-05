@@ -1,10 +1,11 @@
-hexrec.formats.srec.SrecRecord
+﻿hexrec.formats.srec.SrecRecord
 ==============================
 
 .. currentmodule:: hexrec.formats.srec
 
 .. autoclass:: SrecRecord
    :members:
+   :inherited-members:
    :private-members:
    :special-members:
 

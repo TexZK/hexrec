@@ -5,6 +5,7 @@
 
 .. autoclass:: AsciiHexRecord
    :members:
+   :inherited-members:
    :private-members:
    :special-members:
 

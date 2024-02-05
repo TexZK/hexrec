@@ -5,6 +5,7 @@
 
 .. autoclass:: IhexTag
    :members:
+   :inherited-members:
    :private-members:
    :special-members:
 

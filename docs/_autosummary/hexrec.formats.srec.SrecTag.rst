@@ -1,10 +1,11 @@
-hexrec.formats.srec.SrecTag
+﻿hexrec.formats.srec.SrecTag
 ===========================
 
 .. currentmodule:: hexrec.formats.srec
 
 .. autoclass:: SrecTag
    :members:
+   :inherited-members:
    :private-members:
    :special-members:
 

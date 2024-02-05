@@ -5,6 +5,7 @@
 
 .. autoclass:: XtekRecord
    :members:
+   :inherited-members:
    :private-members:
    :special-members:
 

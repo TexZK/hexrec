@@ -5,6 +5,7 @@
 
 .. autoclass:: RawFile
    :members:
+   :inherited-members:
    :private-members:
    :special-members:
 
