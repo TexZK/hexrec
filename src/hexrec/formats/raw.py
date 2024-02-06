@@ -94,6 +94,7 @@ class RawRecord(BaseRecord):
         address: int = 0,
         validate: bool = True,
     ) -> 'RawRecord':
+        # TODO: __doc__
 
         del validate
         return cls.create_data(address, line)

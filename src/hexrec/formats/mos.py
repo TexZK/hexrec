@@ -353,13 +353,13 @@ class MosFile(BaseFile):
                 Stream to serialize records onto.
 
             ignore_errors (bool):
-                Ignore :class:`Exception` raised by :meth:`BaseRecord.parse`.
+                Ignore :class:`Exception` raised by :meth:`MosRecord.parse`.
 
             eof_record (bool):
                 Interpret the last record as the *End Of File* record.
 
         Returns:
-            :class:`BaseFile`: *self*.
+            :class:`MosFile`: *self*.
 
         See Also:
             :meth:`parse`

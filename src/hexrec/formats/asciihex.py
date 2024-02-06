@@ -69,18 +69,48 @@ class AsciiHexTag(BaseTag, enum.IntEnum):
     _DATA = DATA
 
     def is_address(self) -> bool:
-        # TODO: __doc__
+        r"""Tells whether this is an address record.
 
-        return self == 1
+        This method returns true if this record tag is used for *address*
+        records.
+
+        Returns:
+            bool: This is an address record tag.
+
+        Examples:
+            >>> from hexrec import AsciiHexFile
+            >>> AsciiHexTag = AsciiHexFile.Record.Tag
+            >>> AsciiHexTag.ADDRESS.is_address()
+            True
+            >>> AsciiHexTag.DATA.is_address()
+            False
+        """
+
+        return self == self.ADDRESS
 
     def is_checksum(self) -> bool:
-        # TODO: __doc__
+        r"""Tells whether this is a checksum record.
 
-        return self == 2
+        This method returns true if this record tag is used for *checksum*
+        records.
+
+        Returns:
+            bool: This is a checksum record tag.
+
+        Examples:
+            >>> from hexrec import AsciiHexFile
+            >>> AsciiHexTag = AsciiHexFile.Record.Tag
+            >>> AsciiHexTag.CHECKSUM.is_checksum()
+            True
+            >>> AsciiHexTag.DATA.is_checksum()
+            False
+        """
+
+        return self == self.CHECKSUM
 
     def is_data(self) -> bool:
 
-        return self == 0
+        return self == self.DATA
 
 
 if not __TYPING_HAS_SELF:  # pragma: no cover
@@ -100,13 +130,12 @@ class AsciiHexRecord(BaseRecord):
         b'(\\$[Ss](?P<checksum>[0-9A-Fa-f]+)[,.])'
         b')\\s*'
     )
-    # TODO: __doc__
+    r"""Line parser regex."""
 
     DATA_EXECHARS: bytes = b" \t\v\f\r%',"
-    # TODO: __doc__
+    r"""Supported execution characters."""
 
     def compute_checksum(self) -> Optional[int]:
-        # TODO: __doc__
 
         Tag = self.Tag
         tag = self.tag
@@ -117,7 +146,6 @@ class AsciiHexRecord(BaseRecord):
             return None  # not supported
 
     def compute_count(self) -> Optional[int]:
-        # TODO: __doc__
 
         Tag = self.Tag
         tag = self.tag
@@ -133,7 +161,27 @@ class AsciiHexRecord(BaseRecord):
         address: int,
         addrlen: int = 8,
     ) -> Self:
-        # TODO: __doc__
+        r"""Creates an address record.
+
+        Args:
+            address (int):
+                Address value.
+
+            addrlen (int):
+                Address length, in *nibbles* (4-bit units).
+
+        Returns:
+            :class:`AsciiHexRecord`: Address record object.
+
+        Raises:
+            ValueError: invalid parameter.
+
+        Examples:
+            >>> from hexrec import AsciiHexFile
+            >>> record = AsciiHexFile.Record.create_address(0x1234, addrlen=4)
+            >>> str(record)
+            '$A1234,\r\n'
+        """
 
         record = cls(cls.Tag.ADDRESS, address=address, count=addrlen)
         return record
@@ -143,7 +191,24 @@ class AsciiHexRecord(BaseRecord):
         cls,
         checksum: int,
     ) -> Self:
-        # TODO: __doc__
+        r"""Creates a checksum record.
+
+        Args:
+            checksum (int):
+                16-bit checksum value.
+
+        Returns:
+            :class:`AsciiHexRecord`: Checksum record object.
+
+        Raises:
+            ValueError: invalid parameter.
+
+        Examples:
+            >>> from hexrec import AsciiHexFile
+            >>> record = AsciiHexFile.Record.create_checksum(0x1234)
+            >>> str(record)
+            '$S1234,\r\n'
+        """
 
         record = cls(cls.Tag.CHECKSUM, checksum=checksum)
         return record
@@ -154,7 +219,27 @@ class AsciiHexRecord(BaseRecord):
         address: int,
         data: AnyBytes,
     ) -> Self:
-        # TODO: __doc__
+        r"""Creates a data record.
+
+        Args:
+            address (int):
+                Ignored; please provide zero.
+
+            data (bytes):
+                Record byte data.
+
+        Returns:
+            :class:`AsciiHexRecord`: Data record object.
+
+        Raises:
+            ValueError: invalid parameter.
+
+        Examples:
+            >>> from hexrec import AsciiHexFile
+            >>> record = AsciiHexFile.Record.create_data(0, b'abc')
+            >>> str(record)
+            '61 62 63 \r\n'
+        """
 
         record = cls(cls.Tag.DATA, data=data, address=address)
         return record
@@ -213,7 +298,35 @@ class AsciiHexRecord(BaseRecord):
         dollarend: AnyBytes = b',',
         end: AnyBytes = b'\r\n',
     ) -> bytes:
-        # TODO: __doc__
+        r"""Converts into a byte string.
+
+        Args:
+            exechar (byte):
+                *Execution character* value.
+
+            exelast (bool):
+                Append *execution character* also to the last byte of the
+                serialized record.
+
+            dollarend (byte):
+                End character of *dollar* records (i.e. *address* and
+                *checksum* records).
+
+            end (bytes):
+                End of record termination bytes.
+
+        Returns:
+            bytes: Byte string representation.
+
+        Examples:
+            >>> from hexrec import AsciiHexFile
+            >>> record = AsciiHexFile.Record.create_data(0, b'abc')
+            >>> record.to_bytestr(exechar=b"'", exelast=False, end=b'\n')
+            b'61.62.63\n'
+            >>> record = AsciiHexFile.Record.create_address(0x1234)
+            >>> record.to_bytestr(dollarend=b'.')
+            b'$A00001234.\r\n'
+        """
 
         self.validate(checksum=False, count=False)
         valstr = b''
@@ -240,6 +353,37 @@ class AsciiHexRecord(BaseRecord):
         dollarend: AnyBytes = b',',
         end: AnyBytes = b'\r\n',
     ) -> Mapping[str, bytes]:
+        r"""Converts into byte string tokens.
+
+        Args:
+            exechar (byte):
+                *Execution character* value.
+
+            exelast (bool):
+                Append *execution character* also to the last byte of the
+                serialized record.
+
+            dollarend (byte):
+                End character of *dollar* records (i.e. *address* and
+                *checksum* records).
+
+            end (bytes):
+                End of record termination bytes.
+
+        Returns:
+            bytes: Mapping of token keys to token byte strings.
+
+        Examples:
+            >>> from hexrec import AsciiHexFile
+            >>> record = AsciiHexFile.Record.create_data(0, b'abc')
+            >>> record.to_tokens(exechar=b"'", exelast=False, end=b'\n')  # doctest:+NORMALIZE_WHITESPACE
+            {'before': b'', 'address': b'', 'data': b"61'62'63",
+             'checksum': b'', 'after': b'', 'end': b'\n'}
+            >>> record = AsciiHexFile.Record.create_address(0x1234)
+            >>> record.to_tokens(dollarend=b'.')  # doctest:+NORMALIZE_WHITESPACE
+            {'before': b'', 'address': b'$A00001234.', 'data': b'',
+             'checksum': b'', 'after': b'', 'end': b'\r\n'}
+        """
 
         self.validate(checksum=False, count=False)
         tag = _cast(AsciiHexTag, self.tag)
@@ -325,7 +469,55 @@ class AsciiHexFile(BaseFile):
         ignore_errors: bool = False,
         stxetx: bool = True,
     ) -> Self:
-        # TODO: __doc__
+        r"""Parses records from a byte stream.
+
+        It executes :meth:`AsciiHexRecord.parse` for each line of the incoming
+        `stream`, creating a new file object with the collected records calling
+        :meth:`from_records`.
+
+        Lines resulting empty by :meth:`_is_empty_line` are just discarded.
+
+        Notes:
+            Please refer to the actual implementation of each record file
+            *format*, because it may be more specialized.
+
+        Args:
+            stream (bytes IO):
+                Stream to serialize records onto.
+
+            ignore_errors (bool):
+                Ignore :class:`Exception` raised by
+                :meth:`AsciiHexRecord.parse`.
+
+            stxetx (bool):
+                Require record data be enclosed within ASCII ``STX`` and
+                ``ETX`` bytes.
+
+        Returns:
+            :class:`AsciiHexFile`: *self*.
+
+        See Also:
+            :meth:`parse`
+            :meth:`AsciiHexRecord.parse`
+            :meth:`from_records`
+            :meth:`_is_empty_line`
+
+        Examples:
+            >>> from hexrec import AsciiHexFile
+            >>> buffer = b'''
+            ...     \x02
+            ...     $A1234,
+            ...     61 62 63
+            ...     \x03
+            ... '''
+            >>> import io
+            >>> stream = io.BytesIO(buffer)
+            >>> file = AsciiHexFile.parse(stream)
+            >>> file.memory.to_blocks()
+            [[4660, b'abc']]
+            >>> file.get_meta()
+            {'maxdatalen': 3}
+        """
 
         buffer: bytes = stream.read()
 
@@ -372,17 +564,61 @@ class AsciiHexFile(BaseFile):
     def serialize(
         self,
         stream: IO,
-        end: AnyBytes = b'\r\n',
         exechar: bytes = b' ',
+        exelast: bool = True,
+        dollarend: AnyBytes = b',',
+        end: AnyBytes = b'\r\n',
         stxetx: bool = True,
     ) -> 'BaseFile':
-        # TODO: __doc__
+        r"""Serializes records onto a byte stream.
+
+        It executes :meth:`MosRecord.serialize` for each of the stored
+        :attr:`records`.
+
+        Args:
+            stream (bytes IO):
+                Stream to serialize records onto.
+
+            exechar (byte):
+                *Execution character* value.
+
+            exelast (bool):
+                Append *execution character* also to the last byte of the
+                serialized record.
+
+            dollarend (byte):
+                End character of *dollar* records (i.e. *address* and
+                *checksum* records).
+
+            end (bytes):
+                End of record termination bytes.
+
+            stxetx (bool):
+                Enclose the whole serialized file within ASCII ``STX`` and
+                ``ETX`` bytes.
+
+        Returns:
+            :class:`MosFile`: *self*.
+
+        See Also:
+            :meth:`parse`
+            :meth:`MosRecord.serialize`
+
+        Examples:
+            >>> from hexrec import MosFile
+            >>> file = MosFile.from_blocks([[0xDA7A, b'abc']])
+            >>> import sys
+            >>> _ = file.serialize(sys.stdout.buffer, nuls=False, xoff=False)
+            ;03DA7A616263027D
+            ;0000010001
+        """
 
         if stxetx:
             stream.write(b'\x02')
 
         for record in self.records:
-            record.serialize(stream, exechar=exechar, end=end)
+            record.serialize(stream, exechar=exechar, exelast=exelast,
+                             dollarend=dollarend, end=end)
 
         if stxetx:
             stream.write(b'\x03')
@@ -395,7 +631,54 @@ class AsciiHexFile(BaseFile):
         checksum: bool = False,
         addrlen: int = 8,
     ) -> Self:
-        # TODO: __doc__
+        r"""Applies memory and meta to records.
+
+        This method processes the stored :attr:`memory` and *meta* information
+        to generate the sequence of :attr:`records`.
+
+        This effectively converts the *memory role* into the *records role*
+        (keeping both).
+
+        The :attr:`records` is assigned upon return.
+        Any exceptions being raised should not alter the file object.
+
+        Args:
+            align (bool):
+                Aligns data record chunk address bounds to :attr:`maxdatalen`.
+
+            checksum (bool):
+                Generate a final *checksum* record.
+
+            addrlen (int):
+                Address length, in *nibbles* (4-bit units).
+
+        Returns:
+            :class:`AsciiHexFile`: *self*.
+
+        Raises:
+            ValueError: :attr:`memory` attribute not populated.
+
+        See Also:
+            :attr:`records`
+            :attr:`memory`
+            :meth:`get_meta`
+            :meth:`apply_records`
+
+        Examples:
+            >>> from hexrec import AsciiHexFile
+            >>> blocks = [[123, b'abc']]
+            >>> file = AsciiHexFile.from_blocks(blocks, maxdatalen=16)
+            >>> file.memory.to_blocks()
+            [[123, b'abc']]
+            >>> file.get_meta()
+            {'maxdatalen': 16}
+            >>> _ = file.update_records()
+            >>> len(file.records)
+            2
+            >>> _ = file.print(exelast=False)
+            $A0000007B,
+            61 62 63
+        """
 
         memory = self._memory
         if memory is None:
@@ -443,7 +726,34 @@ class AsciiHexFile(BaseFile):
         data_ordering: bool = False,
         checksum_values: bool = True,
     ) -> Self:
-        # TODO: __doc__
+        r"""Validates records.
+
+        It performs consistency checks for the underlying :attr:`records`.
+
+        Args:
+            data_ordering (bool):
+                Checks that the *data* record sequence has monotonically
+                increasing addresses, without any overlapping.
+
+            checksum_values (bool):
+                Checks for valid *checksum* values.
+
+        Returns:
+            :class:`AsciiHexFile`: *self*.
+
+        Raises:
+            ValueError: Invalid record sequence.
+
+        Examples:
+            >>> from hexrec import AsciiHexFile
+            >>> records = [AsciiHexFile.Record.create_data(123, b'abc'),
+            ...            AsciiHexFile.Record.create_checksum(0xFFFF)]
+            >>> file = AsciiHexFile.from_records(records)
+            >>> file.validate_records()
+            Traceback (most recent call last):
+                ...
+            ValueError: wrong checksum
+        """
 
         records = self._records
         if records is None:
