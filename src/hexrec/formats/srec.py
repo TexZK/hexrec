@@ -480,7 +480,7 @@ class SrecRecord(BaseRecord):
 
         Args:
             count (int):
-                Record count.
+                Number of preceding *data* records.
 
             tag (:class:`SrecTag`):
                 Chosen *record count* tag.

@@ -60,19 +60,34 @@ class MosTag(BaseTag, enum.IntEnum):
     DATA = 0
     r"""Data."""
 
-    EOF = 1  # FIXME: add full support
+    EOF = 1
     r"""End Of File."""
 
     _DATA = DATA
 
     def is_data(self) -> bool:
 
-        return self == 0
+        return self == self.DATA
 
     def is_eof(self) -> bool:
-        # TODO: __doc__
+        r"""Tells whether this is an End Of File record tag.
 
-        return self == 1
+        This method returns true if this record tag is used for *End Of File*
+        records.
+
+        Returns:
+            bool: This is an End Of File record tag.
+
+        Examples:
+            >>> from hexrec import MosFile
+            >>> MosTag = MosFile.Record.Tag
+            >>> MosTag.EOF.is_eof()
+            True
+            >>> MosTag.DATA.is_eof()
+            False
+        """
+
+        return self == self.EOF
 
 
 if not __TYPING_HAS_SELF:  # pragma: no cover
@@ -93,7 +108,7 @@ class MosRecord(BaseRecord):
         b'(?P<checksum>[0-9A-Fa-f]{4})'
         b'(?P<after>[^\\r\\n]*)\\r?\\n?\0*$'
     )
-    # TODO: __doc__
+    r"""Line parser regex."""
 
     def compute_checksum(self) -> int:
 
@@ -117,7 +132,6 @@ class MosRecord(BaseRecord):
         address: int,
         data: AnyBytes,
     ) -> Self:
-        # TODO: __doc__
 
         address = address.__index__()
         if not 0 <= address <= 0xFFFF:
@@ -135,7 +149,23 @@ class MosRecord(BaseRecord):
         cls,
         record_count: int,
     ) -> Self:
-        # TODO: __doc__
+        r"""Creates an End Of File record.
+
+        The End Of File record also carries the *record count*.
+
+        Args:
+            record_count (int):
+                Number of preceding records.
+
+        Returns:
+            :class:`MosRecord`: End Of File record object.
+
+        Examples:
+            >>> from hexrec import MosFile
+            >>> record = MosFile.Record.create_eof(123)
+            >>> str(record)
+            ';00007B007B\r\n\x00\x00\x00\x00\x00\x00'
+        """
 
         record_count = record_count.__index__()
         if not 0 <= record_count <= 0xFFFF:
@@ -151,7 +181,37 @@ class MosRecord(BaseRecord):
         eof: bool = False,
         validate: bool = True,
     ) -> Self:
-        # TODO: __doc__
+        r"""Parses a record from bytes.
+
+        Please refer to the actual implementation provided by the record
+        *format* for more details.
+
+        Args:
+            line (bytes):
+                String of bytes to parse.
+
+            eof (bool):
+                Parsing an *End Of File* record.
+
+            validate (bool):
+                Perform validation checks.
+
+        Returns:
+            :class:`BaseRecord`: Parsed record.
+
+        Raises:
+            ValueError: Syntax error.
+
+        Examples:
+            >>> from hexrec import MosFile
+            >>> record = MosFile.Record.parse(b';0000010001\r\n', eof=True)
+            >>> record.tag
+            <MosTag.EOF: 1>
+            >>> MosFile.Record.parse(b';;0000010001\r\n', eof=True)
+            Traceback (most recent call last):
+                ...
+            ValueError: syntax error
+        """
 
         match = cls.LINE_REGEX.match(line)
         if not match:
@@ -276,7 +336,51 @@ class MosFile(BaseFile):
         # TODO: ignore_after_termination: bool = True,
         eof_record: bool = True,
     ) -> Self:
-        # TODO: __doc__
+        r"""Parses records from a byte stream.
+
+        It executes :meth:`MosRecord.parse` for each line of the incoming
+        `stream`, creating a new file object with the collected records calling
+        :meth:`from_records`.
+
+        Lines resulting empty by :meth:`_is_empty_line` are just discarded.
+
+        Notes:
+            Please refer to the actual implementation of each record file
+            *format*, because it may be more specialized.
+
+        Args:
+            stream (bytes IO):
+                Stream to serialize records onto.
+
+            ignore_errors (bool):
+                Ignore :class:`Exception` raised by :meth:`BaseRecord.parse`.
+
+            eof_record (bool):
+                Interpret the last record as the *End Of File* record.
+
+        Returns:
+            :class:`BaseFile`: *self*.
+
+        See Also:
+            :meth:`parse`
+            :meth:`MosRecord.parse`
+            :meth:`from_records`
+            :meth:`_is_empty_line`
+
+        Examples:
+            >>> from hexrec import MosFile
+            >>> buffer = b'''
+            ...     ;031234616263016F
+            ...     ;0000010001
+            ... '''
+            >>> import io
+            >>> stream = io.BytesIO(buffer)
+            >>> file = MosFile.parse(stream)
+            >>> file.memory.to_blocks()
+            [[4660, b'abc']]
+            >>> file.get_meta()
+            {'maxdatalen': 3}
+        """
 
         data = stream.read()
         data = _cast(bytes, data)
@@ -313,7 +417,41 @@ class MosFile(BaseFile):
         nuls: bool = True,
         xoff: bool = True,
     ) -> 'BaseFile':
-        # TODO: __doc__
+        r"""Serializes records onto a byte stream.
+
+        It executes :meth:`MosRecord.serialize` for each of the stored
+        :attr:`records`.
+
+        Args:
+            stream (bytes IO):
+                Stream to serialize records onto.
+
+            end (bytes):
+                Line ending suffix bytes.
+
+            nuls (bool):
+                Append six ASCII ``NUL`` (zero) bytes after each line, as
+                prescribed by the original specifications.
+
+            xoff (bool):
+                Append the ASCII ``XOFF`` byte at the end of the whole
+                serialization.
+
+        Returns:
+            :class:`MosFile`: *self*.
+
+        See Also:
+            :meth:`parse`
+            :meth:`MosRecord.serialize`
+
+        Examples:
+            >>> from hexrec import MosFile
+            >>> file = MosFile.from_blocks([[0xDA7A, b'abc']])
+            >>> import sys
+            >>> _ = file.serialize(sys.stdout.buffer, nuls=False, xoff=False)
+            ;03DA7A616263027D
+            ;0000010001
+        """
 
         for record in self.records:
             record.serialize(stream, end=end, nuls=nuls)
@@ -326,9 +464,49 @@ class MosFile(BaseFile):
     def update_records(
         self,
         align: bool = False,
-        start: bool = True,
     ) -> Self:
-        # TODO: __doc__
+        r"""Applies memory and meta to records.
+
+        This method processes the stored :attr:`memory` and *meta* information
+        to generate the sequence of :attr:`records`.
+
+        This effectively converts the *memory role* into the *records role*
+        (keeping both).
+
+        The :attr:`records` is assigned upon return.
+        Any exceptions being raised should not alter the file object.
+
+        Args:
+            align (bool):
+                Aligns data record chunk address bounds to :attr:`maxdatalen`.
+
+        Returns:
+            :class:`MosFile`: *self*.
+
+        Raises:
+            ValueError: :attr:`memory` attribute not populated.
+
+        See Also:
+            :attr:`records`
+            :attr:`memory`
+            :meth:`get_meta`
+            :meth:`apply_records`
+
+        Examples:
+            >>> from hexrec import MosFile
+            >>> blocks = [[123, b'abc']]
+            >>> file = MosFile.from_blocks(blocks, maxdatalen=16)
+            >>> file.memory.to_blocks()
+            [[123, b'abc']]
+            >>> file.get_meta()
+            {'maxdatalen': 16}
+            >>> _ = file.update_records()
+            >>> len(file.records)
+            2
+            >>> _ = file.print(nuls=False)
+            ;03007B61626301A4
+            ;0000010001
+        """
 
         memory = self._memory
         if memory is None:
@@ -360,7 +538,33 @@ class MosFile(BaseFile):
         data_ordering: bool = False,
         eof_record_required: bool = True,
     ) -> Self:
-        # TODO: __doc__
+        r"""Validates records.
+
+        It performs consistency checks for the underlying :attr:`records`.
+
+        Args:
+            data_ordering (bool):
+                Checks that the *data* record sequence has monotonically
+                increasing addresses, without any overlapping.
+
+            eof_record_required (bool):
+                Requires the *End Of File* record be present.
+
+        Returns:
+            :class:`MosFile`: *self*.
+
+        Raises:
+            ValueError: Invalid record sequence.
+
+        Examples:
+            >>> from hexrec import MosFile
+            >>> records = [MosFile.Record.create_data(123, b'abc')]
+            >>> file = MosFile.from_records(records)
+            >>> file.validate_records()
+            Traceback (most recent call last):
+                ...
+            ValueError: missing end of file record
+        """
 
         records = self._records
         if records is None:

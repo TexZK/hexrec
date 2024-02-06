@@ -1041,8 +1041,10 @@ class BaseRecord(abc.ABC):
 
     def print(
         self,
+        *args,
         stream: Optional[IO] = None,
         color: bool = False,
+        **kwargs,
     ) -> Self:
         r"""Prints a record.
 
@@ -1050,12 +1052,18 @@ class BaseRecord(abc.ABC):
         and written onto a byte stream (*stdout* by default).
 
         Args:
+            args:
+                Forwarded to the underlying call to :meth:`to_tokens`.
+
             stream (:class:`io.BytesIO`):
                 The byte stream where the record tokens are printed.
                 If ``None``, *stdout* is selected.
 
             color (bool):
                 Tokens are colorized before printing.
+
+            kwargs:
+                Forwarded to the underlying call to :meth:`to_tokens`.
 
         Returns:
             :class:`BaseRecord`: *self*.
@@ -1079,7 +1087,7 @@ class BaseRecord(abc.ABC):
 
         if stream is None:
             stream = sys.stdout.buffer
-        tokens = self.to_tokens()
+        tokens = self.to_tokens(*args, **kwargs)
         if color:
             tokens = colorize_tokens(tokens)
         stream.writelines(tokens.values())
@@ -3048,10 +3056,12 @@ class BaseFile(abc.ABC):
 
     def print(
         self,
+        *args,
         stream: Optional[IO] = None,
         color: bool = False,
         start: Optional[int] = None,
         stop: Optional[int] = None,
+        **kwargs,
     ) -> Self:
         r"""Prints record content to stdout.
 
@@ -3063,7 +3073,16 @@ class BaseFile(abc.ABC):
         It is possible to print subset of the records by specifying the record
         index range.
 
+        Warnings:
+            This method is **NOT** equivalent to :meth:`serialize`, because it
+            just prints each record from :attr:`records`.
+            Please use :meth:`serialize` for an actual serialization of the
+            whole file.
+
         Args:
+            args:
+                Forwarded to the underlying call to :meth:`to_tokens`.
+
             stream (byte stream):
                 Stream to print onto.
                 If ``None``, *stdout* is used.
@@ -3079,6 +3098,9 @@ class BaseFile(abc.ABC):
                 Exclusive end record index of the specified range.
                 If negative, look back from the last index.
                 If ``None``, print up to the last record.
+
+            kwargs:
+                Forwarded to the underlying call to :meth:`to_tokens`.
 
         Returns:
             :class:`BaseFile`: *self*.
@@ -3106,7 +3128,7 @@ class BaseFile(abc.ABC):
         """
 
         for record in self.records[start:stop]:
-            record.print(stream=stream, color=color)
+            record.print(*args, stream=stream, color=color, **kwargs)
         return self
 
     def read(
