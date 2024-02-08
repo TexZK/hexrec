@@ -68,14 +68,6 @@ class TestIhexTag(BaseTestTag):
         assert IhexTag.EXTENDED_LINEAR_ADDRESS.is_eof() is False
         assert IhexTag.START_LINEAR_ADDRESS.is_eof() is False
 
-    def test_is_start(self):
-        assert IhexTag.DATA.is_start() is False
-        assert IhexTag.END_OF_FILE.is_start() is False
-        assert IhexTag.EXTENDED_SEGMENT_ADDRESS.is_start() is False
-        assert IhexTag.START_SEGMENT_ADDRESS.is_start() is True
-        assert IhexTag.EXTENDED_LINEAR_ADDRESS.is_start() is False
-        assert IhexTag.START_LINEAR_ADDRESS.is_start() is True
-
     def test_is_extension(self):
         assert IhexTag.DATA.is_extension() is False
         assert IhexTag.END_OF_FILE.is_extension() is False
@@ -83,6 +75,22 @@ class TestIhexTag(BaseTestTag):
         assert IhexTag.START_SEGMENT_ADDRESS.is_extension() is False
         assert IhexTag.EXTENDED_LINEAR_ADDRESS.is_extension() is True
         assert IhexTag.START_LINEAR_ADDRESS.is_extension() is False
+
+    def test_is_file_termination(self):
+        assert IhexTag.DATA.is_file_termination() is False
+        assert IhexTag.END_OF_FILE.is_file_termination() is True
+        assert IhexTag.EXTENDED_SEGMENT_ADDRESS.is_file_termination() is False
+        assert IhexTag.START_SEGMENT_ADDRESS.is_file_termination() is False
+        assert IhexTag.EXTENDED_LINEAR_ADDRESS.is_file_termination() is False
+        assert IhexTag.START_LINEAR_ADDRESS.is_file_termination() is False
+
+    def test_is_start(self):
+        assert IhexTag.DATA.is_start() is False
+        assert IhexTag.END_OF_FILE.is_start() is False
+        assert IhexTag.EXTENDED_SEGMENT_ADDRESS.is_start() is False
+        assert IhexTag.START_SEGMENT_ADDRESS.is_start() is True
+        assert IhexTag.EXTENDED_LINEAR_ADDRESS.is_start() is False
+        assert IhexTag.START_LINEAR_ADDRESS.is_start() is True
 
 
 class TestIhexRecord(BaseTestRecord):
@@ -811,6 +819,39 @@ class TestIhexFile(BaseTestFile):
         with io.BytesIO(buffer) as stream:
             file = IhexFile.parse(stream, ignore_errors=True)
         assert file._records == records
+
+    def test_parse_junk(self):
+        buffer = (
+            b':0312340061626391\r\n'
+            b':02000004ABCD82\r\n'
+            b':0356780078797AC4\r\n'
+            b':04000005ABCD5678B1\r\n'
+            b':00000001FF\r\n'
+            b'junk\r\nafter'
+        )
+        records = [
+            IhexRecord.create_data(0x1234, b'abc'),
+            IhexRecord.create_extended_linear_address(0xABCD),
+            IhexRecord.create_data(0x5678, b'xyz'),
+            IhexRecord.create_start_linear_address(0xABCD5678),
+            IhexRecord.create_end_of_file(),
+        ]
+        with io.BytesIO(buffer) as stream:
+            file = IhexFile.parse(stream, ignore_after_termination=True)
+        assert file._records == records
+
+    def test_parse_raises_junk(self):
+        buffer = (
+            b':0312340061626391\r\n'
+            b':02000004ABCD82\r\n'
+            b':0356780078797AC4\r\n'
+            b':04000005ABCD5678B1\r\n'
+            b':00000001FF\r\n'
+            b'junk\r\nafter'
+        )
+        with pytest.raises(ValueError, match='syntax error'):
+            with io.BytesIO(buffer) as stream:
+                IhexFile.parse(stream, ignore_after_termination=False)
 
     def test_save_file(self, tmppath):
         path = str(tmppath / 'test_save_file.hex')

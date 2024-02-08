@@ -173,6 +173,18 @@ class TestSrecTag(BaseTestTag):
         assert SrecTag.START_24.is_data() is False
         assert SrecTag.START_16.is_data() is False
 
+    def test_is_file_termination(self):
+        assert SrecTag.HEADER.is_file_termination() is False
+        assert SrecTag.DATA_16.is_file_termination() is False
+        assert SrecTag.DATA_24.is_file_termination() is False
+        assert SrecTag.DATA_32.is_file_termination() is False
+        assert SrecTag.RESERVED.is_file_termination() is False
+        assert SrecTag.COUNT_16.is_file_termination() is False
+        assert SrecTag.COUNT_24.is_file_termination() is False
+        assert SrecTag.START_32.is_file_termination() is True
+        assert SrecTag.START_24.is_file_termination() is True
+        assert SrecTag.START_16.is_file_termination() is True
+
     def test_is_header(self):
         assert SrecTag.HEADER.is_header() is True
         assert SrecTag.DATA_16.is_header() is False
@@ -1030,6 +1042,36 @@ class TestSrecFile(BaseTestFile):
         with open(path, 'rb') as stream:
             file = SrecFile.parse(stream)
         assert file.records == records
+
+    def test_parse_junk(self):
+        buffer = (
+            b'S0070000484452001A\r\n'
+            b'S30812345678616263BD\r\n'
+            b'S5030001FB\r\n'
+            b'S70589ABCDEF0A\r\n'
+            b'junk\r\nafter'
+        )
+        records = [
+            SrecRecord.create_header(b'HDR\0'),
+            SrecRecord.create_data(0x12345678, b'abc'),
+            SrecRecord.create_count(1),
+            SrecRecord.create_start(0x89ABCDEF),
+        ]
+        with io.BytesIO(buffer) as stream:
+            file = SrecFile.parse(stream, ignore_after_termination=True)
+        assert file._records == records
+
+    def test_parse_raises_junk(self):
+        buffer = (
+            b'S0070000484452001A\r\n'
+            b'S30812345678616263BD\r\n'
+            b'S5030001FB\r\n'
+            b'S70589ABCDEF0A\r\n'
+            b'junk\r\nafter'
+        )
+        with pytest.raises(ValueError, match='syntax error'):
+            with io.BytesIO(buffer) as stream:
+                SrecFile.parse(stream, ignore_after_termination=False)
 
     def test_save_file(self, tmppath):
         path = str(tmppath / 'test_save_file.srec')

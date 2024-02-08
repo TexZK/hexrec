@@ -31,7 +31,6 @@ See Also:
 
 import enum
 import re
-from typing import IO
 from typing import Any
 from typing import Mapping
 from typing import Optional
@@ -149,6 +148,10 @@ class IhexTag(BaseTag, enum.IntEnum):
 
         return ((self == self.START_SEGMENT_ADDRESS) or
                 (self == self.START_LINEAR_ADDRESS))
+
+    def is_file_termination(self) -> bool:
+
+        return self.is_eof()
 
 
 if not __TYPING_HAS_SELF:  # pragma: no cover
@@ -558,17 +561,6 @@ class IhexFile(BaseFile):
         if linear != self._linear:
             self.discard_records()
         self._linear = linear
-
-    @classmethod
-    def parse(
-        cls,
-        stream: IO,
-        ignore_errors: bool = False,
-        # TODO: ignore_after_termination: bool = True,
-    ) -> Self:
-
-        file = super().parse(stream, ignore_errors=ignore_errors)
-        return _cast(IhexFile, file)
 
     @property
     def startaddr(self) -> Optional[int]:

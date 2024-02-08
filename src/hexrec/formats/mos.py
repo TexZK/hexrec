@@ -89,6 +89,10 @@ class MosTag(BaseTag, enum.IntEnum):
 
         return self == self.EOF
 
+    def is_file_termination(self) -> bool:
+
+        return self.is_eof()
+
 
 if not __TYPING_HAS_SELF:  # pragma: no cover
     del Self
@@ -333,7 +337,7 @@ class MosFile(BaseFile):
         cls,
         stream: IO,
         ignore_errors: bool = False,
-        # TODO: ignore_after_termination: bool = True,
+        ignore_after_termination: bool = True,
         eof_record: bool = True,
     ) -> Self:
         r"""Parses records from a byte stream.
@@ -354,6 +358,9 @@ class MosFile(BaseFile):
 
             ignore_errors (bool):
                 Ignore :class:`Exception` raised by :meth:`MosRecord.parse`.
+
+            ignore_after_termination (bool):
+                Ignore anything after the *End Of File* record was parsed.
 
             eof_record (bool):
                 Interpret the last record as the *End Of File* record.
@@ -399,7 +406,8 @@ class MosFile(BaseFile):
         data = data[start:endex]
         stream = io.BytesIO(data)
 
-        file = super().parse(stream, ignore_errors=ignore_errors)
+        file = super().parse(stream, ignore_errors=ignore_errors,
+                             ignore_after_termination=ignore_after_termination)
         file = _cast(MosFile, file)
 
         if eof_record:

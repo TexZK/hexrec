@@ -31,7 +31,6 @@ See Also:
 
 import enum
 import re
-from typing import IO
 from typing import Any
 from typing import Mapping
 from typing import Sequence
@@ -90,6 +89,10 @@ class XtekTag(BaseTag, enum.IntEnum):
         """
 
         return self == self.EOF
+
+    def is_file_termination(self) -> bool:
+
+        return self.is_eof()
 
 
 if not __TYPING_HAS_SELF:  # pragma: no cover
@@ -526,17 +529,6 @@ class XtekFile(BaseFile):
         self._memory = memory
         self._startaddr = startaddr
         return self
-
-    @classmethod
-    def parse(
-        cls,
-        stream: IO,
-        ignore_errors: bool = False,
-        # TODO: ignore_after_termination: bool = True,
-    ) -> Self:
-
-        file = super().parse(stream, ignore_errors=ignore_errors)
-        return _cast(XtekFile, file)
 
     @property
     def startaddr(self) -> int:

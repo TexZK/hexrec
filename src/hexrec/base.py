@@ -467,7 +467,7 @@ class BaseTag:
     the *serialized* representation of a record.
     """
 
-    _DATA = ...
+    _DATA: Optional['BaseTag'] = None
     r"""Alias to a common data record tag.
 
     This tag is used internally to build a generic data record.
@@ -502,6 +502,39 @@ class BaseTag:
             False
         """
         ...
+
+    # noinspection PyMethodMayBeStatic
+    def is_file_termination(self) -> bool:
+        r"""Tells whether this is record tag terminates a record file.
+
+        This method returns true if this record is used to terminate a record
+        file.
+
+        This is usually the case for *End Of File* or *start address* records,
+        depending on the specific file *format*, if supported.
+
+        Returns:
+            bool: This is a file termination tag.
+
+        Examples:
+            >>> from hexrec import IhexFile
+            >>> record = IhexFile.Record.create_data(123, b'abc')
+            >>> record.tag.is_file_termination()
+            False
+            >>> record = IhexFile.Record.create_end_of_file()
+            >>> record.tag.is_file_termination()
+            True
+
+            >>> from hexrec import SrecFile
+            >>> record = SrecFile.Record.create_data(123, b'abc')
+            >>> record.tag.is_file_termination()
+            False
+            >>> record = SrecFile.Record.create_start()
+            >>> record.tag.is_file_termination()
+            True
+        """
+
+        return False
 
 
 if not __TYPING_HAS_SELF:  # pragma: no cover
@@ -2989,7 +3022,12 @@ class BaseFile(abc.ABC):
         return self
 
     @classmethod
-    def parse(cls, stream: IO, ignore_errors: bool = False) -> Self:
+    def parse(
+        cls,
+        stream: IO,
+        ignore_errors: bool = False,
+        ignore_after_termination: bool = True,
+    ) -> Self:
         r"""Parses records from a byte stream.
 
         It executes :meth:`BaseRecord.parse` for each line of the incoming
@@ -3008,6 +3046,11 @@ class BaseFile(abc.ABC):
 
             ignore_errors (bool):
                 Ignore :class:`Exception` raised by :meth:`BaseRecord.parse`.
+
+            ignore_after_termination (bool):
+                Ignore anything after the termination record was parsed, if
+                supported (e.g. *End Of File* or *start address* record,
+                depending on the specific file *format*).
 
         Returns:
             :class:`BaseFile`: *self*.
@@ -3034,22 +3077,29 @@ class BaseFile(abc.ABC):
             {'linear': True, 'maxdatalen': 3, 'startaddr': 51966}
         """
 
-        records = []
         Record = cls.Record
+        records = []
         row = 0
 
         for line in stream:
             row += 1
+
             if cls._is_line_empty(line):
                 continue
+
             try:
                 record = Record.parse(line)
             except Exception:
                 if ignore_errors:
                     continue
                 raise
+
             record.coords = (row, 0)
             records.append(record)
+
+            if ignore_after_termination:
+                if record.tag.is_file_termination():
+                    break
 
         file = cls.from_records(records)
         return file

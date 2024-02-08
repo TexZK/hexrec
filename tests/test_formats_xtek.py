@@ -48,6 +48,10 @@ class TestXtekTag(BaseTestTag):
         assert XtekTag.DATA.is_eof() is False
         assert XtekTag.EOF.is_eof() is True
 
+    def test_is_file_termination(self):
+        assert XtekTag.DATA.is_file_termination() is False
+        assert XtekTag.EOF.is_file_termination() is True
+
 
 class TestXtekRecord(BaseTestRecord):
 
@@ -609,6 +613,33 @@ class TestXtekFile(BaseTestFile):
         with open(path, 'rb') as stream:
             file = XtekFile.parse(stream)
         assert file.records == records
+
+    def test_parse_junk(self):
+        buffer = (
+            b'%14635800001234616263\r\n'
+            b'%1464D80000432178797A\r\n'
+            b'%0E84C80000ABCD\r\n'
+            b'junk\r\nafter'
+        )
+        records = [
+            XtekRecord.create_data(0x1234, b'abc'),
+            XtekRecord.create_data(0x4321, b'xyz'),
+            XtekRecord.create_eof(0xABCD),
+        ]
+        with io.BytesIO(buffer) as stream:
+            file = XtekFile.parse(stream, ignore_after_termination=True)
+        assert file._records == records
+
+    def test_parse_raises_junk(self):
+        buffer = (
+            b'%14635800001234616263\r\n'
+            b'%1464D80000432178797A\r\n'
+            b'%0E84C80000ABCD\r\n'
+            b'junk\r\nafter'
+        )
+        with pytest.raises(ValueError, match='syntax error'):
+            with io.BytesIO(buffer) as stream:
+                XtekFile.parse(stream, ignore_after_termination=False)
 
     def test_save_file(self, tmppath):
         path = str(tmppath / 'test_save_file.xtek')

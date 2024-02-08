@@ -31,7 +31,6 @@ See Also:
 
 import enum
 import re
-from typing import IO
 from typing import Any
 from typing import Mapping
 from typing import Optional
@@ -411,6 +410,10 @@ class SrecTag(BaseTag, enum.IntEnum):
         return ((self == self.START_16) or
                 (self == self.START_24) or
                 (self == self.START_32))
+
+    def is_file_termination(self) -> bool:
+
+        return self.is_start()
 
 
 SIZE_TO_ADDRESS_FORMAT: Mapping[int, bytes] = {
@@ -876,16 +879,6 @@ class SrecFile(BaseFile):
         if header != self._header:
             self.discard_records()
         self._header = header
-
-    @classmethod
-    def parse(
-        cls, stream: IO,
-        ignore_errors: bool = False,
-        # TODO: ignore_after_termination: bool = True,
-    ) -> Self:
-
-        file = super().parse(stream, ignore_errors=ignore_errors)
-        return _cast(SrecFile, file)
 
     @property
     def startaddr(self) -> int:

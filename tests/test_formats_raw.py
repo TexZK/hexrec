@@ -40,9 +40,10 @@ class TestRawTag(BaseTestTag):
     Tag = RawTag
 
     def test_is_data(self):
-        tag = RawTag(...)
-        assert tag is RawTag.DATA
-        assert tag.is_data()
+        assert RawTag.DATA.is_data() is True
+
+    def test_is_file_termination(self):
+        assert RawTag.DATA.is_file_termination() is False
 
 
 class TestRawRecord(BaseTestRecord):

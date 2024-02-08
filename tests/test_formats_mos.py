@@ -47,6 +47,10 @@ class TestMosTag(BaseTestTag):
         assert MosTag.DATA.is_eof() is False
         assert MosTag.EOF.is_eof() is True
 
+    def test_is_file_termination(self):
+        assert MosTag.DATA.is_file_termination() is False
+        assert MosTag.EOF.is_file_termination() is True
+
 
 class TestMosRecord(BaseTestRecord):
 
@@ -484,7 +488,7 @@ class TestMosFile(BaseTestFile):
             MosRecord.create_eof(1),
         ]
         with open(path, 'rb') as stream:
-            file = MosFile.parse(stream)
+            file = MosFile.parse(stream, ignore_after_termination=True)
         assert file._records == records
 
     def test_parse_ignore_eof(self):
@@ -504,6 +508,12 @@ class TestMosFile(BaseTestFile):
         with pytest.raises(ValueError, match='missing end of file record'):
             with io.BytesIO(b'') as stream:
                 MosFile.parse(stream)
+
+    def test_parse_raises_file_junk(self, datapath):
+        path = str(datapath / 'basic_junk.mos')
+        with pytest.raises(ValueError, match='syntax error'):
+            with open(path, 'rb') as stream:
+                MosFile.parse(stream, ignore_after_termination=False)
 
     def test_save_file(self, tmppath):
         path = str(tmppath / 'test_save_file.mos')

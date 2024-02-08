@@ -371,6 +371,10 @@ class BaseTestTag:
     def test_is_data(self):
         ...
 
+    @abc.abstractmethod
+    def test_is_file_termination(self):
+        ...
+
 
 class BaseTestRecord:
 

@@ -165,7 +165,7 @@ def parse_int(
             A generic object to convert to integer.
             In case `value` is a :obj:`str` (case-insensitive), it can be
             either prefixed with ``0x`` or postfixed with ``h`` to convert
-            from an hexadecimal representation, or prefixed with ``0b`` from
+            from a hexadecimal representation, or prefixed with ``0b`` from
             binary; a prefix of only ``0`` converts from octal.
             A further suffix of ``k`` or ``m`` scales as *kibibyte* or
             *mebibyte*.
@@ -243,7 +243,7 @@ def unhexlify(
 
         delete (bytes):
             If empty or ``None``, no deletion occurs.
-            If ``Ellipsis``, :data:``DEFAULT_DELETE`` is used.
+            If ``Ellipsis``, :data:`DEFAULT_DELETE` is used.
 
     Returns:
         bytes: Raw byte string.

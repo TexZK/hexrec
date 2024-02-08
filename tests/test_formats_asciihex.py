@@ -57,6 +57,11 @@ class TestAsciiHexTag(BaseTestTag):
         assert AsciiHexTag.ADDRESS.is_data() is False
         assert AsciiHexTag.CHECKSUM.is_data() is False
 
+    def test_is_file_termination(self):
+        assert AsciiHexTag.DATA.is_file_termination() is False
+        assert AsciiHexTag.ADDRESS.is_file_termination() is False
+        assert AsciiHexTag.CHECKSUM.is_file_termination() is False
+
 
 class TestAsciiHexRecord(BaseTestRecord):
 
