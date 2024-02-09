@@ -54,9 +54,16 @@ except ImportError:  # pragma: no cover
     TypeAlias = Any  # Python < 3.10
 
 try:
+    from typing import Literal
+    ByteOrder: TypeAlias = Literal['big', 'little']
+except ImportError:  # pragma: no cover
+    Literal: TypeAlias = str  # Python < 3.8
+    ByteOrder: TypeAlias = Literal
+
+try:
     from typing import Self
 except ImportError:  # pragma: no cover
-    Self: TypeAlias = Any
+    Self: TypeAlias = Any  # Python < 3.11
 __TYPING_HAS_SELF = Self is not Any
 
 AnyBytes: TypeAlias = Union[bytes, bytearray, memoryview]
@@ -331,7 +338,7 @@ def load(
     *load_args: Any,
     in_format: Optional[str] = None,
     **load_kwargs: Any,
-) -> Self:
+) -> 'BaseFile':
     r"""Loads a file.
 
     This is a simple helper function to load a record file from the filesystem.
@@ -485,6 +492,9 @@ class BaseTag:
             bool: This is a data record tag.
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseTag`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> record = IhexFile.Record.create_data(123, b'abc')
             >>> record.tag.is_data()
@@ -517,6 +527,9 @@ class BaseTag:
             bool: This is a file termination tag.
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseTag`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> record = IhexFile.Record.create_data(123, b'abc')
             >>> record.tag.is_file_termination()
@@ -690,6 +703,9 @@ class BaseRecord(abc.ABC):
             :meth:`to_bytestr`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseRecord`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> record = IhexFile.Record.create_end_of_file()
             >>> bytes(record)
@@ -722,6 +738,9 @@ class BaseRecord(abc.ABC):
             :meth:`__ne__`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseRecord`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile, RawFile
             >>> ihex1 = IhexFile.Record.create_data(0, b'abc')
             >>> ihex2 = IhexFile.Record.create_data(0, b'abc')
@@ -796,6 +815,9 @@ class BaseRecord(abc.ABC):
             :meth:`__eq__`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseRecord`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile, RawFile
             >>> ihex1 = IhexFile.Record.create_data(0, b'abc')
             >>> ihex2 = IhexFile.Record.create_data(0, b'abc')
@@ -831,6 +853,9 @@ class BaseRecord(abc.ABC):
             str: String representation.
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseRecord`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> record = IhexFile.Record.create_end_of_file()
             >>> repr(record)  # doctest:+NORMALIZE_WHITESPACE,+ELLIPSIS
@@ -855,6 +880,9 @@ class BaseRecord(abc.ABC):
             :meth:`to_bytestr`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseRecord`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> record = IhexFile.Record.create_end_of_file()
             >>> str(record)
@@ -880,6 +908,9 @@ class BaseRecord(abc.ABC):
             int: Computed checksum value.
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseRecord`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> record = IhexFile.Record.create_data(0, b'abc')
             >>> record.compute_checksum()
@@ -905,6 +936,9 @@ class BaseRecord(abc.ABC):
             int: Computed checksum value.
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseRecord`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> record = IhexFile.Record.create_data(0, b'abc')
             >>> record.compute_count()
@@ -935,6 +969,9 @@ class BaseRecord(abc.ABC):
             :meth:`get_meta`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseRecord`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> record1 = IhexFile.Record.create_data(0x1234, b'abc')
             >>> record2 = record1.copy()
@@ -967,6 +1004,9 @@ class BaseRecord(abc.ABC):
             :class:`BaseRecord`: Data record object.
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseRecord`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> record = IhexFile.Record.create_data(0x1234, b'abc')
             >>> str(record)
@@ -976,7 +1016,7 @@ class BaseRecord(abc.ABC):
 
     def data_to_int(
         self,
-        byteorder: str = 'big',  # FIXME: @ Python >= 3.8: Literal['big', 'little'] = 'big',
+        byteorder: ByteOrder = 'big',
         signed: bool = False,
     ) -> int:
         r"""Interprets data bytes as integer.
@@ -998,6 +1038,9 @@ class BaseRecord(abc.ABC):
             :meth:`int.from_bytes`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseRecord`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> record = IhexFile.Record.create_extended_linear_address(0xABCD)
             >>> record.data
@@ -1024,6 +1067,9 @@ class BaseRecord(abc.ABC):
             :meth:`set_meta`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseRecord`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> record = IhexFile.Record.create_end_of_file()
             >>> record.get_meta()  # doctest:+NORMALIZE_WHITESPACE
@@ -1061,6 +1107,9 @@ class BaseRecord(abc.ABC):
             ValueError: Syntax error.
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseRecord`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> record = IhexFile.Record.parse(b':00000001FF\r\n')
             >>> record.tag
@@ -1107,6 +1156,9 @@ class BaseRecord(abc.ABC):
             :class:`io.BytesIO`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseRecord`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> record = IhexFile.Record.create_data(0x1234, b'abc')
             >>> _ = record.print()
@@ -1149,6 +1201,9 @@ class BaseRecord(abc.ABC):
             :class:`io.BytesIO`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseRecord`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> record = IhexFile.Record.create_data(0x1234, b'abc')
             >>> import io
@@ -1176,6 +1231,9 @@ class BaseRecord(abc.ABC):
             bytes: Byte string representation.
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseRecord`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> record = IhexFile.Record.create_data(0x1234, b'abc')
             >>> record.to_bytestr(end=b'\n')
@@ -1198,6 +1256,9 @@ class BaseRecord(abc.ABC):
             bytes: Mapping of token keys to token byte strings.
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseRecord`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> record = IhexFile.Record.create_data(0x1234, b'abc')
             >>> record.to_tokens(end=b'\n')  # doctest:+NORMALIZE_WHITESPACE
@@ -1221,9 +1282,12 @@ class BaseRecord(abc.ABC):
             :meth:`compute_checksum`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseRecord`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> IhexRecord = IhexFile.Record
-            >>> record = Record(IhexRecord.Tag.END_OF_FILE, checksum=None)
+            >>> record = IhexRecord(IhexRecord.Tag.END_OF_FILE, checksum=None)
             >>> record.compute_checksum()
             255
             >>> record.checksum is None
@@ -1250,6 +1314,9 @@ class BaseRecord(abc.ABC):
             :meth:`compute_count`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseRecord`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> Record = IhexFile.Record
             >>> Tag = Record.Tag
@@ -1291,6 +1358,9 @@ class BaseRecord(abc.ABC):
             ValueError: Some targeted attributes are inconsistent.
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseRecord`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> record = IhexFile.Record.create_end_of_file()
             >>> _ = record.validate()
@@ -1481,6 +1551,9 @@ class BaseFile(abc.ABC):
             :meth:`extend`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file1 = SrecFile.from_bytes(b'abc', offset=123)
             >>> file2 = SrecFile.from_bytes(b'xyz', offset=456)
@@ -1498,6 +1571,9 @@ class BaseFile(abc.ABC):
         r"""bool: Has data records or memory.
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
              >>> from hexrec import IhexFile
              >>> file = IhexFile()
              >>> bool(file)
@@ -1537,6 +1613,9 @@ class BaseFile(abc.ABC):
             :meth:`bytesparse.base.MutableMemory.__delitem__`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file = SrecFile.from_blocks([[123, b'abc'], [456, b'xyz']])
             >>> del file[457]
@@ -1549,7 +1628,7 @@ class BaseFile(abc.ABC):
 
         del self.memory[key]
 
-    def __getitem__(self, key: Union[slice, int]) -> Union[AnyBytes, None]:
+    def __getitem__(self, key: Union[slice, int]) -> Union[AnyBytes, int, None]:
         r"""Extracts a range.
 
         Args:
@@ -1563,6 +1642,9 @@ class BaseFile(abc.ABC):
             :meth:`bytesparse.base.ImmutableMemory.__getitem__`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file = SrecFile.from_blocks([[123, b'abc'], [456, b'xyz']])
             >>> chr(file[457])
@@ -1595,6 +1677,9 @@ class BaseFile(abc.ABC):
             :meth:`__ne__`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file1 = SrecFile.from_bytes(b'abc', offset=123)
             >>> file2 = SrecFile.from_bytes(b'abc', offset=123)
@@ -1648,6 +1733,9 @@ class BaseFile(abc.ABC):
             :meth:`bytesparse.base.MutableMemory.extend`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file1 = SrecFile.from_bytes(b'abc', offset=123)
             >>> file2 = SrecFile.from_bytes(b'xyz', offset=456)
@@ -1686,6 +1774,9 @@ class BaseFile(abc.ABC):
             :meth:`discard_records`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file1 = SrecFile.from_bytes(b'abc', offset=123)
             >>> file2 = SrecFile.from_bytes(b'xyz', offset=456)
@@ -1721,6 +1812,9 @@ class BaseFile(abc.ABC):
             :attr:`META_KEYS`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file1 = SrecFile.from_bytes(b'abc', offset=123)
             >>> file2 = SrecFile.from_bytes(b'abc', offset=123)
@@ -1792,6 +1886,9 @@ class BaseFile(abc.ABC):
             :meth:`merge`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file1 = SrecFile.from_bytes(b'abc', offset=123)
             >>> file2 = SrecFile.from_bytes(b'xyz', offset=456)
@@ -1808,7 +1905,7 @@ class BaseFile(abc.ABC):
     def __setitem__(
         self,
         key: Union[slice, int],
-        value: Union[AnyBytes, ImmutableMemory, None],
+        value: Union[AnyBytes, ImmutableMemory, int, None],
     ) -> None:
         r"""Sets a range.
 
@@ -1828,6 +1925,9 @@ class BaseFile(abc.ABC):
             :meth:`clear`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file = SrecFile.from_blocks([[123, b'abc'], [456, b'xyz']])
             >>> file[124] = b'?'
@@ -1859,6 +1959,9 @@ class BaseFile(abc.ABC):
             :bool: The `line` is empty.
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> IhexFile._is_line_empty(b'')
             True
@@ -1890,6 +1993,9 @@ class BaseFile(abc.ABC):
             :meth:`bytesparse.base.MutableMemory.append`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file = SrecFile.from_bytes(b'abc', offset=123)
             >>> _ = file.append(b'.')
@@ -1927,6 +2033,9 @@ class BaseFile(abc.ABC):
             :meth:`update_records`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> IhexRecord = IhexFile.Record
             >>> records = [IhexRecord.create_data(123, b'abc'),
@@ -1983,6 +2092,9 @@ class BaseFile(abc.ABC):
             :meth:`bytesparse.base.MutableMemory.clear`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file = SrecFile.from_blocks([[123, b'abc'], [130, b'xyz']])
             >>> _ = file.clear(start=124, endex=132)
@@ -2017,6 +2129,9 @@ class BaseFile(abc.ABC):
             :class:`BaseFile`: Converted copy of `source` to the target format.
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile, SrecFile
             >>> blocks = [[123, b'abc'], [456, b'xyz']]
             >>> source = IhexFile.from_blocks(blocks, startaddr=789)
@@ -2074,6 +2189,9 @@ class BaseFile(abc.ABC):
             :meth:`bytesparse.base.MutableMemory.cut`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file = SrecFile.from_blocks([[123, b'abc'], [130, b'xyz']])
             >>> inner = file.copy(start=124, endex=132)
@@ -2118,6 +2236,9 @@ class BaseFile(abc.ABC):
             :meth:`bytesparse.base.MutableMemory.crop`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file = SrecFile.from_blocks([[123, b'abc'], [130, b'xyz']])
             >>> _ = file.crop(start=124, endex=132)
@@ -2166,6 +2287,9 @@ class BaseFile(abc.ABC):
             :meth:`bytesparse.base.MutableMemory.cut`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file = SrecFile.from_blocks([[123, b'abc'], [130, b'xyz']])
             >>> inner = file.cut(start=124, endex=132)
@@ -2212,6 +2336,9 @@ class BaseFile(abc.ABC):
             :meth:`bytesparse.base.MutableMemory.delete`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file = SrecFile.from_blocks([[123, b'abc'], [130, b'xyz']])
             >>> _ = file.delete(start=124, endex=132)
@@ -2235,6 +2362,9 @@ class BaseFile(abc.ABC):
             :class:`BaseFile`: *self*.
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> IhexRecord = IhexFile.Record
             >>> records = [IhexRecord.create_data(123, b'abc'),
@@ -2265,6 +2395,9 @@ class BaseFile(abc.ABC):
             :class:`BaseFile`: *self*.
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> file = IhexFile.from_bytes(b'abc', offset=123)
             >>> _ = file.update_records()
@@ -2303,6 +2436,9 @@ class BaseFile(abc.ABC):
             :meth:`bytesparse.base.MutableMemory.extend`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file1 = SrecFile.from_bytes(b'abc', offset=123)
             >>> file2 = SrecFile.from_bytes(b'xyz', offset=456)
@@ -2354,6 +2490,9 @@ class BaseFile(abc.ABC):
             :meth:`bytesparse.base.MutableMemory.fill`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file = SrecFile.from_blocks([[123, b'abc'], [130, b'xyz']])
             >>> _ = file.fill(start=124, endex=132, pattern=b'.')
@@ -2404,6 +2543,9 @@ class BaseFile(abc.ABC):
              raises an exception when the `item` is not found.
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file = SrecFile.from_blocks([[123, b'abc'], [456, b'xyz']])
             >>> file.find(b'yz')
@@ -2451,6 +2593,9 @@ class BaseFile(abc.ABC):
             :meth:`bytesparse.base.MutableMemory.flood`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file = SrecFile.from_blocks([[123, b'abc'], [130, b'xyz']])
             >>> file.get_holes()
@@ -2495,6 +2640,9 @@ class BaseFile(abc.ABC):
             :meth:`bytesparse.base.ImmutableMemory.from_blocks`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> blocks = [[123, b'abc'], [456, b'xyz']]
             >>> file = SrecFile.from_blocks(blocks, maxdatalen=8)
@@ -2543,6 +2691,9 @@ class BaseFile(abc.ABC):
             :meth:`bytesparse.base.ImmutableMemory.from_bytes`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file = SrecFile.from_bytes(b'abc', offset=123, maxdatalen=8)
             >>> file.memory.to_blocks()
@@ -2586,6 +2737,9 @@ class BaseFile(abc.ABC):
             :class:`bytesparse.base.MutableMemory`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from bytesparse import Memory
             >>> blocks = [[123, b'abc'], [456, b'xyz']]
             >>> memory = Memory.from_blocks(blocks)
@@ -2648,6 +2802,9 @@ class BaseFile(abc.ABC):
             :class:`BaseRecord`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> IhexRecord = IhexFile.Record
             >>> records = [IhexRecord.create_data(123, b'abc'),
@@ -2687,6 +2844,9 @@ class BaseFile(abc.ABC):
             :attr:`bytesparse.base.ImmutableMemory.endin`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file = SrecFile.from_blocks([[123, b'abc'], [456, b'xyz']])
             >>> file.get_address_max()
@@ -2707,6 +2867,9 @@ class BaseFile(abc.ABC):
             :attr:`bytesparse.base.ImmutableMemory.start`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file = SrecFile.from_blocks([[123, b'abc'], [456, b'xyz']])
             >>> file.get_address_min()
@@ -2731,6 +2894,9 @@ class BaseFile(abc.ABC):
             :meth:`bytesparse.base.ImmutableMemory.gaps`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> blocks = [[123, b'abc'], [456, b'xyz'], [789, b'?!']]
             >>> file = SrecFile.from_blocks(blocks)
@@ -2758,6 +2924,9 @@ class BaseFile(abc.ABC):
             :meth:`bytesparse.base.ImmutableMemory.intervals`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> blocks = [[123, b'abc'], [456, b'xyz'], [789, b'?!']]
             >>> file = SrecFile.from_blocks(blocks)
@@ -2778,6 +2947,9 @@ class BaseFile(abc.ABC):
             dict: Meta information dictionary.
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> blocks = [[123, b'abc'], [456, b'xyz'], [789, b'?!']]
             >>> file = SrecFile.from_blocks(blocks, header=b'HDR\0')
@@ -2824,6 +2996,9 @@ class BaseFile(abc.ABC):
             :meth:`bytesparse.base.ImmutableMemory.index`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file = SrecFile.from_blocks([[123, b'abc'], [456, b'xyz']])
             >>> file.index(b'yz')
@@ -2867,6 +3042,9 @@ class BaseFile(abc.ABC):
             :attr:`sys.stdin.buffer`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> file = IhexFile.load('data.hex')
             >>> file.memory.to_blocks()
@@ -2901,6 +3079,9 @@ class BaseFile(abc.ABC):
             :meth:`discard_records`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> buffer = bytes(range(64))
             >>> file = SrecFile.from_bytes(buffer)
@@ -2970,6 +3151,9 @@ class BaseFile(abc.ABC):
             :meth:`discard_memory`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> blocks = [[123, b'abc'], [456, b'xyz']]
             >>> file = SrecFile.from_blocks(blocks)
@@ -3008,6 +3192,9 @@ class BaseFile(abc.ABC):
             :meth:`write`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file1 = SrecFile.from_bytes(b'abc', offset=123)
             >>> file2 = SrecFile.from_bytes(b'xyz', offset=456)
@@ -3062,6 +3249,9 @@ class BaseFile(abc.ABC):
             :meth:`_is_empty_line`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> buffer = b'''
             ...     :03DA7A0061626383
@@ -3159,6 +3349,9 @@ class BaseFile(abc.ABC):
             :meth:`BaseRecord.print`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> buffer = bytes(range(64))
             >>> file = SrecFile.from_bytes(buffer)
@@ -3213,6 +3406,9 @@ class BaseFile(abc.ABC):
             :meth:`bytesparse.base.MutableMemory.to_bytes`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file = SrecFile.from_blocks([[123, b'abc'], [130, b'xyz']])
             >>> file.read(start=124, endex=132)
@@ -3251,6 +3447,9 @@ class BaseFile(abc.ABC):
             :meth:`discard_records`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> blocks = [[123, b'abc'], [456, b'xyz']]
             >>> file = SrecFile.from_blocks(blocks, startaddr=789)
@@ -3302,6 +3501,9 @@ class BaseFile(abc.ABC):
             :attr:`sys.stdout.buffer`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> file = IhexFile.from_blocks([[0xDA7A, b'abc']], startaddr=0xCAFE)
             >>> _ = file.save('data.hex')
@@ -3341,6 +3543,9 @@ class BaseFile(abc.ABC):
             :meth:`get_meta`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> blocks = [[123, b'abc'], [456, b'xyz'], [789, b'?!']]
             >>> file = SrecFile.from_blocks(blocks)
@@ -3383,6 +3588,9 @@ class BaseFile(abc.ABC):
             :meth:`BaseRecord.serialize`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> file = IhexFile.from_blocks([[0xDA7A, b'abc']], startaddr=0xCAFE)
             >>> import sys
@@ -3417,6 +3625,9 @@ class BaseFile(abc.ABC):
             :meth:`bytesparse.base.MutableMemory.shift`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file = SrecFile.from_blocks([[123, b'abc'], [456, b'xyz']])
             >>> _ = file.shift(1000)
@@ -3452,6 +3663,9 @@ class BaseFile(abc.ABC):
             list of :class:`BaseFile`: Parts after splitting.
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file = SrecFile.from_bytes(b'Hello, World!', offset=123)
             >>> parts = file.split(128, 130)
@@ -3502,6 +3716,9 @@ class BaseFile(abc.ABC):
             :meth:`apply_records`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> blocks = [[123, b'abc']]
             >>> file = IhexFile.from_blocks(blocks, maxdatalen=16, startaddr=456)
@@ -3531,6 +3748,9 @@ class BaseFile(abc.ABC):
             ValueError: Invalid record sequence.
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import IhexFile
             >>> records = [IhexFile.Record.create_data(123, b'abc')]
             >>> file = IhexFile.from_records(records)
@@ -3567,6 +3787,9 @@ class BaseFile(abc.ABC):
             ValueError: non-contiguous data within range.
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file = SrecFile.from_blocks([[123, b'abc'], [456, b'xyz']])
             >>> bytes(file.view(start=456, endex=458))
@@ -3612,6 +3835,9 @@ class BaseFile(abc.ABC):
             :meth:`bytesparse.base.MutableMemory.write`
 
         Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
             >>> from hexrec import SrecFile
             >>> file = SrecFile()
             >>> _ = file.write(123, b'abc')

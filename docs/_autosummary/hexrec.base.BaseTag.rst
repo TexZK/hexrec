@@ -18,6 +18,7 @@
    
       ~BaseTag.__init__
       ~BaseTag.is_data
+      ~BaseTag.is_file_termination
    
    
 

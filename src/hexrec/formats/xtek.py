@@ -51,7 +51,7 @@ from ..utils import unhexlify
 try:
     from typing import Self
 except ImportError:  # pragma: no cover
-    Self: TypeAlias = Any
+    Self: TypeAlias = Any  # Python < 3.11
 __TYPING_HAS_SELF = Self is not Any
 
 

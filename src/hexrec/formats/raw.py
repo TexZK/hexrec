@@ -46,7 +46,7 @@ from ..base import TypeAlias
 try:
     from typing import Self
 except ImportError:  # pragma: no cover
-    Self: TypeAlias = Any
+    Self: TypeAlias = Any  # Python < 3.11
 __TYPING_HAS_SELF = Self is not Any
 
 
@@ -94,7 +94,35 @@ class RawRecord(BaseRecord):
         address: int = 0,
         validate: bool = True,
     ) -> 'RawRecord':
-        # TODO: __doc__
+        r"""Parses a record from bytes.
+
+        Please refer to the actual implementation provided by the record
+        *format* for more details.
+
+        Args:
+            line (bytes):
+                String of bytes to parse.
+
+            address (int):
+                Record address.
+
+            validate (bool):
+                Perform validation checks.
+
+        Returns:
+            :class:`RawRecord`: Parsed record.
+
+        Raises:
+            ValueError: Syntax error.
+
+        Examples:
+            >>> from hexrec import RawFile
+            >>> record = RawFile.Record.parse(b'abc', address=123)
+            >>> record.address
+            123
+            >>> record.data
+            b'abc'
+        """
 
         del validate
         return cls.create_data(address, line)
