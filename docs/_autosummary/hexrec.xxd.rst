@@ -1,23 +1,29 @@
-﻿hexrec.xxd
-==========
+﻿xxd
+===
 
 .. automodule:: hexrec.xxd
 
-   
-   
-   
 
-   
-   
-   
 
-   
-   
-   
 
-   
-   
-   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

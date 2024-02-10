@@ -1,34 +1,40 @@
-﻿hexrec.formats.xtek
-===================
+﻿xtek
+====
 
 .. automodule:: hexrec.formats.xtek
 
-   
-   
-   
 
-   
-   
-   
 
-   
-   
-   .. rubric:: Classes
 
-   .. autosummary::
-      :toctree:
-      :template: custom-class-template.rst
-      :nosignatures:
-   
-      XtekFile
-      XtekRecord
-      XtekTag
-   
-   
 
-   
-   
-   
+
+
+
+
+
+
+
+
+
+    .. rubric:: Classes
+
+    .. autosummary::
+        :toctree:
+        :template: custom-class-template.rst
+        :nosignatures:
+
+        XtekFile
+        XtekRecord
+        XtekTag
+
+
+
+
+
+
+
+
+
 
 
 

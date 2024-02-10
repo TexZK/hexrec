@@ -1,5 +1,5 @@
-hexrec.utils.parse\_int
-=======================
+parse\_int
+==========
 
 .. currentmodule:: hexrec.utils
 

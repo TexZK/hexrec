@@ -1,5 +1,5 @@
-hexrec.utils.hexlify
-====================
+hexlify
+=======
 
 .. currentmodule:: hexrec.utils
 

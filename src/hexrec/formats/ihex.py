@@ -126,6 +126,10 @@ class IhexTag(BaseTag, enum.IntEnum):
         return ((self == self.EXTENDED_SEGMENT_ADDRESS) or
                 (self == self.EXTENDED_LINEAR_ADDRESS))
 
+    def is_file_termination(self) -> bool:
+
+        return super().is_file_termination()
+
     def is_start(self) -> bool:
         r"""Tells whether this is a Start Address record tag.
 

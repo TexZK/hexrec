@@ -5,7 +5,6 @@ Reference
     :toctree: _autosummary
     :template: custom-module-template.rst
 
-    hexrec
     hexrec.base
     hexrec.formats
     hexrec.formats.asciihex

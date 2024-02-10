@@ -1,5 +1,5 @@
-hexrec.base.load
-================
+load
+====
 
 .. currentmodule:: hexrec.base
 

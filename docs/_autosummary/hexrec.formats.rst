@@ -1,23 +1,29 @@
-﻿hexrec.formats
-==============
+﻿formats
+=======
 
 .. automodule:: hexrec.formats
 
-   
-   
-   
 
-   
-   
-   
 
-   
-   
-   
 
-   
-   
-   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

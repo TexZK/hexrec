@@ -1,5 +1,5 @@
-hexrec.utils.chop
-=================
+chop
+====
 
 .. currentmodule:: hexrec.utils
 

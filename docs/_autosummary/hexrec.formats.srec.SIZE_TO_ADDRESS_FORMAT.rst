@@ -1,5 +1,5 @@
-hexrec.formats.srec.SIZE\_TO\_ADDRESS\_FORMAT
-=============================================
+SIZE\_TO\_ADDRESS\_FORMAT
+=========================
 
 .. currentmodule:: hexrec.formats.srec
 

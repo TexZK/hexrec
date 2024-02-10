@@ -1,34 +1,40 @@
-﻿hexrec.formats.asciihex
-=======================
+﻿asciihex
+========
 
 .. automodule:: hexrec.formats.asciihex
 
-   
-   
-   
 
-   
-   
-   
 
-   
-   
-   .. rubric:: Classes
 
-   .. autosummary::
-      :toctree:
-      :template: custom-class-template.rst
-      :nosignatures:
-   
-      AsciiHexFile
-      AsciiHexRecord
-      AsciiHexTag
-   
-   
 
-   
-   
-   
+
+
+
+
+
+
+
+
+
+    .. rubric:: Classes
+
+    .. autosummary::
+        :toctree:
+        :template: custom-class-template.rst
+        :nosignatures:
+
+        AsciiHexFile
+        AsciiHexRecord
+        AsciiHexTag
+
+
+
+
+
+
+
+
+
 
 
 

@@ -1,5 +1,5 @@
-hexrec.base.guess\_format\_name
-===============================
+guess\_format\_name
+===================
 
 .. currentmodule:: hexrec.base
 

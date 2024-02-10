@@ -1,5 +1,5 @@
-hexrec.base.merge
-=================
+merge
+=====
 
 .. currentmodule:: hexrec.base
 

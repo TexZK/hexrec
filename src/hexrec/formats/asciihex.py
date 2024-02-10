@@ -112,6 +112,10 @@ class AsciiHexTag(BaseTag, enum.IntEnum):
 
         return self == self.DATA
 
+    def is_file_termination(self) -> bool:
+
+        return super().is_file_termination()
+
 
 if not __TYPING_HAS_SELF:  # pragma: no cover
     del Self

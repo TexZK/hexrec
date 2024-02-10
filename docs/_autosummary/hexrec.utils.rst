@@ -1,41 +1,49 @@
-﻿hexrec.utils
-============
+﻿utils
+=====
 
 .. automodule:: hexrec.utils
 
-   
-   
-   .. rubric:: Module attributes
 
-   .. autosummary::
-      :toctree:
-   
+
+
+    .. rubric:: Attributes
+
+    .. autosummary::
+        :toctree:
+        :template: custom-base-template.rst
+
       DEFAULT_DELETE
-   
-   
 
-   
-   
-   .. rubric:: Functions
 
-   .. autosummary::
-      :toctree:
-      :nosignatures:
-   
-      chop
-      hexlify
-      parse_int
-      unhexlify
-   
-   
 
-   
-   
-   
 
-   
-   
-   
+
+
+    .. rubric:: Functions
+
+    .. autosummary::
+        :toctree:
+        :template: custom-base-template.rst
+        :nosignatures:
+
+        chop
+        hexlify
+        parse_int
+        unhexlify
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -367,6 +367,10 @@ class SrecTag(BaseTag, enum.IntEnum):
                 (self == self.DATA_24) or
                 (self == self.DATA_32))
 
+    def is_file_termination(self) -> bool:
+
+        return super().is_file_termination()
+
     def is_header(self) -> bool:
         r"""Tells whether this is a header record tag.
 

@@ -67,6 +67,11 @@ html_static_path = ['_static']
 
 autosummary_generate = True
 autosummary_generate_overwrite = True
+autodoc_default_options = {
+    'show-inheritance': True,
+    'undoc-members': False,
+    'exclude-members': '__weakref__',
+}
 
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False

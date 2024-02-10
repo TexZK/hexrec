@@ -1,5 +1,5 @@
-hexrec.base.convert
-===================
+convert
+=======
 
 .. currentmodule:: hexrec.base
 

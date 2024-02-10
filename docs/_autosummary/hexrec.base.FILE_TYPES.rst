@@ -1,5 +1,5 @@
-hexrec.base.FILE\_TYPES
-=======================
+FILE\_TYPES
+===========
 
 .. currentmodule:: hexrec.base
 

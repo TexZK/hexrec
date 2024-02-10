@@ -23,8 +23,16 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-r"""Record formats
+r"""Record formats.
 
-This is a collection of commonly used hexadecimal record file types, and the
-like.
+This is a collection of commonly used hexadecimal record file *formats*.
+
+* :mod:`hexrec.formats.asciihex`
+* :mod:`hexrec.formats.ihex`
+* :mod:`hexrec.formats.mos`
+* :mod:`hexrec.formats.raw`
+* :mod:`hexrec.formats.srec`
+* :mod:`hexrec.formats.xtek`
+
+Please refer to each submodule for more details.
 """

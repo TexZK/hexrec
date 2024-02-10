@@ -1,55 +1,63 @@
-﻿hexrec.base
-===========
+﻿base
+====
 
 .. automodule:: hexrec.base
 
-   
-   
-   .. rubric:: Module attributes
 
-   .. autosummary::
-      :toctree:
-   
+
+
+    .. rubric:: Attributes
+
+    .. autosummary::
+        :toctree:
+        :template: custom-base-template.rst
+
       FILE_TYPES
       TOKEN_COLOR_CODES
-   
-   
 
-   
-   
-   .. rubric:: Functions
 
-   .. autosummary::
-      :toctree:
-      :nosignatures:
-   
-      colorize_tokens
-      convert
-      guess_format_name
-      guess_format_type
-      load
-      merge
-   
-   
 
-   
-   
-   .. rubric:: Classes
 
-   .. autosummary::
-      :toctree:
-      :template: custom-class-template.rst
-      :nosignatures:
-   
-      BaseFile
-      BaseRecord
-      BaseTag
-   
-   
 
-   
-   
-   
+
+    .. rubric:: Functions
+
+    .. autosummary::
+        :toctree:
+        :template: custom-base-template.rst
+        :nosignatures:
+
+        colorize_tokens
+        convert
+        guess_format_name
+        guess_format_type
+        load
+        merge
+
+
+
+
+
+
+    .. rubric:: Classes
+
+    .. autosummary::
+        :toctree:
+        :template: custom-class-template.rst
+        :nosignatures:
+
+        BaseFile
+        BaseRecord
+        BaseTag
+
+
+
+
+
+
+
+
+
 
 
 

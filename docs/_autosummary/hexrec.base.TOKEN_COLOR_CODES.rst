@@ -1,5 +1,5 @@
-hexrec.base.TOKEN\_COLOR\_CODES
-===============================
+TOKEN\_COLOR\_CODES
+===================
 
 .. currentmodule:: hexrec.base
 

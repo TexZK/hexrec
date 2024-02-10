@@ -1,5 +1,5 @@
-hexrec.utils.DEFAULT\_DELETE
-============================
+DEFAULT\_DELETE
+===============
 
 .. currentmodule:: hexrec.utils
 

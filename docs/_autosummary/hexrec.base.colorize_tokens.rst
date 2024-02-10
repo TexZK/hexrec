@@ -1,5 +1,5 @@
-hexrec.base.colorize\_tokens
-============================
+colorize\_tokens
+================
 
 .. currentmodule:: hexrec.base
 
