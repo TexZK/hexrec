@@ -582,7 +582,6 @@ class MosFile(BaseFile):
         last_data_endex = 0
 
         for index, record in enumerate(records):
-            record = _cast(MosRecord, record)
             record.validate()
             tag = _cast(MosTag, record.tag)
 

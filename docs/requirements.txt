@@ -2,7 +2,7 @@ sphinx >= 7
 sphinx-click
 sphinx-autodoc-typehints
 
-bytesparse
+bytesparse >= 0.0.8
 colorama
 furo
 twine

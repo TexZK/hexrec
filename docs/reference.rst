@@ -12,6 +12,7 @@ Reference
     hexrec.formats.mos
     hexrec.formats.raw
     hexrec.formats.srec
+    hexrec.formats.titxt
     hexrec.formats.xtek
     hexrec.utils
     hexrec.xxd

@@ -690,7 +690,6 @@ class XtekFile(BaseFile):
         last_data_endex = 0
 
         for index, record in enumerate(records):
-            record = _cast(XtekRecord, record)
             record.validate()
             tag = _cast(XtekTag, record.tag)
 

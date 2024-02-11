@@ -369,7 +369,7 @@ class SrecTag(BaseTag, enum.IntEnum):
 
     def is_file_termination(self) -> bool:
 
-        return super().is_file_termination()
+        return self.is_start()
 
     def is_header(self) -> bool:
         r"""Tells whether this is a header record tag.
@@ -414,10 +414,6 @@ class SrecTag(BaseTag, enum.IntEnum):
         return ((self == self.START_16) or
                 (self == self.START_24) or
                 (self == self.START_32))
-
-    def is_file_termination(self) -> bool:
-
-        return self.is_start()
 
 
 SIZE_TO_ADDRESS_FORMAT: Mapping[int, bytes] = {
@@ -1117,7 +1113,6 @@ class SrecFile(BaseFile):
         data_count = 0
 
         for index, record in enumerate(records):
-            record = _cast(SrecRecord, record)
             record.validate()
             tag = _cast(SrecTag, record.tag)
 

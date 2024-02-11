@@ -36,12 +36,12 @@ from .formats.ihex import IhexFile
 from .formats.mos import MosFile
 from .formats.raw import RawFile
 from .formats.srec import SrecFile
+from .formats.titxt import TiTxtFile
 from .formats.xtek import XtekFile
 from .xxd import xxd
 
 
 def _register_default_file_types():
-    # TODO: __doc__
 
     defaults = {
         # The most common formats come first
@@ -50,6 +50,7 @@ def _register_default_file_types():
 
         # Least common
         'asciihex': AsciiHexFile,
+        'titxt': TiTxtFile,
         'xtek': XtekFile,
         'mos': MosFile,
 

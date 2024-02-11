@@ -6,6 +6,8 @@ Changelog
 
 * Library rewritten from scratch (not backwards compatible).
 * Added new object oriented API, hopefully more user friendly.
+* Added *Texas Instruments TI-TXT* file format.
+* Improved docs and examples.
 
 
 0.3.1 (2024-01-23)

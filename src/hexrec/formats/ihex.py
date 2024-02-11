@@ -128,7 +128,7 @@ class IhexTag(BaseTag, enum.IntEnum):
 
     def is_file_termination(self) -> bool:
 
-        return super().is_file_termination()
+        return self.is_eof()
 
     def is_start(self) -> bool:
         r"""Tells whether this is a Start Address record tag.
@@ -152,10 +152,6 @@ class IhexTag(BaseTag, enum.IntEnum):
 
         return ((self == self.START_SEGMENT_ADDRESS) or
                 (self == self.START_LINEAR_ADDRESS))
-
-    def is_file_termination(self) -> bool:
-
-        return self.is_eof()
 
 
 if not __TYPING_HAS_SELF:  # pragma: no cover
@@ -774,7 +770,6 @@ class IhexFile(BaseFile):
         extension = 0
 
         for index, record in enumerate(records):
-            record = _cast(IhexRecord, record)
             record.validate()
             tag = _cast(IhexTag, record.tag)
 

@@ -337,7 +337,8 @@ class AsciiHexRecord(BaseRecord):
 
         if self.tag == AsciiHexTag.ADDRESS:
             count = self.count or 1
-            valstr = (b'$A%%0%dX%s' % (count, dollarend)) % (self.address & 0xFFFFFFFF)
+            mask = (1 << (4 * count)) - 1
+            valstr = (b'$A%%0%dX%s' % (count, dollarend)) % (self.address & mask)
 
         elif self.tag == AsciiHexTag.CHECKSUM:
             valstr = b'$S%04X%s' % ((self.checksum & 0xFFFF), dollarend)
@@ -397,7 +398,8 @@ class AsciiHexRecord(BaseRecord):
 
         if tag == tag.ADDRESS:
             count = self.count or 1
-            addrstr = (b'$A%%0%dX%s' % (count, dollarend)) % (self.address & 0xFFFFFFFF)
+            mask = (1 << (4 * count)) - 1
+            addrstr = (b'$A%%0%dX%s' % (count, dollarend)) % (self.address & mask)
 
         elif tag == tag.CHECKSUM:
             chksstr = b'$S%04X%s' % ((self.checksum & 0xFFFF), dollarend)
