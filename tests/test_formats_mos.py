@@ -682,12 +682,14 @@ class TestMosFile(BaseTestFile):
                    MosRecord.create_eof(2)]
         file = MosFile.from_records(records)
         file.validate_records(data_ordering=True)
+        file.validate_records(data_ordering=False)
 
         records = [MosRecord.create_data(10, b'xyz'),
                    MosRecord.create_data(14, b'abc'),
                    MosRecord.create_eof(2)]
         file = MosFile.from_records(records)
         file.validate_records(data_ordering=True)
+        file.validate_records(data_ordering=False)
 
     def test_validate_records_raises_records(self):
         file = MosFile()

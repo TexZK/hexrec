@@ -375,6 +375,27 @@ class TestIhexRecord(BaseTestRecord):
             record = IhexRecord.parse(line)
             record.validate()
 
+    # https://developerhelp.microchip.com/xwiki/bin/view/software-tools/ipe/sqtp-file-format-specification/example/
+    def test_parse_microchip_sqtp(self):
+        lines = [
+            b':02000004740086\r\n',
+            b':04000000BF7087ED59\r\n',
+            b':0400000043BD7F3449\r\n',
+            b':00000001FF\r\n',
+        ]
+        records = [
+            IhexRecord(ELA, count=0x02, address=0x0000, checksum=0x86, data=b'\x74\x00'),
+            IhexRecord(DATA, count=0x04, address=0x0000, checksum=0x59, data=b'\xBF\x70\x87\xED'),
+            IhexRecord(DATA, count=0x04, address=0x0000, checksum=0x49, data=b'\x43\xBD\x7F\x34'),
+            IhexRecord(EOF, count=0x00, address=0x0000, checksum=0xFF, data=b''),
+        ]
+        for line, expected in zip(lines, records):
+            actual = IhexRecord.parse(line)
+            actual.validate()
+            expected = _cast(IhexRecord, expected)
+            expected.validate()
+            assert actual == expected
+
     # https://en.wikipedia.org/wiki/Intel_HEX#Record_types
     def test_parse_wikipedia(self):
         lines = [
@@ -788,6 +809,25 @@ class TestIhexFile(BaseTestFile):
         with pytest.raises(ValueError, match='syntax error'):
             with io.BytesIO(buffer) as stream:
                 IhexFile.parse(stream, ignore_errors=False)
+
+    # https://developerhelp.microchip.com/xwiki/bin/view/software-tools/ipe/sqtp-file-format-specification/examples/
+    # FIXME: Microchip SQTP addresses are word-/dword-based --> add 'addressing' meta & property to apply/update records
+    def test_parse_file_microchip_sqtp(self, datapath):
+        filenames = [
+            'microchip_auxmem_dsPIC33EP256MU806.hex',
+            'microchip_bootmem_PIC32MX110F016B.hex',
+            'microchip_eeprom_PIC12F1840.hex',
+            'microchip_eeprom_PIC18F1220.hex',
+            'microchip_progmem_PIC18F1220.hex',
+            'microchip_progmem_PIC32MX360F512L.hex',
+            'microchip_userid_PIC12F1501.hex',  # fixed checksums
+            'microchip_userid_PIC32MX360F512L.hex',
+        ]
+        for filename in filenames:
+            path = str(datapath / filename)
+            with open(path, 'rb') as stream:
+                file = IhexFile.parse(stream)
+            file.validate_records()
 
     # https://en.wikipedia.org/wiki/Intel_HEX#File_example
     def test_parse_file_wikipedia(self, datapath):

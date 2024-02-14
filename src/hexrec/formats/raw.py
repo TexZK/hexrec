@@ -344,7 +344,7 @@ class RawFile(BaseFile):
             >>> from hexrec import RawFile
             >>> records = [RawFile.Record.create_data(123, b'abc')]
             >>> file = RawFile.from_records(records)
-            >>> file.validate_records()
+            >>> _ = file.validate_records()
             Traceback (most recent call last):
                 ...
             ValueError: first record address not zero

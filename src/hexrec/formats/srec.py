@@ -1095,7 +1095,7 @@ class SrecFile(BaseFile):
             >>> from hexrec import SrecFile
             >>> records = [SrecFile.Record.create_data(123, b'abc')]
             >>> file = SrecFile.from_records(records)
-            >>> file.validate_records()
+            >>> _ = file.validate_records()
             Traceback (most recent call last):
                 ...
             ValueError: missing start record

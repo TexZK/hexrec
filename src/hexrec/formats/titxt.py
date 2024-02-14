@@ -35,6 +35,7 @@ from typing import IO
 from typing import Any
 from typing import Mapping
 from typing import Optional
+from typing import Sequence
 from typing import Type
 from typing import TypeVar
 from typing import cast as _cast
@@ -396,6 +397,8 @@ if not __TYPING_HAS_SELF:  # pragma: no cover
 class TiTxtFile(BaseFile):
     r"""Texas Instruments TI-TXT file object."""
 
+    FILE_EXT: Sequence[str] = ['.txt']
+
     Record: Type[TiTxtRecord] = TiTxtRecord
 
     @classmethod
@@ -537,7 +540,7 @@ class TiTxtFile(BaseFile):
             >>> from hexrec import TiTxtFile
             >>> records = [TiTxtFile.Record.create_data(456, b'abc')]
             >>> file = TiTxtFile.from_records(records)
-            >>> file.validate_records()
+            >>> _ = file.validate_records()
             Traceback (most recent call last):
                 ...
             ValueError: missing end of file record

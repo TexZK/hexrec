@@ -568,7 +568,7 @@ class MosFile(BaseFile):
             >>> from hexrec import MosFile
             >>> records = [MosFile.Record.create_data(123, b'abc')]
             >>> file = MosFile.from_records(records)
-            >>> file.validate_records()
+            >>> _ = file.validate_records()
             Traceback (most recent call last):
                 ...
             ValueError: missing end of file record

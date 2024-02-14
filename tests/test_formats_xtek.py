@@ -855,3 +855,4 @@ class TestXtekFile(BaseTestFile):
         file = XtekFile.from_records(records)
         assert file.startaddr == 0x1234
         file.validate_records(start_within_data=True)
+        file.validate_records(start_within_data=False)
