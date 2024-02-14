@@ -32,6 +32,7 @@ from .base import guess_format_type
 from .base import load
 from .base import merge
 from .formats.asciihex import AsciiHexFile
+from .formats.avr import AvrFile
 from .formats.ihex import IhexFile
 from .formats.mos import MosFile
 from .formats.raw import RawFile
@@ -53,6 +54,7 @@ def _register_default_file_types():
         'titxt': TiTxtFile,
         'xtek': XtekFile,
         'mos': MosFile,
+        'avr': AvrFile,
 
         # Raw file parses anything, keep as last
         'raw': RawFile
