@@ -788,7 +788,11 @@ class SrecFile(BaseFile):
         '.srec', '.exo', '.mot', '.mxt',
     ]
 
-    META_KEYS: Sequence[str] = ['header', 'maxdatalen', 'startaddr']
+    META_KEYS: Sequence[str] = [
+        'header',
+        'maxdatalen',
+        'startaddr',
+    ]
 
     Record: Type[SrecRecord] = SrecRecord
 

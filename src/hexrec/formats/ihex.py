@@ -426,12 +426,15 @@ class IhexRecord(BaseRecord):
 
         if tag.is_data():
             pass
+
         elif tag.is_start():
             if data_size != 4:
                 raise ValueError('start address data size overflow')
+
         elif tag.is_extension():
             if data_size != 2:
                 raise ValueError('extension data size overflow')
+
         else:  # elif tag.is_eof():
             if data_size:
                 raise ValueError('unexpected data')
@@ -449,17 +452,23 @@ class IhexFile(BaseFile):
 
     FILE_EXT: Sequence[str] = [
         # https://en.wikipedia.org/wiki/Intel_HEX
-        # General - purpose:
+        # General purpose:
         '.hex', '.mcs', '.int', '.ihex', '.ihe', '.ihx',
-        # Platform-specific:
-        # '.h80', '.h86', '.a43', '.a90',  # (currently unsupported)
+        # Platform specific:
+        '.h80', '.h86', '.a43', '.a90',
         # Split, banked, or paged:
-        # '.hxl', '.hxh', '.h00', '.h15', '.p00', '.pff'  # (currently unsupported)
+        # '.hxl', '.hxh', '.h00', '.h15', '.p00', '.pff',  (currently unsupported)
         # Binary or Intel hex:
-        # '.obj', '.obl', '.obh', '.rom', '.eep'  # (currently unsupported)
+        '.obj', '.obl', '.obh', '.rom', '.eep',
+        # Microchip SQTP:
+        '.num',
     ]
 
-    META_KEYS: Sequence[str] = ['linear', 'maxdatalen', 'startaddr']
+    META_KEYS: Sequence[str] = [
+        'linear',
+        'maxdatalen',
+        'startaddr',
+    ]
 
     Record: Type[IhexRecord] = IhexRecord
 

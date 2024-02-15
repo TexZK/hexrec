@@ -26,6 +26,7 @@
 r""" Base types and classes."""
 
 import abc
+import io
 import os
 import sys
 from typing import IO
@@ -3211,7 +3212,7 @@ class BaseFile(abc.ABC):
     @classmethod
     def parse(
         cls,
-        stream: IO,
+        stream: Union[AnyBytes, IO],
         ignore_errors: bool = False,
         ignore_after_termination: bool = True,
     ) -> Self:
@@ -3228,8 +3229,8 @@ class BaseFile(abc.ABC):
             *format*, because it may be more specialized.
 
         Args:
-            stream (bytes IO):
-                Stream to serialize records onto.
+            stream (bytes IO or buffer):
+                Stream or byte buffer to parse records from.
 
             ignore_errors (bool):
                 Ignore :class:`Exception` raised by :meth:`BaseRecord.parse`.
@@ -3265,7 +3266,15 @@ class BaseFile(abc.ABC):
             [[55930, b'abc']]
             >>> file.get_meta()
             {'linear': True, 'maxdatalen': 3, 'startaddr': 51966}
+            >>> file = IhexFile.parse(buffer)
+            >>> file.memory.to_blocks()
+            [[55930, b'abc']]
+            >>> file.get_meta()
+            {'linear': True, 'maxdatalen': 3, 'startaddr': 51966}
         """
+
+        if isinstance(stream, (bytes, bytearray, memoryview)):
+            stream = io.BytesIO(stream)
 
         Record = cls.Record
         records = []

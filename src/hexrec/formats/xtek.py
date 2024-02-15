@@ -498,7 +498,10 @@ class XtekFile(BaseFile):
 
     FILE_EXT: Sequence[int] = ['.tek', '.xtek']
 
-    META_KEYS: Sequence[str] = ['maxdatalen', 'startaddr']
+    META_KEYS: Sequence[str] = [
+        'maxdatalen',
+        'startaddr',
+    ]
 
     Record: Type[XtekRecord] = XtekRecord
 

@@ -11,6 +11,7 @@ Reference
     hexrec.formats.ihex
     hexrec.formats.mos
     hexrec.formats.raw
+    hexrec.formats.sqtp
     hexrec.formats.srec
     hexrec.formats.titxt
     hexrec.formats.xtek
