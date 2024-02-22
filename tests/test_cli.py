@@ -190,43 +190,43 @@ def test_validate(datapath):
     assert result.output == ''
 
 
-def test_motorola_dummy(datapath):
+def test_srec_dummy(datapath):
     runner = CliRunner()
-    result = runner.invoke(main, f'motorola -h'.split())
+    result = runner.invoke(main, f'srec -h'.split())
     assert result.exit_code == 2
 
 
-def test_motorola_get_header_headless(datapath):
+def test_srec_get_header_headless(datapath):
     runner = CliRunner()
     path_in = str(datapath / 'headless.mot')
-    result = runner.invoke(main, f'motorola get-header {path_in}'.split())
+    result = runner.invoke(main, f'srec get-header {path_in}'.split())
 
     assert result.exit_code == 0
     assert result.output == ''
 
 
-def test_motorola_get_header_empty(datapath):
+def test_srec_get_header_empty(datapath):
     runner = CliRunner()
     path_in = str(datapath / 'bytes.mot')
-    result = runner.invoke(main, f'motorola get-header {path_in}'.split())
+    result = runner.invoke(main, f'srec get-header {path_in}'.split())
 
     assert result.exit_code == 0
     assert result.output == '\n'
 
 
-def test_motorola_get_header_ascii(datapath):
+def test_srec_get_header_ascii(datapath):
     runner = CliRunner()
     path_in = str(datapath / 'header.mot')
-    result = runner.invoke(main, f'motorola get-header -f ascii {path_in}'.split())
+    result = runner.invoke(main, f'srec get-header -f ascii {path_in}'.split())
 
     assert result.exit_code == 0
     assert result.output == 'ABC\n'
 
 
-def test_motorola_get_header_hex(datapath):
+def test_srec_get_header_hex(datapath):
     runner = CliRunner()
     path_in = str(datapath / 'header.mot')
-    result = runner.invoke(main, f'motorola get-header -f hex {path_in}'.split())
+    result = runner.invoke(main, f'srec get-header -f hex {path_in}'.split())
 
     assert result.exit_code == 0
     assert result.output == '414243\n'

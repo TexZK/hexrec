@@ -700,14 +700,14 @@ def validate(
 # ----------------------------------------------------------------------------
 
 @main.group()
-def motorola() -> None:
+def srec() -> None:
     """Motorola SREC specific"""
 
 
 # ----------------------------------------------------------------------------
 
 # noinspection PyShadowingBuiltins
-@motorola.command()
+@srec.command()
 @click.option('-f', '--format', 'format', type=DATA_FMT_CHOICE,
               default='ascii', help='Header data format.')
 @click.argument('infile', type=FILE_PATH_IN)
@@ -733,7 +733,7 @@ def get_header(
 # ----------------------------------------------------------------------------
 
 # noinspection PyShadowingBuiltins
-@motorola.command()
+@srec.command()
 @click.option('-f', '--format', 'format', type=DATA_FMT_CHOICE,
               default='ascii', help='Header data format.')
 @click.argument('header', type=str)
@@ -779,7 +779,7 @@ def set_header(
 # ----------------------------------------------------------------------------
 
 # noinspection PyShadowingBuiltins
-@motorola.command()
+@srec.command()
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
 def del_header(
