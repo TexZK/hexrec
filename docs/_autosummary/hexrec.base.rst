@@ -11,9 +11,10 @@
     .. autosummary::
         :toctree:
         :template: custom-base-template.rst
+        :nosignatures:
 
-      FILE_TYPES
-      TOKEN_COLOR_CODES
+        ~FILE_TYPES
+        ~TOKEN_COLOR_CODES
 
 
 
@@ -27,12 +28,12 @@
         :template: custom-base-template.rst
         :nosignatures:
 
-        colorize_tokens
-        convert
-        guess_format_name
-        guess_format_type
-        load
-        merge
+        ~colorize_tokens
+        ~convert
+        ~guess_format_name
+        ~guess_format_type
+        ~load
+        ~merge
 
 
 

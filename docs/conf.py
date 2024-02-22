@@ -67,11 +67,8 @@ html_static_path = ['_static']
 
 autosummary_generate = True
 autosummary_generate_overwrite = True
-autodoc_default_options = {
-    'show-inheritance': True,
-    'undoc-members': False,
-    'exclude-members': '__weakref__',
-}
+
+toc_object_entries_show_parents = 'hide'
 
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False
@@ -81,5 +78,6 @@ napoleon_use_rtype = False
 napoleon_use_param = True
 napoleon_include_private_with_doc = True
 napoleon_include_special_with_doc = True
+napoleon_custom_sections = [('Method Groups', 'params_style')]
 
 typehints_document_rtype = False

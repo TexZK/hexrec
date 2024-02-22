@@ -11,8 +11,9 @@
     .. autosummary::
         :toctree:
         :template: custom-base-template.rst
+        :nosignatures:
 
-      SIZE_TO_ADDRESS_FORMAT
+        ~SIZE_TO_ADDRESS_FORMAT
 
 
 

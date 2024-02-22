@@ -11,8 +11,9 @@
     .. autosummary::
         :toctree:
         :template: custom-base-template.rst
+        :nosignatures:
 
-      DEFAULT_DELETE
+        ~DEFAULT_DELETE
 
 
 
@@ -26,10 +27,10 @@
         :template: custom-base-template.rst
         :nosignatures:
 
-        chop
-        hexlify
-        parse_int
-        unhexlify
+        ~chop
+        ~hexlify
+        ~parse_int
+        ~unhexlify
 
 
 
