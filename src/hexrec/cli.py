@@ -113,16 +113,16 @@ DATA_FMT_PARSERS: Mapping[str, Callable[[bytes], bytes]] = {
     'ascii': lambda b: b,
     'hex': lambda b: unhexlify(b),
     'HEX': lambda b: unhexlify(b),
-    'hex.': lambda b: unhexlify(b.replace(b'.', b'')),
-    'HEX.': lambda b: unhexlify(b.replace(b'.', b'')),
-    'hex-': lambda b: unhexlify(b.replace(b'-', b'')),
-    'HEX-': lambda b: unhexlify(b.replace(b'-', b'')),
-    'hex:': lambda b: unhexlify(b.replace(b':', b'')),
-    'HEX:': lambda b: unhexlify(b.replace(b':', b'')),
-    'hex_': lambda b: unhexlify(b.replace(b'_', b'')),
-    'HEX_': lambda b: unhexlify(b.replace(b'_', b'')),
-    'hex ': lambda b: unhexlify(b),
-    'HEX ': lambda b: unhexlify(b),
+    'hex.': lambda b: unhexlify(b, delete=b'.'),
+    'HEX.': lambda b: unhexlify(b, delete=b'.'),
+    'hex-': lambda b: unhexlify(b, delete=b'-'),
+    'HEX-': lambda b: unhexlify(b, delete=b'-'),
+    'hex:': lambda b: unhexlify(b, delete=b':'),
+    'HEX:': lambda b: unhexlify(b, delete=b':'),
+    'hex_': lambda b: unhexlify(b, delete=b'_'),
+    'HEX_': lambda b: unhexlify(b, delete=b'_'),
+    'hexs': lambda b: unhexlify(b, delete=b' \t'),
+    'HEXs': lambda b: unhexlify(b, delete=b' \t'),
 }
 
 DATA_FMT_CHOICE = click.Choice(list(DATA_FMT_FORMATTERS.keys()))
@@ -293,24 +293,24 @@ def main() -> None:
 
 @main.command()
 @click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
-Forces the input file format.
-Required for the standard input.
+    Forces the input file format.
+    Required for the standard input.
 """)
 @click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
-Forces the output file format.
-By default it is that of the input file.
+    Forces the output file format.
+    By default it is that of the input file.
 """)
 @click.option('-s', '--start', type=BASED_INT, help="""
-Inclusive start address. Negative values are referred to the end of the data.
-By default it applies from the start of the data contents.
+    Inclusive start address. Negative values are referred to the end of the data.
+    By default it applies from the start of the data contents.
 """)
 @click.option('-e', '--endex', type=BASED_INT, help="""
-Exclusive end address. Negative values are referred to the end of the data.
-By default it applies till the end of the data contents.
+    Exclusive end address. Negative values are referred to the end of the data.
+    By default it applies till the end of the data contents.
 """)
 @click.option('-w', '--width', type=BASED_INT, help="""
-Sets the length of the record data field, in bytes.
-By default it is that of the input file.
+    Sets the length of the record data field, in bytes.
+    By default it is that of the input file.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
@@ -341,16 +341,16 @@ def clear(
 
 @main.command()
 @click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
-Forces the input file format.
-Required for the standard input.
+    Forces the input file format.
+    Required for the standard input.
 """)
 @click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
-Forces the output file format.
-By default it is that of the input file.
+    Forces the output file format.
+    By default it is that of the input file.
 """)
 @click.option('-w', '--width', type=BASED_INT, help="""
-Sets the length of the record data field, in bytes.
-By default it is that of the input file.
+    Sets the length of the record data field, in bytes.
+    By default it is that of the input file.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
@@ -380,28 +380,28 @@ def convert(
 
 @main.command()
 @click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
-Forces the input file format.
-Required for the standard input.
+    Forces the input file format.
+    Required for the standard input.
 """)
 @click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
-Forces the output file format.
-By default it is that of the input file.
+    Forces the output file format.
+    By default it is that of the input file.
 """)
 @click.option('-s', '--start', type=BASED_INT, help="""
-Inclusive start address. Negative values are referred to the end of the data.
-By default it applies from the start of the data contents.
+    Inclusive start address. Negative values are referred to the end of the data.
+    By default it applies from the start of the data contents.
 """)
 @click.option('-e', '--endex', type=BASED_INT, help="""
-Exclusive end address. Negative values are referred to the end of the data.
-By default it applies till the end of the data contents.
+    Exclusive end address. Negative values are referred to the end of the data.
+    By default it applies till the end of the data contents.
 """)
 @click.option('-v', '--value', type=BYTE_INT, help="""
-Byte value used to flood the address range.
-By default, no flood is performed.
+    Byte value used to flood the address range.
+    By default, no flood is performed.
 """)
 @click.option('-w', '--width', type=BASED_INT, help="""
-Sets the length of the record data field, in bytes.
-By default it is that of the input file.
+    Sets the length of the record data field, in bytes.
+    By default it is that of the input file.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
@@ -436,24 +436,24 @@ def crop(
 
 @main.command()
 @click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
-Forces the input file format.
-Required for the standard input.
+    Forces the input file format.
+    Required for the standard input.
 """)
 @click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
-Forces the output file format.
-By default it is that of the input file.
+    Forces the output file format.
+    By default it is that of the input file.
 """)
 @click.option('-s', '--start', type=BASED_INT, help="""
-Inclusive start address. Negative values are referred to the end of the data.
-By default it applies from the start of the data contents.
+    Inclusive start address. Negative values are referred to the end of the data.
+    By default it applies from the start of the data contents.
 """)
 @click.option('-e', '--endex', type=BASED_INT, help="""
-Exclusive end address. Negative values are referred to the end of the data.
-By default it applies till the end of the data contents.
+    Exclusive end address. Negative values are referred to the end of the data.
+    By default it applies till the end of the data contents.
 """)
 @click.option('-w', '--width', type=BASED_INT, help="""
-Sets the length of the record data field, in bytes.
-By default it is that of the input file.
+    Sets the length of the record data field, in bytes.
+    By default it is that of the input file.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
@@ -484,27 +484,27 @@ def delete(
 
 @main.command()
 @click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
-Forces the input file format.
-Required for the standard input.
+    Forces the input file format.
+    Required for the standard input.
 """)
 @click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
-Forces the output file format.
-By default it is that of the input file.
+    Forces the output file format.
+    By default it is that of the input file.
 """)
 @click.option('-v', '--value', type=BYTE_INT, default=0xFF, help="""
-Byte value used to fill the address range.
+    Byte value used to fill the address range.
 """)
 @click.option('-s', '--start', type=BASED_INT, help="""
-Inclusive start address. Negative values are referred to the end of the data.
-By default it applies from the start of the data contents.
+    Inclusive start address. Negative values are referred to the end of the data.
+    By default it applies from the start of the data contents.
 """)
 @click.option('-e', '--endex', type=BASED_INT, help="""
-Exclusive end address. Negative values are referred to the end of the data.
-By default it applies till the end of the data contents.
+    Exclusive end address. Negative values are referred to the end of the data.
+    By default it applies till the end of the data contents.
 """)
 @click.option('-w', '--width', type=BASED_INT, help="""
-Sets the length of the record data field, in bytes.
-By default it is that of the input file.
+    Sets the length of the record data field, in bytes.
+    By default it is that of the input file.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
@@ -536,27 +536,27 @@ def fill(
 
 @main.command()
 @click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
-Forces the input file format.
-Required for the standard input.
+    Forces the input file format.
+    Required for the standard input.
 """)
 @click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
-Forces the output file format.
-By default it is that of the input file.
+    Forces the output file format.
+    By default it is that of the input file.
 """)
 @click.option('-v', '--value', type=BYTE_INT, default=0xFF, help="""
-Byte value used to flood the address range.
+    Byte value used to flood the address range.
 """)
 @click.option('-s', '--start', type=BASED_INT, help="""
-Inclusive start address. Negative values are referred to the end of the data.
-By default it applies from the start of the data contents.
+    Inclusive start address. Negative values are referred to the end of the data.
+    By default it applies from the start of the data contents.
 """)
 @click.option('-e', '--endex', type=BASED_INT, help="""
-Exclusive end address. Negative values are referred to the end of the data.
-By default it applies till the end of the data contents.
+    Exclusive end address. Negative values are referred to the end of the data.
+    By default it applies till the end of the data contents.
 """)
 @click.option('-w', '--width', type=BASED_INT, help="""
-Sets the length of the record data field, in bytes.
-By default it is that of the input file.
+    Sets the length of the record data field, in bytes.
+    By default it is that of the input file.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
@@ -588,19 +588,19 @@ def flood(
 
 @main.command()
 @click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
-Forces the input file format for all input files.
-Required for the standard input.
+    Forces the input file format for all input files.
+    Required for the standard input.
 """)
 @click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
-Forces the output file format.
-By default it is that of the input file.
+    Forces the output file format.
+    By default it is that of the input file.
 """)
 @click.option('-w', '--width', type=BASED_INT, help="""
-Sets the length of the record data field, in bytes.
-By default it is that of the input file.
+    Sets the length of the record data field, in bytes.
+    By default it is that of the input file.
 """)
 @click.option('--clear-holes', is_flag=True, help="""
-Merges memory holes, clearing data at their place.
+    Merges memory holes, clearing data at their place.
 """)
 @click.argument('infiles', type=FILE_PATH_IN, nargs=-1)
 @click.argument('outfile', type=FILE_PATH_OUT)
@@ -636,19 +636,19 @@ def merge(
 
 @main.command()
 @click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
-Forces the input file format.
-Required for the standard input.
+    Forces the input file format.
+    Required for the standard input.
 """)
 @click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
-Forces the output file format.
-By default it is that of the input file.
+    Forces the output file format.
+    By default it is that of the input file.
 """)
 @click.option('-n', '--amount', type=BASED_INT, default=0, help="""
-Address shift to apply.
+    Address shift to apply.
 """)
 @click.option('-w', '--width', type=BASED_INT, help="""
-Sets the length of the record data field, in bytes.
-By default it is that of the input file.
+    Sets the length of the record data field, in bytes.
+    By default it is that of the input file.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
@@ -678,8 +678,8 @@ def shift(
 
 @main.command()
 @click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
-Forces the input file format.
-Required for the standard input.
+    Forces the input file format.
+    Required for the standard input.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 def validate(
@@ -813,110 +813,110 @@ def del_header(
 
 @main.command(context_settings=dict(help_option_names=['-h', '--help']))
 @click.option('-a', '--autoskip', 'autoskip', is_flag=True, help="""
-Toggles autoskip.
+    Toggles autoskip.
 
-A single '*' replaces null lines.
+    A single '*' replaces null lines.
 """)
 @click.option('-b', '--bits', 'bits', is_flag=True, help="""
-Binary digits.
+    Binary digits.
 
-Switches to bits (binary digits) dump, rather than
-hexdump. This option writes octets as eight digits of '1' and '0'
-instead of a normal hexadecimal dump. Each line is preceded by a
-line number in hexadecimal and followed by an ASCII (or EBCDIC)
-representation.
-The argument switches -r, -p, -i do not work with this mode.
+    Switches to bits (binary digits) dump, rather than
+    hexdump. This option writes octets as eight digits of '1' and '0'
+    instead of a normal hexadecimal dump. Each line is preceded by a
+    line number in hexadecimal and followed by an ASCII (or EBCDIC)
+    representation.
+    The argument switches -r, -p, -i do not work with this mode.
 """)
 @click.option('-c', '--cols', 'cols', type=BASED_INT, help="""
-Formats <cols> octets per line. Max 256.
+    Formats <cols> octets per line. Max 256.
 
-Defaults: normal 16, -i 12, -p 30, -b 6.
+    Defaults: normal 16, -i 12, -p 30, -b 6.
 """)
 @click.option('-E', '--ebcdic', '--EBCDIC', 'ebcdic', is_flag=True, help="""
-Uses EBCDIC charset.
+    Uses EBCDIC charset.
 
-Changes the character encoding in the right-hand
-column from ASCII to EBCDIC.
-This does not change the hexadecimal representation.
-The option is meaningless in combinations with -r, -p or -i.
+    Changes the character encoding in the right-hand
+    column from ASCII to EBCDIC.
+    This does not change the hexadecimal representation.
+    The option is meaningless in combinations with -r, -p or -i.
 """)
 @click.option('-e', '--endian', 'endian', is_flag=True, help="""
-Switches to little-endian hexdump.
+    Switches to little-endian hexdump.
 
-This option treats  byte groups as words in little-endian byte order.
-The default grouping of 4 bytes may be changed using -g.
-This option only applies to hexdump, leaving the ASCII (or EBCDIC)
-representation unchanged.
-The switches -r, -p, -i do not work with this mode.
+    This option treats  byte groups as words in little-endian byte order.
+    The default grouping of 4 bytes may be changed using -g.
+    This option only applies to hexdump, leaving the ASCII (or EBCDIC)
+    representation unchanged.
+    The switches -r, -p, -i do not work with this mode.
 """)
 @click.option('-g', '--groupsize', 'groupsize', type=BASED_INT, help="""
-Byte group size.
+    Byte group size.
 
-Separates the output of every <groupsize> bytes (two hex
-characters or eight bit-digits each) by a whitespace.
-Specify <groupsize> 0 to suppress grouping.
-<groupsize> defaults to 2 in normal mode, 4 in little-endian mode and 1
-in bits mode. Grouping does not apply to -p or -i.
+    Separates the output of every <groupsize> bytes (two hex
+    characters or eight bit-digits each) by a whitespace.
+    Specify <groupsize> 0 to suppress grouping.
+    <groupsize> defaults to 2 in normal mode, 4 in little-endian mode and 1
+    in bits mode. Grouping does not apply to -p or -i.
 """)
 @click.option('-i', '--include', 'include', is_flag=True, help="""
-Output in C include file style.
+    Output in C include file style.
 
-A complete static array definition is written (named after the
-input file), unless reading from standard input.
+    A complete static array definition is written (named after the
+    input file), unless reading from standard input.
 """)
 @click.option('-l', '--length', '--len', 'length', type=BASED_INT, help="""
-Stops after writing <length> octets.
+    Stops after writing <length> octets.
 """)
 @click.option('-o', '--offset', 'offset', type=BASED_INT, help="""
-Adds <offset> to the displayed file position.
+    Adds <offset> to the displayed file position.
 """)
 @click.option('-p', '--postscript', '--plain', '--ps', 'postscript',
               is_flag=True, help="""
-Outputs in postscript continuous hexdump style.
+    Outputs in postscript continuous hexdump style.
 
-Also known as plain hexdump style.
+    Also known as plain hexdump style.
 """)
 @click.option('-q', '--quadword', 'quadword', is_flag=True, help="""
-Uses 64-bit addressing.
+    Uses 64-bit addressing.
 """)
 @click.option('-r', '--revert', 'revert', is_flag=True, help="""
-Reverse operation.
+    Reverse operation.
 
-Convert (or patch) hexdump into binary.
-If not writing to standard output, it writes into its
-output file without truncating it.
-Use the combination -r and -p to read plain hexadecimal dumps
-without line number information and without a particular column
-layout. Additional Whitespace and line breaks are allowed anywhere.
+    Convert (or patch) hexdump into binary.
+    If not writing to standard output, it writes into its
+    output file without truncating it.
+    Use the combination -r and -p to read plain hexadecimal dumps
+    without line number information and without a particular column
+    layout. Additional Whitespace and line breaks are allowed anywhere.
 """)
 @click.option('-k', '--seek', 'oseek', type=BASED_INT, help="""
-Output seeking.
+    Output seeking.
 
-When used after -r reverts with -o added to
-file positions found in hexdump.
+    When used after -r reverts with -o added to
+    file positions found in hexdump.
 """)
 @click.option('-s', 'iseek', help="""
-Input seeking.
+    Input seeking.
 
-Starts at <s> bytes absolute (or relative) input offset.
-Without -s option, it starts at the current file position.
-The prefix is used to compute the offset.
-'+' indicates that the seek is relative to the current input
-position.
-'-' indicates that the seek should be that many characters from
-the end of the input.
-'+-' indicates that the seek should be that many characters
-before the current stdin file position.
+    Starts at <s> bytes absolute (or relative) input offset.
+    Without -s option, it starts at the current file position.
+    The prefix is used to compute the offset.
+    '+' indicates that the seek is relative to the current input
+    position.
+    '-' indicates that the seek should be that many characters from
+    the end of the input.
+    '+-' indicates that the seek should be that many characters
+    before the current stdin file position.
 """)
 @click.option('-U', '--upper-all', 'upper_all', is_flag=True, help="""
-Uses upper case hex letters on address and data.
+    Uses upper case hex letters on address and data.
 """)
 @click.option('-u', '--upper', 'upper', is_flag=True, help="""
-Uses upper case hex letters on data only.
+    Uses upper case hex letters on data only.
 """)
 @click.option('-v', '--version', is_flag=True, is_eager=True, expose_value=False,
               callback=print_version, help="""
-Prints the package version number.
+    Prints the package version number.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
 @click.argument('outfile', type=FILE_PATH_OUT)
