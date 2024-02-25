@@ -56,6 +56,7 @@ from .base import BaseFile
 from .base import guess_format_name
 from .formats.srec import SrecFile
 from .formats.srec import SrecRecord
+from .hexdump import hexdump as hexdump_core
 from .utils import hexlify
 from .utils import parse_int
 from .utils import unhexlify
@@ -83,6 +84,17 @@ class ByteIntParamType(click.ParamType):
             return b
         except ValueError:
             self.fail(f'invalid byte: {value!r}', param, ctx)
+
+
+class OrderedOptionsCommand(click.Command):
+
+    def parse_args(self, ctx, args):
+
+        parser = self.make_parser(ctx)
+        opts, _, order = parser.parse_args(args=list(args))
+        ordered_options = [(param, opts[param.name]) for param in order]
+        setattr(self, 'ordered_options', ordered_options)
+        return super().parse_args(ctx, args)
 
 
 BASED_INT = BasedIntParamType()
@@ -167,6 +179,15 @@ def print_version(ctx, _, value):
         return
 
     click.echo(str(__version__))
+    ctx.exit()
+
+
+def print_hexdump_version(ctx, _, value):
+
+    if not value or ctx.resilient_parsing:
+        return
+
+    click.echo(f'hexdump from Python hexrec {__version__!s}')
     ctx.exit()
 
 
@@ -582,6 +603,270 @@ def flood(
 
     with SingleFileInOutCtxMgr(infile, input_format, outfile, output_format, width) as ctx:
         ctx.output_file.flood(start=start, endex=endex, pattern=value)
+
+
+# ----------------------------------------------------------------------------
+
+# noinspection PyShadowingBuiltins
+@main.command(cls=OrderedOptionsCommand,
+              context_settings=dict(help_option_names=['-h', '--help']))
+@click.option('-b', '--one-byte-octal', 'one_byte_octal', is_flag=True,
+              multiple=True, help="""
+    One-byte octal display. Display the input offset in
+    hexadecimal, followed by sixteen space-separated,
+    three-column, zero-filled bytes of input data, in octal, per
+    line.
+""")
+@click.option('-X', '--one-byte-hex', 'one_byte_hex', is_flag=True,
+              multiple=True, help="""
+    One-byte hexadecimal display. Display the input offset in
+    hexadecimal, followed by sixteen space-separated, two-column,
+    zero-filled bytes of input data, in hexadecimal, per line.
+""")
+@click.option('-c', '--one-byte-char', 'one_byte_char', is_flag=True,
+              multiple=True, help="""
+    One-byte character display. Display the input offset in
+    hexadecimal, followed by sixteen space-separated,
+    three-column, space-filled characters of input data per line.
+""")
+@click.option('-C', '--canonical', 'canonical', is_flag=True,
+              multiple=True, help="""
+    Canonical hex+ASCII display. Display the input offset in
+    hexadecimal, followed by sixteen space-separated, two-column,
+    hexadecimal bytes, followed by the same sixteen bytes in %_p
+    format enclosed in | characters. Invoking the program as hd
+    implies this option.
+""")
+@click.option('-d', '--two-bytes-decimal', 'two_bytes_decimal', is_flag=True,
+              multiple=True, help="""
+    Two-byte decimal display. Display the input offset in
+    hexadecimal, followed by eight space-separated, five-column,
+    zero-filled, two-byte units of input data, in unsigned
+    decimal, per line.
+""")
+@click.option('-o', '--two-bytes-octal', 'two_bytes_octal', is_flag=True,
+              multiple=True, help="""
+    Two-byte octal display. Display the input offset in
+    hexadecimal, followed by eight space-separated, six-column,
+    zero-filled, two-byte quantities of input data, in octal, per
+    line.
+""")
+@click.option('-x', '--two-bytes-hex', 'two_bytes_hex', is_flag=True,
+              multiple=True, help="""
+    Two-byte hexadecimal display. Display the input offset in
+    hexadecimal, followed by eight space-separated, four-column,
+    zero-filled, two-byte quantities of input data, in
+    hexadecimal, per line.
+""")
+@click.option('-n', '--length', 'length', type=BASED_INT, help="""
+    Interpret only length bytes of input.
+""")  # FIXME: SUFFIXED_INT for hexdump compatible integers
+@click.option('-s', '--skip', 'skip', type=BASED_INT, help="""
+    Skip offset bytes from the beginning of the input.
+""")  # FIXME: SUFFIXED_INT for hexdump compatible integers
+@click.option('-v', '--no_squeezing', 'no_squeezing', is_flag=True, help="""
+    The -v option causes hexdump to display all input data.
+    Without the -v option, any number of groups of output lines
+    which would be identical to the immediately preceding group
+    of output lines (except for the input offsets), are replaced
+    with a line comprised of a single asterisk.
+""")
+@click.option('-U', '--upper', 'upper', is_flag=True, help="""
+    Uses upper case hex letters on address and data.
+""")
+@click.option('-I', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
+    Forces the input file format.
+    Required for the standard input.
+""")
+@click.option('-V', '--version', is_flag=True, is_eager=True, expose_value=False,
+              callback=print_hexdump_version, help="""
+    Print version and exit.
+""")
+@click.argument('infile', type=FILE_PATH_IN)
+def hexdump(
+    infile: str,
+    one_byte_octal: Sequence[bool],
+    one_byte_hex: Sequence[bool],
+    one_byte_char: Sequence[bool],
+    canonical: Sequence[bool],
+    two_bytes_decimal: Sequence[bool],
+    two_bytes_octal: Sequence[bool],
+    two_bytes_hex: Sequence[bool],
+    length: Optional[int],
+    skip: Optional[int],
+    no_squeezing: bool,
+    upper: bool,
+    input_format: Optional[str],  # TODO:
+) -> None:
+    # TODO: __doc__
+    r"""Display file contents in hexadecimal, decimal, octal, or ascii.
+
+    The hexdump utility is a filter which displays the specified
+    files, or standard input if no files are specified, in a
+    user-specified format.
+
+    Below, the length and offset arguments may be followed by the
+    multiplicative suffixes KiB (=1024), MiB (=1024*1024), and so on
+    for GiB, TiB, PiB, EiB, ZiB and YiB (the "iB" is optional, e.g.,
+    "K" has the same meaning as "KiB"), or the suffixes KB (=1000),
+    MB (=1000*1000), and so on for GB, TB, PB, EB, ZB and YB.
+
+    For each input file, hexdump sequentially copies the input to
+    standard output, transforming the data according to the format
+    strings specified by the -e and -f options, in the order that
+    they were specified.
+    """
+
+    kwargs = {
+        'one_byte_octal': any(one_byte_octal),
+        'one_byte_hex': any(one_byte_hex),
+        'one_byte_char': any(one_byte_char),
+        'canonical': any(canonical),
+        'two_bytes_decimal': any(two_bytes_decimal),
+        'two_bytes_octal': any(two_bytes_octal),
+        'two_bytes_hex': any(two_bytes_hex),
+    }
+    format_order = [param.name
+                    for param, value in hexdump.ordered_options
+                    if (param.name in kwargs) and value]
+
+    hexdump_core(
+        infile=infile,
+        length=length,
+        skip=skip,
+        no_squeezing=no_squeezing,
+        upper=upper,
+        format_order=format_order,
+        **kwargs,
+    )
+
+
+# ----------------------------------------------------------------------------
+
+# noinspection PyShadowingBuiltins
+@main.command(cls=OrderedOptionsCommand,
+              context_settings=dict(help_option_names=['-h', '--help']))
+@click.option('-b', '--one-byte-octal', 'one_byte_octal', is_flag=True,
+              multiple=True, help="""
+    One-byte octal display. Display the input offset in
+    hexadecimal, followed by sixteen space-separated,
+    three-column, zero-filled bytes of input data, in octal, per
+    line.
+""")
+@click.option('-X', '--one-byte-hex', 'one_byte_hex', is_flag=True,
+              multiple=True, help="""
+    One-byte hexadecimal display. Display the input offset in
+    hexadecimal, followed by sixteen space-separated, two-column,
+    zero-filled bytes of input data, in hexadecimal, per line.
+""")
+@click.option('-c', '--one-byte-char', 'one_byte_char', is_flag=True,
+              multiple=True, help="""
+    One-byte character display. Display the input offset in
+    hexadecimal, followed by sixteen space-separated,
+    three-column, space-filled characters of input data per line.
+""")
+@click.option('-d', '--two-bytes-decimal', 'two_bytes_decimal', is_flag=True,
+              multiple=True, help="""
+    Two-byte decimal display. Display the input offset in
+    hexadecimal, followed by eight space-separated, five-column,
+    zero-filled, two-byte units of input data, in unsigned
+    decimal, per line.
+""")
+@click.option('-o', '--two-bytes-octal', 'two_bytes_octal', is_flag=True,
+              multiple=True, help="""
+    Two-byte octal display. Display the input offset in
+    hexadecimal, followed by eight space-separated, six-column,
+    zero-filled, two-byte quantities of input data, in octal, per
+    line.
+""")
+@click.option('-x', '--two-bytes-hex', 'two_bytes_hex', is_flag=True,
+              multiple=True, help="""
+    Two-byte hexadecimal display. Display the input offset in
+    hexadecimal, followed by eight space-separated, four-column,
+    zero-filled, two-byte quantities of input data, in
+    hexadecimal, per line.
+""")
+@click.option('-n', '--length', 'length', type=BASED_INT, help="""
+    Interpret only length bytes of input.
+""")  # FIXME: SUFFIXED_INT for hexdump compatible integers
+@click.option('-s', '--skip', 'skip', type=BASED_INT, help="""
+    Skip offset bytes from the beginning of the input.
+""")  # FIXME: SUFFIXED_INT for hexdump compatible integers
+@click.option('-v', '--no_squeezing', 'no_squeezing', is_flag=True, help="""
+    The -v option causes hexdump to display all input data.
+    Without the -v option, any number of groups of output lines
+    which would be identical to the immediately preceding group
+    of output lines (except for the input offsets), are replaced
+    with a line comprised of a single asterisk.
+""")
+@click.option('-U', '--upper', 'upper', is_flag=True, help="""
+    Uses upper case hex letters on address and data.
+""")
+@click.option('-I', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
+    Forces the input file format.
+    Required for the standard input.
+""")
+@click.option('-V', '--version', is_flag=True, is_eager=True, expose_value=False,
+              callback=print_hexdump_version, help="""
+    Print version and exit.
+""")
+@click.argument('infile', type=FILE_PATH_IN)
+def hd(
+    infile: str,
+    one_byte_octal: Sequence[bool],
+    one_byte_hex: Sequence[bool],
+    one_byte_char: Sequence[bool],
+    two_bytes_decimal: Sequence[bool],
+    two_bytes_octal: Sequence[bool],
+    two_bytes_hex: Sequence[bool],
+    length: Optional[int],
+    skip: Optional[int],
+    no_squeezing: bool,
+    upper: bool,
+    input_format: Optional[str],  # TODO:
+) -> None:
+    # TODO: __doc__
+    r"""Display file contents in hexadecimal, decimal, octal, or ascii.
+
+    The hexdump utility is a filter which displays the specified
+    files, or standard input if no files are specified, in a
+    user-specified format.
+
+    Below, the length and offset arguments may be followed by the
+    multiplicative suffixes KiB (=1024), MiB (=1024*1024), and so on
+    for GiB, TiB, PiB, EiB, ZiB and YiB (the "iB" is optional, e.g.,
+    "K" has the same meaning as "KiB"), or the suffixes KB (=1000),
+    MB (=1000*1000), and so on for GB, TB, PB, EB, ZB and YB.
+
+    For each input file, hexdump sequentially copies the input to
+    standard output, transforming the data according to the format
+    strings specified by the -e and -f options, in the order that
+    they were specified.
+    """
+
+    kwargs = {
+        'one_byte_octal': any(one_byte_octal),
+        'one_byte_hex': any(one_byte_hex),
+        'one_byte_char': any(one_byte_char),
+        'two_bytes_decimal': any(two_bytes_decimal),
+        'two_bytes_octal': any(two_bytes_octal),
+        'two_bytes_hex': any(two_bytes_hex),
+    }
+    format_order = [param.name
+                    for param, value in hd.ordered_options
+                    if (param.name in kwargs) and value]
+    format_order.insert(0, 'canonical')
+    kwargs['canonical'] = True
+
+    hexdump_core(
+        infile=infile,
+        length=length,
+        skip=skip,
+        no_squeezing=no_squeezing,
+        upper=upper,
+        format_order=format_order,
+        **kwargs,
+    )
 
 
 # ----------------------------------------------------------------------------

@@ -152,9 +152,9 @@ def xxd(
     upper_all: bool = False,
     upper: bool = False,
 ) -> IO:
-    r"""Emulation of the xxd utility core.
+    r"""Emulation of the `xxd` utility core.
 
-    Arguments:
+    Args:
         infile (str or bytes):
             Input data.
             If :obj:`str`, it is considered as the input file path.

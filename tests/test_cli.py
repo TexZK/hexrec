@@ -151,7 +151,6 @@ def test_by_filename(tmppath, datapath):
 def test_fill_parse_byte_fail():
     runner = CliRunner()
     result = runner.invoke(main, 'fill -v 256 - -'.split())
-
     assert result.exit_code == 2
     assert "invalid byte: '256'" in result.output
 
@@ -159,7 +158,6 @@ def test_fill_parse_byte_fail():
 def test_merge_nothing():
     runner = CliRunner()
     result = runner.invoke(main, 'merge -i raw -'.split())
-
     assert result.exit_code == 0
     assert result.output == ''
 
@@ -171,7 +169,6 @@ def test_merge_multi(datapath, tmppath):
     path_out = str(tmppath / 'test_merge_multi.hex')
     args = ['merge'] + path_ins + [path_out]
     result = runner.invoke(main, args)
-
     assert result.exit_code == 0
     assert result.output == ''
 
@@ -185,7 +182,6 @@ def test_validate(datapath):
     runner = CliRunner()
     path_in = str(datapath / 'bytes.mot')
     result = runner.invoke(main, f'validate {path_in}'.split())
-
     assert result.exit_code == 0
     assert result.output == ''
 
@@ -200,7 +196,6 @@ def test_srec_get_header_headless(datapath):
     runner = CliRunner()
     path_in = str(datapath / 'headless.mot')
     result = runner.invoke(main, f'srec get-header {path_in}'.split())
-
     assert result.exit_code == 0
     assert result.output == ''
 
@@ -209,7 +204,6 @@ def test_srec_get_header_empty(datapath):
     runner = CliRunner()
     path_in = str(datapath / 'bytes.mot')
     result = runner.invoke(main, f'srec get-header {path_in}'.split())
-
     assert result.exit_code == 0
     assert result.output == '\n'
 
@@ -218,7 +212,6 @@ def test_srec_get_header_ascii(datapath):
     runner = CliRunner()
     path_in = str(datapath / 'header.mot')
     result = runner.invoke(main, f'srec get-header -f ascii {path_in}'.split())
-
     assert result.exit_code == 0
     assert result.output == 'ABC\n'
 
@@ -227,23 +220,52 @@ def test_srec_get_header_hex(datapath):
     runner = CliRunner()
     path_in = str(datapath / 'header.mot')
     result = runner.invoke(main, f'srec get-header -f hex {path_in}'.split())
-
     assert result.exit_code == 0
     assert result.output == '414243\n'
 
 
+def test_hexdump_version():
+    expected = f'hexdump from Python hexrec {_version!s}'
+    runner = CliRunner()
+    result = runner.invoke(main, 'hexdump --version'.split())
+    assert result.exit_code == 0
+    assert result.output.strip() == expected
+
+    runner = CliRunner()
+    result = runner.invoke(main, 'hexdump -V'.split())
+    assert result.exit_code == 0
+    assert result.output.strip() == expected
+
+
+def test_hd_version():
+    expected = f'hexdump from Python hexrec {_version!s}'
+    runner = CliRunner()
+    result = runner.invoke(main, 'hd --version'.split())
+    assert result.exit_code == 0
+    assert result.output.strip() == expected
+
+    runner = CliRunner()
+    result = runner.invoke(main, 'hd -V'.split())
+    assert result.exit_code == 0
+    assert result.output.strip() == expected
+
+
 def test_xxd_version():
+    expected = f'{_version!s}'
+    runner = CliRunner()
+    result = runner.invoke(main, 'xxd --version'.split())
+    assert result.exit_code == 0
+    assert result.output.strip() == expected
+
     runner = CliRunner()
     result = runner.invoke(main, 'xxd -v'.split())
-
     assert result.exit_code == 0
-    assert result.output.strip() == str(_version)
+    assert result.output.strip() == expected
 
 
 def test_xxd_empty():
     runner = CliRunner()
     result = runner.invoke(main, 'xxd - -'.split())
-
     assert result.exit_code == 0
     assert result.output == ''
 
@@ -251,7 +273,6 @@ def test_xxd_empty():
 def test_xxd_parse_int_pass():
     runner = CliRunner()
     result = runner.invoke(main, 'xxd -c 0x10 - -'.split())
-
     assert result.exit_code == 0
     assert result.output == ''
 
@@ -259,6 +280,5 @@ def test_xxd_parse_int_pass():
 def test_xxd_parse_int_fail():
     runner = CliRunner()
     result = runner.invoke(main, 'xxd -c ? - -'.split())
-
     assert result.exit_code == 2
     assert "invalid integer: '?'" in result.output
