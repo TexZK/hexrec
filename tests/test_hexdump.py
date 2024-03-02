@@ -1,4 +1,6 @@
 import glob
+import io
+import os
 from pathlib import Path
 from typing import Any
 from typing import cast as _cast
@@ -9,7 +11,7 @@ from test_base import replace_stdin
 from test_base import replace_stdout
 
 from hexrec.cli import main as cli_main
-from hexrec.hexdump import *
+from hexrec.hexdump import hexdump_core
 
 
 @pytest.fixture
@@ -93,7 +95,7 @@ def test_hexdump_io(datapath):
         data_in = stream.read()
     text_out = io.BytesIO()
 
-    hexdump(data_in, text_out)
+    hexdump_core(data_in, text_out)
 
     text_out = text_out.getvalue().replace(b'\r\n', b'\n').decode()
     text_ref = read_text(str(datapath / 'test_hexdump_bytes.bin.hexdump'))
@@ -105,25 +107,25 @@ def test_hexdump_raises(datapath, tmppath):
         data_in = memoryview(stream.read())
 
     with pytest.raises(NotImplementedError, match='"color" option is not supported'):
-        hexdump(data_in, color='')
+        hexdump_core(data_in, color='')
 
     with pytest.raises(NotImplementedError, match='"format" option is not supported'):
-        hexdump(data_in, format='')
+        hexdump_core(data_in, format='')
 
     with pytest.raises(NotImplementedError, match='"format_file" option is not supported'):
-        hexdump(data_in, format_file='')
+        hexdump_core(data_in, format_file='')
 
     with pytest.raises(ValueError, match='negative skip'):
-        hexdump(data_in, skip=-1)
+        hexdump_core(data_in, skip=-1)
 
     with pytest.raises(ValueError, match='negative length'):
-        hexdump(data_in, length=-1)
+        hexdump_core(data_in, length=-1)
 
     with pytest.raises(ValueError, match='invalid width'):
-        hexdump(data_in, width=0)
+        hexdump_core(data_in, width=0)
 
     with pytest.raises(ValueError, match='unknown format option'):
-        hexdump(data_in, format_order=['(this is a non-existing format)'])
+        hexdump_core(data_in, format_order=['(this is a non-existing format)'])
 
 
 def test_hexdump_stdin_stdout(datapath):
@@ -133,7 +135,7 @@ def test_hexdump_stdin_stdout(datapath):
     fake_stdout = io.BytesIO()
 
     with replace_stdin(fake_stdin), replace_stdout(fake_stdout):
-        hexdump(linesep=b'\n')
+        hexdump_core(linesep=b'\n')
 
     text_out = fake_stdout.getvalue().decode()
     text_ref = read_text(str(datapath / 'test_hexdump_bytes.bin.hexdump'))
@@ -145,7 +147,7 @@ def test_hexdump_str(datapath, tmppath):
         data_in = stream.read()
     path_out = str(tmppath / 'test_hexdump_str.hexdump')
 
-    hexdump(data_in, path_out)
+    hexdump_core(data_in, path_out)
 
     text_out = read_text(path_out)
     text_ref = read_text(str(datapath / 'test_hexdump_bytes.bin.hexdump'))
@@ -156,7 +158,7 @@ def test_hexdump_stream(datapath):
     fake_stdout = io.BytesIO()
     with replace_stdout(fake_stdout):
         with open(str(datapath / 'bytes.bin'), 'rb') as stream_in:
-            hexdump(stream_in, linesep=b'\n')
+            hexdump_core(stream_in, linesep=b'\n')
 
     text_out = fake_stdout.getvalue().decode()
     text_ref = read_text(str(datapath / 'test_hexdump_bytes.bin.hexdump'))

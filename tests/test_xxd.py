@@ -1,12 +1,18 @@
 import argparse
 import glob
+import io
+import os
+import sys
 from pathlib import Path
 
 import pytest
 from test_base import replace_stdin
 from test_base import replace_stdout
 
-from hexrec.xxd import *
+from hexrec.utils import parse_int
+from hexrec.xxd import ZERO_BLOCK_SIZE
+from hexrec.xxd import parse_seek
+from hexrec.xxd import xxd_core
 
 
 @pytest.fixture
@@ -76,7 +82,7 @@ def run_cli(args=None, namespace=None):
     args = parser.parse_args(args, namespace)
     kwargs = vars(args)
 
-    xxd(**kwargs)
+    xxd_core(**kwargs)
 
 
 def test_parse_seek():
@@ -154,61 +160,61 @@ def test_xxd(datapath):
         data_in = memoryview(stream.read())
 
     with pytest.raises(ValueError, match='invalid column count'):
-        xxd(cols=-1)
+        xxd_core(cols=-1)
 
     with pytest.raises(ValueError, match='invalid column count'):
-        xxd(cols=257)
+        xxd_core(cols=257)
 
     with pytest.raises(ValueError, match='incompatible options'):
-        xxd(bits=True, postscript=True)
+        xxd_core(bits=True, postscript=True)
 
     with pytest.raises(ValueError, match='incompatible options'):
-        xxd(bits=True, include=True)
+        xxd_core(bits=True, include=True)
 
     with pytest.raises(ValueError, match='incompatible options'):
-        xxd(bits=True, revert=True)
+        xxd_core(bits=True, revert=True)
 
     with pytest.raises(ValueError, match='incompatible options'):
-        xxd(endian=True, postscript=True)
+        xxd_core(endian=True, postscript=True)
 
     with pytest.raises(ValueError, match='incompatible options'):
-        xxd(endian=True, include=True)
+        xxd_core(endian=True, include=True)
 
     with pytest.raises(ValueError, match='incompatible options'):
-        xxd(endian=True, revert=True)
+        xxd_core(endian=True, revert=True)
 
     with pytest.raises(ValueError, match='incompatible options'):
-        xxd(postscript=True, include=True)
+        xxd_core(postscript=True, include=True)
 
     with pytest.raises(ValueError, match='incompatible options'):
-        xxd(postscript=True, bits=True)
+        xxd_core(postscript=True, bits=True)
 
     with pytest.raises(ValueError, match='incompatible options'):
-        xxd(include=True, bits=True)
+        xxd_core(include=True, bits=True)
 
     with pytest.raises(ValueError, match='incompatible options'):
-        xxd(revert=False, oseek=0)
+        xxd_core(revert=False, oseek=0)
 
     with pytest.raises(ValueError, match='invalid seeking'):
-        xxd(revert=True, oseek=-1)
+        xxd_core(revert=True, oseek=-1)
 
     with pytest.raises(ValueError, match='invalid syntax'):
-        xxd(data_in, iseek='invalid')
+        xxd_core(data_in, iseek='invalid')
 
     with pytest.raises(ValueError, match='invalid seeking'):
-        xxd(data_in, iseek='+')
+        xxd_core(data_in, iseek='+')
 
     with pytest.raises(ValueError, match='invalid grouping'):
-        xxd(data_in, groupsize=-1)
+        xxd_core(data_in, groupsize=-1)
 
     with pytest.raises(ValueError, match='invalid grouping'):
-        xxd(data_in, groupsize=257)
+        xxd_core(data_in, groupsize=257)
 
     with pytest.raises(ValueError, match='offset overflow'):
-        xxd(data_in, offset=-1)
+        xxd_core(data_in, offset=-1)
 
     with pytest.raises(ValueError, match='offset overflow'):
-        xxd(data_in, offset=(1 << 32))
+        xxd_core(data_in, offset=(1 << 32))
 
 
 def test_xxd_stdinout(datapath):
@@ -218,7 +224,7 @@ def test_xxd_stdinout(datapath):
     stream_out = io.BytesIO()
 
     with replace_stdin(stream_in), replace_stdout(stream_out):
-        xxd()
+        xxd_core()
 
     with open(str(datapath / 'test_xxd_bytes.bin.xxd'), 'rb') as stream:
         text_ref = stream.read().replace(b'\r\n', b'\n')
@@ -232,7 +238,7 @@ def test_xxd_bytes(datapath):
         data_in = stream.read()
     text_out = io.BytesIO()
 
-    xxd(data_in, text_out)
+    xxd_core(data_in, text_out)
 
     with open(str(datapath / 'test_xxd_bytes.bin.xxd'), 'rb') as stream:
         text_ref = stream.read().replace(b'\r\n', b'\n')
@@ -249,7 +255,7 @@ def test_xxd_bytes_seek(datapath):
 
     with replace_stdin(stream_in), replace_stdout(stream_out):
         sys.stdin.buffer.seek(96, io.SEEK_CUR)
-        xxd(iseek='+-64')
+        xxd_core(iseek='+-64')
 
     filename = 'test_xxd_-s_32_bytes.bin.xxd'
     with open(str(datapath / filename), 'rb') as stream:
@@ -264,7 +270,7 @@ def test_xxd_include_stdin(datapath):
         data_in = stream.read()
     text_out = io.BytesIO()
 
-    xxd(data_in, text_out, include=True)
+    xxd_core(data_in, text_out, include=True)
 
     with open(str(datapath / 'bytes-stdin.c'), 'rb') as stream:
         text_ref = stream.read().replace(b'\r\n', b'\n')
@@ -280,7 +286,7 @@ def test_xxd_none(datapath):
     fake_stdout = io.BytesIO()
     with replace_stdout(fake_stdout):
         with open(str(datapath / 'bytes.bin'), 'rb') as stream_in:
-            xxd(stream_in, linesep=b'\n')
+            xxd_core(stream_in, linesep=b'\n')
 
     text_out = fake_stdout.getvalue()
     assert text_out == text_ref
@@ -293,7 +299,7 @@ def test_xxd_none_revert(datapath):
     fake_stdout = io.BytesIO()
     with replace_stdout(fake_stdout):
         with open(str(datapath / 'bytes.xxd'), 'rb') as stream_in:
-            xxd(stream_in, revert=True)
+            xxd_core(stream_in, revert=True)
 
     data_out = fake_stdout.getvalue()
     assert data_out == data_ref
@@ -305,12 +311,12 @@ def test_xxd_none_revert_oseek(datapath):
 
     stream_in = io.BytesIO(data_in)
     stream_out = io.BytesIO()
-    xxd(stream_in, stream_out)
+    xxd_core(stream_in, stream_out)
     xxd_in = stream_out.getvalue()
 
     stream_in = io.BytesIO(xxd_in)
     stream_out = io.BytesIO()
-    xxd(stream_in, stream_out, oseek=skip, revert=True)
+    xxd_core(stream_in, stream_out, oseek=skip, revert=True)
 
     data_out = stream_out.getvalue()
     data_ref = (b'\0' * skip) + data_in
@@ -323,12 +329,12 @@ def test_xxd_none_revert_offset(datapath):
 
     stream_in = io.BytesIO(data_in)
     stream_out = io.BytesIO()
-    xxd(stream_in, stream_out, offset=skip)
+    xxd_core(stream_in, stream_out, offset=skip)
     xxd_in = stream_out.getvalue()
 
     stream_in = io.BytesIO(xxd_in)
     stream_out = io.BytesIO()
-    xxd(stream_in, stream_out, revert=True)
+    xxd_core(stream_in, stream_out, revert=True)
 
     data_out = stream_out.getvalue()
     data_ref = (b'\0' * skip) + data_in

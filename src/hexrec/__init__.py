@@ -39,7 +39,7 @@ from .formats.raw import RawFile
 from .formats.srec import SrecFile
 from .formats.titxt import TiTxtFile
 from .formats.xtek import XtekFile
-from .xxd import xxd
+from .xxd import xxd_core
 
 
 def _register_default_file_types():

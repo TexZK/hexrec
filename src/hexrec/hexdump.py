@@ -326,7 +326,7 @@ _ADDRESS_FMT: Mapping[str, bytes] = {
 
 
 # noinspection PyShadowingBuiltins
-def hexdump(
+def hexdump_core(
     infile: Optional[Union[str, AnyBytes, IO]] = None,
     outfile: Optional[Union[str, AnyBytes, IO]] = None,
     one_byte_octal: bool = False,

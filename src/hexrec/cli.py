@@ -56,11 +56,11 @@ from .base import BaseFile
 from .base import guess_format_name
 from .formats.srec import SrecFile
 from .formats.srec import SrecRecord
-from .hexdump import hexdump as hexdump_core
+from .hexdump import hexdump_core
 from .utils import hexlify
 from .utils import parse_int
 from .utils import unhexlify
-from .xxd import xxd as xxd_core
+from .xxd import xxd_core
 
 
 class BasedIntParamType(click.ParamType):

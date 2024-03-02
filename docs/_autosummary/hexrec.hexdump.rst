@@ -29,7 +29,7 @@
         :template: custom-base-template.rst
         :nosignatures:
 
-        ~hexdump
+        ~hexdump_core
 
 
 

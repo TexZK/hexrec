@@ -131,7 +131,7 @@ def parse_seek(value: Optional[str]) -> Tuple[str, int]:
         return ss, sv
 
 
-def xxd(
+def xxd_core(
     infile: Optional[Union[str, AnyBytes, IO]] = None,
     outfile: Optional[Union[str, AnyBytes, IO]] = None,
     autoskip: bool = False,
