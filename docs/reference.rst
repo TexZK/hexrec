@@ -8,6 +8,7 @@ Reference
     hexrec.base
     hexrec.formats
     hexrec.formats.asciihex
+    hexrec.formats.avr
     hexrec.formats.ihex
     hexrec.formats.mos
     hexrec.formats.raw
