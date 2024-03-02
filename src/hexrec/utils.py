@@ -33,7 +33,12 @@ from typing import Iterator
 from typing import List
 from typing import Mapping
 from typing import Optional
+from typing import Sequence
 from typing import Union
+
+from bytesparse import MemoryIO
+from bytesparse.base import Address
+from bytesparse.base import ImmutableMemory
 
 from .base import AnyBytes
 from .base import EllipsisType
@@ -103,7 +108,7 @@ def chop(
 
     Iterates through the vector grouping its items into windows.
 
-    Arguments:
+    Args:
         vector (items):
             Vector to chop.
 
@@ -194,7 +199,7 @@ def parse_int(
 ) -> Optional[int]:
     r"""Parses an integer.
 
-    Arguments:
+    Args:
         value:
             A generic object to convert to integer.
             In case `value` is a :obj:`str` (case-insensitive), it can be
@@ -298,3 +303,93 @@ def unhexlify(
 
     bytestr = binascii.unhexlify(hexstr)
     return bytestr
+
+
+class SparseMemoryIO(MemoryIO):
+    r"""Sparse memory I/O wrapper.
+
+    With respect to the parent class :class:`bytesparse.io.MemoryIO`, it allows
+    reading and writing memory *holes*.
+
+    Such holes are marked by the following integer values (instead of ``None``):
+
+    * ``0x100`` = hole byte within memory span
+        (:attr:`bytesparse.base.ImmutableMemory.span`);
+
+    * ``0x101`` = hole byte before memory start address
+        (:attr:`bytesparse.base.ImmutableMemory.start`);
+
+    * ``0x102`` = hole byte after memory end address
+        (:attr:`bytesparse.base.ImmutableMemory.endex`);
+
+    These special values allow displaying dedicated stuff when dumping memory
+    data to standard output.
+
+    See Also:
+        :class:`bytesparse.io.MemoryIO`
+        :attr:`bytesparse.base.ImmutableMemory.span`
+        :attr:`bytesparse.base.ImmutableMemory.start`
+        :attr:`bytesparse.base.ImmutableMemory.endex`
+    """
+
+    def read(
+        self,
+        size: Optional[Address] = -1,
+        asmemview: bool = False,
+    ) -> Union[bytes, memoryview, Address, Sequence[int]]:
+        # TODO: __doc__
+
+        if asmemview:
+            raise ValueError('memory view not supported')
+
+        memory = self._memory
+        start = self._position
+        if start >= memory.endex:
+            return b''
+        endex = None if size < 0 else start + size
+        buffer = b''
+        try:
+            buffer = memory.view(start=start, endex=endex)
+            contiguous = True
+        except ValueError:
+            contiguous = False
+
+        if contiguous:
+            size = len(buffer)
+        else:
+            buffer = list(memory.values(start=start, endex=endex))
+            size = len(buffer)
+            offset_start = memory.start - start
+            offset_endex = memory.endex - start
+
+            for offset in range(size):
+                if buffer[offset] is None:
+                    if offset < offset_start:
+                        buffer[offset] = 0x101  # before
+                    elif offset >= offset_endex:
+                        buffer[offset] = 0x102  # after
+                    else:
+                        buffer[offset] = 0x100  # within
+
+        self._position = start + size
+        return buffer
+
+    def write(
+        self,
+        buffer: Union[AnyBytes, ImmutableMemory, int, Sequence[int]],
+    ) -> Address:
+        # TODO: __doc__
+
+        if isinstance(buffer, (bytes, bytearray, memoryview, ImmutableMemory, int)):
+            return super().write(buffer)
+
+        memory = self._memory
+        start = self._position
+        size = len(buffer)
+
+        for offset in range(size):
+            value = buffer[offset]
+            memory.poke(start + offset, value if value < 0x100 else None)
+
+        self._position = start + size
+        return size

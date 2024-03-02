@@ -1,15 +1,17 @@
-import argparse
 import glob
 import io
 import os
 import sys
 from pathlib import Path
+from typing import Any
+from typing import cast as _cast
 
 import pytest
+from click.testing import CliRunner
 from test_base import replace_stdin
 from test_base import replace_stdout
 
-from hexrec.utils import parse_int
+from hexrec.cli import main as cli_main
 from hexrec.xxd import ZERO_BLOCK_SIZE
 from hexrec.xxd import parse_seek
 from hexrec.xxd import xxd_core
@@ -57,34 +59,6 @@ def test_normalize_whitespace():
     assert ans_ref == ans_out
 
 
-def run_cli(args=None, namespace=None):
-    FLAG = 'store_true'
-    parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument('-a', '--autoskip', action=FLAG)
-    parser.add_argument('-b', '--bits', action=FLAG)
-    parser.add_argument('-c', '--cols', type=parse_int)
-    parser.add_argument('-E', '--ebcdic', action=FLAG)
-    parser.add_argument('-e', '--endian', action=FLAG)
-    parser.add_argument('-g', '--groupsize', type=parse_int)
-    parser.add_argument('-i', '--include', action=FLAG)
-    parser.add_argument('-l', '--length', '--len', type=parse_int)
-    parser.add_argument('-o', '--offset', type=parse_int)
-    parser.add_argument('-p', '--postscript', '--ps', '--plain', action=FLAG)
-    parser.add_argument('-q', '--quadword', action=FLAG)
-    parser.add_argument('-r', '--revert', action=FLAG)
-    parser.add_argument('-seek', '--oseek', type=parse_int)
-    parser.add_argument('-s', '--iseek')
-    parser.add_argument('-u', '--upper', action=FLAG)
-    parser.add_argument('-U', '--upper-all', action=FLAG)
-    parser.add_argument('infile', nargs='?', default='-')
-    parser.add_argument('outfile', nargs='?', default='-')
-
-    args = parser.parse_args(args, namespace)
-    kwargs = vars(args)
-
-    xxd_core(**kwargs)
-
-
 def test_parse_seek():
     assert parse_seek(None) == ('', 0)
 
@@ -101,9 +75,11 @@ def test_by_filename_xxd(tmppath, datapath):
         cmdline = filename[len(prefix):].replace('_', ' ')
         args = cmdline.split()
         path_in = datapath / os.path.splitext(args[-1])[0]
-        args = args[:-1] + [str(path_in), str(path_out)]
+        args = ['xxd'] + args[:-1] + [str(path_in), str(path_out)]
 
-        run_cli(args)
+        runner = CliRunner()
+        result = runner.invoke(_cast(Any, cli_main), args)
+        assert result.exit_code == 0
 
         ans_out = read_text(path_out)
         ans_ref = read_text(path_ref)
@@ -123,9 +99,11 @@ def test_by_filename_bin(tmppath, datapath):
         cmdline = filename[len(prefix):].replace('_', ' ')
         args = cmdline.split()
         path_in = datapath / os.path.splitext(args[-1])[0]
-        args = args[:-1] + [str(path_in), str(path_out)]
+        args = ['xxd'] + args[:-1] + [str(path_in), str(path_out)]
 
-        run_cli(args)
+        runner = CliRunner()
+        result = runner.invoke(_cast(Any, cli_main), args)
+        assert result.exit_code == 0
 
         ans_out = read_bytes(path_out)
         ans_ref = read_bytes(path_ref)
@@ -145,9 +123,11 @@ def test_by_filename_c(tmppath, datapath):
         cmdline = filename[len(prefix):].replace('_', ' ')
         args = cmdline.split()
         path_in = datapath / os.path.splitext(args[-1])[0]
-        args = args[:-1] + [str(path_in), str(path_out)]
+        args = ['xxd'] + args[:-1] + [str(path_in), str(path_out)]
 
-        run_cli(args)
+        runner = CliRunner()
+        result = runner.invoke(_cast(Any, cli_main), args)
+        assert result.exit_code == 0
 
         ans_out = read_text(path_out)
         ans_ref = read_text(path_ref)

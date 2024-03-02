@@ -36,7 +36,10 @@ from typing import Optional
 from typing import Sequence
 from typing import Union
 
+from bytesparse.base import ImmutableMemory
+
 from .base import AnyBytes
+from .utils import SparseMemoryIO
 
 CHAR_PRINTABLE: Sequence[bytes] = [b.to_bytes(1, 'big') for b in (
     b'................'
@@ -92,13 +95,17 @@ CHAR_TOKENS: Sequence[bytes] = [
     b' 350', b' 351', b' 352', b' 353', b' 354', b' 355', b' 356', b' 357',
     b' 360', b' 361', b' 362', b' 363', b' 364', b' 365', b' 366', b' 367',
     b' 370', b' 371', b' 372', b' 373', b' 374', b' 375', b' 376', b' 377',
+    b' ---', b' >>>', b' <<<'
 ]
 r"""Character tokens lookup table."""
 
-_HEX_LOWER_SINGLE_TOKENS = [b' %02x' % b for b in range(256)]
-_HEX_UPPER_SINGLE_TOKENS = [b' %02X' % b for b in range(256)]
+_HEX_LOWER = [b'%02x' % b for b in range(256)] + [b'--', b'>>', b'<<']
+_HEX_UPPER = [b'%02X' % b for b in range(256)] + [b'--', b'>>', b'<<']
 
-_OCTAL_SINGLE_TOKENS = [b' %03o' % b for b in range(256)]
+_HEX_LOWER_TOKENS = [b' %02x' % b for b in range(256)] + [b' --', b' >>', b' <<']
+_HEX_UPPER_TOKENS = [b' %02X' % b for b in range(256)] + [b' --', b' >>', b' <<']
+
+_OCTAL_TOKENS = [b' %03o' % b for b in range(256)] + [b' ---', b' >>>', b' <<<']
 
 DEFAULT_FORMAT_ORDER: Sequence[str] = [
     'one_byte_octal',
@@ -122,13 +129,13 @@ def _format_default(
     address_fmt = b'%07X' if upper else b'%07x'
     tokens = [address_fmt % address]
 
+    table = _HEX_UPPER if upper else _HEX_LOWER
     size = len(chunk)
-    token_fmt = b' %04X' if upper else b' %04x'
-    tokens.extend(token_fmt % (chunk[offset] | (chunk[offset+1] << 8))
+    tokens.extend((b' ' + table[chunk[offset+1]] + table[chunk[offset]])
                   for offset in range(0, size-1, 2))
 
     if size & 1:
-        tokens.append(token_fmt % chunk[size-1])
+        tokens.append(b' 00' + table[chunk[size-1]])
 
     if size < width:
         tokens.extend(b'     ' for _ in range(1, width - size, 2))
@@ -146,7 +153,7 @@ def _format_one_byte_octal(
     address_fmt = b'%07X' if upper else b'%07x'
     tokens = [address_fmt % address]
 
-    table = _OCTAL_SINGLE_TOKENS
+    table = _OCTAL_TOKENS
     tokens.extend(table[b] for b in chunk)
 
     size = len(chunk)
@@ -166,7 +173,7 @@ def _format_one_byte_hex(
     address_fmt = b'%08X' if upper else b'%08x'
     tokens = [address_fmt % address]
 
-    table = _HEX_UPPER_SINGLE_TOKENS if upper else _HEX_LOWER_SINGLE_TOKENS
+    table = _HEX_UPPER_TOKENS if upper else _HEX_LOWER_TOKENS
     tokens.extend(table[b] for b in chunk)
 
     size = len(chunk)
@@ -206,7 +213,7 @@ def _format_canonical(
     address_fmt = b'%08X' if upper else b'%08x'
     tokens = [address_fmt % address]
 
-    table = _HEX_UPPER_SINGLE_TOKENS if upper else _HEX_LOWER_SINGLE_TOKENS
+    table = _HEX_UPPER_TOKENS if upper else _HEX_LOWER_TOKENS
     size = len(chunk)
     offset = 0
     append = tokens.append
@@ -286,13 +293,13 @@ def _format_two_bytes_hex(
     address_fmt = b'%07X' if upper else b'%07x'
     tokens = [address_fmt % address]
 
+    table = _HEX_UPPER if upper else _HEX_LOWER
     size = len(chunk)
-    token_fmt = b'    %04X' if upper else b'    %04x'
-    tokens.extend(token_fmt % (chunk[offset] | (chunk[offset+1] << 8))
+    tokens.extend((b'    ' + table[chunk[offset+1]] + table[chunk[offset]])
                   for offset in range(0, size-1, 2))
 
     if size & 1:
-        tokens.append(token_fmt % chunk[size-1])
+        tokens.append(b'    00' + table[chunk[size-1]])
 
     if size < width:
         tokens.extend(b'        ' for _ in range(1, width - size, 2))
@@ -354,13 +361,13 @@ def hexdump_core(
             Input data.
             If :obj:`str`, it is considered as the input file path.
             If :obj:`bytes`, it is the input byte chunk.
-            If ``None`` or ``'-'``, it reads from the standard input.
+            If ``None``, it reads from the standard input.
 
         outfile (str or bytes):
             Output data.
             If :obj:`str`, it is considered as the output file path.
             If :obj:`bytes`, it is the output byte chunk.
-            If ``None`` or ``'-'``, it writes to the standard output.
+            If ``None``, it writes to the standard output.
 
         one_byte_octal (bool):
             One-byte octal display. Display the input offset in
@@ -494,22 +501,24 @@ def hexdump_core(
         format_handlers = [_format_default]
 
     do_squeezing = not no_squeezing
-    instream: Optional[IO] = None
-    outstream: Optional[IO] = None
+    instream = None
+    outstream = None
     try:
         # Input stream binding
-        if infile is None or infile == '-':
+        if infile is None:
             infile = None
             instream = sys.stdin.buffer
         elif isinstance(infile, str):
             instream = open(infile, 'rb')
         elif isinstance(infile, (bytes, bytearray, memoryview)):
             instream = io.BytesIO(infile)
+        elif isinstance(infile, ImmutableMemory):
+            instream = SparseMemoryIO(memory=infile)
         else:
             instream = infile
 
         # Output stream binding
-        if outfile is None or outfile == '-':
+        if outfile is None:
             outfile = None
             outstream = sys.stdout.buffer
         elif isinstance(outfile, str):

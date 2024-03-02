@@ -93,7 +93,7 @@ def humanize(
 ) -> bytes:
     r"""Translates bytes to a human-readable representation.
 
-    Arguments:
+    Args:
         chunk (bytes):
             A chunk of bytes.
 
@@ -159,13 +159,13 @@ def xxd_core(
             Input data.
             If :obj:`str`, it is considered as the input file path.
             If :obj:`bytes`, it is the input byte chunk.
-            If ``None`` or ``'-'``, it reads from the standard input.
+            If ``None``, it reads from the standard input.
 
         outfile (str or bytes):
             Output data.
             If :obj:`str`, it is considered as the output file path.
             If :obj:`bytes`, it is the output byte chunk.
-            If ``None`` or ``'-'``, it writes to the standard output.
+            If ``None``, it writes to the standard output.
 
         autoskip (bool):
             Toggles autoskip. A single ``'*'`` replaces null lines.
@@ -287,7 +287,7 @@ def xxd_core(
     outstream: Optional[IO] = None
     try:
         # Input stream binding
-        if infile is None or infile == '-':
+        if infile is None:
             infile = None
             instream = sys.stdin.buffer
         elif isinstance(infile, str):
@@ -298,7 +298,7 @@ def xxd_core(
             instream = infile
 
         # Output stream binding
-        if outfile is None or outfile == '-':
+        if outfile is None:
             outfile = None
             outstream = sys.stdout.buffer
         elif isinstance(outfile, str):

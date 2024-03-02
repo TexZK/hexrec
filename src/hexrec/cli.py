@@ -103,7 +103,7 @@ BYTE_INT = ByteIntParamType()
 FILE_PATH_IN = click.Path(dir_okay=False, allow_dash=True, readable=True, exists=True)
 FILE_PATH_OUT = click.Path(dir_okay=False, allow_dash=True, writable=True)
 
-RECORD_FORMAT_CHOICE = click.Choice(list(sorted(FILE_TYPES.keys())))
+FORMAT_CHOICE = click.Choice(list(sorted(FILE_TYPES.keys())))
 
 DATA_FMT_FORMATTERS: Mapping[str, Callable[[bytes], bytes]] = {
     'ascii': lambda b: b,
@@ -313,11 +313,11 @@ def main() -> None:
 # ----------------------------------------------------------------------------
 
 @main.command()
-@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
+@click.option('-i', '--input-format', type=FORMAT_CHOICE, help="""
     Forces the input file format.
     Required for the standard input.
 """)
-@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
+@click.option('-o', '--output-format', type=FORMAT_CHOICE, help="""
     Forces the output file format.
     By default it is that of the input file.
 """)
@@ -361,11 +361,11 @@ def clear(
 # ----------------------------------------------------------------------------
 
 @main.command()
-@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
+@click.option('-i', '--input-format', type=FORMAT_CHOICE, help="""
     Forces the input file format.
     Required for the standard input.
 """)
-@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
+@click.option('-o', '--output-format', type=FORMAT_CHOICE, help="""
     Forces the output file format.
     By default it is that of the input file.
 """)
@@ -400,11 +400,11 @@ def convert(
 # ----------------------------------------------------------------------------
 
 @main.command()
-@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
+@click.option('-i', '--input-format', type=FORMAT_CHOICE, help="""
     Forces the input file format.
     Required for the standard input.
 """)
-@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
+@click.option('-o', '--output-format', type=FORMAT_CHOICE, help="""
     Forces the output file format.
     By default it is that of the input file.
 """)
@@ -456,11 +456,11 @@ def crop(
 # ----------------------------------------------------------------------------
 
 @main.command()
-@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
+@click.option('-i', '--input-format', type=FORMAT_CHOICE, help="""
     Forces the input file format.
     Required for the standard input.
 """)
-@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
+@click.option('-o', '--output-format', type=FORMAT_CHOICE, help="""
     Forces the output file format.
     By default it is that of the input file.
 """)
@@ -504,11 +504,11 @@ def delete(
 # ----------------------------------------------------------------------------
 
 @main.command()
-@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
+@click.option('-i', '--input-format', type=FORMAT_CHOICE, help="""
     Forces the input file format.
     Required for the standard input.
 """)
-@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
+@click.option('-o', '--output-format', type=FORMAT_CHOICE, help="""
     Forces the output file format.
     By default it is that of the input file.
 """)
@@ -556,11 +556,11 @@ def fill(
 # ----------------------------------------------------------------------------
 
 @main.command()
-@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
+@click.option('-i', '--input-format', type=FORMAT_CHOICE, help="""
     Forces the input file format.
     Required for the standard input.
 """)
-@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
+@click.option('-o', '--output-format', type=FORMAT_CHOICE, help="""
     Forces the output file format.
     By default it is that of the input file.
 """)
@@ -674,7 +674,7 @@ def flood(
 @click.option('-U', '--upper', 'upper', is_flag=True, help="""
     Uses upper case hex letters on address and data.
 """)
-@click.option('-I', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
+@click.option('-I', '--input-format', type=FORMAT_CHOICE, help="""
     Forces the input file format.
     Required for the standard input.
 """)
@@ -696,7 +696,7 @@ def hexdump(
     skip: Optional[int],
     no_squeezing: bool,
     upper: bool,
-    input_format: Optional[str],  # TODO:
+    input_format: Optional[str],
 ) -> None:
     r"""Display file contents in hexadecimal, decimal, octal, or ascii.
 
@@ -728,6 +728,11 @@ def hexdump(
     format_order = [param.name
                     for param, value in hexdump.ordered_options
                     if (param.name in kwargs) and value]
+
+    if input_format:
+        input_type = guess_input_type(infile, input_format)
+        input_file = input_type.load(infile)
+        infile = input_file.memory
 
     hexdump_core(
         infile=infile,
@@ -801,7 +806,7 @@ def hexdump(
 @click.option('-U', '--upper', 'upper', is_flag=True, help="""
     Uses upper case hex letters on address and data.
 """)
-@click.option('-I', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
+@click.option('-I', '--input-format', type=FORMAT_CHOICE, help="""
     Forces the input file format.
     Required for the standard input.
 """)
@@ -822,7 +827,7 @@ def hd(
     skip: Optional[int],
     no_squeezing: bool,
     upper: bool,
-    input_format: Optional[str],  # TODO:
+    input_format: Optional[str],
 ) -> None:
     r"""Display file contents in hexadecimal, decimal, octal, or ascii.
 
@@ -856,6 +861,11 @@ def hd(
     format_order.insert(0, 'canonical')
     kwargs['canonical'] = True
 
+    if input_format:
+        input_type = guess_input_type(infile, input_format)
+        input_file = input_type.load(infile)
+        infile = input_file.memory
+
     hexdump_core(
         infile=infile,
         length=length,
@@ -870,11 +880,11 @@ def hd(
 # ----------------------------------------------------------------------------
 
 @main.command()
-@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
+@click.option('-i', '--input-format', type=FORMAT_CHOICE, help="""
     Forces the input file format for all input files.
     Required for the standard input.
 """)
-@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
+@click.option('-o', '--output-format', type=FORMAT_CHOICE, help="""
     Forces the output file format.
     By default it is that of the input file.
 """)
@@ -918,11 +928,11 @@ def merge(
 # ----------------------------------------------------------------------------
 
 @main.command()
-@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
+@click.option('-i', '--input-format', type=FORMAT_CHOICE, help="""
     Forces the input file format.
     Required for the standard input.
 """)
-@click.option('-o', '--output-format', type=RECORD_FORMAT_CHOICE, help="""
+@click.option('-o', '--output-format', type=FORMAT_CHOICE, help="""
     Forces the output file format.
     By default it is that of the input file.
 """)
@@ -960,7 +970,7 @@ def shift(
 # ----------------------------------------------------------------------------
 
 @main.command()
-@click.option('-i', '--input-format', type=RECORD_FORMAT_CHOICE, help="""
+@click.option('-i', '--input-format', type=FORMAT_CHOICE, help="""
     Forces the input file format.
     Required for the standard input.
 """)
@@ -1229,6 +1239,9 @@ def xxd(
 
     Some parameters were changed to satisfy the POSIX-like command line parser.
     """
+
+    infile = None if infile == '-' else infile
+    outfile = None if outfile == '-' else outfile
 
     xxd_core(
         infile=infile,

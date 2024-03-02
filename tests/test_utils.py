@@ -1,11 +1,15 @@
+from typing import Any
+from typing import Mapping
 from typing import Type
 
 import pytest
+from bytesparse import Memory
 
-from hexrec.utils import *
-
-HEXBYTES = bytes(range(16))
-
+from hexrec.utils import SparseMemoryIO
+from hexrec.utils import chop
+from hexrec.utils import hexlify
+from hexrec.utils import parse_int
+from hexrec.utils import unhexlify
 
 PARSE_INT_PASS: Mapping[Any, int] = {
     None: None,
@@ -120,3 +124,56 @@ def test_unhexlify_doctest():
     ans_out = unhexlify(b'AA/BB/CC', delete=b'/')
     ans_ref = b'\xaa\xbb\xcc'
     assert ans_out == ans_ref
+
+
+class TestSparseMemoryIO:
+
+    def test_read_after(self):
+        stream = SparseMemoryIO(Memory.from_bytes(b'\xAA\xBB\xCC'))
+        actual = stream.read(5)
+        assert actual == [0xAA, 0xBB, 0xCC, 0x102, 0x102]
+
+    def test_read_before(self):
+        stream = SparseMemoryIO(Memory.from_bytes(b'\xAA\xBB\xCC', offset=2))
+        actual = stream.read()
+        assert actual == [0x101, 0x101, 0xAA, 0xBB, 0xCC]
+
+    def test_read_contiguous(self):
+        stream = SparseMemoryIO(Memory.from_bytes(b'abc'))
+        actual = stream.read()
+        assert actual == b'abc'
+
+    def test_read_empty(self):
+        stream = SparseMemoryIO(Memory())
+        actual = stream.read()
+        assert actual == b''
+
+    def test_read_hole(self):
+        blocks = [[0, b'\xAA\xBB\xCC'], [5, b'\xEE\xFF']]
+        stream = SparseMemoryIO(Memory.from_blocks(blocks))
+        actual = stream.read()
+        assert actual == [0xAA, 0xBB, 0xCC, 0x100, 0x100, 0xEE, 0xFF]
+
+    def test_read_raises_asmemview(self):
+        stream = SparseMemoryIO(Memory())
+        with pytest.raises(ValueError, match='memory view not supported'):
+            stream.read(asmemview=True)
+
+    def test_write_bytes(self):
+        memory = Memory()
+        stream = SparseMemoryIO(memory)
+        stream.write(b'abc')
+        assert memory.to_blocks() == [[0, b'abc']]
+
+    def test_write_empty(self):
+        memory = Memory()
+        stream = SparseMemoryIO(memory)
+        stream.write([])
+        assert memory.to_blocks() == []
+
+    def test_write_hole(self):
+        memory = Memory()
+        stream = SparseMemoryIO(memory)
+        stream.write([0xAA, 0xBB, 0xCC, 0x100, 0x100, 0xEE, 0xFF])
+        expected = [[0, b'\xAA\xBB\xCC'], [5, b'\xEE\xFF']]
+        assert memory.to_blocks() == expected

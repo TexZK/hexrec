@@ -44,7 +44,6 @@ def test_by_filename_hexdump(tmppath, datapath):
     test_filenames = glob.glob(str(datapath / (prefix + '*.hexdump')))
 
     for filename in test_filenames:
-        _of = filename
         filename = os.path.basename(filename)
         path_out = tmppath / filename
         path_ref = datapath / filename
