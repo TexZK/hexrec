@@ -1,7 +1,7 @@
-﻿utils
-=====
+﻿hexdump
+=======
 
-.. automodule:: hexrec.utils
+.. automodule:: hexrec.hexdump
 
 
 
@@ -13,8 +13,9 @@
         :template: custom-base-template.rst
         :nosignatures:
 
-        ~SUFFIX_SCALE
-        ~DEFAULT_DELETE
+        ~CHAR_PRINTABLE
+        ~CHAR_TOKENS
+        ~DEFAULT_FORMAT_ORDER
 
 
 
@@ -28,10 +29,7 @@
         :template: custom-base-template.rst
         :nosignatures:
 
-        ~chop
-        ~hexlify
-        ~parse_int
-        ~unhexlify
+        ~hexdump
 
 
 

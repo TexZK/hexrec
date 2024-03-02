@@ -15,5 +15,6 @@ Reference
     hexrec.formats.srec
     hexrec.formats.titxt
     hexrec.formats.xtek
+    hexrec.hexdump
     hexrec.utils
     hexrec.xxd

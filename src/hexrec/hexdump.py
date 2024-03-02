@@ -523,13 +523,14 @@ def hexdump(
         offset = 0
         last_chunk = None
         squeezing = False
+        read = instream.read
         write = outstream.write
 
         while True:
             if length is None:
-                chunk = instream.read(width)
+                chunk = read(width)
             else:
-                chunk = instream.read(min(width, length - offset))
+                chunk = read(min(width, length - offset))
 
             if not chunk:
                 break

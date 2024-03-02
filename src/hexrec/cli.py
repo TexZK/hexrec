@@ -660,10 +660,10 @@ def flood(
 """)
 @click.option('-n', '--length', 'length', type=BASED_INT, help="""
     Interpret only length bytes of input.
-""")  # FIXME: SUFFIXED_INT for hexdump compatible integers
+""")
 @click.option('-s', '--skip', 'skip', type=BASED_INT, help="""
     Skip offset bytes from the beginning of the input.
-""")  # FIXME: SUFFIXED_INT for hexdump compatible integers
+""")
 @click.option('-v', '--no_squeezing', 'no_squeezing', is_flag=True, help="""
     The -v option causes hexdump to display all input data.
     Without the -v option, any number of groups of output lines
@@ -678,8 +678,8 @@ def flood(
     Forces the input file format.
     Required for the standard input.
 """)
-@click.option('-V', '--version', is_flag=True, is_eager=True, expose_value=False,
-              callback=print_hexdump_version, help="""
+@click.option('-V', '--version', is_flag=True, is_eager=True,
+              expose_value=False, callback=print_hexdump_version, help="""
     Print version and exit.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
@@ -698,7 +698,6 @@ def hexdump(
     upper: bool,
     input_format: Optional[str],  # TODO:
 ) -> None:
-    # TODO: __doc__
     r"""Display file contents in hexadecimal, decimal, octal, or ascii.
 
     The hexdump utility is a filter which displays the specified
@@ -788,10 +787,10 @@ def hexdump(
 """)
 @click.option('-n', '--length', 'length', type=BASED_INT, help="""
     Interpret only length bytes of input.
-""")  # FIXME: SUFFIXED_INT for hexdump compatible integers
+""")
 @click.option('-s', '--skip', 'skip', type=BASED_INT, help="""
     Skip offset bytes from the beginning of the input.
-""")  # FIXME: SUFFIXED_INT for hexdump compatible integers
+""")
 @click.option('-v', '--no_squeezing', 'no_squeezing', is_flag=True, help="""
     The -v option causes hexdump to display all input data.
     Without the -v option, any number of groups of output lines
@@ -806,8 +805,8 @@ def hexdump(
     Forces the input file format.
     Required for the standard input.
 """)
-@click.option('-V', '--version', is_flag=True, is_eager=True, expose_value=False,
-              callback=print_hexdump_version, help="""
+@click.option('-V', '--version', is_flag=True, is_eager=True,
+              expose_value=False, callback=print_hexdump_version, help="""
     Print version and exit.
 """)
 @click.argument('infile', type=FILE_PATH_IN)
@@ -825,7 +824,6 @@ def hd(
     upper: bool,
     input_format: Optional[str],  # TODO:
 ) -> None:
-    # TODO: __doc__
     r"""Display file contents in hexadecimal, decimal, octal, or ascii.
 
     The hexdump utility is a filter which displays the specified
@@ -1199,8 +1197,8 @@ def del_header(
 @click.option('-u', '--upper', 'upper', is_flag=True, help="""
     Uses upper case hex letters on data only.
 """)
-@click.option('-v', '--version', is_flag=True, is_eager=True, expose_value=False,
-              callback=print_version, help="""
+@click.option('-v', '--version', is_flag=True, is_eager=True,
+              expose_value=False, callback=print_version, help="""
     Prints the package version number.
 """)
 @click.argument('infile', type=FILE_PATH_IN)

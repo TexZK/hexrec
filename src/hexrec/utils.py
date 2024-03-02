@@ -44,11 +44,45 @@ STR_TO_BIN8: Mapping[str, int] = {s: i for i, s in enumerate(BIN8_TO_STR)}
 BIN8_TO_BYTES: List[bytes] = [bin(i)[2:].zfill(8).encode() for i in range(256)]
 BYTES_TO_BIN8: Mapping[bytes, int] = {s: i for i, s in enumerate(BIN8_TO_BYTES)}
 
+SUFFIX_SCALE: Mapping[str, int] = {
+    'k': 2**10,
+    'm': 2**20,
+    'g': 2**30,
+    't': 2**40,
+    'p': 2**50,
+    'e': 2**60,
+    'z': 2**70,
+    'y': 2**80,
+
+    'kib': 2**10,
+    'mib': 2**20,
+    'gib': 2**30,
+    'tib': 2**40,
+    'pib': 2**50,
+    'eib': 2**60,
+    'zib': 2**70,
+    'yib': 2**80,
+
+    'kb': 10**3,
+    'mb': 10**6,
+    'gb': 10**9,
+    'tb': 10**12,
+    'pb': 10**15,
+    'eb': 10**18,
+    'zb': 10**21,
+    'yb': 10**24,
+}
+r"""Integer suffix to scale factor."""
+
 INT_REGEX = re.compile(r'^\s*(?P<sign>[+-]?)\s*'
                        r'(?P<prefix>(0x|0b|0o|0)?)'
                        r'(?P<value>[a-f0-9]+)'
                        r'(?P<suffix>h?)'
-                       r'(?P<scale>[km]?)\s*$')
+                       r'\s*(?P<scale>('
+                       r'k|m|g|t|p|e|z|y|'
+                       r'kib|mib|gib|tib|pib|eib|zib|yib|'
+                       r'kb|mb|gb|tb|pb|eb|zb|yb'
+                       r')?)\s*$')
 
 DEFAULT_DELETE: bytes = b' \t.-:\r\n'
 r"""Delete from hex strings.
@@ -167,8 +201,8 @@ def parse_int(
             either prefixed with ``0x`` or postfixed with ``h`` to convert
             from a hexadecimal representation, or prefixed with ``0b`` from
             binary; a prefix of only ``0`` converts from octal.
-            A further suffix of ``k`` or ``m`` scales as *kibibyte* or
-            *mebibyte*.
+            A further suffix applies a scale factor as per
+            :data:`SUFFIX_SCALE`.
             A ``None`` value evaluates as ``None``.
             Any other object class will call the standard :func:`int`.
 
@@ -214,10 +248,7 @@ def parse_int(
         else:
             i = int(value, 10)
 
-        if scale == 'k':
-            i <<= 10
-        elif scale == 'm':
-            i <<= 20
+        i *= SUFFIX_SCALE.get((scale or '').lower(), 1)
 
         if sign == '-':
             i = -i
