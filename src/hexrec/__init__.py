@@ -39,6 +39,7 @@ from .formats.raw import RawFile
 from .formats.srec import SrecFile
 from .formats.titxt import TiTxtFile
 from .formats.xtek import XtekFile
+from .hexdump import hexdump_core
 from .xxd import xxd_core
 
 
