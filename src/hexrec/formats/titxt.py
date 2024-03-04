@@ -236,7 +236,37 @@ class TiTxtRecord(BaseRecord):
         address: int = 0,
         validate: bool = True,
     ) -> Self:
-        # TODO: __doc__
+        r"""Parses a record from bytes.
+
+        Args:
+            line (bytes):
+                String of bytes to parse.
+
+            address (int):
+                Default record address for *data* records.
+
+            validate (bool):
+                Perform validation checks.
+
+        Returns:
+            :class:`BaseRecord`: Parsed record.
+
+        Raises:
+            ValueError: Syntax error.
+
+        Examples:
+            >>> from hexrec import TiTxtFile
+            >>> record = TiTxtFile.Record.parse(b'@ABCD\r\n')
+            >>> record.tag
+            <TiTxtTag.ADDRESS: 1>
+            >>> record = TiTxtFile.Record.parse(b'61 62 63\r\n', address=123)
+            >>> record.address, record.data
+            (123, b'abc')
+            >>> TiTxtFile.Record.parse(b':ABCD\r\n')
+            Traceback (most recent call last):
+                ...
+            ValueError: syntax error
+        """
 
         match = cls.LINE_REGEX.match(line)
         if not match:

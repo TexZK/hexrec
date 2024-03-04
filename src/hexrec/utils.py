@@ -337,7 +337,6 @@ class SparseMemoryIO(MemoryIO):
         size: Optional[Address] = -1,
         asmemview: bool = False,
     ) -> Union[bytes, memoryview, Address, Sequence[int]]:
-        # TODO: __doc__
 
         if asmemview:
             raise ValueError('memory view not supported')
@@ -378,7 +377,6 @@ class SparseMemoryIO(MemoryIO):
         self,
         buffer: Union[AnyBytes, ImmutableMemory, int, Sequence[int]],
     ) -> Address:
-        # TODO: __doc__
 
         if isinstance(buffer, (bytes, bytearray, memoryview, ImmutableMemory, int)):
             return super().write(buffer)

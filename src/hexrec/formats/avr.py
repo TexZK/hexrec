@@ -112,9 +112,6 @@ class AvrRecord(BaseRecord):
     ) -> Self:
         r"""Parses a record from bytes.
 
-        Please refer to the actual implementation provided by the record
-        *format* for more details.
-
         Args:
             line (bytes):
                 String of bytes to parse.

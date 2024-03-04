@@ -255,7 +255,37 @@ class AsciiHexRecord(BaseRecord):
         address: int = 0,
         validate: bool = True,
     ) -> Self:
-        # TODO: __doc__
+        r"""Parses a record from bytes.
+
+        Args:
+            line (bytes):
+                String of bytes to parse.
+
+            address (int):
+                Default record address for *data* records.
+
+            validate (bool):
+                Perform validation checks.
+
+        Returns:
+            :class:`BaseRecord`: Parsed record.
+
+        Raises:
+            ValueError: Syntax error.
+
+        Examples:
+            >>> from hexrec import AsciiHexFile
+            >>> record = AsciiHexFile.Record.parse(b'$A1234,\r\n')
+            >>> record.tag
+            <AsciiHexTag.ADDRESS: 1>
+            >>> record = AsciiHexFile.Record.parse(b'61 62 63\r\n', address=123)
+            >>> record.address, record.data
+            (123, b'abc')
+            >>> AsciiHexFile.Record.parse(b'@ABCD\r\n')
+            Traceback (most recent call last):
+                ...
+            ValueError: syntax error
+        """
 
         match = cls.LINE_REGEX.match(line)
         if not match:
