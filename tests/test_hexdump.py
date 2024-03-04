@@ -45,6 +45,7 @@ def test_by_filename_hexdump(tmppath, datapath):
 
     for filename in test_filenames:
         filename = os.path.basename(filename)
+        print(filename)
         path_out = tmppath / filename
         path_ref = datapath / filename
 
@@ -70,6 +71,7 @@ def test_by_filename_hd(tmppath, datapath):
 
     for filename in test_filenames:
         filename = os.path.basename(filename)
+        print(filename)
         path_out = tmppath / filename
         path_ref = datapath / filename
 

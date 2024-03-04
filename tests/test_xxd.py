@@ -63,12 +63,16 @@ def test_parse_seek():
     assert parse_seek(None) == ('', 0)
 
 
-def test_by_filename_xxd(tmppath, datapath):
+def test_by_filename_text(tmppath, datapath):
     prefix = 'test_xxd_'
-    test_filenames = glob.glob(str(datapath / (prefix + '*.xxd')))
+    test_filenames = glob.glob(str(datapath / (prefix + '*.c')))
+    test_filenames += glob.glob(str(datapath / (prefix + '*.hexstr')))
+    test_filenames += glob.glob(str(datapath / (prefix + '*.mot')))
+    test_filenames += glob.glob(str(datapath / (prefix + '*.xxd')))
 
     for filename in test_filenames:
         filename = os.path.basename(filename)
+        print(filename)
         path_out = tmppath / filename
         path_ref = datapath / filename
 
@@ -87,12 +91,13 @@ def test_by_filename_xxd(tmppath, datapath):
         assert ans_out == ans_ref
 
 
-def test_by_filename_bin(tmppath, datapath):
+def test_by_filename_bytes(tmppath, datapath):
     prefix = 'test_xxd_'
     test_filenames = glob.glob(str(datapath / (prefix + '*.bin')))
 
     for filename in test_filenames:
         filename = os.path.basename(filename)
+        print(filename)
         path_out = tmppath / filename
         path_ref = datapath / filename
 
@@ -107,30 +112,6 @@ def test_by_filename_bin(tmppath, datapath):
 
         ans_out = read_bytes(path_out)
         ans_ref = read_bytes(path_ref)
-        # if ans_out != ans_ref: raise AssertionError(str(path_ref))
-        assert ans_out == ans_ref
-
-
-def test_by_filename_c(tmppath, datapath):
-    prefix = 'test_xxd_'
-    test_filenames = glob.glob(str(datapath / (prefix + '*.c')))
-
-    for filename in test_filenames:
-        filename = os.path.basename(filename)
-        path_out = tmppath / filename
-        path_ref = datapath / filename
-
-        cmdline = filename[len(prefix):].replace('_', ' ')
-        args = cmdline.split()
-        path_in = datapath / os.path.splitext(args[-1])[0]
-        args = ['xxd'] + args[:-1] + [str(path_in), str(path_out)]
-
-        runner = CliRunner()
-        result = runner.invoke(_cast(Any, cli_main), args)
-        assert result.exit_code == 0
-
-        ans_out = read_text(path_out)
-        ans_ref = read_text(path_ref)
         # if ans_out != ans_ref: raise AssertionError(str(path_ref))
         assert ans_out == ans_ref
 

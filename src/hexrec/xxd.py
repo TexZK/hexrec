@@ -25,22 +25,25 @@
 
 r"""Emulation of the xxd utility."""
 
+import binascii
 import io
 import os
 import re
 import sys
 from typing import IO
-from typing import Mapping
+from typing import List
 from typing import Optional
 from typing import Tuple
 from typing import Union
 
+from bytesparse import Memory
+from bytesparse.base import ImmutableMemory
+from bytesparse.base import MutableMemory
+
 from .base import AnyBytes
-from .utils import BIN8_TO_BYTES
+from .utils import SparseMemoryIO
 from .utils import chop
-from .utils import hexlify
 from .utils import parse_int
-from .utils import unhexlify
 
 _SEEKING_REGEX = re.compile(r'^(?P<sign>\+?-?)-?(?P<absolute>\w+)$')
 
@@ -50,61 +53,55 @@ _REVERSE_REGEX = re.compile(b'^\\s*(?P<address>[A-Fa-f0-9]+)\\s*:\\s*'
 
 ZERO_BLOCK_SIZE = 1 << 20  # 1 MiB
 
-HUMAN_ASCII = (b'................'
-               b'................'
-               b' !"#$%&\'()*+,-./'
-               b'0123456789:;<=>?'
-               b'@ABCDEFGHIJKLMNO'
-               b'PQRSTUVWXYZ[\\]^_'
-               b'`abcdefghijklmno'
-               b'pqrstuvwxyz{|}~.'
-               b'................'
-               b'................'
-               b'................'
-               b'................'
-               b'................'
-               b'................'
-               b'................'
-               b'................')
-r"""Mapping from byte to human-readable ASCII characters."""
+_HEX_LOWER = [b'%02x' % b for b in range(256)] + [b'--', b'>>', b'<<']
+_HEX_UPPER = [b'%02X' % b for b in range(256)] + [b'--', b'>>', b'<<']
 
-HUMAN_EBCDIC = (b'................'
-                b'................'
-                b'................'
-                b'................'
-                b' ...........<(+|'
-                b'&.........!$*);~'
-                b'-/.........,%_>?'
-                b'.........`:#@\'="'
-                b'.abcdefghi......'
-                b'.jklmnopqr^.....'
-                b'..stuvwxyz...[..'
-                b'.............]..'
-                b'{ABCDEFGHI......'
-                b'}JKLMNOPQR......'
-                b'\\.STUVWXYZ......'
-                b'0123456789......')
-r"""Mapping from byte to human-readable EBCDIC characters."""
+_BIN8: List[bytes] = (
+    [bin(i)[2:].zfill(8).encode() for i in range(256)] +
+    [b'--------', b'>>>>>>>>', b'<<<<<<<<']
+)
 
+CHAR_ASCII = (
+    b'................'
+    b'................'
+    b' !"#$%&\'()*+,-./'
+    b'0123456789:;<=>?'
+    b'@ABCDEFGHIJKLMNO'
+    b'PQRSTUVWXYZ[\\]^_'
+    b'`abcdefghijklmno'
+    b'pqrstuvwxyz{|}~.'
+    b'................'
+    b'................'
+    b'................'
+    b'................'
+    b'................'
+    b'................'
+    b'................'
+    b'................'
+    b' ><'
+)
+r"""Mapping from integer to ASCII characters."""
 
-def humanize(
-    chunk: AnyBytes,
-    charset: Union[bytes, Mapping[int, bytes]],
-) -> bytes:
-    r"""Translates bytes to a human-readable representation.
-
-    Args:
-        chunk (bytes):
-            A chunk of bytes.
-
-        charset (list of chr):
-            A mapping from byte (index) to character.
-
-    Returns:
-        str: Human-readable byte string.
-    """
-
-    return bytes(charset[b] for b in chunk)
+CHAR_EBCDIC = (
+    b'................'
+    b'................'
+    b'................'
+    b'................'
+    b' ...........<(+|'
+    b'&.........!$*);~'
+    b'-/.........,%_>?'
+    b'.........`:#@\'="'
+    b'.abcdefghi......'
+    b'.jklmnopqr^.....'
+    b'..stuvwxyz...[..'
+    b'.............]..'
+    b'{ABCDEFGHI......'
+    b'}JKLMNOPQR......'
+    b'\\.STUVWXYZ......'
+    b'0123456789......'
+    b' ><'
+)
+r"""Mapping from integer to EBCDIC characters."""
 
 
 def parse_seek(value: Optional[str]) -> Tuple[str, int]:
@@ -131,8 +128,44 @@ def parse_seek(value: Optional[str]) -> Tuple[str, int]:
         return ss, sv
 
 
+def _unhexlify(line: AnyBytes) -> Union[AnyBytes, ImmutableMemory]:
+
+    line = line.translate(None, b' \t.:\r\n')
+
+    if 0x3C in line:
+        line = line.replace(b'<', b'-')
+
+    if 0x3E in line:
+        line = line.replace(b'>', b'-')
+
+    if 0x2D in line:
+        zeroed = line.replace(b'-', b'0')
+        chunk = binascii.unhexlify(zeroed)
+        even = line[::2]
+        size = len(chunk)
+        memory = Memory.from_values(((None if even[i] == 0x2D else chunk[i])
+                                     for i in range(size)),
+                                    start=0, endex=size)
+        return memory
+    else:
+        chunk = binascii.unhexlify(line)
+        return chunk
+
+
+def _write_zeros(
+    stream: Union[IO, SparseMemoryIO],
+    size: int
+) -> None:
+
+    zero_block = bytes(ZERO_BLOCK_SIZE)
+    for _ in range(size // ZERO_BLOCK_SIZE):
+        stream.write(zero_block)
+    del zero_block
+    stream.write(bytes(size % ZERO_BLOCK_SIZE))
+
+
 def xxd_core(
-    infile: Optional[Union[str, AnyBytes, IO]] = None,
+    infile: Optional[Union[str, AnyBytes, IO, ImmutableMemory]] = None,
     outfile: Optional[Union[str, AnyBytes, IO]] = None,
     autoskip: bool = False,
     bits: Optional[int] = None,
@@ -151,6 +184,7 @@ def xxd_core(
     iseek: Optional[Union[int, str]] = None,
     upper_all: bool = False,
     upper: bool = False,
+    oseek_zeroes: bool = True,
 ) -> IO:
     r"""Emulation of the `xxd` utility core.
 
@@ -260,6 +294,10 @@ def xxd_core(
         upper (bool):
             Uses upper case hex letters on data only.
 
+        oseek_zeroes (bool):
+            Output seeking fills with zeros.
+            Only affects `outfile` of :class:`bytesparse.base.MutableMemory`.
+
     Returns:
         stream: The handle to the output stream.
     """
@@ -283,8 +321,10 @@ def xxd_core(
     if linesep is None:
         linesep = os.linesep.encode()
 
-    instream: Optional[IO] = None
-    outstream: Optional[IO] = None
+    instream: Optional[IO, SparseMemoryIO] = None
+    outstream: Optional[IO, SparseMemoryIO] = None
+    outsparse = False
+
     try:
         # Input stream binding
         if infile is None:
@@ -294,6 +334,8 @@ def xxd_core(
             instream = open(infile, 'rb')
         elif isinstance(infile, (bytes, bytearray, memoryview)):
             instream = io.BytesIO(infile)
+        elif isinstance(infile, ImmutableMemory):
+            instream = SparseMemoryIO(memory=infile)
         else:
             instream = infile
 
@@ -303,11 +345,14 @@ def xxd_core(
             outstream = sys.stdout.buffer
         elif isinstance(outfile, str):
             outstream = open(outfile, 'w+b' if revert and oseek else 'wb')
+        elif isinstance(outfile, MutableMemory):
+            outstream = SparseMemoryIO(memory=outfile)
+            outsparse = True
         else:
             outstream = outfile
 
         # Input seeking
-        offset = parse_int(offset) if offset else 0
+        offset = parse_int(offset or 0)
 
         if iseek is not None:
             ss, sv = parse_seek(str(iseek))
@@ -325,18 +370,17 @@ def xxd_core(
 
         # Output seeking
         if revert:
-            zero_block = bytes(ZERO_BLOCK_SIZE)
-            for _ in range((oseek or 0) // ZERO_BLOCK_SIZE):
-                outstream.write(zero_block)
-            del zero_block
-            outstream.write(bytes((oseek or 0) % ZERO_BLOCK_SIZE))
+            if outsparse and not oseek_zeroes:
+                outstream.seek((oseek or 0), io.SEEK_CUR)
+            else:
+                _write_zeros(outstream, (oseek or 0))
 
         # Output mode handling
         if revert:
             if postscript:
                 # Plain hexadecimal input
                 for line in instream:
-                    data = unhexlify(line, delete=...)
+                    data = _unhexlify(line)
                     outstream.write(data)
             else:
                 if cols is None:
@@ -348,18 +392,17 @@ def xxd_core(
                         # Interpret line contents
                         groups = match.groupdict()
                         address = (oseek or 0) + int(groups['address'], 16)
-                        data = unhexlify(groups['data'], delete=...)
+                        data = _unhexlify(groups['data'])
                         data = data[:cols]
 
                         # Write line data (fill gaps if needed)
                         outstream.seek(0, io.SEEK_END)
                         outoffset = outstream.tell()
                         if outoffset < address:
-                            zero_block = bytes(ZERO_BLOCK_SIZE)
-                            for _ in range((address - outoffset) // ZERO_BLOCK_SIZE):
-                                outstream.write(zero_block)
-                            del zero_block
-                            outstream.write(bytes((address - outoffset) % ZERO_BLOCK_SIZE))
+                            if outsparse and not oseek_zeroes:
+                                outstream.seek((address - outoffset), io.SEEK_CUR)
+                            else:
+                                _write_zeros(outstream, (address - outoffset))
                         outstream.seek(address, io.SEEK_SET)
                         outstream.write(data)
 
@@ -378,7 +421,9 @@ def xxd_core(
                     chunk = instream.read(min(cols, length - count))
 
                 if chunk:
-                    outstream.write(hexlify(chunk, upper=upper))
+                    table = _HEX_UPPER if upper else _HEX_LOWER
+                    line = b''.join(table[b] for b in chunk)
+                    outstream.write(line)
                     outstream.write(linesep)
                     count += len(chunk)
                 else:
@@ -398,8 +443,7 @@ def xxd_core(
             if isinstance(infile, str):
                 label = os.path.basename(infile)
                 label = re.sub('[^0-9a-zA-Z]+', '_', label).encode()
-                outstream.write(b'unsigned char %s[] = {%s'
-                                % (label, linesep))
+                outstream.write(b'unsigned char %s[] = {%s' % (label, linesep))
             else:
                 label = None
 
@@ -418,8 +462,8 @@ def xxd_core(
                     if count:
                         outstream.write(comma_linesep)
                     outstream.write(indent)
-                    token_fmt = b'%02X' if upper else b'%02x'
-                    text = sep.join((token_fmt % b) for b in chunk)
+                    table = _HEX_UPPER if upper else _HEX_LOWER
+                    text = sep.join(table[b] for b in chunk)
                     outstream.write(text)
                     count += len(chunk)
 
@@ -468,7 +512,7 @@ def xxd_core(
 
             if chunk:
                 # Null line skipping
-                if autoskip and not any(chunk):
+                if autoskip and all(b == 0 for b in chunk):
                     if last_zero:
                         offset += len(chunk)
                         count += len(chunk)
@@ -480,17 +524,24 @@ def xxd_core(
                 if groupsize:
                     tokens = chop(chunk, groupsize)
                 else:
-                    tokens = (chunk,)
+                    tokens = [chunk]
 
                 if bits:
-                    tokens = b' '.join(b''.join(BIN8_TO_BYTES[bits] for bits in token) for token in tokens)
+                    table = _BIN8
+                    tokens = b' '.join(b''.join(table[b] for b in t) for t in tokens)
                 elif groupsize:
-                    tokens = b' '.join(hexlify(token[::-1] if endian else token, upper=upper) for token in tokens)
+                    table = _HEX_UPPER if upper else _HEX_LOWER
+                    if endian:
+                        tokens = b' '.join(b''.join(table[b] for b in reversed(t)) for t in tokens)
+                    else:
+                        tokens = b' '.join(b''.join(table[b] for b in t) for t in tokens)
                 else:
-                    tokens = hexlify(*tokens, upper=upper)
+                    table = _HEX_UPPER if upper else _HEX_LOWER
+                    tokens = b' '.join(b''.join(table[b] for b in t) for t in tokens)
 
                 # Comment text generation
-                text = humanize(chunk, HUMAN_EBCDIC if ebcdic else HUMAN_ASCII)
+                charset = CHAR_EBCDIC if ebcdic else CHAR_ASCII
+                text = bytes(charset[b] for b in chunk)
 
                 # Line output
                 line = line_fmt % (offset, tokens, text)

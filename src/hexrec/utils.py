@@ -30,7 +30,6 @@ import re
 import sys
 from typing import Any
 from typing import Iterator
-from typing import List
 from typing import Mapping
 from typing import Optional
 from typing import Sequence
@@ -42,12 +41,6 @@ from bytesparse.base import ImmutableMemory
 
 from .base import AnyBytes
 from .base import EllipsisType
-
-BIN8_TO_STR: List[str] = [bin(i)[2:].zfill(8) for i in range(256)]
-STR_TO_BIN8: Mapping[str, int] = {s: i for i, s in enumerate(BIN8_TO_STR)}
-
-BIN8_TO_BYTES: List[bytes] = [bin(i)[2:].zfill(8).encode() for i in range(256)]
-BYTES_TO_BIN8: Mapping[bytes, int] = {s: i for i, s in enumerate(BIN8_TO_BYTES)}
 
 SUFFIX_SCALE: Mapping[str, int] = {
     'k': 2**10,

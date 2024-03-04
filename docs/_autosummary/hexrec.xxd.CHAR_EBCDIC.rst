@@ -1,6 +1,6 @@
-HUMAN\_ASCII
+CHAR\_EBCDIC
 ============
 
 .. currentmodule:: hexrec.xxd
 
-.. autodata:: HUMAN_ASCII
+.. autodata:: CHAR_EBCDIC

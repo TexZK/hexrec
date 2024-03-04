@@ -676,7 +676,6 @@ def flood(
 """)
 @click.option('-I', '--input-format', type=FORMAT_CHOICE, help="""
     Forces the input file format.
-    Required for the standard input.
 """)
 @click.option('-V', '--version', is_flag=True, is_eager=True,
               expose_value=False, callback=print_hexdump_version, help="""
@@ -808,7 +807,6 @@ def hexdump(
 """)
 @click.option('-I', '--input-format', type=FORMAT_CHOICE, help="""
     Forces the input file format.
-    Required for the standard input.
 """)
 @click.option('-V', '--version', is_flag=True, is_eager=True,
               expose_value=False, callback=print_hexdump_version, help="""
@@ -1207,6 +1205,16 @@ def del_header(
 @click.option('-u', '--upper', 'upper', is_flag=True, help="""
     Uses upper case hex letters on data only.
 """)
+@click.option('-I', '--input-format', type=FORMAT_CHOICE, help="""
+    Forces the input file format.
+""")
+@click.option('-O', '--output-format', type=FORMAT_CHOICE, help="""
+    Forces the output file format.
+""")
+@click.option('--seek-zeroes/--no-seek-zeroes', 'oseek_zeroes', is_flag=True,
+              default=True, help="""
+    Output seeking writes zeroes while seeking.
+""")
 @click.option('-v', '--version', is_flag=True, is_eager=True,
               expose_value=False, callback=print_version, help="""
     Prints the package version number.
@@ -1230,6 +1238,9 @@ def xxd(
     iseek: int,
     upper_all: bool,
     upper: bool,
+    input_format: str,
+    output_format: str,
+    oseek_zeroes: bool,
     infile: str,
     outfile: str,
 ) -> None:
@@ -1242,6 +1253,19 @@ def xxd(
 
     infile = None if infile == '-' else infile
     outfile = None if outfile == '-' else outfile
+    output_path = outfile
+    output_file = None
+    input_type = None
+
+    if input_format:
+        input_type = guess_input_type(infile, input_format)
+        input_file = input_type.load(infile)
+        infile = input_file.memory
+
+    if output_format:
+        output_type = guess_output_type(outfile, input_format, input_type)
+        output_file = output_type()
+        outfile = output_file.memory
 
     xxd_core(
         infile=infile,
@@ -1262,4 +1286,8 @@ def xxd(
         iseek=iseek,
         upper_all=upper_all,
         upper=upper,
+        oseek_zeroes=oseek_zeroes,
     )
+
+    if output_format:
+        output_file.save(output_path)

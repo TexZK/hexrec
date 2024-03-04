@@ -501,8 +501,8 @@ def hexdump_core(
         format_handlers = [_format_default]
 
     do_squeezing = not no_squeezing
-    instream = None
-    outstream = None
+    instream: Optional[IO, SparseMemoryIO] = None
+    outstream: Optional[IO] = None
     try:
         # Input stream binding
         if infile is None:

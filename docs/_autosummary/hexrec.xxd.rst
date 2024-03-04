@@ -13,8 +13,8 @@
         :template: custom-base-template.rst
         :nosignatures:
 
-        ~HUMAN_ASCII
-        ~HUMAN_EBCDIC
+        ~CHAR_ASCII
+        ~CHAR_EBCDIC
 
 
 
@@ -28,7 +28,6 @@
         :template: custom-base-template.rst
         :nosignatures:
 
-        ~humanize
         ~parse_seek
         ~xxd_core
 
