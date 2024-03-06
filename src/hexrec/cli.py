@@ -681,7 +681,7 @@ def flood(
               expose_value=False, callback=print_hexdump_version, help="""
     Print version and exit.
 """)
-@click.argument('infile', type=FILE_PATH_IN)
+@click.argument('infile', type=FILE_PATH_IN, required=False)
 def hexdump(
     infile: str,
     one_byte_octal: Sequence[bool],
@@ -812,7 +812,7 @@ def hexdump(
               expose_value=False, callback=print_hexdump_version, help="""
     Print version and exit.
 """)
-@click.argument('infile', type=FILE_PATH_IN)
+@click.argument('infile', type=FILE_PATH_IN, required=False)
 def hd(
     infile: str,
     one_byte_octal: Sequence[bool],
@@ -1219,8 +1219,8 @@ def del_header(
               expose_value=False, callback=print_version, help="""
     Prints the package version number.
 """)
-@click.argument('infile', type=FILE_PATH_IN)
-@click.argument('outfile', type=FILE_PATH_OUT)
+@click.argument('infile', type=FILE_PATH_IN, required=False)
+@click.argument('outfile', type=FILE_PATH_OUT, required=False)
 def xxd(
     autoskip: bool,
     bits: bool,

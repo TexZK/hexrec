@@ -1,0 +1,43 @@
+.TH XXD 1 "August 1996" "Manual page for xxd"
+.\"
+.\" 21st May 1996
+.\" Man page author:
+.\"    Tony Nugent <tony@sctnugen.ppp.gu.edu.au> <T.Nugent@sct.gu.edu.au>
+.\"    Changes by Bram Moolenaar <Bram@vim.org>
+.SH NAME
+.I xxd
+\- make a hexdump or do the reverse.
+.SH SYNOPSIS
+.B xxd
+\-h[elp]
+.br
+.B xxd
+[options] [infile [outfile]]
+.br
+.B xxd
+\-r[evert] [options] [infile [outfile]]
+.SH DESCRIPTION
+.I xxd
+creates a hex dump of a given file or standard input.
+It can also convert a hex dump back to its original binary form.
+Like
+.BR uuencode(1)
+and
+.BR uudecode(1)
+it allows the transmission of binary data in a `mail-safe' ASCII representation,
+but has the advantage of decoding to standard output.
+Moreover, it can be used to perform binary file patching.
+.SH OPTIONS
+If no
+.I infile
+is given, standard input is read.
+If
+.I infile
+is specified as a
+.RB \` \- '
+character, then input is taken from standard input.
+If no
+.I outfile
+is given (or a
+.RB \` \- '
+character is in its place), results are sent to standard output

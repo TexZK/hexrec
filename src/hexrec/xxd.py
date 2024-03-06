@@ -48,8 +48,8 @@ from .utils import parse_int
 _SEEKING_REGEX = re.compile(r'^(?P<sign>\+?-?)-?(?P<absolute>\w+)$')
 
 _REVERSE_REGEX = re.compile(b'^\\s*(?P<address>[A-Fa-f0-9]+)\\s*:\\s*'
-                            b'(?P<data>([A-Fa-f0-9]{2}\\s*)+)'
-                            b'[ ]{2}(?P<garbage>.*)$')
+                            b'(?P<data>([A-Fa-f0-9]{2}\\s?)+)'
+                            b'(\\s.*)?$')
 
 ZERO_BLOCK_SIZE = 1 << 20  # 1 MiB
 
@@ -344,7 +344,8 @@ def xxd_core(
             outfile = None
             outstream = sys.stdout.buffer
         elif isinstance(outfile, str):
-            outstream = open(outfile, 'w+b' if revert and oseek else 'wb')
+            mode = 'r+b' if revert and os.path.exists(outfile) else 'wb'
+            outstream = open(outfile, mode)
         elif isinstance(outfile, MutableMemory):
             outstream = SparseMemoryIO(memory=outfile)
             outsparse = True
@@ -357,14 +358,20 @@ def xxd_core(
         if iseek is not None:
             ss, sv = parse_seek(str(iseek))
 
-            if ss == '+':
-                instream.seek(sv, io.SEEK_CUR)
-            elif ss == '+-':
-                instream.seek(-sv, io.SEEK_CUR)
-            elif ss == '-':
-                instream.seek(-sv, io.SEEK_END)
-            else:  # elif ss == '':
-                instream.seek(sv, io.SEEK_SET)
+            if revert:
+                if '-' in ss:
+                    sv = -sv
+                iseek = sv
+
+            else:
+                if ss == '+':
+                    instream.seek(sv, io.SEEK_CUR)
+                elif ss == '+-':
+                    instream.seek(-sv, io.SEEK_CUR)
+                elif ss == '-':
+                    instream.seek(-sv, io.SEEK_END)
+                else:  # elif ss == '':
+                    instream.seek(sv, io.SEEK_SET)
 
             offset += instream.tell()
 
@@ -391,7 +398,7 @@ def xxd_core(
                     if match:
                         # Interpret line contents
                         groups = match.groupdict()
-                        address = (oseek or 0) + int(groups['address'], 16)
+                        address = (oseek or 0) + (iseek or 0) + int(groups['address'], 16)
                         data = _unhexlify(groups['data'])
                         data = data[:cols]
 

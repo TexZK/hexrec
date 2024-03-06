@@ -1,6 +1,7 @@
 import glob
 import io
 import os
+import shutil
 import sys
 from pathlib import Path
 from typing import Any
@@ -72,7 +73,7 @@ def test_by_filename_text(tmppath, datapath):
 
     for filename in test_filenames:
         filename = os.path.basename(filename)
-        print(filename)
+        print('@', filename, file=sys.stderr)
         path_out = tmppath / filename
         path_ref = datapath / filename
 
@@ -92,12 +93,20 @@ def test_by_filename_text(tmppath, datapath):
 
 
 def test_by_filename_bytes(tmppath, datapath):
+    copy_filenames = [
+        (r'xxd.1', r'test_xxd_-r_xxd.1.patch.xxd.bin'),
+    ]
+    for path_ref, path_out in copy_filenames:
+        path_ref = str(datapath / path_ref)
+        path_out = str(tmppath / path_out)
+        shutil.copy(path_ref, path_out)
+
     prefix = 'test_xxd_'
     test_filenames = glob.glob(str(datapath / (prefix + '*.bin')))
 
     for filename in test_filenames:
         filename = os.path.basename(filename)
-        print(filename)
+        print('@', filename, file=sys.stderr)
         path_out = tmppath / filename
         path_ref = datapath / filename
 
@@ -238,6 +247,24 @@ def test_xxd_include_stdin(datapath):
     text_out = text_out.getvalue().replace(b'\r\n', b'\n')
 
     assert text_out == text_ref
+
+
+def test_xxd_include_stdin_cli(tmppath, datapath):
+    filename = 'xxd_-i_STDIN_file.c'
+    path_out = tmppath / filename
+    path_ref = datapath / filename
+    path_in = datapath / 'file'
+
+    args = 'xxd -i - '.split() + [str(path_out)]
+
+    runner = CliRunner()
+    data_in = read_bytes(path_in)
+    result = runner.invoke(_cast(Any, cli_main), args, input=data_in)
+    assert result.exit_code == 0
+
+    ans_out = read_text(path_out)
+    ans_ref = read_text(path_ref)
+    assert ans_out == ans_ref
 
 
 def test_xxd_none(datapath):
