@@ -34,6 +34,7 @@ MosFile
         :nosignatures:
 
         ~MosFile.__init__
+        ~MosFile.align
         ~MosFile.append
         ~MosFile.apply_records
         ~MosFile.clear

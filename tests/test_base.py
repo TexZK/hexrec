@@ -983,6 +983,14 @@ class BaseTestFile:
         assert File._is_line_empty(b'') is True
         assert File._is_line_empty(b' \t\v\r\n') is True
 
+    def test_align(self):
+        File = self.File
+        file = File.from_blocks([[123, b'abc'], [134, b'xyz']])
+        returned = file.align(4, pattern=b'.')
+        assert returned is file
+        assert file._memory.to_blocks() == [[120, b'...abc..'], [132, b'..xyz...']]
+        assert file._records is None
+
     def test_append(self):
         File = self.File
         file = File.from_bytes(b'abc', offset=5)

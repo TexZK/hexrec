@@ -34,6 +34,7 @@ AvrFile
         :nosignatures:
 
         ~AvrFile.__init__
+        ~AvrFile.align
         ~AvrFile.append
         ~AvrFile.apply_records
         ~AvrFile.clear

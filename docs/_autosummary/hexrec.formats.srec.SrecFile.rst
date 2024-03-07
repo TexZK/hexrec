@@ -36,6 +36,7 @@ SrecFile
         :nosignatures:
 
         ~SrecFile.__init__
+        ~SrecFile.align
         ~SrecFile.append
         ~SrecFile.apply_records
         ~SrecFile.clear

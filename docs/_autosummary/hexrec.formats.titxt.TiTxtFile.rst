@@ -34,6 +34,7 @@ TiTxtFile
         :nosignatures:
 
         ~TiTxtFile.__init__
+        ~TiTxtFile.align
         ~TiTxtFile.append
         ~TiTxtFile.apply_records
         ~TiTxtFile.clear

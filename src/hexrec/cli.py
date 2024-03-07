@@ -321,6 +321,62 @@ def main() -> None:
     Forces the output file format.
     By default it is that of the input file.
 """)
+@click.option('-m', '--modulo', type=BYTE_INT, default=4, help="""
+    Alignment modulo.
+""")
+@click.option('-s', '--start', type=BASED_INT, help="""
+    Inclusive start address. Negative values are referred to the end of the data.
+    By default it applies from the start of the data contents.
+""")
+@click.option('-e', '--endex', type=BASED_INT, help="""
+    Exclusive end address. Negative values are referred to the end of the data.
+    By default it applies till the end of the data contents.
+""")
+@click.option('-v', '--value', type=BYTE_INT, default=0, help="""
+    Byte value used to flood alignment padding.
+""")
+@click.option('-w', '--width', type=BASED_INT, help="""
+    Sets the length of the record data field, in bytes.
+    By default it is that of the input file.
+""")
+@click.argument('infile', type=FILE_PATH_IN, required=False)
+@click.argument('outfile', type=FILE_PATH_OUT, required=False)
+def align(
+    input_format: Optional[str],
+    output_format: Optional[str],
+    modulo: int,
+    start: Optional[int],
+    endex: Optional[int],
+    value: Optional[int],
+    width: Optional[int],
+    infile: str,
+    outfile: str,
+) -> None:
+    r"""Pads blocks to align their boundaries.
+
+    ``INFILE`` is the path of the input file.
+    Set to ``-`` to read from standard input; input format required.
+
+    ``OUTFILE`` is the path of the output file.
+    Set to ``-`` to write to standard output.
+    Leave empty to overwrite ``INFILE``.
+    """
+
+    with SingleFileInOutCtxMgr(infile, input_format, outfile, output_format, width) as ctx:
+        ctx.output_file.align(modulo, start=start, endex=endex, pattern=value)
+
+
+# ----------------------------------------------------------------------------
+
+@main.command()
+@click.option('-i', '--input-format', type=FORMAT_CHOICE, help="""
+    Forces the input file format.
+    Required for the standard input.
+""")
+@click.option('-o', '--output-format', type=FORMAT_CHOICE, help="""
+    Forces the output file format.
+    By default it is that of the input file.
+""")
 @click.option('-s', '--start', type=BASED_INT, help="""
     Inclusive start address. Negative values are referred to the end of the data.
     By default it applies from the start of the data contents.
@@ -333,8 +389,8 @@ def main() -> None:
     Sets the length of the record data field, in bytes.
     By default it is that of the input file.
 """)
-@click.argument('infile', type=FILE_PATH_IN)
-@click.argument('outfile', type=FILE_PATH_OUT)
+@click.argument('infile', type=FILE_PATH_IN, required=False)
+@click.argument('outfile', type=FILE_PATH_OUT, required=False)
 def clear(
     input_format: Optional[str],
     output_format: Optional[str],
@@ -373,8 +429,8 @@ def clear(
     Sets the length of the record data field, in bytes.
     By default it is that of the input file.
 """)
-@click.argument('infile', type=FILE_PATH_IN)
-@click.argument('outfile', type=FILE_PATH_OUT)
+@click.argument('infile', type=FILE_PATH_IN, required=False)
+@click.argument('outfile', type=FILE_PATH_OUT, required=False)
 def convert(
     input_format: Optional[str],
     output_format: Optional[str],
@@ -424,8 +480,8 @@ def convert(
     Sets the length of the record data field, in bytes.
     By default it is that of the input file.
 """)
-@click.argument('infile', type=FILE_PATH_IN)
-@click.argument('outfile', type=FILE_PATH_OUT)
+@click.argument('infile', type=FILE_PATH_IN, required=False)
+@click.argument('outfile', type=FILE_PATH_OUT, required=False)
 def crop(
     input_format: Optional[str],
     output_format: Optional[str],
@@ -476,8 +532,8 @@ def crop(
     Sets the length of the record data field, in bytes.
     By default it is that of the input file.
 """)
-@click.argument('infile', type=FILE_PATH_IN)
-@click.argument('outfile', type=FILE_PATH_OUT)
+@click.argument('infile', type=FILE_PATH_IN, required=False)
+@click.argument('outfile', type=FILE_PATH_OUT, required=False)
 def delete(
     input_format: Optional[str],
     output_format: Optional[str],
@@ -527,8 +583,8 @@ def delete(
     Sets the length of the record data field, in bytes.
     By default it is that of the input file.
 """)
-@click.argument('infile', type=FILE_PATH_IN)
-@click.argument('outfile', type=FILE_PATH_OUT)
+@click.argument('infile', type=FILE_PATH_IN, required=False)
+@click.argument('outfile', type=FILE_PATH_OUT, required=False)
 def fill(
     input_format: Optional[str],
     output_format: Optional[str],
@@ -579,8 +635,8 @@ def fill(
     Sets the length of the record data field, in bytes.
     By default it is that of the input file.
 """)
-@click.argument('infile', type=FILE_PATH_IN)
-@click.argument('outfile', type=FILE_PATH_OUT)
+@click.argument('infile', type=FILE_PATH_IN, required=False)
+@click.argument('outfile', type=FILE_PATH_OUT, required=False)
 def flood(
     input_format: Optional[str],
     output_format: Optional[str],
@@ -941,8 +997,8 @@ def merge(
     Sets the length of the record data field, in bytes.
     By default it is that of the input file.
 """)
-@click.argument('infile', type=FILE_PATH_IN)
-@click.argument('outfile', type=FILE_PATH_OUT)
+@click.argument('infile', type=FILE_PATH_IN, required=False)
+@click.argument('outfile', type=FILE_PATH_OUT, required=False)
 def shift(
     input_format: Optional[str],
     output_format: Optional[str],
@@ -972,7 +1028,7 @@ def shift(
     Forces the input file format.
     Required for the standard input.
 """)
-@click.argument('infile', type=FILE_PATH_IN)
+@click.argument('infile', type=FILE_PATH_IN, required=False)
 def validate(
     input_format: Optional[str],
     infile: str,
@@ -1001,7 +1057,7 @@ def srec() -> None:
 @srec.command()
 @click.option('-f', '--format', 'format', type=DATA_FMT_CHOICE,
               default='ascii', help='Header data format.')
-@click.argument('infile', type=FILE_PATH_IN)
+@click.argument('infile', type=FILE_PATH_IN, required=False)
 def get_header(
     format: str,
     infile: str,
@@ -1028,8 +1084,8 @@ def get_header(
 @click.option('-f', '--format', 'format', type=DATA_FMT_CHOICE,
               default='ascii', help='Header data format.')
 @click.argument('header', type=str)
-@click.argument('infile', type=FILE_PATH_IN)
-@click.argument('outfile', type=FILE_PATH_OUT)
+@click.argument('infile', type=FILE_PATH_IN, required=False)
+@click.argument('outfile', type=FILE_PATH_OUT, required=False)
 def set_header(
     format: str,
     header: str,
@@ -1071,8 +1127,8 @@ def set_header(
 
 # noinspection PyShadowingBuiltins
 @srec.command()
-@click.argument('infile', type=FILE_PATH_IN)
-@click.argument('outfile', type=FILE_PATH_OUT)
+@click.argument('infile', type=FILE_PATH_IN, required=False)
+@click.argument('outfile', type=FILE_PATH_OUT, required=False)
 def del_header(
     infile: str,
     outfile: str,

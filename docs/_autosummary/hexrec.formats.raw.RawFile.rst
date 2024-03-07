@@ -34,6 +34,7 @@ RawFile
         :nosignatures:
 
         ~RawFile.__init__
+        ~RawFile.align
         ~RawFile.append
         ~RawFile.apply_records
         ~RawFile.clear

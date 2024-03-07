@@ -35,6 +35,7 @@ BaseFile
         :nosignatures:
 
         ~BaseFile.__init__
+        ~BaseFile.align
         ~BaseFile.append
         ~BaseFile.apply_records
         ~BaseFile.clear

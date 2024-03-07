@@ -34,6 +34,7 @@ AsciiHexFile
         :nosignatures:
 
         ~AsciiHexFile.__init__
+        ~AsciiHexFile.align
         ~AsciiHexFile.append
         ~AsciiHexFile.apply_records
         ~AsciiHexFile.clear

@@ -35,6 +35,7 @@ XtekFile
         :nosignatures:
 
         ~XtekFile.__init__
+        ~XtekFile.align
         ~XtekFile.append
         ~XtekFile.apply_records
         ~XtekFile.clear

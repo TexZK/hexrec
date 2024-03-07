@@ -36,6 +36,7 @@ IhexFile
         :nosignatures:
 
         ~IhexFile.__init__
+        ~IhexFile.align
         ~IhexFile.append
         ~IhexFile.apply_records
         ~IhexFile.clear

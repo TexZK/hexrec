@@ -1974,6 +1974,59 @@ class BaseFile(abc.ABC):
 
         return not line or line.isspace()
 
+    def align(
+        self,
+        modulo: int,
+        start: Optional[int] = None,
+        endex: Optional[int] = None,
+        pattern: Union[int, AnyBytes] = 0,
+    ) -> Self:
+        r"""Pads blocks to align their boundaries.
+
+        It fills memory holes of the underlying :attr:`memory` within the
+        specified range with a `pattern`, so that memory blocks are aligned to
+        the required `modulo`.
+
+        Any stored :attr:`records` are discarded upon return.
+
+        Args:
+            modulo (int):
+                Alignment modulo.
+
+            start (int):
+                Inclusive start address of the specified range.
+                If ``None``, start from the beginning of the :attr:`memory`.
+
+            endex (int):
+                Exclusive end address of the specified range.
+                If ``None``, extend after the end of the :attr:`memory`.
+
+            pattern (bytes or int):
+                Byte pattern for flooding.
+
+        Returns:
+            :class:`BaseFile`: *self*.
+
+        See Also:
+            :attr:`memory`
+            :meth:`discard_records`
+            :meth:`bytesparse.base.MutableMemory.align`
+
+        Examples:
+            **NOTE:** These examples are provided by :class:`BaseFile`.
+            Inherited classes for specific *formats* may require an adaptation.
+
+            >>> from hexrec import SrecFile
+            >>> file = SrecFile.from_blocks([[123, b'abc'], [134, b'xyz']])
+            >>> _ = file.align(4, pattern=b'.')
+            >>> file.memory.to_blocks()
+            [[120, b'...abc..'], [132, b'..xyz...']]
+        """
+
+        self.memory.align(modulo, start=start, endex=endex, pattern=pattern)
+        self.discard_records()
+        return self
+
     def append(self, item: Union[AnyBytes, int]) -> Self:
         r"""Appends a byte.
 

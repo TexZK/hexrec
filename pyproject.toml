@@ -28,7 +28,7 @@ classifiers = [
     "Topic :: Utilities",
 ]
 dependencies = [
-    "bytesparse >= 0.0.8",  # comment out and use the one below for development instead
+    "bytesparse >= 1.0.0",  # comment out and use the one below for development instead
     # "bytesparse @ git+https://github.com/TexZK/bytesparse.git",  # only for development
     "click",
     "colorama",
