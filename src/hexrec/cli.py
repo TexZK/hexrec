@@ -321,7 +321,7 @@ def main() -> None:
     Forces the output file format.
     By default it is that of the input file.
 """)
-@click.option('-m', '--modulo', type=BYTE_INT, default=4, help="""
+@click.option('-m', '--modulo', type=BYTE_INT, default=4, show_default=True, help="""
     Alignment modulo.
 """)
 @click.option('-s', '--start', type=BASED_INT, help="""
@@ -332,7 +332,7 @@ def main() -> None:
     Exclusive end address. Negative values are referred to the end of the data.
     By default it applies till the end of the data contents.
 """)
-@click.option('-v', '--value', type=BYTE_INT, default=0, help="""
+@click.option('-v', '--value', type=BYTE_INT, default=0, show_default=True, help="""
     Byte value used to flood alignment padding.
 """)
 @click.option('-w', '--width', type=BASED_INT, help="""
@@ -568,7 +568,7 @@ def delete(
     Forces the output file format.
     By default it is that of the input file.
 """)
-@click.option('-v', '--value', type=BYTE_INT, default=0xFF, help="""
+@click.option('-v', '--value', type=BYTE_INT, default=0, show_default=True, help="""
     Byte value used to fill the address range.
 """)
 @click.option('-s', '--start', type=BASED_INT, help="""
@@ -620,7 +620,7 @@ def fill(
     Forces the output file format.
     By default it is that of the input file.
 """)
-@click.option('-v', '--value', type=BYTE_INT, default=0xFF, help="""
+@click.option('-v', '--value', type=BYTE_INT, default=0, show_default=True, help="""
     Byte value used to flood the address range.
 """)
 @click.option('-s', '--start', type=BASED_INT, help="""
@@ -1056,7 +1056,9 @@ def srec() -> None:
 # noinspection PyShadowingBuiltins
 @srec.command()
 @click.option('-f', '--format', 'format', type=DATA_FMT_CHOICE,
-              default='ascii', help='Header data format.')
+              default='ascii', show_default=True, help="""
+    Header data format.
+""")
 @click.argument('infile', type=FILE_PATH_IN, required=False)
 def get_header(
     format: str,
@@ -1082,7 +1084,9 @@ def get_header(
 # noinspection PyShadowingBuiltins
 @srec.command()
 @click.option('-f', '--format', 'format', type=DATA_FMT_CHOICE,
-              default='ascii', help='Header data format.')
+              default='ascii', show_default=True, help="""
+    Header data format.
+""")
 @click.argument('header', type=str)
 @click.argument('infile', type=FILE_PATH_IN, required=False)
 @click.argument('outfile', type=FILE_PATH_OUT, required=False)
@@ -1268,7 +1272,7 @@ def del_header(
     Forces the output file format.
 """)
 @click.option('--seek-zeroes/--no-seek-zeroes', 'oseek_zeroes', is_flag=True,
-              default=True, help="""
+              default=True, show_default=True, help="""
     Output seeking writes zeroes while seeking.
 """)
 @click.option('-v', '--version', is_flag=True, is_eager=True,
