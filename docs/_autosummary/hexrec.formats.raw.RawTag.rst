@@ -1,4 +1,4 @@
-RawTag
+﻿RawTag
 ======
 
 .. currentmodule:: hexrec.formats.raw
@@ -22,4 +22,12 @@ RawTag
 
 
 
+
+    .. rubric:: Methods
+
+    .. autosummary::
+        :nosignatures:
+
+        ~RawTag.is_data
+        ~RawTag.is_file_termination
 

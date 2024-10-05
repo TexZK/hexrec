@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - rc
 
   pull_request:
 
@@ -17,8 +18,6 @@ jobs:
       max-parallel: 4
       matrix:
         python-version:
-          - '3.7'
-          - '3.8'
           - '3.9'
           - '3.10'
           - '3.11'

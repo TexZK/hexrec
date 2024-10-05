@@ -18,6 +18,7 @@ include README.rst
 include requirements.txt
 include pyproject.toml
 include setup.cfg
+include setup.py
 include tox.ini
 
 global-exclude *.py[cod] __pycache__ *.so *.dylib

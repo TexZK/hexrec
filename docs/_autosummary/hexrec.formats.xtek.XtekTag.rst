@@ -1,4 +1,4 @@
-XtekTag
+﻿XtekTag
 =======
 
 .. currentmodule:: hexrec.formats.xtek
@@ -16,12 +16,12 @@ XtekTag
 
     .. autosummary::
 
-        ~XtekTag.DATA
-        ~XtekTag.EOF
-        ~XtekTag.denominator
+        ~XtekTag.real
         ~XtekTag.imag
         ~XtekTag.numerator
-        ~XtekTag.real
+        ~XtekTag.denominator
+        ~XtekTag.DATA
+        ~XtekTag.EOF
 
 
 
@@ -33,12 +33,13 @@ XtekTag
     .. autosummary::
         :nosignatures:
 
-        ~XtekTag.is_eof
-        ~XtekTag.__init__
-        ~XtekTag.as_integer_ratio
-        ~XtekTag.bit_count
-        ~XtekTag.bit_length
+        ~XtekTag.is_data
+        ~XtekTag.is_file_termination
         ~XtekTag.conjugate
-        ~XtekTag.from_bytes
+        ~XtekTag.bit_length
+        ~XtekTag.bit_count
         ~XtekTag.to_bytes
+        ~XtekTag.from_bytes
+        ~XtekTag.as_integer_ratio
+        ~XtekTag.is_eof
 

@@ -1,4 +1,4 @@
-MosTag
+﻿MosTag
 ======
 
 .. currentmodule:: hexrec.formats.mos
@@ -16,12 +16,12 @@ MosTag
 
     .. autosummary::
 
-        ~MosTag.DATA
-        ~MosTag.EOF
-        ~MosTag.denominator
+        ~MosTag.real
         ~MosTag.imag
         ~MosTag.numerator
-        ~MosTag.real
+        ~MosTag.denominator
+        ~MosTag.DATA
+        ~MosTag.EOF
 
 
 
@@ -33,12 +33,13 @@ MosTag
     .. autosummary::
         :nosignatures:
 
-        ~MosTag.is_eof
-        ~MosTag.__init__
-        ~MosTag.as_integer_ratio
-        ~MosTag.bit_count
-        ~MosTag.bit_length
+        ~MosTag.is_data
+        ~MosTag.is_file_termination
         ~MosTag.conjugate
-        ~MosTag.from_bytes
+        ~MosTag.bit_length
+        ~MosTag.bit_count
         ~MosTag.to_bytes
+        ~MosTag.from_bytes
+        ~MosTag.as_integer_ratio
+        ~MosTag.is_eof
 

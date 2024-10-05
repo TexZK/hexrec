@@ -27,7 +27,7 @@ Overview
 
 .. |codecov| image:: https://codecov.io/gh/TexZK/hexrec/branch/main/graphs/badge.svg?branch=main
     :alt: Coverage Status
-    :target: https://codecov.io/github/TexZK/hexrec
+    :target: https://app.codecov.io/github/TexZK/hexrec
 
 .. |version| image:: https://img.shields.io/pypi/v/hexrec.svg
     :alt: PyPI Package latest release

@@ -10,7 +10,7 @@ dist
 build
 eggs
 .eggs
-env
+*env
 parts
 bin
 var
@@ -20,8 +20,6 @@ develop-eggs
 .installed.cfg
 lib
 lib64
-venv*/
-pyvenv*/
 tmp*
 
 # Installer logs
@@ -48,6 +46,7 @@ tests/*.html
 .idea
 *.iml
 *.komodoproject
+.vscode
 
 # Complexity
 output/*.html

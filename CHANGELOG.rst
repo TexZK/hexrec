@@ -1,8 +1,14 @@
 Changelog
 =========
 
-0.4.0 (TBD)
------------
+0.4.1 (2024-10-05)
+------------------
+
+* Minor workflow and metadata updates.
+
+
+0.4.0 (2024-03-08)
+------------------
 
 * Library rewritten from scratch (not backwards compatible).
 * Added new object oriented API, hopefully more user friendly.

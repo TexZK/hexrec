@@ -1,4 +1,4 @@
-AvrTag
+﻿AvrTag
 ======
 
 .. currentmodule:: hexrec.formats.avr
@@ -22,4 +22,12 @@ AvrTag
 
 
 
+
+    .. rubric:: Methods
+
+    .. autosummary::
+        :nosignatures:
+
+        ~AvrTag.is_data
+        ~AvrTag.is_file_termination
 

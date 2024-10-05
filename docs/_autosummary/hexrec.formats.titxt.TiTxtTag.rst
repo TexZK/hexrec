@@ -1,4 +1,4 @@
-TiTxtTag
+﻿TiTxtTag
 ========
 
 .. currentmodule:: hexrec.formats.titxt
@@ -16,13 +16,13 @@ TiTxtTag
 
     .. autosummary::
 
+        ~TiTxtTag.real
+        ~TiTxtTag.imag
+        ~TiTxtTag.numerator
+        ~TiTxtTag.denominator
         ~TiTxtTag.DATA
         ~TiTxtTag.ADDRESS
         ~TiTxtTag.EOF
-        ~TiTxtTag.denominator
-        ~TiTxtTag.imag
-        ~TiTxtTag.numerator
-        ~TiTxtTag.real
 
 
 
@@ -34,13 +34,14 @@ TiTxtTag
     .. autosummary::
         :nosignatures:
 
+        ~TiTxtTag.is_data
+        ~TiTxtTag.is_file_termination
+        ~TiTxtTag.conjugate
+        ~TiTxtTag.bit_length
+        ~TiTxtTag.bit_count
+        ~TiTxtTag.to_bytes
+        ~TiTxtTag.from_bytes
+        ~TiTxtTag.as_integer_ratio
         ~TiTxtTag.is_address
         ~TiTxtTag.is_eof
-        ~TiTxtTag.__init__
-        ~TiTxtTag.as_integer_ratio
-        ~TiTxtTag.bit_count
-        ~TiTxtTag.bit_length
-        ~TiTxtTag.conjugate
-        ~TiTxtTag.from_bytes
-        ~TiTxtTag.to_bytes
 

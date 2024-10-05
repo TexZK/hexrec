@@ -1,4 +1,4 @@
-AsciiHexTag
+﻿AsciiHexTag
 ===========
 
 .. currentmodule:: hexrec.formats.asciihex
@@ -16,13 +16,13 @@ AsciiHexTag
 
     .. autosummary::
 
+        ~AsciiHexTag.real
+        ~AsciiHexTag.imag
+        ~AsciiHexTag.numerator
+        ~AsciiHexTag.denominator
         ~AsciiHexTag.DATA
         ~AsciiHexTag.ADDRESS
         ~AsciiHexTag.CHECKSUM
-        ~AsciiHexTag.denominator
-        ~AsciiHexTag.imag
-        ~AsciiHexTag.numerator
-        ~AsciiHexTag.real
 
 
 
@@ -34,13 +34,14 @@ AsciiHexTag
     .. autosummary::
         :nosignatures:
 
+        ~AsciiHexTag.is_data
+        ~AsciiHexTag.is_file_termination
+        ~AsciiHexTag.conjugate
+        ~AsciiHexTag.bit_length
+        ~AsciiHexTag.bit_count
+        ~AsciiHexTag.to_bytes
+        ~AsciiHexTag.from_bytes
+        ~AsciiHexTag.as_integer_ratio
         ~AsciiHexTag.is_address
         ~AsciiHexTag.is_checksum
-        ~AsciiHexTag.__init__
-        ~AsciiHexTag.as_integer_ratio
-        ~AsciiHexTag.bit_count
-        ~AsciiHexTag.bit_length
-        ~AsciiHexTag.conjugate
-        ~AsciiHexTag.from_bytes
-        ~AsciiHexTag.to_bytes
 

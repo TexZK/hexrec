@@ -1,4 +1,4 @@
-IhexTag
+﻿IhexTag
 =======
 
 .. currentmodule:: hexrec.formats.ihex
@@ -16,16 +16,16 @@ IhexTag
 
     .. autosummary::
 
+        ~IhexTag.real
+        ~IhexTag.imag
+        ~IhexTag.numerator
+        ~IhexTag.denominator
         ~IhexTag.DATA
         ~IhexTag.END_OF_FILE
         ~IhexTag.EXTENDED_SEGMENT_ADDRESS
         ~IhexTag.START_SEGMENT_ADDRESS
         ~IhexTag.EXTENDED_LINEAR_ADDRESS
         ~IhexTag.START_LINEAR_ADDRESS
-        ~IhexTag.denominator
-        ~IhexTag.imag
-        ~IhexTag.numerator
-        ~IhexTag.real
 
 
 
@@ -37,14 +37,15 @@ IhexTag
     .. autosummary::
         :nosignatures:
 
+        ~IhexTag.is_data
+        ~IhexTag.is_file_termination
+        ~IhexTag.conjugate
+        ~IhexTag.bit_length
+        ~IhexTag.bit_count
+        ~IhexTag.to_bytes
+        ~IhexTag.from_bytes
+        ~IhexTag.as_integer_ratio
         ~IhexTag.is_eof
         ~IhexTag.is_extension
         ~IhexTag.is_start
-        ~IhexTag.__init__
-        ~IhexTag.as_integer_ratio
-        ~IhexTag.bit_count
-        ~IhexTag.bit_length
-        ~IhexTag.conjugate
-        ~IhexTag.from_bytes
-        ~IhexTag.to_bytes
 

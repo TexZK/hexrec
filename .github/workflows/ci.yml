@@ -4,8 +4,11 @@ on:
   push:
     branches:
       - main
+      - rc
 
   pull_request:
+
+  workflow_dispatch:
 
 jobs:
   build:
@@ -20,8 +23,6 @@ jobs:
           - windows-latest
 
         python-version:
-          - '3.7'
-          - '3.8'
           - '3.9'
           - '3.10'
           - '3.11'
@@ -43,7 +44,7 @@ jobs:
         run: tox
 
       - name: Upload coverage
-        if: ${{ matrix.platform == 'ubuntu-latest' && matrix.python-version == '3.11' }}
+        if: ${{ matrix.platform == 'ubuntu-latest' && matrix.python-version == '3.12' }}
         uses: actions/upload-artifact@v4
         with:
           name: hexrec-coverage
@@ -51,7 +52,7 @@ jobs:
           if-no-files-found: error
 
       - name: Upload to codecov
-        if: ${{ matrix.platform == 'ubuntu-latest' && matrix.python-version == '3.11' }}
+        if: ${{ matrix.platform == 'ubuntu-latest' && matrix.python-version == '3.12' }}
         uses: codecov/codecov-action@v4
         with:
           fail_ci_if_error: true

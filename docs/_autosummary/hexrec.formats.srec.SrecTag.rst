@@ -1,4 +1,4 @@
-SrecTag
+﻿SrecTag
 =======
 
 .. currentmodule:: hexrec.formats.srec
@@ -16,6 +16,10 @@ SrecTag
 
     .. autosummary::
 
+        ~SrecTag.real
+        ~SrecTag.imag
+        ~SrecTag.numerator
+        ~SrecTag.denominator
         ~SrecTag.HEADER
         ~SrecTag.DATA_16
         ~SrecTag.DATA_24
@@ -26,10 +30,6 @@ SrecTag
         ~SrecTag.START_32
         ~SrecTag.START_24
         ~SrecTag.START_16
-        ~SrecTag.denominator
-        ~SrecTag.imag
-        ~SrecTag.numerator
-        ~SrecTag.real
 
 
 
@@ -41,6 +41,14 @@ SrecTag
     .. autosummary::
         :nosignatures:
 
+        ~SrecTag.is_data
+        ~SrecTag.is_file_termination
+        ~SrecTag.conjugate
+        ~SrecTag.bit_length
+        ~SrecTag.bit_count
+        ~SrecTag.to_bytes
+        ~SrecTag.from_bytes
+        ~SrecTag.as_integer_ratio
         ~SrecTag.fit_count_tag
         ~SrecTag.fit_data_tag
         ~SrecTag.fit_start_tag
@@ -51,11 +59,4 @@ SrecTag
         ~SrecTag.is_count
         ~SrecTag.is_header
         ~SrecTag.is_start
-        ~SrecTag.__init__
-        ~SrecTag.as_integer_ratio
-        ~SrecTag.bit_count
-        ~SrecTag.bit_length
-        ~SrecTag.conjugate
-        ~SrecTag.from_bytes
-        ~SrecTag.to_bytes
 
