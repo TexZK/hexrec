@@ -243,11 +243,6 @@ def test_guess_format_name_raises_missing():
         guess_format_name('file._some_unexisting_extension_')
 
 
-def test_guess_format_name_raises_guess_hex(fake_file_types):
-    with pytest.raises(ValueError, match='cannot guess record file format'):
-        guess_format_name('file.hex')
-
-
 def test_guess_format_type():
     vector = [
         (IhexFile, 'example.hex'),
@@ -284,6 +279,46 @@ def test_load_in_format(datapath):
     ]
     in_file = load(in_path, in_format='ihex')
     assert in_file.records == records
+
+
+def test_load_stream(datapath):
+    SrecRecord = SrecFile.Record
+    SrecTag = SrecRecord.Tag
+    in_path = str(datapath / 'simple.srec')
+    records = [
+        SrecRecord.create_header(),
+        SrecRecord.create_data(0x00001234, b'abc', tag=SrecTag.DATA_32),
+        SrecRecord.create_data(0xABCD5678, b'xyz', tag=SrecTag.DATA_32),
+        SrecRecord.create_count(2, tag=SrecTag.COUNT_16),
+        SrecRecord.create_start(0xABCD5678, tag=SrecTag.START_32),
+    ]
+    with open(in_path, 'rb') as in_stream:
+        in_file = load(in_stream)
+    assert in_file.records == records
+
+
+def test_load_wrong_extension(datapath):
+    vector = [
+        (IhexFile, 'simple_hex.srec'),
+        (SrecFile, 'simple_srec.hex'),
+    ]
+    for expected, path in vector:
+        in_path = str(datapath / path)
+        in_file = load(in_path)
+        assert type(in_file) is expected
+
+
+def test_load_cannot_guess_file(datapath):
+    with pytest.raises(Exception):
+        in_path = str(datapath / 'missing.file')
+        load(in_path)
+
+
+def test_load_cannot_guess_stream():
+    in_stream = io.BufferedWriter(io.BytesIO(b''))
+    assert not in_stream.readable()
+    with pytest.raises(Exception):
+        load(in_stream)
 
 
 def test_merge(datapath, tmppath):

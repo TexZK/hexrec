@@ -125,8 +125,6 @@ by ``vim``.
 
 The package can also be run as a command line tool, by running the ``hexrec``
 package itself (``python -m hexrec``), providing some record file  utilities.
-You can also create your own standalone executable, or download a precompiled
-one from the ``pyinstaller`` folder.
 
 The codebase is written in a simple fashion, to be easily readable and
 maintainable, following some naive pythonic *K.I.S.S.* approach by choice.

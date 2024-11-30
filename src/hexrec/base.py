@@ -180,7 +180,7 @@ def colorize_tokens(
 
 
 def convert(
-    in_path: str,
+    in_path_or_stream: Union[str, IO],
     out_path: str,
     in_format: Optional[str] = None,
     out_format: Optional[str] = None,
@@ -194,15 +194,15 @@ def convert(
     processing by the user.
 
     Args:
-        in_path (str):
-            Input file path.
+        in_path_or_stream (str):
+            Input file path or stream.
 
         out_path (str):
             Output file path. It can be the same as `in_path`.
 
         in_format (str):
             Name of the input format, within :data:`FILE_TYPES`.
-            If ``None``, it is guessed via :func:`guess_format_name`.
+            If ``None``, it is guessed via brute-force :func:`load`.
 
         out_format (str):
             Name of the output format, within :data:`FILE_TYPES`.
@@ -226,7 +226,7 @@ def convert(
     if out_format is None:
         out_format = guess_format_name(out_path)
     out_type = FILE_TYPES[out_format]
-    in_file = load(in_path, in_format)
+    in_file = load(in_path_or_stream, in_format)
     out_file = out_type.convert(in_file)
     out_file.save(out_path)
     return in_file, out_file
@@ -239,9 +239,6 @@ def guess_format_name(file_path: str) -> str:
     formats registered into :data:`FILE_TYPES`.
     The first record format to match the extension within its own
     :attr:`BaseFile.FILE_EXT` is returned.
-
-    If no extension matches, the file is parsed until a :meth:`BaseFile.parse`
-    succeds (no exception raised).
 
     Args:
         file_path (str):
@@ -282,19 +279,7 @@ def guess_format_name(file_path: str) -> str:
     if not names_found:
         raise ValueError(f'extension not found: {file_ext!r}')
 
-    if len(names_found) == 1:
-        return names_found[0]
-
-    for name in names_found:
-        file_type = FILE_TYPES[name]
-        try:
-            with open(file_path, 'rb') as stream:
-                file_type.parse(stream)
-            return name
-        except Exception:
-            pass
-
-    raise ValueError('cannot guess record file format')
+    return names_found[0]
 
 
 def guess_format_type(file_path: str) -> Type['BaseFile']:
@@ -335,7 +320,7 @@ def guess_format_type(file_path: str) -> Type['BaseFile']:
 
 
 def load(
-    in_path: str,
+    in_path_or_stream: Union[str, IO],
     *load_args: Any,
     in_format: Optional[str] = None,
     **load_kwargs: Any,
@@ -348,12 +333,12 @@ def load(
     underlying call to :meth:`BaseFile.load`.
 
     Args:
-        in_path (str):
-            Input file path.
+        in_path_or_stream (str):
+            Input file path or stream.
 
         in_format (str):
             Name of the input format, within :data:`FILE_TYPES`.
-            If ``None``, it is guessed via :func:`guess_format_name`.
+            If ``None``, it is guessed via brute-force :meth:`BaseFile.load`.
 
     Returns:
         :class:`BaseFile`: The loaded record file object.
@@ -373,17 +358,38 @@ def load(
         <hexrec.formats.ihex.IhexFile object at ...>
     """
 
-    in_path = str(in_path)
     if in_format is None:
-        in_format = guess_format_name(in_path)
-    file_type = FILE_TYPES[in_format]
+        last_exc = RuntimeError
+        if isinstance(in_path_or_stream, io.IOBase):
+            stream = in_path_or_stream
+            in_offset = stream.tell()
+            for file_type in FILE_TYPES.values():
+                try:
+                    return file_type.load(stream, *load_args, **load_kwargs)
+                except Exception as exc:
+                    last_exc = exc
+                    stream.seek(in_offset)
+        else:
+            in_path = str(in_path_or_stream)
+            try:
+                file_type = guess_format_type(in_path)
+                return file_type.load(in_path, *load_args, **load_kwargs)
+            except Exception as exc:
+                last_exc = exc
 
-    file = file_type.load(in_path, *load_args, **load_kwargs)
-    return file
+            for file_type in FILE_TYPES.values():
+                try:
+                    return file_type.load(in_path, *load_args, **load_kwargs)
+                except Exception as exc:
+                    last_exc = exc
+        raise last_exc
+    else:
+        file_type = FILE_TYPES[in_format]
+        return file_type.load(in_path_or_stream, *load_args, **load_kwargs)
 
 
 def merge(
-    in_paths: Sequence[str],
+    in_paths_or_streams: Sequence[Union[str, IO]],
     out_path: Optional[str] = None,
     in_formats: Optional[Sequence[Optional[str]]] = None,
     out_format: Optional[str] = None,
@@ -397,11 +403,11 @@ def merge(
     object, for further processing by the user.
 
     Args:
-        in_paths (str list):
-            Sequence of input file paths, in merging order.
+        in_paths_or_streams (str list):
+            Sequence of input file paths or streams, in merging order.
 
         out_path (str):
-            Output file path. It can be the same one of `in_paths`.
+            Output file path. It can be the same one of `in_paths_or_streams`.
 
         in_formats (str list):
             Name of the input formats, within :data:`FILE_TYPES`.
@@ -435,25 +441,18 @@ def merge(
          <hexrec.formats.xtek.XtekFile object at ...>)
     """
 
-    in_paths = list(map(str, in_paths))
-    out_path = str(out_path) if out_path else None
     in_formats = list(in_formats or ())
-    in_formats += [None] * (len(in_paths) - len(in_formats))
-
-    in_types = []
-    for i, in_path in enumerate(in_paths):
-        in_format = in_formats[i]
-        if in_format is None:
-            in_format = guess_format_name(in_path)
-            in_formats[i] = in_format
-        in_type = FILE_TYPES[in_format]
-        in_types.append(in_type)
+    in_formats += [None] * (len(in_paths_or_streams) - len(in_formats))
+    out_path = str(out_path) if out_path else None
 
     if out_format is None and out_path is not None:
         out_format = guess_format_name(out_path)
     out_type = FILE_TYPES[out_format]
 
-    in_files = [in_type.load(in_path) for in_type, in_path in zip(in_types, in_paths)]
+    in_files = []
+    for i, in_path_or_stream in enumerate(in_paths_or_streams):
+        in_file = load(in_path_or_stream, in_format=in_formats[i])
+        in_files.append(in_file)
 
     out_file = out_type()
     out_file.merge(*in_files)
@@ -1138,7 +1137,7 @@ class BaseRecord(abc.ABC):
             args:
                 Forwarded to the underlying call to :meth:`to_tokens`.
 
-            stream (:class:`io.BytesIO`):
+            stream (bytes IO):
                 The byte stream where the record tokens are printed.
                 If ``None``, *stdout* is selected.
 
@@ -1154,7 +1153,7 @@ class BaseRecord(abc.ABC):
         See Also:
             :meth:`to_tokens`
             :func:`colorize_tokens`
-            :class:`io.BytesIO`
+            :class:`io.IOBase`
 
         Examples:
             **NOTE:** These examples are provided by :class:`BaseRecord`.
@@ -1185,7 +1184,7 @@ class BaseRecord(abc.ABC):
         This wraps a call to :meth:`to_bytestr` and ``stream.write``.
 
         Args:
-            stream (:class:`io.BytesIO`):
+            stream (:class:`io.IOBase`):
                 Stream to write.
 
             args:
@@ -1199,7 +1198,7 @@ class BaseRecord(abc.ABC):
 
         See Also:
             :meth:`to_bytestr`
-            :class:`io.BytesIO`
+            :class:`io.IOBase`
 
         Examples:
             **NOTE:** These examples are provided by :class:`BaseRecord`.
@@ -3069,15 +3068,20 @@ class BaseFile(abc.ABC):
         return offset
 
     @classmethod
-    def load(cls, path: Optional[AnyPath], *args, **kwargs) -> Self:
+    def load(
+        cls,
+        path_or_stream: Optional[Union[AnyPath, IO]],
+        *args,
+        **kwargs,
+    ) -> Self:
         r"""Loads a file object from the filesystem.
 
         The :func:`open` function creates a *stream* from the filesystem,
         allowing :meth:`parse` to load a file object.
 
         Args:
-            path (str):
-                Path of the file within the filesystem.
+            path_or_stream (str or bytes IO):
+                Path of the file within the filesystem, or byte input stream.
                 If ``None``, ``sys.stdin.buffer`` is used.
 
             args:
@@ -3107,9 +3111,14 @@ class BaseFile(abc.ABC):
             {'linear': True, 'maxdatalen': 3, 'startaddr': 51966}
         """
 
-        if path is None:
-            return cls.parse(sys.stdin.buffer, *args, **kwargs)
+        if path_or_stream is None:
+            path_or_stream = sys.stdin.buffer
+
+        if isinstance(path_or_stream, io.IOBase):
+            stream = path_or_stream
+            return cls.parse(stream, *args, **kwargs)
         else:
+            path = str(path_or_stream)
             with open(path, 'rb') as stream:
                 return cls.parse(stream, *args, **kwargs)
 
@@ -3536,15 +3545,20 @@ class BaseFile(abc.ABC):
             self.update_records()
         return self._records
 
-    def save(self, path: Optional[AnyPath], *args, **kwargs) -> Self:
+    def save(
+        self,
+        path_or_stream: Optional[Union[AnyPath, IO]],
+        *args,
+        **kwargs,
+    ) -> Self:
         r"""Saves a file object into the filesystem.
 
         The :func:`open` function creates a *stream* from the filesystem,
         allowing :meth:`serialize` to save a file object.
 
         Args:
-            path (str):
-                Path of the file within the filesystem.
+            path_or_stream (str or bytes IO):
+                Path of the file within the filesystem, or output byte stream.
                 If ``None``, ``sys.stdout.buffer`` is used.
 
             args:
@@ -3571,9 +3585,14 @@ class BaseFile(abc.ABC):
             >>> _ = file.save('data.hex')
         """
 
-        if path is None:
-            return self.serialize(sys.stdout.buffer, *args, **kwargs)
+        if path_or_stream is None:
+            path_or_stream = sys.stdout.buffer
+
+        if isinstance(path_or_stream, io.IOBase):
+            stream = path_or_stream
+            return self.serialize(stream, *args, **kwargs)
         else:
+            path = str(path_or_stream)
             with open(path, 'wb') as stream:
                 return self.serialize(stream, *args, **kwargs)
 
@@ -3626,7 +3645,7 @@ class BaseFile(abc.ABC):
         self.discard_records()
         return self
 
-    def serialize(self, stream: IO, *args, **kwargs) -> Self:
+    def serialize(self, stream: io.IOBase, *args, **kwargs) -> Self:
         r"""Serializes records onto a byte stream.
 
         It executes :meth:`BaseRecord.serialize` for each of the stored
