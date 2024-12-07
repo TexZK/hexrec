@@ -297,6 +297,23 @@ def test_load_stream(datapath):
     assert in_file.records == records
 
 
+def test_load_none(datapath):
+    SrecRecord = SrecFile.Record
+    SrecTag = SrecRecord.Tag
+    in_path = str(datapath / 'simple.srec')
+    records = [
+        SrecRecord.create_header(),
+        SrecRecord.create_data(0x00001234, b'abc', tag=SrecTag.DATA_32),
+        SrecRecord.create_data(0xABCD5678, b'xyz', tag=SrecTag.DATA_32),
+        SrecRecord.create_count(2, tag=SrecTag.COUNT_16),
+        SrecRecord.create_start(0xABCD5678, tag=SrecTag.START_32),
+    ]
+    with open(in_path, 'rb') as in_stream:
+        with replace_stdin(in_stream):
+            in_file = load(None)
+    assert in_file.records == records
+
+
 def test_load_wrong_extension(datapath):
     vector = [
         (IhexFile, 'simple_hex.srec'),
@@ -375,7 +392,7 @@ def test_merge_formats(datapath, tmppath):
     assert out_content == ref_content
 
 
-def test_merge_out_none(datapath, tmppath):
+def test_merge_out_ellipsis(datapath):
     in_paths = [
         str(datapath / 'data.dat'),
         str(datapath / 'simple.hex'),

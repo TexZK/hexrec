@@ -1,4 +1,4 @@
-﻿SrecTag
+SrecTag
 =======
 
 .. currentmodule:: hexrec.formats.srec

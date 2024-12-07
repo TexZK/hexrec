@@ -1,4 +1,4 @@
-﻿IhexTag
+IhexTag
 =======
 
 .. currentmodule:: hexrec.formats.ihex

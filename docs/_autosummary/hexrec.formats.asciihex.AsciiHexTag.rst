@@ -1,4 +1,4 @@
-﻿AsciiHexTag
+AsciiHexTag
 ===========
 
 .. currentmodule:: hexrec.formats.asciihex

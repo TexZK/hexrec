@@ -1,4 +1,4 @@
-﻿AvrTag
+AvrTag
 ======
 
 .. currentmodule:: hexrec.formats.avr

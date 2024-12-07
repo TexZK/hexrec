@@ -1,4 +1,4 @@
-﻿TiTxtTag
+TiTxtTag
 ========
 
 .. currentmodule:: hexrec.formats.titxt

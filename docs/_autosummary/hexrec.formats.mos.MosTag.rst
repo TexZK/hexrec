@@ -1,4 +1,4 @@
-﻿MosTag
+MosTag
 ======
 
 .. currentmodule:: hexrec.formats.mos

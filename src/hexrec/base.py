@@ -72,7 +72,9 @@ AnyPath: TypeAlias = Union[bytes, bytearray, str, os.PathLike]
 EllipsisType: TypeAlias = Type['Ellipsis']
 
 FILE_TYPES: MutableMapping[str, Type['BaseFile']] = {}
-r"""Registered record file types."""
+r"""Registered record file types.
+
+This is an ordered mapping, where the first item has top priority."""
 
 TOKEN_COLOR_CODES: Mapping[str, bytes] = {
     '':         colorama.Style.RESET_ALL.encode(),
@@ -320,7 +322,7 @@ def guess_format_type(file_path: str) -> Type['BaseFile']:
 
 
 def load(
-    in_path_or_stream: Union[str, IO],
+    in_path_or_stream: Optional[Union[str, IO]],
     *load_args: Any,
     in_format: Optional[str] = None,
     **load_kwargs: Any,
@@ -335,6 +337,7 @@ def load(
     Args:
         in_path_or_stream (str):
             Input file path or stream.
+            If ``None``, ``sys.stdin.buffer`` is used.
 
         in_format (str):
             Name of the input format, within :data:`FILE_TYPES`.
@@ -357,6 +360,9 @@ def load(
         >>> load('simple.hex', ignore_errors=True)  # doctest:+ELLIPSIS
         <hexrec.formats.ihex.IhexFile object at ...>
     """
+
+    if in_path_or_stream is None:
+        in_path_or_stream = sys.stdin.buffer
 
     if in_format is None:
         last_exc = RuntimeError
@@ -390,7 +396,7 @@ def load(
 
 def merge(
     in_paths_or_streams: Sequence[Union[str, IO]],
-    out_path: Optional[str] = None,
+    out_path_or_stream: Optional[Union[str, IO, EllipsisType]] = Ellipsis,
     in_formats: Optional[Sequence[Optional[str]]] = None,
     out_format: Optional[str] = None,
 ) -> Tuple[Sequence['BaseFile'], 'BaseFile']:
@@ -406,8 +412,10 @@ def merge(
         in_paths_or_streams (str list):
             Sequence of input file paths or streams, in merging order.
 
-        out_path (str):
+        out_path_or_stream (str):
             Output file path. It can be the same one of `in_paths_or_streams`.
+            If ``None``, ``sys.stdout.buffer`` is used.
+            If ``Ellipsis``, no output is performed (return values only).
 
         in_formats (str list):
             Name of the input formats, within :data:`FILE_TYPES`.
@@ -443,10 +451,9 @@ def merge(
 
     in_formats = list(in_formats or ())
     in_formats += [None] * (len(in_paths_or_streams) - len(in_formats))
-    out_path = str(out_path) if out_path else None
 
-    if out_format is None and out_path is not None:
-        out_format = guess_format_name(out_path)
+    if out_format is None and out_path_or_stream not in (None, Ellipsis):
+        out_format = guess_format_name(out_path_or_stream)
     out_type = FILE_TYPES[out_format]
 
     in_files = []
@@ -457,8 +464,8 @@ def merge(
     out_file = out_type()
     out_file.merge(*in_files)
 
-    if out_path is not None:
-        out_file.save(out_path)
+    if out_path_or_stream is not Ellipsis:
+        out_file.save(out_path_or_stream)
 
     return in_files, out_file
 
@@ -3070,7 +3077,7 @@ class BaseFile(abc.ABC):
     @classmethod
     def load(
         cls,
-        path_or_stream: Optional[Union[AnyPath, IO]],
+        in_path_or_stream: Optional[Union[AnyPath, IO]],
         *args,
         **kwargs,
     ) -> Self:
@@ -3111,14 +3118,14 @@ class BaseFile(abc.ABC):
             {'linear': True, 'maxdatalen': 3, 'startaddr': 51966}
         """
 
-        if path_or_stream is None:
-            path_or_stream = sys.stdin.buffer
+        if in_path_or_stream is None:
+            in_path_or_stream = sys.stdin.buffer
 
-        if isinstance(path_or_stream, io.IOBase):
-            stream = path_or_stream
+        if isinstance(in_path_or_stream, io.IOBase):
+            stream = in_path_or_stream
             return cls.parse(stream, *args, **kwargs)
         else:
-            path = str(path_or_stream)
+            path = str(in_path_or_stream)
             with open(path, 'rb') as stream:
                 return cls.parse(stream, *args, **kwargs)
 
@@ -3547,7 +3554,7 @@ class BaseFile(abc.ABC):
 
     def save(
         self,
-        path_or_stream: Optional[Union[AnyPath, IO]],
+        out_path_or_stream: Optional[Union[AnyPath, IO]],
         *args,
         **kwargs,
     ) -> Self:
@@ -3557,7 +3564,7 @@ class BaseFile(abc.ABC):
         allowing :meth:`serialize` to save a file object.
 
         Args:
-            path_or_stream (str or bytes IO):
+            out_path_or_stream (str or bytes IO):
                 Path of the file within the filesystem, or output byte stream.
                 If ``None``, ``sys.stdout.buffer`` is used.
 
@@ -3585,14 +3592,14 @@ class BaseFile(abc.ABC):
             >>> _ = file.save('data.hex')
         """
 
-        if path_or_stream is None:
-            path_or_stream = sys.stdout.buffer
+        if out_path_or_stream is None:
+            out_path_or_stream = sys.stdout.buffer
 
-        if isinstance(path_or_stream, io.IOBase):
-            stream = path_or_stream
+        if isinstance(out_path_or_stream, io.IOBase):
+            stream = out_path_or_stream
             return self.serialize(stream, *args, **kwargs)
         else:
-            path = str(path_or_stream)
+            path = str(out_path_or_stream)
             with open(path, 'wb') as stream:
                 return self.serialize(stream, *args, **kwargs)
 

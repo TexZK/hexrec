@@ -1,4 +1,4 @@
-﻿XtekTag
+XtekTag
 =======
 
 .. currentmodule:: hexrec.formats.xtek

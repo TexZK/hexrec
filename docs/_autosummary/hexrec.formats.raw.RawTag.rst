@@ -1,4 +1,4 @@
-﻿RawTag
+RawTag
 ======
 
 .. currentmodule:: hexrec.formats.raw
