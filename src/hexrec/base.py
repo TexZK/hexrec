@@ -320,6 +320,16 @@ def guess_format_type(file_path: str) -> Type['BaseFile']:
     name = guess_format_name(file_path)
     return FILE_TYPES[name]
 
+def install_custom_type(name: str, implementation):
+    r"""Install a custom type as the last alternative before raw file loading is attempted.
+    :param name: name hint for the provided implementation
+    :param implementation: user provided type class which implements the required methods of the BaseFile interface
+    :return:
+    """
+    tmp = FILE_TYPES['raw']
+    del FILE_TYPES['raw']
+    FILE_TYPES[name] = implementation
+    FILE_TYPES.setdefault('raw', tmp)
 
 def load(
     in_path_or_stream: Optional[Union[str, IO]],
