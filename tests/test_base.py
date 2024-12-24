@@ -54,15 +54,15 @@ def fake_token_color_codes(request):
 
 @pytest.fixture
 def fake_file_types(request):
-    backup = _hr.FILE_TYPES
-    _hr.FILE_TYPES = dict(backup)
+    backup = _hr.file_types
+    _hr.file_types = dict(backup)
 
     class FakeFile(SrecFile):
         FILE_EXT = list(SrecFile.FILE_EXT) + ['.hex', '.dat']
 
-    _hr.FILE_TYPES['_fake_'] = FakeFile
+    _hr.file_types['_fake_'] = FakeFile
     yield
-    _hr.FILE_TYPES = backup
+    _hr.file_types = backup
 
 
 class replace_stdin:

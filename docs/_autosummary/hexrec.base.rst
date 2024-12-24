@@ -13,7 +13,7 @@
         :template: custom-base-template.rst
         :nosignatures:
 
-        ~FILE_TYPES
+        ~file_types
         ~TOKEN_COLOR_CODES
 
 

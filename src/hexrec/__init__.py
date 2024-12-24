@@ -25,8 +25,8 @@
 
 __version__ = '0.4.1'
 
-from .base import FILE_TYPES
 from .base import convert
+from .base import file_types
 from .base import guess_format_name
 from .base import guess_format_type
 from .base import load
@@ -62,7 +62,7 @@ def _register_default_file_types():
     }
 
     for key, value in defaults.items():
-        FILE_TYPES.setdefault(key, value)
+        file_types.setdefault(key, value)
 
 
 # Automatically register default file types on module load

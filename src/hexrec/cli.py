@@ -50,8 +50,8 @@ from typing import cast as _cast
 
 import click
 
-from .__init__ import FILE_TYPES
 from .__init__ import __version__
+from .__init__ import file_types
 from .base import BaseFile
 from .base import guess_format_name
 from .formats.srec import SrecFile
@@ -103,7 +103,7 @@ BYTE_INT = ByteIntParamType()
 FILE_PATH_IN = click.Path(dir_okay=False, allow_dash=True, readable=True, exists=True)
 FILE_PATH_OUT = click.Path(dir_okay=False, allow_dash=True, writable=True)
 
-FORMAT_CHOICE = click.Choice(list(sorted(FILE_TYPES.keys())))
+FORMAT_CHOICE = click.Choice(list(sorted(file_types.keys())))
 
 DATA_FMT_FORMATTERS: Mapping[str, Callable[[bytes], bytes]] = {
     'ascii': lambda b: b,
@@ -148,12 +148,12 @@ def guess_input_type(
 ) -> Type[BaseFile]:
 
     if input_format:
-        input_type = FILE_TYPES[input_format]
+        input_type = file_types[input_format]
     elif input_path is None or input_path == '-':
         raise ValueError('standard input requires input format')
     else:
         name = guess_format_name(input_path)
-        input_type = FILE_TYPES[name]
+        input_type = file_types[name]
     return input_type
 
 
@@ -164,12 +164,12 @@ def guess_output_type(
 ) -> Type[BaseFile]:
 
     if output_format:
-        output_type = FILE_TYPES[output_format]
+        output_type = file_types[output_format]
     elif output_path is None or output_path == '-':
         output_type = input_type
     else:
         name = guess_format_name(output_path)
-        output_type = FILE_TYPES[name]
+        output_type = file_types[name]
     return output_type
 
 

@@ -1,6 +1,6 @@
-FILE\_TYPES
+file\_types
 ===========
 
 .. currentmodule:: hexrec.base
 
-.. autodata:: FILE_TYPES
+.. autodata:: file_types

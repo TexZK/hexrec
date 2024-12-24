@@ -71,7 +71,7 @@ AnyBytes: TypeAlias = Union[bytes, bytearray, memoryview]
 AnyPath: TypeAlias = Union[bytes, bytearray, str, os.PathLike]
 EllipsisType: TypeAlias = Type['Ellipsis']
 
-FILE_TYPES: MutableMapping[str, Type['BaseFile']] = {}
+file_types: MutableMapping[str, Type['BaseFile']] = {}
 r"""Registered record file types.
 
 This is an ordered mapping, where the first item has top priority."""
@@ -203,18 +203,18 @@ def convert(
             Output file path. It can be the same as `in_path`.
 
         in_format (str):
-            Name of the input format, within :data:`FILE_TYPES`.
+            Name of the input format, within :data:`file_types`.
             If ``None``, it is guessed via brute-force :func:`load`.
 
         out_format (str):
-            Name of the output format, within :data:`FILE_TYPES`.
+            Name of the output format, within :data:`file_types`.
             If ``None``, it is guessed via :func:`guess_format_name`.
 
     Returns:
         (in_file, out_file): Input and output file objects used internally.
 
     See Also:
-        :data:`FILE_TYPES`
+        :data:`file_types`
         :meth:`BaseFile.convert`
         :meth:`BaseFile.load`
         :meth:`BaseFile.save`
@@ -227,7 +227,7 @@ def convert(
 
     if out_format is None:
         out_format = guess_format_name(out_path)
-    out_type = FILE_TYPES[out_format]
+    out_type = file_types[out_format]
     in_file = load(in_path_or_stream, in_format)
     out_file = out_type.convert(in_file)
     out_file.save(out_path)
@@ -238,7 +238,7 @@ def guess_format_name(file_path: str) -> str:
     r"""Guesses the record format name.
 
     It analyzes the file extension by `file_path` against all the record
-    formats registered into :data:`FILE_TYPES`.
+    formats registered into :data:`file_types`.
     The first record format to match the extension within its own
     :attr:`BaseFile.FILE_EXT` is returned.
 
@@ -247,13 +247,13 @@ def guess_format_name(file_path: str) -> str:
             File path to analyze.
 
     Returns:
-        str: Record format registered within :data:`FILE_TYPES`.
+        str: Record format registered within :data:`file_types`.
 
     Raises:
         ValueError: Cannot guess record file format.
 
     See Also:
-        :data:`FILE_TYPES`
+        :data:`file_types`
 
     Examples:
         >>> from hexrec import guess_format_name
@@ -272,8 +272,8 @@ def guess_format_name(file_path: str) -> str:
     file_ext = os.path.splitext(file_path)[1]
     names_found = []
 
-    for name in FILE_TYPES.keys():
-        file_type = FILE_TYPES[name]
+    for name in file_types.keys():
+        file_type = file_types[name]
 
         if file_ext in file_type.FILE_EXT:
             names_found.append(name)
@@ -288,20 +288,20 @@ def guess_format_type(file_path: str) -> Type['BaseFile']:
     r"""Guesses the record format object type.
 
     It calls :func:`guess_format_name` to return the registered object type
-    within :data:`FILE_TYPES`.
+    within :data:`file_types`.
 
     Args:
         file_path (str):
             File path to analyze.
 
     Returns:
-        str: Record object type registered within :data:`FILE_TYPES`.
+        str: Record object type registered within :data:`file_types`.
 
     Raises:
         ValueError: Cannot guess record file format.
 
     See Also:
-        :data:`FILE_TYPES`
+        :data:`file_types`
 
     Examples:
         >>> from hexrec import guess_format_type
@@ -318,7 +318,7 @@ def guess_format_type(file_path: str) -> Type['BaseFile']:
     """
 
     name = guess_format_name(file_path)
-    return FILE_TYPES[name]
+    return file_types[name]
 
 
 def load(
@@ -340,14 +340,14 @@ def load(
             If ``None``, ``sys.stdin.buffer`` is used.
 
         in_format (str):
-            Name of the input format, within :data:`FILE_TYPES`.
+            Name of the input format, within :data:`file_types`.
             If ``None``, it is guessed via brute-force :meth:`BaseFile.load`.
 
     Returns:
         :class:`BaseFile`: The loaded record file object.
 
     See Also:
-        :data:`FILE_TYPES`
+        :data:`file_types`
         :func:`guess_format_name`
         :meth:`BaseFile.load`
 
@@ -369,7 +369,7 @@ def load(
         if isinstance(in_path_or_stream, io.IOBase):
             stream = in_path_or_stream
             in_offset = stream.tell()
-            for file_type in FILE_TYPES.values():
+            for file_type in file_types.values():
                 try:
                     return file_type.load(stream, *load_args, **load_kwargs)
                 except Exception as exc:
@@ -383,14 +383,14 @@ def load(
             except Exception as exc:
                 last_exc = exc
 
-            for file_type in FILE_TYPES.values():
+            for file_type in file_types.values():
                 try:
                     return file_type.load(in_path, *load_args, **load_kwargs)
                 except Exception as exc:
                     last_exc = exc
         raise last_exc
     else:
-        file_type = FILE_TYPES[in_format]
+        file_type = file_types[in_format]
         return file_type.load(in_path_or_stream, *load_args, **load_kwargs)
 
 
@@ -418,19 +418,19 @@ def merge(
             If ``Ellipsis``, no output is performed (return values only).
 
         in_formats (str list):
-            Name of the input formats, within :data:`FILE_TYPES`.
+            Name of the input formats, within :data:`file_types`.
             If the sequence or an item is ``None``, that is guessed via
             :func:`guess_format_name`.
 
         out_format (str):
-            Name of the output format, within :data:`FILE_TYPES`.
+            Name of the output format, within :data:`file_types`.
             If ``None``, it is guessed via :func:`guess_format_name`.
 
     Returns:
         (in_files, out_file): The record file objects used internally.
 
     See Also:
-        :data:`FILE_TYPES`
+        :data:`file_types`
         :func:`guess_format_name`
         :meth:`BaseFile.load`
         :meth:`BaseFile.merge`
@@ -454,7 +454,7 @@ def merge(
 
     if out_format is None and out_path_or_stream not in (None, Ellipsis):
         out_format = guess_format_name(out_path_or_stream)
-    out_type = FILE_TYPES[out_format]
+    out_type = file_types[out_format]
 
     in_files = []
     for i, in_path_or_stream in enumerate(in_paths_or_streams):
