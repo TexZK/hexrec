@@ -1,6 +1,13 @@
 Changelog
 =========
 
+0.4.2 (2024-12-24)
+------------------
+
+* Improved loading from / saving to streams.
+* ``hexrec.base.FILE_TYPES`` changed into lowercase ``file_types``.
+
+
 0.4.1 (2024-10-05)
 ------------------
 
