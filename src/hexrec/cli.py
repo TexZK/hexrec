@@ -37,7 +37,7 @@ Why does this file exist, and why not put this in __main__?
   - When you import __main__ it will get executed again (as a module) because
     there's no ``hexrec.__main__`` in ``sys.modules``.
 
-  Also see (1) from https://click.palletsprojects.com/en/5.x/setuptools/#setuptools-integration
+  Also see (1) from https://click.palletsprojects.com/en/stable/setuptools/#setuptools-integration
 """
 
 from typing import Callable

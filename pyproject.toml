@@ -48,9 +48,9 @@ testing = ["coverage", "pyelftools", "pytest"]
 hexrec = "hexrec.cli:main"
 
 [project.urls]
-documentation = "https://hexrec.readthedocs.io"
-source = "https://github.com/TexZK/hexrec"
-tracker = "https://github.com/TexZK/hexrec/issues"
+documentation = "https://hexrec.readthedocs.io/en/latest/"
+source = "https://github.com/TexZK/hexrec/"
+tracker = "https://github.com/TexZK/hexrec/issues/"
 
 [tool.setuptools.dynamic]
 version = {attr = "hexrec.__version__"}

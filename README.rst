@@ -17,8 +17,8 @@ Overview
         | |supported-versions|
         | |supported-implementations|
 
-.. |docs| image:: https://readthedocs.org/projects/hexrec/badge/?style=flat
-    :target: https://readthedocs.org/projects/hexrec
+.. |docs| image:: https://app.readthedocs.org/projects/hexrec/badge/?style=flat
+    :target: https://app.readthedocs.org/projects/hexrec
     :alt: Documentation Status
 
 .. |gh_actions| image:: https://github.com/TexZK/hexrec/workflows/CI/badge.svg
@@ -101,7 +101,7 @@ Documentation
 
 For the full documentation, please refer to:
 
-https://hexrec.readthedocs.io/
+https://hexrec.readthedocs.io/en/latest/
 
 
 Architecture
