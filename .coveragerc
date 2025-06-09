@@ -1,7 +1,7 @@
 [paths]
 source =
-   src/hexrec
-   */site-packages/hexrec
+    src/hexrec
+    */site-packages/hexrec
 
 [run]
 branch = true

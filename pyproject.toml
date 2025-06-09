@@ -21,6 +21,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",  # adds: typing.Self
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
     "Topic :: Scientific/Engineering :: Interface Engine/Protocol Translator",
@@ -29,8 +30,7 @@ classifiers = [
     "Topic :: Utilities",
 ]
 dependencies = [
-    "bytesparse >= 1.0.0",  # comment out and use the one below for development instead
-    # "bytesparse @ git+https://github.com/TexZK/bytesparse.git",  # only for development
+    "bytesparse >= 1.0.0",
     "click",
     "colorama",
 ]
