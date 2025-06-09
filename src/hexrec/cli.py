@@ -304,7 +304,7 @@ def main() -> None:
     """
     A set of command line utilities for common operations with record files.
 
-    Being built with `Click <https://click.palletsprojects.com/>`_, all the
+    Being built with `Click <https://click.palletsprojects.com/en/stable/>`_, all the
     commands follow POSIX-like syntax rules, as well as reserving the virtual
     file path ``-`` for command chaining via standard output/input buffering.
     """

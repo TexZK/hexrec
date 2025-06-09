@@ -41,5 +41,7 @@ MosTag
         ~MosTag.to_bytes
         ~MosTag.from_bytes
         ~MosTag.as_integer_ratio
+        ~MosTag.is_integer
         ~MosTag.is_eof
+        ~MosTag.__init__
 

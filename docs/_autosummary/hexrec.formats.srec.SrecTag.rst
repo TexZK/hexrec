@@ -49,6 +49,7 @@ SrecTag
         ~SrecTag.to_bytes
         ~SrecTag.from_bytes
         ~SrecTag.as_integer_ratio
+        ~SrecTag.is_integer
         ~SrecTag.fit_count_tag
         ~SrecTag.fit_data_tag
         ~SrecTag.fit_start_tag
@@ -59,4 +60,5 @@ SrecTag
         ~SrecTag.is_count
         ~SrecTag.is_header
         ~SrecTag.is_start
+        ~SrecTag.__init__
 

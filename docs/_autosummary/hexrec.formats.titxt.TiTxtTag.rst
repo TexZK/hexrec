@@ -42,6 +42,8 @@ TiTxtTag
         ~TiTxtTag.to_bytes
         ~TiTxtTag.from_bytes
         ~TiTxtTag.as_integer_ratio
+        ~TiTxtTag.is_integer
         ~TiTxtTag.is_address
         ~TiTxtTag.is_eof
+        ~TiTxtTag.__init__
 

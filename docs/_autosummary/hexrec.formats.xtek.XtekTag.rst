@@ -41,5 +41,7 @@ XtekTag
         ~XtekTag.to_bytes
         ~XtekTag.from_bytes
         ~XtekTag.as_integer_ratio
+        ~XtekTag.is_integer
         ~XtekTag.is_eof
+        ~XtekTag.__init__
 

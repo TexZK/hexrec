@@ -45,7 +45,9 @@ IhexTag
         ~IhexTag.to_bytes
         ~IhexTag.from_bytes
         ~IhexTag.as_integer_ratio
+        ~IhexTag.is_integer
         ~IhexTag.is_eof
         ~IhexTag.is_extension
         ~IhexTag.is_start
+        ~IhexTag.__init__
 

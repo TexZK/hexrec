@@ -42,6 +42,8 @@ AsciiHexTag
         ~AsciiHexTag.to_bytes
         ~AsciiHexTag.from_bytes
         ~AsciiHexTag.as_integer_ratio
+        ~AsciiHexTag.is_integer
         ~AsciiHexTag.is_address
         ~AsciiHexTag.is_checksum
+        ~AsciiHexTag.__init__
 
