@@ -32,7 +32,7 @@ if os.getenv('SPELLCHECK'):
 source_suffix = '.rst'
 master_doc = 'index'
 project = 'hexrec'
-year = '2013-2024'
+year = '2013-2025'
 author = 'Andrea Zoppi'
 copyright = f'{year}, {author}'
 version = release = read_version()

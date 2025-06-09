@@ -1,6 +1,14 @@
 Changelog
 =========
 
+0.4.3 (2025-06-10)
+------------------
+
+* Added support for Python 3.13.
+* Added support for Python 3.14.
+* Building with ``setuptools >= 77.0.3``.
+
+
 0.4.2 (2024-12-24)
 ------------------
 

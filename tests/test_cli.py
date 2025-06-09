@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import cast as _cast
 
 import pytest
-from click.core import BaseCommand
+from click.core import Command
 from click.testing import CliRunner
 
 from hexrec import IhexFile
@@ -13,7 +13,7 @@ from hexrec import __version__ as _version
 from hexrec.__main__ import main as _main
 from hexrec.cli import *
 
-main = _cast(BaseCommand, main)  # suppress warnings
+main = _cast(Command, main)  # suppress warnings
 
 
 @pytest.fixture

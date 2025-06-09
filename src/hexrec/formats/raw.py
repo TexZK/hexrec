@@ -1,4 +1,4 @@
-# Copyright (c) 2013-2024, Andrea Zoppi
+# Copyright (c) 2013-2025, Andrea Zoppi
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
