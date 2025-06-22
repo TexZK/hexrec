@@ -321,7 +321,7 @@ def main() -> None:
     Forces the output file format.
     By default it is that of the input file.
 """)
-@click.option('-m', '--modulo', type=BYTE_INT, default=4, show_default=True, help="""
+@click.option('-m', '--modulo', type=BASED_INT, default=4, show_default=True, help="""
     Alignment modulo.
 """)
 @click.option('-s', '--start', type=BASED_INT, help="""
