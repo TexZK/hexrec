@@ -338,7 +338,7 @@ class SparseMemoryIO(MemoryIO):
         start = self._position
         if start >= memory.endex:
             return b''
-        endex = None if size < 0 else start + size
+        endex = None if size is None or size < 0 else start + size
         buffer = b''
         try:
             buffer = memory.view(start=start, endex=endex)

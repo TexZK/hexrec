@@ -220,10 +220,9 @@ class SrecTag(BaseTag, enum.IntEnum):
         r"""Calculates the maximum address.
 
         It calculates the maximum *address* field for the calling tag.
-        If the *address* field is not supported, it returns ``None``.
 
         Returns:
-            int: Maximum *address* value, or ``None``.
+            int: Maximum *address* value.
 
         Examples:
             >>> from hexrec import SrecFile
@@ -247,10 +246,9 @@ class SrecTag(BaseTag, enum.IntEnum):
         r"""Calculates the maximum address size.
 
         It calculates the maximum *address* field size for the calling tag.
-        If the *address* field is not supported, it returns zero.
 
         Returns:
-            int: Maximum *address* size, or ``None``.
+            int: Maximum *address* size.
 
         Examples:
             >>> from hexrec import SrecFile
@@ -273,10 +271,9 @@ class SrecTag(BaseTag, enum.IntEnum):
         r"""Calculates the maximum data size.
 
         It calculates the maximum *data* field size for the calling tag.
-        If the *data* field is not supported, it returns ``None``.
 
         Returns:
-            int: Maximum *data* size, or ``None``.
+            int: Maximum *data* size.
 
         Examples:
             >>> from hexrec import SrecFile
@@ -301,7 +298,7 @@ class SrecTag(BaseTag, enum.IntEnum):
         Given *data* or *start address* records, it returns the matching tag.
 
         Returns:
-            :class:`SrecTag`: Matching tag for *self*, or ``None``
+            :class:`SrecTag`: Matching tag for *self*, or ``None``.
 
         Examples:
             >>> from hexrec import SrecFile

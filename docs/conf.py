@@ -81,3 +81,7 @@ napoleon_include_special_with_doc = True
 napoleon_custom_sections = [('Method Groups', 'params_style')]
 
 typehints_document_rtype = False
+
+linkcheck_ignore = [
+    r'https://developerhelp.microchip.com/xwiki/bin/view/software-tools/ipe/sqtp-file-format-specification/',
+]

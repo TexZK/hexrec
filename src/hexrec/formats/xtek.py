@@ -496,7 +496,7 @@ if not __TYPING_HAS_SELF:  # pragma: no cover
 class XtekFile(BaseFile):
     r"""Tektronix Extended file object."""
 
-    FILE_EXT: Sequence[int] = ['.tek', '.xtek']
+    FILE_EXT: Sequence[str] = ['.tek', '.xtek']
 
     META_KEYS: Sequence[str] = [
         'maxdatalen',

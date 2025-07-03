@@ -799,7 +799,7 @@ class AsciiHexFile(BaseFile):
         last_data_endex = 0
         file_checksum = 0
 
-        for index, record in enumerate(records):
+        for record in records:
             record = _cast(AsciiHexRecord, record)
             record.validate()
             tag = record.tag

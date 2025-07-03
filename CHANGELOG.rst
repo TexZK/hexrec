@@ -1,6 +1,15 @@
 Changelog
 =========
 
+0.4.4 (2025-07-04)
+------------------
+
+* Removed support for Python 3.7.
+* Removed support for Python 3.8.
+* Using ``BASED_INT`` for CLI command ``align`` argument ``--modulo``.
+* Minor fixes.
+
+
 0.4.3 (2025-06-10)
 ------------------
 

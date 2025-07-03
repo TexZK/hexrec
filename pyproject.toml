@@ -13,8 +13,6 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",  # adds: typing.Literal
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",  # adds: typing.TypeAlias
     "Programming Language :: Python :: 3.11",  # adds: typing.Self
@@ -38,7 +36,7 @@ dynamic = ["version"]
 license = "BSD-2-Clause"
 name = "hexrec"
 readme = "README.rst"
-requires-python = ">= 3.7"
+requires-python = ">= 3.9"
 
 [project.optional-dependencies]
 testing = ["coverage", "pyelftools", "pytest"]

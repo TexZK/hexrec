@@ -132,13 +132,13 @@ def _unhexlify(line: AnyBytes) -> Union[AnyBytes, ImmutableMemory]:
 
     line = line.translate(None, b' \t.:\r\n')
 
-    if 0x3C in line:
+    if 0x3C in line:  # ord('<')
         line = line.replace(b'<', b'-')
 
-    if 0x3E in line:
+    if 0x3E in line:  # ord('>')
         line = line.replace(b'>', b'-')
 
-    if 0x2D in line:
+    if 0x2D in line:  # ord('-')
         zeroed = line.replace(b'-', b'0')
         chunk = binascii.unhexlify(zeroed)
         even = line[::2]
@@ -278,7 +278,7 @@ def xxd_core(
             positions found in hexdump.
 
         iseek (int or str):
-            Starts at ``iseej`` bytes absolute (or relative) input offset.
+            Starts at ``iseek`` bytes absolute (or relative) input offset.
             Without ``iseek`` option, it starts at the current file position.
             The prefix is used to compute the offset.
             ``+`` indicates that the seek is relative to the current input
@@ -398,7 +398,9 @@ def xxd_core(
                     if match:
                         # Interpret line contents
                         groups = match.groupdict()
-                        address = (oseek or 0) + (iseek or 0) + int(groups['address'], 16)
+                        address = oseek or 0
+                        address += iseek or 0
+                        address += int(groups['address'], 16)
                         data = _unhexlify(groups['data'])
                         data = data[:cols]
 
