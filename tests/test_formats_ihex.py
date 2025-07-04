@@ -1,3 +1,5 @@
+# type: ignore all for test code
+
 import io
 import os
 from pathlib import Path
@@ -621,8 +623,8 @@ class TestIhexFile(BaseTestFile):
             IhexRecord.create_end_of_file(),
         ]
         blocks = [
-            [0x00001234, b'abc'],
-            [0xABCD4321, b'xyz'],
+            (0x00001234, b'abc'),
+            (0xABCD4321, b'xyz'),
         ]
         file = IhexFile.from_records(records)
         file = _cast(IhexFile, file)
@@ -641,8 +643,8 @@ class TestIhexFile(BaseTestFile):
             IhexRecord.create_end_of_file(),
         ]
         blocks = [
-            [0x00001234, b'abc'],
-            [0x000A4321, b'xyz'],
+            (0x00001234, b'abc'),
+            (0x000A4321, b'xyz'),
         ]
         file = IhexFile.from_records(records)
         file = _cast(IhexFile, file)
@@ -1049,8 +1051,8 @@ class TestIhexFile(BaseTestFile):
             IhexRecord.create_end_of_file(),
         ]
         blocks = [
-            [0x00001234, b'abc'],
-            [0xABCD4321, b'xyz'],
+            (0x00001234, b'abc'),
+            (0xABCD4321, b'xyz'),
         ]
         memory = Memory.from_blocks(blocks)
         file = IhexFile.from_memory(memory, startaddr=0x12345678, linear=True)
@@ -1069,8 +1071,8 @@ class TestIhexFile(BaseTestFile):
             IhexRecord.create_end_of_file(),
         ]
         blocks = [
-            [0x00001234, b'abc'],
-            [0x000A4321, b'xyz'],
+            (0x00001234, b'abc'),
+            (0x000A4321, b'xyz'),
         ]
         memory = Memory.from_blocks(blocks)
         file = IhexFile.from_memory(memory, startaddr=0x12345678, linear=False)

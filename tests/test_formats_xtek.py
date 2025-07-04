@@ -1,3 +1,5 @@
+# type: ignore all for test code
+
 import io
 import os
 from pathlib import Path
@@ -546,8 +548,8 @@ class TestXtekFile(BaseTestFile):
             XtekRecord.create_eof(0xABCD),
         ]
         blocks = [
-            [0x1234, b'abc'],
-            [0x4321, b'xyz'],
+            (0x1234, b'abc'),
+            (0x4321, b'xyz'),
         ]
         file = XtekFile.from_records(records)
         file._memory = Memory.from_bytes(b'discarded')
@@ -733,8 +735,8 @@ class TestXtekFile(BaseTestFile):
             XtekRecord.create_eof(0xABCD),
         ]
         blocks = [
-            [0x1234, b'abc'],
-            [0x4321, b'xyz'],
+            (0x1234, b'abc'),
+            (0x4321, b'xyz'),
         ]
         file = XtekFile.from_blocks(blocks, startaddr=0xABCD)
         returned = file.update_records()
@@ -748,8 +750,8 @@ class TestXtekFile(BaseTestFile):
             XtekRecord.create_eof(0xABCD, addrlen=4),
         ]
         blocks = [
-            [0x1234, b'abc'],
-            [0x4321, b'xyz'],
+            (0x1234, b'abc'),
+            (0x4321, b'xyz'),
         ]
         file = XtekFile.from_blocks(blocks, startaddr=0xABCD)
         returned = file.update_records(addrlen=4)
@@ -764,8 +766,8 @@ class TestXtekFile(BaseTestFile):
 
     def test_update_records_raises_address(self):
         blocks = [
-            [0x1234, b'abc'],
-            [0x4321, b'xyz'],
+            (0x1234, b'abc'),
+            (0x4321, b'xyz'),
         ]
         file = XtekFile.from_blocks(blocks, startaddr=0xABCD)
         with pytest.raises(ValueError, match='address overflow'):

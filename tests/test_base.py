@@ -1,3 +1,5 @@
+# type: ignore all for test code
+
 import abc
 import io
 import os
@@ -5,8 +7,7 @@ import sys
 from pathlib import Path
 from typing import IO
 from typing import Any
-from typing import Optional
-from typing import Union
+from typing import Union  # NOTE: type | operator unsupported for Python < 3.10
 from typing import cast as _cast
 
 import pytest
@@ -81,7 +82,7 @@ class replace_stdin:
 
 class replace_stdout:
 
-    def __init__(self, stream: Optional[IO] = None):
+    def __init__(self, stream: Union[IO, None] = None):
         if stream is None:
             stream = io.StringIO()
         self.buffer = stream
@@ -189,7 +190,7 @@ def test_convert(datapath, tmppath):
     in_file, out_file = convert(in_path, out_path)
     assert in_file is not out_file
     assert in_file.memory is not out_file.memory
-    blocks = [[0x1234, b'abc'], [0xABCD5678, b'xyz']]
+    blocks = [(0x1234, b'abc'), (0xABCD5678, b'xyz')]
     assert in_file.memory.to_blocks() == blocks
     assert out_file.memory.to_blocks() == blocks
     with open(out_path, 'rb') as out_stream:
@@ -206,7 +207,7 @@ def test_convert_out_format(datapath, tmppath):
     in_file, out_file = convert(in_path, out_path, in_format='ihex', out_format='srec')
     assert in_file is not out_file
     assert in_file.memory is not out_file.memory
-    blocks = [[0x1234, b'abc'], [0xABCD5678, b'xyz']]
+    blocks = [(0x1234, b'abc'), (0xABCD5678, b'xyz')]
     assert in_file.memory.to_blocks() == blocks
     assert out_file.memory.to_blocks() == blocks
     with open(out_path, 'rb') as out_stream:
@@ -347,9 +348,9 @@ def test_merge(datapath, tmppath):
     ref_path = str(datapath / 'merged.xtek')
     in_files, out_file = merge(in_paths, out_path)
     out_blocks = [
-        [0, b'first\nsecond\n'],
-        [0x1234, b'abc'],
-        [0xABCD5678, b'xyz'],
+        (0, b'first\nsecond\n'),
+        (0x1234, b'abc'),
+        (0xABCD5678, b'xyz'),
     ]
     assert out_file.memory.to_blocks() == out_blocks
     for in_file in in_files:
@@ -376,9 +377,9 @@ def test_merge_formats(datapath, tmppath):
                                in_formats=in_formats,
                                out_format=out_format)
     out_blocks = [
-        [0, b'first\nsecond\n'],
-        [0x1234, b'abc'],
-        [0xABCD5678, b'xyz'],
+        (0, b'first\nsecond\n'),
+        (0x1234, b'abc'),
+        (0xABCD5678, b'xyz'),
     ]
     assert out_file.memory.to_blocks() == out_blocks
     for in_file in in_files:
@@ -403,9 +404,9 @@ def test_merge_out_ellipsis(datapath):
                                in_formats=in_formats,
                                out_format=out_format)
     out_blocks = [
-        [0, b'first\nsecond\n'],
-        [0x1234, b'abc'],
-        [0xABCD5678, b'xyz'],
+        (0, b'first\nsecond\n'),
+        (0x1234, b'abc'),
+        (0xABCD5678, b'xyz'),
     ]
     assert out_file.memory.to_blocks() == out_blocks
     for in_file in in_files:
@@ -837,11 +838,11 @@ class BaseTestFile:
     def test___add__(self):
         File = self.File
         file = File.from_bytes(b'abc', offset=5)
-        assert file._memory.to_blocks() == [[5, b'abc']]
+        assert file._memory.to_blocks() == [(5, b'abc')]
         result = file + b'xyz'
         assert result is not file
-        assert file._memory.to_blocks() == [[5, b'abc']]
-        assert result._memory.to_blocks() == [[5, b'abcxyz']]
+        assert file._memory.to_blocks() == [(5, b'abc')]
+        assert result._memory.to_blocks() == [(5, b'abcxyz')]
 
     def test___bool___(self):
         File = self.File
@@ -860,11 +861,11 @@ class BaseTestFile:
     def test___delitem__(self):
         File = self.File
         file = File.from_bytes(b'abcxyz', offset=5)
-        assert file._memory.to_blocks() == [[5, b'abcxyz']]
+        assert file._memory.to_blocks() == [(5, b'abcxyz')]
         del file[6]
-        assert file._memory.to_blocks() == [[5, b'acxyz']]
+        assert file._memory.to_blocks() == [(5, b'acxyz')]
         del file[6::2]
-        assert file._memory.to_blocks() == [[5, b'axz']]
+        assert file._memory.to_blocks() == [(5, b'axz')]
         del file[:]
         assert file._memory.to_blocks() == []
 
@@ -877,7 +878,7 @@ class BaseTestFile:
         assert file[7:9] == b'cx'
         assert file[6::2] == b'bxz'
 
-        blocks = [[5, b'abc'], [10, b'xyz']]
+        blocks = [(5, b'abc'), (10, b'xyz')]
         file = File.from_blocks(blocks)
         assert file[::b'.'] == b'abc..xyz'
         with pytest.raises(ValueError, match='non-contiguous'):
@@ -886,10 +887,10 @@ class BaseTestFile:
     def test___eq___false_memory(self):
         File = self.File
         file1 = File.from_bytes(b'abc', offset=5)
-        file2 = File.from_blocks([[6, b'abc']])
+        file2 = File.from_blocks([(6, b'abc')])
         assert file1 is not file2
         assert (file1 == file2) is False
-        file3 = File.from_blocks([[5, b'xyz']])
+        file3 = File.from_blocks([(5, b'xyz')])
         assert file1 is not file3
         assert (file1 == file3) is False
         file4 = file1.copy()
@@ -921,7 +922,7 @@ class BaseTestFile:
     def test___eq___true_memory(self):
         File = self.File
         file1 = File.from_bytes(b'abc', offset=5)
-        file2 = File.from_blocks([[5, b'abc']])
+        file2 = File.from_blocks([(5, b'abc')])
         assert file1 is not file2
         assert (file1 == file2) is True
         file1.update_records()
@@ -941,27 +942,27 @@ class BaseTestFile:
     def test___iadd__(self):
         File = self.File
         file = File.from_bytes(b'abc', offset=5)
-        assert file._memory.to_blocks() == [[5, b'abc']]
+        assert file._memory.to_blocks() == [(5, b'abc')]
         original = file
         file += b'xyz'
         assert file is original
-        assert file._memory.to_blocks() == [[5, b'abcxyz']]
+        assert file._memory.to_blocks() == [(5, b'abcxyz')]
 
     def test___ior___(self):
         File = self.File
         file1 = File.from_bytes(b'abc', offset=5)
-        file2 = File.from_blocks([[10, b'xyz']])
+        file2 = File.from_blocks([(10, b'xyz')])
         original = file1
         file1 |= file2
         assert file1 is original
         assert file1 is not file2
         assert file1 != file2
-        assert file1._memory.to_blocks() == [[5, b'abc'], [10, b'xyz']]
+        assert file1._memory.to_blocks() == [(5, b'abc'), (10, b'xyz')]
 
     def test___ne___false_memory(self):
         File = self.File
         file1 = File.from_bytes(b'abc', offset=5)
-        file2 = File.from_blocks([[5, b'abc']])
+        file2 = File.from_blocks([(5, b'abc')])
         assert file1 is not file2
         assert (file1 != file2) is False
 
@@ -985,10 +986,10 @@ class BaseTestFile:
     def test___ne___true_memory(self):
         File = self.File
         file1 = File.from_bytes(b'abc', offset=5)
-        file2 = File.from_blocks([[6, b'abc']])
+        file2 = File.from_blocks([(6, b'abc')])
         assert file1 is not file2
         assert (file1 != file2) is True
-        file3 = File.from_blocks([[5, b'xyz']])
+        file3 = File.from_blocks([(5, b'xyz')])
         assert file1 is not file3
         assert (file1 != file3) is True
         file4 = file1.copy()
@@ -1011,24 +1012,24 @@ class BaseTestFile:
     def test___or__(self):
         File = self.File
         file1 = File.from_bytes(b'abc', offset=5)
-        file2 = File.from_blocks([[10, b'xyz']])
+        file2 = File.from_blocks([(10, b'xyz')])
         result = file1 | file2
         assert result is not file1
         assert result is not file2
         assert result != file1
         assert result != file2
-        assert result._memory.to_blocks() == [[5, b'abc'], [10, b'xyz']]
+        assert result._memory.to_blocks() == [(5, b'abc'), (10, b'xyz')]
 
     def test___setitem__(self):
         File = self.File
         file = File.from_bytes(b'abcxyz', offset=5)
-        assert file._memory.to_blocks() == [[5, b'abcxyz']]
+        assert file._memory.to_blocks() == [(5, b'abcxyz')]
         file[6] = b'?'
-        assert file._memory.to_blocks() == [[5, b'a?cxyz']]
+        assert file._memory.to_blocks() == [(5, b'a?cxyz')]
         file[5::2] = b'...'
-        assert file._memory.to_blocks() == [[5, b'.?.x.z']]
+        assert file._memory.to_blocks() == [(5, b'.?.x.z')]
         file[0:] = b'123'
-        assert file._memory.to_blocks() == [[0, b'123']]
+        assert file._memory.to_blocks() == [(0, b'123')]
 
     def test__is_line_empty(self):
         File = self.File
@@ -1037,22 +1038,22 @@ class BaseTestFile:
 
     def test_align(self):
         File = self.File
-        file = File.from_blocks([[123, b'abc'], [134, b'xyz']])
+        file = File.from_blocks([(123, b'abc'), (134, b'xyz')])
         returned = file.align(4, pattern=b'.')
         assert returned is file
-        assert file._memory.to_blocks() == [[120, b'...abc..'], [132, b'..xyz...']]
+        assert file._memory.to_blocks() == [(120, b'...abc..'), (132, b'..xyz...')]
         assert file._records is None
 
     def test_append(self):
         File = self.File
         file = File.from_bytes(b'abc', offset=5)
-        assert file._memory.to_blocks() == [[5, b'abc']]
+        assert file._memory.to_blocks() == [(5, b'abc')]
         returned = file.append(b'.')
         assert returned is file
-        assert file._memory.to_blocks() == [[5, b'abc.']]
+        assert file._memory.to_blocks() == [(5, b'abc.')]
         assert file._records is None
         file.append(ord('?'))
-        assert file._memory.to_blocks() == [[5, b'abc.?']]
+        assert file._memory.to_blocks() == [(5, b'abc.?')]
 
     def test_apply_records(self):
         File = self.File
@@ -1067,7 +1068,7 @@ class BaseTestFile:
         assert file._records is records
         returned = file.apply_records()
         assert returned is file
-        assert file._memory.to_blocks() == [[5, b'abc'], [10, b'xyz']]
+        assert file._memory.to_blocks() == [(5, b'abc'), (10, b'xyz')]
         assert file._records is records
 
     def test_clear(self):
@@ -1075,12 +1076,12 @@ class BaseTestFile:
         file = File.from_bytes(b'abcxyz', offset=5)
         returned = file.clear(start=7, endex=9)
         assert returned is file
-        assert file._memory.to_blocks() == [[5, b'ab'], [9, b'yz']]
+        assert file._memory.to_blocks() == [(5, b'ab'), (9, b'yz')]
         assert file._records is None
 
     def test_convert_meta(self):
         File = self.File
-        blocks = [[5, b'abc'], [10, b'xyz']]
+        blocks = [(5, b'abc'), (10, b'xyz')]
         maxdatalen = max(1, File.DEFAULT_DATALEN - 1)
         original = File.from_blocks(blocks, maxdatalen=maxdatalen)
         converted = File.convert(original, meta=True)
@@ -1092,7 +1093,7 @@ class BaseTestFile:
 
     def test_convert_no_meta(self):
         File = self.File
-        blocks = [[5, b'abc'], [10, b'xyz']]
+        blocks = [(5, b'abc'), (10, b'xyz')]
         maxdatalen = max(1, File.DEFAULT_DATALEN - 1)
         original = File.from_blocks(blocks, maxdatalen=maxdatalen)
         converted = File.convert(original, meta=False)
@@ -1106,7 +1107,7 @@ class BaseTestFile:
 
     def test_copy_meta(self):
         File = self.File
-        blocks = [[5, b'abc'], [10, b'xyz']]
+        blocks = [(5, b'abc'), (10, b'xyz')]
         maxdatalen = max(1, File.DEFAULT_DATALEN - 1)
         original = File.from_blocks(blocks, maxdatalen=maxdatalen)
         copied = original.copy(meta=True)
@@ -1119,7 +1120,7 @@ class BaseTestFile:
 
     def test_copy_no_meta(self):
         File = self.File
-        blocks = [[5, b'abc'], [10, b'xyz']]
+        blocks = [(5, b'abc'), (10, b'xyz')]
         maxdatalen = max(1, File.DEFAULT_DATALEN - 1)
         original = File.from_blocks(blocks, maxdatalen=maxdatalen)
         copied = original.copy(meta=False)
@@ -1134,7 +1135,7 @@ class BaseTestFile:
 
     def test_copy_slice(self):
         File = self.File
-        blocks = [[5, b'abc'], [10, b'xyz']]
+        blocks = [(5, b'abc'), (10, b'xyz')]
         maxdatalen = max(1, File.DEFAULT_DATALEN - 1)
         original = File.from_blocks(blocks, maxdatalen=maxdatalen)
         copied = original.copy(start=6, endex=12, meta=True)
@@ -1142,7 +1143,7 @@ class BaseTestFile:
         assert copied != original
         assert copied._records is None
         assert copied._memory is not original._memory
-        assert copied._memory.to_blocks() == [[6, b'bc'], [10, b'xy']]
+        assert copied._memory.to_blocks() == [(6, b'bc'), (10, b'xy')]
         assert copied.get_meta() == original.get_meta()
 
     def test_crop(self):
@@ -1150,12 +1151,12 @@ class BaseTestFile:
         file = File.from_bytes(b'abcxyz', offset=5)
         returned = file.crop(start=7, endex=9)
         assert returned is file
-        assert file._memory.to_blocks() == [[7, b'cx']]
+        assert file._memory.to_blocks() == [(7, b'cx')]
         assert file._records is None
 
     def test_cut_meta(self):
         File = self.File
-        blocks = [[5, b'abc'], [10, b'xyz']]
+        blocks = [(5, b'abc'), (10, b'xyz')]
         maxdatalen = max(1, File.DEFAULT_DATALEN - 1)
         original = File.from_blocks(blocks, maxdatalen=maxdatalen)
         outer = original.copy()
@@ -1175,7 +1176,7 @@ class BaseTestFile:
 
     def test_cut_no_meta(self):
         File = self.File
-        blocks = [[5, b'abc'], [10, b'xyz']]
+        blocks = [(5, b'abc'), (10, b'xyz')]
         maxdatalen = max(1, File.DEFAULT_DATALEN - 1)
         original = File.from_blocks(blocks, maxdatalen=maxdatalen)
         outer = original.copy()
@@ -1197,7 +1198,7 @@ class BaseTestFile:
 
     def test_cut_slice(self):
         File = self.File
-        blocks = [[5, b'abc'], [10, b'xyz']]
+        blocks = [(5, b'abc'), (10, b'xyz')]
         maxdatalen = max(1, File.DEFAULT_DATALEN - 1)
         original = File.from_blocks(blocks, maxdatalen=maxdatalen)
         outer = original.copy()
@@ -1206,13 +1207,13 @@ class BaseTestFile:
         assert inner != original
         assert inner._records is None
         assert inner._memory is not original._memory
-        assert inner._memory.to_blocks() == [[6, b'bc'], [10, b'xy']]
+        assert inner._memory.to_blocks() == [(6, b'bc'), (10, b'xy')]
         assert inner.get_meta() == original.get_meta()
         assert outer is not original
         assert outer != original
         assert outer._records is None
         assert outer._memory is not original._memory
-        assert outer._memory.to_blocks() == [[5, b'a'], [12, b'z']]
+        assert outer._memory.to_blocks() == [(5, b'a'), (12, b'z')]
         assert outer.get_meta() == original.get_meta()
 
     def test_delete(self):
@@ -1220,7 +1221,7 @@ class BaseTestFile:
         file = File.from_bytes(b'abcxyz', offset=5)
         returned = file.delete(start=7, endex=9)
         assert returned is file
-        assert file._memory.to_blocks() == [[5, b'abyz']]
+        assert file._memory.to_blocks() == [(5, b'abyz')]
         assert file._records is None
 
     def test_discard_records(self):
@@ -1272,7 +1273,7 @@ class BaseTestFile:
         file = File.from_bytes(b'abc', offset=5)
         returned = file.extend(b'xyz')
         assert returned is file
-        assert file._memory.to_blocks() == [[5, b'abcxyz']]
+        assert file._memory.to_blocks() == [(5, b'abcxyz')]
         assert file._records is None
 
     def test_extend_file(self):
@@ -1281,7 +1282,7 @@ class BaseTestFile:
         more = File.from_bytes(b'xyz')
         returned = file.extend(more)
         assert returned is file
-        assert file._memory.to_blocks() == [[5, b'abcxyz']]
+        assert file._memory.to_blocks() == [(5, b'abcxyz')]
         assert file._records is None
 
     def test_fill(self):
@@ -1289,12 +1290,12 @@ class BaseTestFile:
         file = File.from_bytes(b'abcxyz', offset=5)
         returned = file.fill(start=7, endex=9, pattern=b'.')
         assert returned is file
-        assert file._memory.to_blocks() == [[5, b'ab..yz']]
+        assert file._memory.to_blocks() == [(5, b'ab..yz')]
         assert file._records is None
 
     def test_find(self):
         File = self.File
-        file = File.from_blocks([[5, b'abc'], [10, b'xyz']])
+        file = File.from_blocks([(5, b'abc'), (10, b'xyz')])
         assert file.find(b'bc') == 6
         assert file.find(b'y') == 11
         assert file.find(ord('y')) == 11
@@ -1302,17 +1303,17 @@ class BaseTestFile:
 
     def test_flood(self):
         File = self.File
-        file = File.from_blocks([[5, b'ab'], [9, b'yz']])
+        file = File.from_blocks([(5, b'ab'), (9, b'yz')])
         returned = file.flood(pattern=b'.')
         assert returned is file
-        assert file._memory.to_blocks() == [[5, b'ab..yz']]
+        assert file._memory.to_blocks() == [(5, b'ab..yz')]
         assert file._records is None
 
     def test_from_blocks(self):
         File = self.File
         blocks = [
-            [123, b'abc'],
-            [456, b'xyz'],
+            (123, b'abc'),
+            (456, b'xyz'),
         ]
         file = File.from_blocks(blocks)
         assert file._memory.to_blocks() == blocks
@@ -1322,13 +1323,13 @@ class BaseTestFile:
         file = File.from_bytes(b'abc', offset=5)
         assert file is not None
         assert isinstance(file, BaseFile)
-        assert file._memory.to_blocks() == [[5, b'abc']]
+        assert file._memory.to_blocks() == [(5, b'abc')]
 
     def test_from_memory(self):
         File = self.File
         blocks = [
-            [123, b'abc'],
-            [456, b'xyz'],
+            (123, b'abc'),
+            (456, b'xyz'),
         ]
         memory = Memory.from_blocks(blocks)
         file = File.from_memory(memory, maxdatalen=9)
@@ -1380,22 +1381,22 @@ class BaseTestFile:
         File = self.File
         file = File()
         assert file.get_address_max() == -1
-        file = File.from_blocks([[5, b'abc'], [10, b'xyz']])
+        file = File.from_blocks([(5, b'abc'), (10, b'xyz')])
         assert file.get_address_max() == 12
 
     def test_get_address_min(self):
         File = self.File
         file = File()
         assert file.get_address_min() == 0
-        file = File.from_blocks([[5, b'abc'], [10, b'xyz']])
+        file = File.from_blocks([(5, b'abc'), (10, b'xyz')])
         assert file.get_address_min() == 5
 
     def test_get_holes(self):
         File = self.File
         blocks = [
-            [5, b'abc'],
-            [10, b'xyz'],
-            [20, b'?'],
+            (5, b'abc'),
+            (10, b'xyz'),
+            (20, b'?'),
         ]
         expected = [
             (8, 10),
@@ -1408,9 +1409,9 @@ class BaseTestFile:
     def test_get_spans(self):
         File = self.File
         blocks = [
-            [5, b'abc'],
-            [10, b'xyz'],
-            [20, b'?'],
+            (5, b'abc'),
+            (10, b'xyz'),
+            (20, b'?'),
         ]
         expected = [
             (5, 8),
@@ -1430,7 +1431,7 @@ class BaseTestFile:
 
     def test_index(self):
         File = self.File
-        file = File.from_blocks([[5, b'abc'], [10, b'xyz']])
+        file = File.from_blocks([(5, b'abc'), (10, b'xyz')])
         assert file.index(b'bc') == 6
         assert file.index(b'y') == 11
         assert file.index(ord('y')) == 11
@@ -1476,12 +1477,12 @@ class BaseTestFile:
         assert file._records is records
         memory = file.memory
         assert memory is file._memory
-        assert memory.to_blocks() == [[5, b'abc'], [10, b'xyz']]
+        assert memory.to_blocks() == [(5, b'abc'), (10, b'xyz')]
         assert file._records is records
         file._records = None
         memory = file.memory
         assert memory is file._memory
-        assert memory.to_blocks() == [[5, b'abc'], [10, b'xyz']]
+        assert memory.to_blocks() == [(5, b'abc'), (10, b'xyz')]
         assert file._records is None
 
     def test_memory_getter_raises(self):
@@ -1495,7 +1496,7 @@ class BaseTestFile:
     def test_merge(self):
         File = self.File
         file1 = File.from_bytes(b'abc', offset=5)
-        file2 = File.from_blocks([[10, b'xyz']])
+        file2 = File.from_blocks([(10, b'xyz')])
         merged = File()
         result = merged.merge(file1, file2)
         assert result is merged
@@ -1503,7 +1504,7 @@ class BaseTestFile:
         assert result is not file2
         assert result != file1
         assert result != file2
-        assert result._memory.to_blocks() == [[5, b'abc'], [10, b'xyz']]
+        assert result._memory.to_blocks() == [(5, b'abc'), (10, b'xyz')]
 
     @abc.abstractmethod
     def test_parse(self):
@@ -1542,14 +1543,14 @@ class BaseTestFile:
         assert file.read(start=2, endex=14) == b'\0\0\0abcxyz\0\0\0'
         assert file.read(start=2, endex=14, fill=b'.') == b'...abcxyz...'
 
-        blocks = [[5, b'abc'], [10, b'xyz']]
+        blocks = [(5, b'abc'), (10, b'xyz')]
         file = File.from_blocks(blocks)
         assert file.read(fill=b'.') == b'abc..xyz'
         assert file.read() == b'abc\0\0xyz'
 
     def test_records_getter(self):
         File = self.File
-        blocks = [[5, b'abc'], [10, b'xyz']]
+        blocks = [(5, b'abc'), (10, b'xyz')]
         memory = Memory.from_blocks(blocks)
         file = File.from_memory(memory)
         file._records = None
@@ -1609,11 +1610,11 @@ class BaseTestFile:
 
     def test_shift(self):
         File = self.File
-        blocks = [[5, b'abc'], [10, b'xyz']]
+        blocks = [(5, b'abc'), (10, b'xyz')]
         file = File.from_blocks(blocks)
         assert file._memory.to_blocks() == blocks
         file.shift(+1)
-        assert file._memory.to_blocks() == [[6, b'abc'], [11, b'xyz']]
+        assert file._memory.to_blocks() == [(6, b'abc'), (11, b'xyz')]
         file.shift(-1)
         assert file._memory.to_blocks() == blocks
 
@@ -1622,18 +1623,18 @@ class BaseTestFile:
         file = File.from_bytes(b'abcxyz?!', offset=5)
         parts = file.split(8, 11)
         assert len(parts) == 3
-        assert parts[0]._memory.to_blocks() == [[5, b'abc']]
-        assert parts[1]._memory.to_blocks() == [[8, b'xyz']]
-        assert parts[2]._memory.to_blocks() == [[11, b'?!']]
+        assert parts[0]._memory.to_blocks() == [(5, b'abc')]
+        assert parts[1]._memory.to_blocks() == [(8, b'xyz')]
+        assert parts[2]._memory.to_blocks() == [(11, b'?!')]
 
     def test_split_meta(self):
         File = self.File
         file = File.from_bytes(b'abcxyz?!', offset=5, maxdatalen=7)
         parts = file.split(8, 11)
         assert len(parts) == 3
-        assert parts[0]._memory.to_blocks() == [[5, b'abc']]
-        assert parts[1]._memory.to_blocks() == [[8, b'xyz']]
-        assert parts[2]._memory.to_blocks() == [[11, b'?!']]
+        assert parts[0]._memory.to_blocks() == [(5, b'abc')]
+        assert parts[1]._memory.to_blocks() == [(8, b'xyz')]
+        assert parts[2]._memory.to_blocks() == [(11, b'?!')]
         for part in parts:
             assert part._maxdatalen == 7
 
@@ -1642,9 +1643,9 @@ class BaseTestFile:
         file = File.from_bytes(b'abcxyz?!', offset=5)
         parts = file.split(11, 8)
         assert len(parts) == 3
-        assert parts[0]._memory.to_blocks() == [[5, b'abc']]
-        assert parts[1]._memory.to_blocks() == [[8, b'xyz']]
-        assert parts[2]._memory.to_blocks() == [[11, b'?!']]
+        assert parts[0]._memory.to_blocks() == [(5, b'abc')]
+        assert parts[1]._memory.to_blocks() == [(8, b'xyz')]
+        assert parts[2]._memory.to_blocks() == [(11, b'?!')]
 
     @abc.abstractmethod
     def test_update_records(self):
@@ -1666,7 +1667,7 @@ class BaseTestFile:
 
     def test_view_raises(self):
         File = self.File
-        blocks = [[5, b'abc'], [10, b'xyz']]
+        blocks = [(5, b'abc'), (10, b'xyz')]
         file = File.from_blocks(blocks)
         with pytest.raises(ValueError, match='non-contiguous'):
             file.view()
@@ -1674,14 +1675,14 @@ class BaseTestFile:
     def test_write(self):
         File = self.File
         file = File.from_bytes(b'abc', offset=5)
-        assert file._memory.to_blocks() == [[5, b'abc']]
+        assert file._memory.to_blocks() == [(5, b'abc')]
         file.write(10, b'xyz')
-        assert file._memory.to_blocks() == [[5, b'abc'], [10, b'xyz']]
+        assert file._memory.to_blocks() == [(5, b'abc'), (10, b'xyz')]
 
     def test_write_file(self):
         File = self.File
         file = File.from_bytes(b'abc', offset=5)
-        assert file._memory.to_blocks() == [[5, b'abc']]
+        assert file._memory.to_blocks() == [(5, b'abc')]
         more = File.from_bytes(b'xyz', offset=10)
         file.write(0, more)
-        assert file._memory.to_blocks() == [[5, b'abc'], [10, b'xyz']]
+        assert file._memory.to_blocks() == [(5, b'abc'), (10, b'xyz')]

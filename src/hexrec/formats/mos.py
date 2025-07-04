@@ -37,20 +37,21 @@ from typing import Any
 from typing import Mapping
 from typing import Type
 from typing import TypeVar
+from typing import Union  # NOTE: type | operator unsupported for Python < 3.10
 from typing import cast as _cast
 
 from ..base import AnyBytes
 from ..base import BaseFile
 from ..base import BaseRecord
 from ..base import BaseTag
-from ..base import TypeAlias
+from ..base import ByteString
 from ..utils import hexlify
 from ..utils import unhexlify
 
 try:
     from typing import Self
 except ImportError:  # pragma: no cover
-    Self: TypeAlias = Any  # Python < 3.11
+    Self = Any  # Python < 3.11
 __TYPING_HAS_SELF = Self is not Any
 
 
@@ -63,7 +64,7 @@ class MosTag(BaseTag, enum.IntEnum):
     EOF = 1
     r"""End Of File."""
 
-    _DATA = DATA
+    _DATA = DATA  # type: ignore
 
     def is_data(self) -> bool:
 
@@ -102,7 +103,7 @@ if not __TYPING_HAS_SELF:  # pragma: no cover
 class MosRecord(BaseRecord):
     r"""MOS Technology record object."""
 
-    Tag: Type[MosTag] = MosTag
+    Tag: Type[MosTag] = MosTag  # type: ignore override
 
     LINE_REGEX = re.compile(
         b'^\0*(?P<before>[^;]*);'
@@ -134,8 +135,8 @@ class MosRecord(BaseRecord):
     def create_data(
         cls,
         address: int,
-        data: AnyBytes,
-    ) -> Self:
+        data: ByteString,
+    ) -> Self:  # type: ignore Self
 
         address = address.__index__()
         if not 0 <= address <= 0xFFFF:
@@ -152,7 +153,7 @@ class MosRecord(BaseRecord):
     def create_eof(
         cls,
         record_count: int,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Creates an End Of File record.
 
         The End Of File record also carries the *record count*.
@@ -179,12 +180,12 @@ class MosRecord(BaseRecord):
         return record
 
     @classmethod
-    def parse(
+    def parse(  # type: ignore kwargs order
         cls,
-        line: AnyBytes,
+        line: ByteString,
         eof: bool = False,
         validate: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Parses a record from bytes.
 
         Please refer to the actual implementation provided by the record
@@ -262,7 +263,7 @@ class MosRecord(BaseRecord):
 
     def to_tokens(
         self,
-        end: AnyBytes = b'\r\n',
+        end: ByteString = b'\r\n',
         nuls: bool = True,
     ) -> Mapping[str, bytes]:
 
@@ -285,7 +286,7 @@ class MosRecord(BaseRecord):
         self,
         checksum: bool = True,
         count: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
 
         super().validate(checksum=checksum, count=count)
 
@@ -323,23 +324,23 @@ class MosFile(BaseFile):
 
     DEFAULT_DATALEN: int = 24
 
-    Record: Type[MosRecord] = MosRecord
+    Record: Type[MosRecord] = MosRecord  # type: ignore override
 
     @classmethod
-    def _is_line_empty(cls, line: AnyBytes) -> bool:
+    def _is_line_empty(cls, line: Union[bytes, bytearray]) -> bool:
 
         if b'\0' in line:
             line = line.replace(b'\0', b'')
         return not line or line.isspace()
 
     @classmethod
-    def parse(
+    def parse(  # type: ignore kwargs order
         cls,
         stream: IO,
         ignore_errors: bool = False,
         ignore_after_termination: bool = True,
         eof_record: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Parses records from a byte stream.
 
         It executes :meth:`MosRecord.parse` for each line of the incoming
@@ -384,7 +385,7 @@ class MosFile(BaseFile):
             >>> stream = io.BytesIO(buffer)
             >>> file = MosFile.parse(stream)
             >>> file.memory.to_blocks()
-            [[4660, b'abc']]
+            [(4660, b'abc')]
             >>> file.get_meta()
             {'maxdatalen': 3}
         """
@@ -454,7 +455,7 @@ class MosFile(BaseFile):
 
         Examples:
             >>> from hexrec import MosFile
-            >>> file = MosFile.from_blocks([[0xDA7A, b'abc']])
+            >>> file = MosFile.from_blocks([(0xDA7A, b'abc')])
             >>> import sys
             >>> _ = file.serialize(sys.stdout.buffer, nuls=False, xoff=False)
             ;03DA7A616263027D
@@ -472,7 +473,7 @@ class MosFile(BaseFile):
     def update_records(
         self,
         align: bool = False,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Applies memory and meta to records.
 
         This method processes the stored :attr:`memory` and *meta* information
@@ -502,10 +503,10 @@ class MosFile(BaseFile):
 
         Examples:
             >>> from hexrec import MosFile
-            >>> blocks = [[123, b'abc']]
+            >>> blocks = [(123, b'abc')]
             >>> file = MosFile.from_blocks(blocks, maxdatalen=16)
             >>> file.memory.to_blocks()
-            [[123, b'abc']]
+            [(123, b'abc')]
             >>> file.get_meta()
             {'maxdatalen': 16}
             >>> _ = file.update_records()
@@ -545,7 +546,7 @@ class MosFile(BaseFile):
         self,
         data_ordering: bool = False,
         eof_record_required: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Validates records.
 
         It performs consistency checks for the underlying :attr:`records`.

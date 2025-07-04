@@ -1,3 +1,5 @@
+# type: ignore all for test code
+
 import glob
 import os
 from pathlib import Path

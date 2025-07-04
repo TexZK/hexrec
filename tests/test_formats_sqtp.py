@@ -1,3 +1,5 @@
+# type: ignore all for test code
+
 import io
 import os
 from pathlib import Path
@@ -263,7 +265,7 @@ def test_from_strings_raises_wordsize():
 
 
 def test_from_strings_raises_length_invalid():
-    for wordsize in [2, 4]:
+    for wordsize in (2, 4):
         lengths = list(range(wordsize)) + [257]
         for length in lengths:
             string = b'x' * length
@@ -277,14 +279,14 @@ def test_from_strings_raises_length_inconsistent():
 
 
 def test_from_strings_raises_start_overflow():
-    for start in [-1, 0x100000000]:
+    for start in (-1, 0x100000000):
         with pytest.raises(ValueError, match='start address overflow'):
             from_strings([], start=start)
 
 
 def test_from_strings_raises_start_misaligned():
-    for wordsize in [2, 4]:
-        for offset in [-1, +1]:
+    for wordsize in (2, 4):
+        for offset in (-1, +1):
             start = wordsize + offset
             with pytest.raises(ValueError, match='misaligned start address'):
                 from_strings([], start=start, wordsize=wordsize)

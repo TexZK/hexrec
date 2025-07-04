@@ -1,3 +1,5 @@
+# type: ignore all for test code
+
 # isort: skip_file
 import os
 from pathlib import Path

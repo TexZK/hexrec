@@ -32,44 +32,35 @@ import sys
 from typing import IO
 from typing import Any
 from typing import List
+from typing import Literal
 from typing import Mapping
 from typing import MutableMapping
 from typing import MutableSequence
-from typing import Optional
 from typing import Sequence
 from typing import Tuple
 from typing import Type
 from typing import TypeVar
-from typing import Union
+from typing import Union  # NOTE: type | operator unsupported for Python < 3.10
 from typing import cast as _cast
 
 import colorama
 from bytesparse import Memory
+from bytesparse.base import AnyBytes
 from bytesparse.base import BlockSequence
+from bytesparse.base import ByteString
+from bytesparse.base import EllipsisType
 from bytesparse.base import ImmutableMemory
 from bytesparse.base import MutableMemory
 
 try:
-    from typing import TypeAlias
-except ImportError:  # pragma: no cover
-    TypeAlias = Any  # Python < 3.10
-
-try:
-    from typing import Literal
-    ByteOrder: TypeAlias = Literal['big', 'little']
-except ImportError:  # pragma: no cover
-    Literal: TypeAlias = str  # Python < 3.8
-    ByteOrder: TypeAlias = Literal
-
-try:
     from typing import Self
 except ImportError:  # pragma: no cover
-    Self: TypeAlias = Any  # Python < 3.11
+    Self = Any  # Python < 3.11
 __TYPING_HAS_SELF = Self is not Any
 
-AnyBytes: TypeAlias = Union[bytes, bytearray, memoryview]
-AnyPath: TypeAlias = Union[bytes, bytearray, str, os.PathLike]
-EllipsisType: TypeAlias = Type['Ellipsis']
+AnyPath = Union[bytes, bytearray, str, os.PathLike]
+
+ByteOrder = Literal['big', 'little']
 
 file_types: MutableMapping[str, Type['BaseFile']] = {}
 r"""Registered record file types.
@@ -184,8 +175,8 @@ def colorize_tokens(
 def convert(
     in_path_or_stream: Union[str, IO],
     out_path: str,
-    in_format: Optional[str] = None,
-    out_format: Optional[str] = None,
+    in_format: Union[str, None] = None,
+    out_format: Union[str, None] = None,
 ) -> Tuple['BaseFile', 'BaseFile']:
     r"""Converts a file into another format.
 
@@ -322,9 +313,9 @@ def guess_format_type(file_path: str) -> Type['BaseFile']:
 
 
 def load(
-    in_path_or_stream: Optional[Union[str, IO]],
+    in_path_or_stream: Union[str, IO, None],
     *load_args: Any,
-    in_format: Optional[str] = None,
+    in_format: Union[str, None] = None,
     **load_kwargs: Any,
 ) -> 'BaseFile':
     r"""Loads a file.
@@ -396,9 +387,9 @@ def load(
 
 def merge(
     in_paths_or_streams: Sequence[Union[str, IO]],
-    out_path_or_stream: Optional[Union[str, IO, EllipsisType]] = Ellipsis,
-    in_formats: Optional[Sequence[Optional[str]]] = None,
-    out_format: Optional[str] = None,
+    out_path_or_stream: Union[str, IO, EllipsisType, None] = Ellipsis,
+    in_formats: Union[Sequence[Union[str, None]], None] = None,
+    out_format: Union[str, None] = None,
 ) -> Tuple[Sequence['BaseFile'], 'BaseFile']:
     r"""Merges multiple files.
 
@@ -453,7 +444,9 @@ def merge(
     in_formats += [None] * (len(in_paths_or_streams) - len(in_formats))
 
     if out_format is None and out_path_or_stream not in (None, Ellipsis):
+        out_path_or_stream = _cast(str, out_path_or_stream)
         out_format = guess_format_name(out_path_or_stream)
+    out_format = _cast(str, out_format)
     out_type = file_types[out_format]
 
     in_files = []
@@ -465,6 +458,7 @@ def merge(
     out_file.merge(*in_files)
 
     if out_path_or_stream is not Ellipsis:
+        out_path_or_stream = _cast(str, out_path_or_stream)
         out_file.save(out_path_or_stream)
 
     return in_files, out_file
@@ -481,7 +475,7 @@ class BaseTag:
     the *serialized* representation of a record.
     """
 
-    _DATA: Optional['BaseTag'] = None
+    _DATA: Union['BaseTag', None] = None
     r"""Alias to a common data record tag.
 
     This tag is used internally to build a generic data record.
@@ -693,7 +687,7 @@ class BaseRecord(abc.ABC):
     This sequence holds the *meta* keys for copying (see :meth:`copy`).
     """
 
-    Tag: Type[BaseTag] = None  # override
+    Tag: Type[BaseTag] = None  # override  # type: ignore override
     r"""Tag object type.
 
     This class attribute indicates the :class:`BaseTag` class used by this
@@ -726,7 +720,7 @@ class BaseRecord(abc.ABC):
 
         return self.to_bytestr()
 
-    def __eq__(self, other: 'BaseRecord') -> bool:
+    def __eq__(self, other: Any) -> bool:
         r"""Equality test.
 
         This method returns true if `self` is considered equal to `other`.
@@ -769,9 +763,9 @@ class BaseRecord(abc.ABC):
         self,
         tag: BaseTag,
         address: int = 0,
-        data: AnyBytes = b'',
-        count: Optional[Union[int, EllipsisType]] = Ellipsis,
-        checksum: Optional[Union[int, EllipsisType]] = Ellipsis,
+        data: ByteString = b'',
+        count: Union[int, EllipsisType, None] = Ellipsis,
+        checksum: Union[int, EllipsisType, None] = Ellipsis,
         before: Union[bytes, bytearray] = b'',
         after: Union[bytes, bytearray] = b'',
         coords: Tuple[int, int] = (-1, -1),
@@ -781,20 +775,22 @@ class BaseRecord(abc.ABC):
         self.address: int = address.__index__()
         self.after: Union[bytes, bytearray] = after
         self.before: Union[bytes, bytearray] = before
-        self.checksum: Optional[int] = None
+        self.checksum: Union[int, None] = None
         self.coords: Tuple[int, int] = coords
-        self.count: Optional[int] = None
-        self.data: AnyBytes = data
+        self.count: Union[int, None] = None
+        self.data: ByteString = data
         self.tag: BaseTag = tag
 
         if count is Ellipsis:
             self.update_count()
         elif count is not None:
+            count = _cast(int, count)
             self.count = count.__index__()
 
         if checksum is Ellipsis:
             self.update_checksum()
         elif checksum is not None:
+            checksum = _cast(int, checksum)
             self.checksum = checksum.__index__()
 
         if validate:
@@ -802,7 +798,7 @@ class BaseRecord(abc.ABC):
             _checksum = checksum is not None and _count
             self.validate(checksum=_checksum, count=_count)
 
-    def __ne__(self, other: 'BaseRecord') -> bool:
+    def __ne__(self, other: Any) -> bool:
         r"""Ineuality test.
 
         This method returns true if `self` is considered unequal to `other`.
@@ -903,7 +899,7 @@ class BaseRecord(abc.ABC):
 
         return self.to_bytestr().decode()
 
-    def compute_checksum(self) -> Optional[int]:
+    def compute_checksum(self) -> Union[int, None]:
         r"""Computes the checksum field value.
 
         It computes and returns the format-specific :attr:`checksum` value of a
@@ -931,7 +927,7 @@ class BaseRecord(abc.ABC):
 
         return None
 
-    def compute_count(self) -> Optional[int]:
+    def compute_count(self) -> Union[int, None]:
         r"""Compute the count field value.
 
         It computes and returns the format-specific :attr:`count` value of a
@@ -959,7 +955,7 @@ class BaseRecord(abc.ABC):
 
         return None
 
-    def copy(self, validate: bool = True) -> Self:  # shallow
+    def copy(self, validate: bool = True) -> Self:  # shallow  # type: ignore Self
         r"""Shallow copy.
 
         It calls the record constructor, passing *meta* to it.
@@ -995,7 +991,7 @@ class BaseRecord(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def create_data(cls, address: int, data: AnyBytes) -> Self:
+    def create_data(cls, address: int, data: ByteString) -> Self:  # type: ignore Self
         r"""Creates a data record.
 
         This is a mandatory class method to instantiate a *data* record.
@@ -1092,9 +1088,9 @@ class BaseRecord(abc.ABC):
     @abc.abstractmethod
     def parse(
         cls,
-        line: AnyBytes,
+        line: ByteString,
         validate: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Parses a record from bytes.
 
         Please refer to the actual implementation provided by the record
@@ -1131,10 +1127,10 @@ class BaseRecord(abc.ABC):
     def print(
         self,
         *args,
-        stream: Optional[IO] = None,
+        stream: Union[IO, None] = None,
         color: bool = False,
         **kwargs,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Prints a record.
 
         The record is converted into tokens (eventually colorized) then joined
@@ -1182,10 +1178,11 @@ class BaseRecord(abc.ABC):
         tokens = self.to_tokens(*args, **kwargs)
         if color:
             tokens = colorize_tokens(tokens)
+        assert stream is not None
         stream.writelines(tokens.values())
         return self
 
-    def serialize(self, stream: IO, *args, **kwargs) -> Self:
+    def serialize(self, stream: IO, *args, **kwargs) -> Self:  # type: ignore Self
         r"""Serializes onto a stream.
 
         This wraps a call to :meth:`to_bytestr` and ``stream.write``.
@@ -1275,7 +1272,7 @@ class BaseRecord(abc.ABC):
         """
         ...
 
-    def update_checksum(self) -> Self:
+    def update_checksum(self) -> Self:  # type: ignore Self
         r"""Updates the checksum field.
 
         It updates the :attr:`checksum` attribute, assigning to it the value
@@ -1307,7 +1304,7 @@ class BaseRecord(abc.ABC):
         self.checksum = self.compute_checksum()
         return self
 
-    def update_count(self) -> Self:
+    def update_count(self) -> Self:  # type: ignore Self
         r"""Updates the count field.
 
         It updates the :attr:`count` attribute, assigning to it the value
@@ -1344,7 +1341,7 @@ class BaseRecord(abc.ABC):
         self,
         checksum: bool = True,
         count: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Validates consistency of attribute values.
 
         All the record attributes are checked for consistency.
@@ -1531,7 +1528,7 @@ class BaseFile(abc.ABC):
     file *format*.
     """
 
-    Record: Type[BaseRecord] = None  # override
+    Record: Type[BaseRecord] = None  # override  # type: ignore override
     r"""Record object type.
 
     This class attribute indicates the :class:`BaseRecord` class used by this
@@ -1541,7 +1538,7 @@ class BaseFile(abc.ABC):
     def __add__(
         self,
         other: Union['BaseFile', AnyBytes],
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Concatenates with another file.
 
         Equivalent to :meth:`copy` then :meth:`extend`.
@@ -1566,10 +1563,10 @@ class BaseFile(abc.ABC):
             >>> file2 = SrecFile.from_bytes(b'xyz', offset=456)
             >>> file3 = file1 + file2
             >>> file3.memory.to_blocks()
-            [[123, b'abc'], [582, b'xyz']]
+            [(123, b'abc'), (582, b'xyz')]
             >>> file4 = file3 + b'789'
             >>> file4.memory.to_blocks()
-            [[123, b'abc'], [582, b'xyz789']]
+            [(123, b'abc'), (582, b'xyz789')]
         """
 
         return self.copy().extend(other)
@@ -1624,13 +1621,13 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [456, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (456, b'xyz')])
             >>> del file[457]
             >>> file.memory.to_blocks()
-            [[123, b'abc'], [456, b'xz']]
+            [(123, b'abc'), (456, b'xz')]
             >>> del file[125:457]
             >>> file.memory.to_blocks()
-            [[123, b'abz']]
+            [(123, b'abz')]
         """
 
         del self.memory[key]
@@ -1653,7 +1650,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [456, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (456, b'xyz')])
             >>> chr(file[457])
             'y'
             >>> repr(file[333])
@@ -1671,7 +1668,7 @@ class BaseFile(abc.ABC):
             item = bytes(item)
         return item
 
-    def __eq__(self, other: 'BaseFile') -> bool:
+    def __eq__(self, other: Any) -> bool:
         r"""Equality test.
 
         The file objects `self` and `other` are considered *equal* if the
@@ -1717,7 +1714,7 @@ class BaseFile(abc.ABC):
     def __iadd__(
         self,
         other: Union['BaseFile', AnyBytes],
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Concatenates data.
 
         Equivalent to :meth:`extend`.
@@ -1748,21 +1745,21 @@ class BaseFile(abc.ABC):
             >>> file2 = SrecFile.from_bytes(b'xyz', offset=456)
             >>> file1 += file2
             >>> file1.memory.to_blocks()
-            [[123, b'abc'], [582, b'xyz']]
+            [(123, b'abc'), (582, b'xyz')]
             >>> file1 += b'789'
             >>> file1.memory.to_blocks()
-            [[123, b'abc'], [582, b'xyz789']]
+            [(123, b'abc'), (582, b'xyz789')]
         """
 
         return self.extend(other)
 
     def __init__(self):
 
-        self._records: Optional[MutableSequence[BaseRecord]] = None
-        self._memory: Optional[MutableMemory] = Memory()
+        self._records: Union[MutableSequence[BaseRecord], None] = None
+        self._memory: Union[MutableMemory, None] = Memory()
         self._maxdatalen: int = self.DEFAULT_DATALEN
 
-    def __ior__(self, other: 'BaseFile') -> Self:
+    def __ior__(self, other: 'BaseFile') -> Self:  # type: ignore Self
         r"""Merges with another file.
 
         Equivalent to :meth:`merge`.
@@ -1789,16 +1786,16 @@ class BaseFile(abc.ABC):
             >>> file2 = SrecFile.from_bytes(b'xyz', offset=456)
             >>> file1 |= file2
             >>> file1.memory.to_blocks()
-            [[123, b'abc'], [456, b'xyz']]
+            [(123, b'abc'), (456, b'xyz')]
             >>> file1 |= b'789'
             >>> file1.memory.to_blocks()
-            [[0, b'789'], [123, b'abc'], [456, b'xyz']]
+            [(0, b'789'), (123, b'abc'), (456, b'xyz')]
         """
 
         self.merge(other)
         return self
 
-    def __ne__(self, other: 'BaseFile') -> bool:
+    def __ne__(self, other: Any) -> bool:
         r"""Inequality test.
 
         The file objects `self` and `other` are considered *unequal* if any of
@@ -1876,7 +1873,7 @@ class BaseFile(abc.ABC):
     def __or__(
         self,
         other: Union['BaseFile', AnyBytes],
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Merges with another file.
 
         Equivalent to :meth:`copy` then :meth:`merge`.
@@ -1901,10 +1898,10 @@ class BaseFile(abc.ABC):
             >>> file2 = SrecFile.from_bytes(b'xyz', offset=456)
             >>> file3 = file1 | file2
             >>> file3.memory.to_blocks()
-            [[123, b'abc'], [456, b'xyz']]
+            [(123, b'abc'), (456, b'xyz')]
             >>> file4 = file3 | b'789'
             >>> file4.memory.to_blocks()
-            [[0, b'789'], [123, b'abc'], [456, b'xyz']]
+            [(0, b'789'), (123, b'abc'), (456, b'xyz')]
         """
 
         return self.copy().merge(other)
@@ -1936,22 +1933,22 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [456, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (456, b'xyz')])
             >>> file[124] = b'?'
             >>> file.memory.to_blocks()
-            [[123, b'a?c'], [456, b'xyz']]
+            [(123, b'a?c'), (456, b'xyz')]
             >>> file[:125] = None
             >>> file.memory.to_blocks()
-            [[125, b'c'], [456, b'xyz']]
+            [(125, b'c'), (456, b'xyz')]
             >>> file[457:458] = b'789'
             >>> file.memory.to_blocks()
-            [[125, b'c'], [456, b'x789z']]
+            [(125, b'c'), (456, b'x789z')]
         """
 
         self.memory[key] = value
 
     @classmethod
-    def _is_line_empty(cls, line: AnyBytes) -> bool:
+    def _is_line_empty(cls, line: Union[bytes, bytearray]) -> bool:
         r"""Empty line check.
 
         Tells whether a `line` has no meaningful content (e.g. all whitespace).
@@ -1983,10 +1980,10 @@ class BaseFile(abc.ABC):
     def align(
         self,
         modulo: int,
-        start: Optional[int] = None,
-        endex: Optional[int] = None,
+        start: Union[int, None] = None,
+        endex: Union[int, None] = None,
         pattern: Union[int, AnyBytes] = 0,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Pads blocks to align their boundaries.
 
         It fills memory holes of the underlying :attr:`memory` within the
@@ -2023,17 +2020,17 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [134, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (134, b'xyz')])
             >>> _ = file.align(4, pattern=b'.')
             >>> file.memory.to_blocks()
-            [[120, b'...abc..'], [132, b'..xyz...']]
+            [(120, b'...abc..'), (132, b'..xyz...')]
         """
 
         self.memory.align(modulo, start=start, endex=endex, pattern=pattern)
         self.discard_records()
         return self
 
-    def append(self, item: Union[AnyBytes, int]) -> Self:
+    def append(self, item: Union[AnyBytes, int]) -> Self:  # type: ignore Self
         r"""Appends a byte.
 
         It appends the `item` to the underlyng :attr:`memory`.
@@ -2061,14 +2058,14 @@ class BaseFile(abc.ABC):
             >>> _ = file.append(b'.')
             >>> _ = file.append(0)
             >>> file.memory.to_blocks()
-            [[123, b'abc.\x00']]
+            [(123, b'abc.\x00')]
         """
 
         self.memory.append(item)
         self.discard_records()
         return self
 
-    def apply_records(self) -> Self:
+    def apply_records(self) -> Self:  # type: ignore Self
         r"""Applies records to memory and meta.
 
         This method processes the stored :attr:`records`, converting *data* as
@@ -2104,7 +2101,7 @@ class BaseFile(abc.ABC):
             >>> file = IhexFile.from_records(records, maxdatalen=16)
             >>> _ = file.apply_records()
             >>> file.memory.to_blocks()
-            [[123, b'abc']]
+            [(123, b'abc')]
             >>> file.get_meta()
             {'linear': True, 'maxdatalen': 16, 'startaddr': 456}
         """
@@ -2124,9 +2121,9 @@ class BaseFile(abc.ABC):
 
     def clear(
         self,
-        start: Optional[int] = None,
-        endex: Optional[int] = None,
-    ) -> Self:
+        start: Union[int, None] = None,
+        endex: Union[int, None] = None,
+    ) -> Self:  # type: ignore Self
         r"""Clears data within a range.
 
         It clears the specified range of underlying :attr:`memory` object,
@@ -2156,10 +2153,10 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [130, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (130, b'xyz')])
             >>> _ = file.clear(start=124, endex=132)
             >>> file.memory.to_blocks()
-            [[123, b'a'], [132, b'z']]
+            [(123, b'a'), (132, b'z')]
         """
 
         self.memory.clear(start=start, endex=endex)
@@ -2171,7 +2168,7 @@ class BaseFile(abc.ABC):
         cls,
         source: 'BaseFile',
         meta: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Converts a file object to another format.
 
         It copies the :attr:`memory` and *meta* of the `source` file object,
@@ -2193,7 +2190,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import IhexFile, SrecFile
-            >>> blocks = [[123, b'abc'], [456, b'xyz']]
+            >>> blocks = [(123, b'abc'), (456, b'xyz')]
             >>> source = IhexFile.from_blocks(blocks, startaddr=789)
             >>> target = SrecFile.convert(source)
             >>> target.memory is source.memory
@@ -2213,15 +2210,16 @@ class BaseFile(abc.ABC):
             target_meta = {}
 
         target_memory = source.memory.copy()
+        target_memory = _cast(MutableMemory, target_memory)
         target = cls.from_memory(memory=target_memory, **target_meta)
         return target
 
     def copy(
         self,
-        start: Optional[int] = None,
-        endex: Optional[int] = None,
+        start: Union[int, None] = None,
+        endex: Union[int, None] = None,
         meta: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Copies within a range.
 
         It copied data within the specified range of the file object, creating
@@ -2253,24 +2251,25 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [130, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (130, b'xyz')])
             >>> inner = file.copy(start=124, endex=132)
             >>> inner.memory.to_blocks()
-            [[124, b'bc'], [130, b'xy']]
+            [(124, b'bc'), (130, b'xy')]
             >>> file.memory.to_blocks()
-            [[123, b'abc'], [130, b'xyz']]
+            [(123, b'abc'), (130, b'xyz')]
         """
 
         copied_memory = self.memory.extract(start=start, endex=endex, bound=False)
         copied_meta = self.get_meta() if meta else {}
+        copied_memory = _cast(MutableMemory, copied_memory)
         copied = self.from_memory(memory=copied_memory, **copied_meta)
         return copied
 
     def crop(
         self,
-        start: Optional[int] = None,
-        endex: Optional[int] = None,
-    ) -> Self:
+        start: Union[int, None] = None,
+        endex: Union[int, None] = None,
+    ) -> Self:  # type: ignore Self
         r"""Clears data outside a range.
 
         It clears outside the specified range of underlying :attr:`memory`
@@ -2300,10 +2299,10 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [130, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (130, b'xyz')])
             >>> _ = file.crop(start=124, endex=132)
             >>> file.memory.to_blocks()
-            [[124, b'bc'], [130, b'xy']]
+            [(124, b'bc'), (130, b'xy')]
         """
 
         self.memory.crop(start=start, endex=endex)
@@ -2312,10 +2311,10 @@ class BaseFile(abc.ABC):
 
     def cut(
         self,
-        start: Optional[int] = None,
-        endex: Optional[int] = None,
+        start: Union[int, None] = None,
+        endex: Union[int, None] = None,
         meta: bool = False,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Cuts data within a range.
 
         It takes data within the specified range away from the file object,
@@ -2351,12 +2350,12 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [130, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (130, b'xyz')])
             >>> inner = file.cut(start=124, endex=132)
             >>> inner.memory.to_blocks()
-            [[124, b'bc'], [130, b'xy']]
+            [(124, b'bc'), (130, b'xy')]
             >>> file.memory.to_blocks()
-            [[123, b'a'], [132, b'z']]
+            [(123, b'a'), (132, b'z')]
         """
 
         inner_memory = self.memory.cut(start=start, endex=endex, bound=False)
@@ -2368,9 +2367,9 @@ class BaseFile(abc.ABC):
 
     def delete(
         self,
-        start: Optional[int] = None,
-        endex: Optional[int] = None,
-    ) -> Self:
+        start: Union[int, None] = None,
+        endex: Union[int, None] = None,
+    ) -> Self:  # type: ignore Self
         r"""Deletes data within a range.
 
         It deletes the specified range of underlying :attr:`memory` object,
@@ -2400,17 +2399,17 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [130, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (130, b'xyz')])
             >>> _ = file.delete(start=124, endex=132)
             >>> file.memory.to_blocks()
-            [[123, b'az']]
+            [(123, b'az')]
         """
 
         self.memory.delete(start=start, endex=endex)
         self.discard_records()
         return self
 
-    def discard_records(self) -> Self:
+    def discard_records(self) -> Self:  # type: ignore Self
         r"""Discards underlying records.
 
         The underlying :attr:`records` object is assigned ``None``.
@@ -2443,7 +2442,7 @@ class BaseFile(abc.ABC):
             self._memory = Memory()
         return self
 
-    def discard_memory(self) -> Self:
+    def discard_memory(self) -> Self:  # type: ignore Self
         r"""Discards underlying memory.
 
         The underlying :attr:`memory` object is assigned ``None``.
@@ -2476,7 +2475,7 @@ class BaseFile(abc.ABC):
     def extend(
         self,
         other: Union['BaseFile', ImmutableMemory, AnyBytes],
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Concatenates data.
 
         It concatenates `other` to the underlyng :attr:`memory`.
@@ -2504,10 +2503,10 @@ class BaseFile(abc.ABC):
             >>> file2 = SrecFile.from_bytes(b'xyz', offset=456)
             >>> _ = file1.extend(file2)
             >>> file1.memory.to_blocks()
-            [[123, b'abc'], [582, b'xyz']]
+            [(123, b'abc'), (582, b'xyz')]
             >>> _ = file1.extend(b'789')
             >>> file1.memory.to_blocks()
-            [[123, b'abc'], [582, b'xyz789']]
+            [(123, b'abc'), (582, b'xyz789')]
         """
 
         if isinstance(other, BaseFile):
@@ -2518,10 +2517,10 @@ class BaseFile(abc.ABC):
 
     def fill(
         self,
-        start: Optional[int] = None,
-        endex: Optional[int] = None,
+        start: Union[int, None] = None,
+        endex: Union[int, None] = None,
         pattern: Union[int, AnyBytes] = 0,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Fills a range.
 
         It writes a `pattern` of bytes onto the underlying :attr:`memory`
@@ -2554,10 +2553,10 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [130, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (130, b'xyz')])
             >>> _ = file.fill(start=124, endex=132, pattern=b'.')
             >>> file.memory.to_blocks()
-            [[123, b'a........z']]
+            [(123, b'a........z')]
         """
 
         self.memory.fill(start=start, endex=endex, pattern=pattern)
@@ -2567,8 +2566,8 @@ class BaseFile(abc.ABC):
     def find(
         self,
         item: Union[AnyBytes, int],
-        start: Optional[int] = None,
-        endex: Optional[int] = None,
+        start: Union[int, None] = None,
+        endex: Union[int, None] = None,
     ) -> int:
         r"""Finds a substring.
 
@@ -2607,7 +2606,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [456, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (456, b'xyz')])
             >>> file.find(b'yz')
             457
             >>> file.find(ord('b'))
@@ -2621,10 +2620,10 @@ class BaseFile(abc.ABC):
 
     def flood(
         self,
-        start: Optional[int] = None,
-        endex: Optional[int] = None,
+        start: Union[int, None] = None,
+        endex: Union[int, None] = None,
         pattern: Union[int, AnyBytes] = 0,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Floods a range.
 
         It fills memory holes of the underlying :attr:`memory` within the
@@ -2657,12 +2656,12 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [130, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (130, b'xyz')])
             >>> file.get_holes()
             [(126, 130)]
             >>> _ = file.flood(start=124, endex=132, pattern=b'.')
             >>> file.memory.to_blocks()
-            [[123, b'abc....xyz']]
+            [(123, b'abc....xyz')]
         """
 
         self.memory.flood(start=start, endex=endex, pattern=pattern)
@@ -2670,7 +2669,7 @@ class BaseFile(abc.ABC):
         return self
 
     @classmethod
-    def from_blocks(cls, blocks: BlockSequence, **meta) -> Self:
+    def from_blocks(cls, blocks: BlockSequence, **meta) -> Self:  # type: ignore Self
         r"""Creates a file object from a memory object.
 
         The `blocks` are put into the :attr:`memory` of the created file object.
@@ -2704,10 +2703,10 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> blocks = [[123, b'abc'], [456, b'xyz']]
+            >>> blocks = [(123, b'abc'), (456, b'xyz')]
             >>> file = SrecFile.from_blocks(blocks, maxdatalen=8)
             >>> file.memory.to_blocks()
-            [[123, b'abc'], [456, b'xyz']]
+            [(123, b'abc'), (456, b'xyz')]
             >>> file.maxdatalen
             8
         """
@@ -2717,7 +2716,7 @@ class BaseFile(abc.ABC):
         return file
 
     @classmethod
-    def from_bytes(cls, data: AnyBytes, offset: int = 0, **meta) -> Self:
+    def from_bytes(cls, data: ByteString, offset: int = 0, **meta) -> Self:  # type: ignore Self
         r"""Creates a file object from a byte string.
 
         The byte string makes a single *data* block, placed at some offset
@@ -2757,7 +2756,7 @@ class BaseFile(abc.ABC):
             >>> from hexrec import SrecFile
             >>> file = SrecFile.from_bytes(b'abc', offset=123, maxdatalen=8)
             >>> file.memory.to_blocks()
-            [[123, b'abc']]
+            [(123, b'abc')]
             >>> file.maxdatalen
             8
         """
@@ -2767,7 +2766,7 @@ class BaseFile(abc.ABC):
         return file
 
     @classmethod
-    def from_memory(cls, memory: Optional[MutableMemory] = None, **meta) -> Self:
+    def from_memory(cls, memory: Union[MutableMemory, None] = None, **meta) -> Self:  # type: ignore Self
         r"""Creates a file object from a memory object.
 
         The `memory` is set as the :attr:`memory` of the created file object.
@@ -2801,12 +2800,12 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from bytesparse import Memory
-            >>> blocks = [[123, b'abc'], [456, b'xyz']]
+            >>> blocks = [(123, b'abc'), (456, b'xyz')]
             >>> memory = Memory.from_blocks(blocks)
             >>> from hexrec import SrecFile
             >>> file = SrecFile.from_memory(memory, maxdatalen=8)
             >>> file.memory.to_blocks()
-            [[123, b'abc'], [456, b'xyz']]
+            [(123, b'abc'), (456, b'xyz')]
             >>> file.maxdatalen
             8
         """
@@ -2828,8 +2827,8 @@ class BaseFile(abc.ABC):
     def from_records(
         cls,
         records: MutableSequence[BaseRecord],
-        maxdatalen: Optional[int] = None,
-    ) -> Self:
+        maxdatalen: Union[int, None] = None,
+    ) -> Self:  # type: ignore Self
         r"""Creates a file object from records.
 
         The `records` sequence is set as the :attr:`record` attribute of the
@@ -2871,7 +2870,7 @@ class BaseFile(abc.ABC):
             ...            IhexRecord.create_end_of_file()]
             >>> file = IhexFile.from_records(records)
             >>> file.memory.to_blocks()
-            [[123, b'abc']]
+            [(123, b'abc')]
             >>> file.maxdatalen
             3
         """
@@ -2908,7 +2907,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [456, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (456, b'xyz')])
             >>> file.get_address_max()
             458
         """
@@ -2931,7 +2930,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [456, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (456, b'xyz')])
             >>> file.get_address_min()
             123
         """
@@ -2958,7 +2957,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> blocks = [[123, b'abc'], [456, b'xyz'], [789, b'?!']]
+            >>> blocks = [(123, b'abc'), (456, b'xyz'), (789, b'?!')]
             >>> file = SrecFile.from_blocks(blocks)
             >>> file.get_holes()
             [(126, 456), (459, 789)]
@@ -2966,6 +2965,7 @@ class BaseFile(abc.ABC):
 
         memory = self.memory
         holes = list(memory.gaps(memory.start, memory.endex))
+        holes = _cast(List[Tuple[int, int]], holes)
         return holes
 
     def get_spans(self) -> List[Tuple[int, int]]:
@@ -2988,7 +2988,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> blocks = [[123, b'abc'], [456, b'xyz'], [789, b'?!']]
+            >>> blocks = [(123, b'abc'), (456, b'xyz'), (789, b'?!')]
             >>> file = SrecFile.from_blocks(blocks)
             >>> file.get_spans()
             [(123, 126), (456, 459), (789, 791)]
@@ -3011,7 +3011,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> blocks = [[123, b'abc'], [456, b'xyz'], [789, b'?!']]
+            >>> blocks = [(123, b'abc'), (456, b'xyz'), (789, b'?!')]
             >>> file = SrecFile.from_blocks(blocks, header=b'HDR\0')
             >>> file.get_meta()
             {'header': b'HDR\x00', 'maxdatalen': 16, 'startaddr': 0}
@@ -3023,8 +3023,8 @@ class BaseFile(abc.ABC):
     def index(
         self,
         item: Union[AnyBytes, int],
-        start: Optional[int] = None,
-        endex: Optional[int] = None,
+        start: Union[int, None] = None,
+        endex: Union[int, None] = None,
     ) -> int:
         r"""Finds a substring.
 
@@ -3060,7 +3060,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [456, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (456, b'xyz')])
             >>> file.index(b'yz')
             457
             >>> file.index(ord('b'))
@@ -3077,10 +3077,10 @@ class BaseFile(abc.ABC):
     @classmethod
     def load(
         cls,
-        in_path_or_stream: Optional[Union[AnyPath, IO]],
+        in_path_or_stream: Union[AnyPath, IO, None],
         *args,
         **kwargs,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Loads a file object from the filesystem.
 
         The :func:`open` function creates a *stream* from the filesystem,
@@ -3113,7 +3113,7 @@ class BaseFile(abc.ABC):
             >>> from hexrec import IhexFile
             >>> file = IhexFile.load('data.hex')
             >>> file.memory.to_blocks()
-            [[55930, b'abc']]
+            [(55930, b'abc')]
             >>> file.get_meta()
             {'linear': True, 'maxdatalen': 3, 'startaddr': 51966}
         """
@@ -3122,7 +3122,7 @@ class BaseFile(abc.ABC):
             in_path_or_stream = sys.stdin.buffer
 
         if isinstance(in_path_or_stream, io.IOBase):
-            stream = in_path_or_stream
+            stream = _cast(IO, in_path_or_stream)
             return cls.parse(stream, *args, **kwargs)
         else:
             path = str(in_path_or_stream)
@@ -3225,20 +3225,21 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> blocks = [[123, b'abc'], [456, b'xyz']]
+            >>> blocks = [(123, b'abc'), (456, b'xyz')]
             >>> file = SrecFile.from_blocks(blocks)
             >>> file.memory.to_blocks()
-            [[123, b'abc'], [456, b'xyz']]
+            [(123, b'abc'), (456, b'xyz')]
             >>> _ = file.write(789, b'?!')
             >>> file.memory.to_blocks()
-            [[123, b'abc'], [456, b'xyz'], [789, b'?!']]
+            [(123, b'abc'), (456, b'xyz'), (789, b'?!')]
         """
 
         if self._memory is None:
             self.apply_records()
+        assert self._memory is not None
         return self._memory
 
-    def merge(self, *files: 'BaseFile', clear: bool = False) -> Self:
+    def merge(self, *files: 'BaseFile', clear: bool = False) -> Self:  # type: ignore Self
         r"""Merges data onto the file.
 
         It writes the provided `files` onto *self*, in the provided order.
@@ -3271,7 +3272,7 @@ class BaseFile(abc.ABC):
             >>> file3 = SrecFile.from_bytes(b'<<<?????>>>', offset=450)
             >>> _ = file3.merge(file1, file2)
             >>> file3.memory.to_blocks()
-            [[123, b'abc'], [450, b'<<<???xyz>>']]
+            [(123, b'abc'), (450, b'<<<???xyz>>')]
         """
 
         for file in files:
@@ -3284,7 +3285,7 @@ class BaseFile(abc.ABC):
         stream: Union[AnyBytes, IO],
         ignore_errors: bool = False,
         ignore_after_termination: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Parses records from a byte stream.
 
         It executes :meth:`BaseRecord.parse` for each line of the incoming
@@ -3332,12 +3333,12 @@ class BaseFile(abc.ABC):
             >>> stream = io.BytesIO(buffer)
             >>> file = IhexFile.parse(stream)
             >>> file.memory.to_blocks()
-            [[55930, b'abc']]
+            [(55930, b'abc')]
             >>> file.get_meta()
             {'linear': True, 'maxdatalen': 3, 'startaddr': 51966}
             >>> file = IhexFile.parse(buffer)
             >>> file.memory.to_blocks()
-            [[55930, b'abc']]
+            [(55930, b'abc')]
             >>> file.get_meta()
             {'linear': True, 'maxdatalen': 3, 'startaddr': 51966}
         """
@@ -3350,6 +3351,7 @@ class BaseFile(abc.ABC):
         row = 0
 
         for line in stream:
+            line = _cast(bytes, line)
             row += 1
 
             if cls._is_line_empty(line):
@@ -3375,12 +3377,12 @@ class BaseFile(abc.ABC):
     def print(
         self,
         *args,
-        stream: Optional[IO] = None,
+        stream: Union[IO, None] = None,
         color: bool = False,
-        start: Optional[int] = None,
-        stop: Optional[int] = None,
+        start: Union[int, None] = None,
+        stop: Union[int, None] = None,
         **kwargs,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Prints record content to stdout.
 
         This helper method prints each record of :attr:`records` via
@@ -3454,9 +3456,9 @@ class BaseFile(abc.ABC):
 
     def read(
         self,
-        start: Optional[int] = None,
-        endex: Optional[int] = None,
-        fill: Union[int, AnyBytes] = 0,
+        start: Union[int, None] = None,
+        endex: Union[int, None] = None,
+        fill: Union[int, bytes, bytearray] = 0,
     ) -> bytes:
         r"""Extracts a substring.
 
@@ -3488,13 +3490,13 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [130, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (130, b'xyz')])
             >>> file.read(start=124, endex=132)
             b'bc\x00\x00\x00\x00xy'
             >>> file.read(start=124, endex=132, fill=b'.')
             b'bc....xy'
             >>> file.memory.to_blocks()
-            [[123, b'abc'], [130, b'xyz']]
+            [(123, b'abc'), (130, b'xyz')]
         """
 
         memory = self.memory.extract(start=start, endex=endex, pattern=fill)
@@ -3529,7 +3531,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> blocks = [[123, b'abc'], [456, b'xyz']]
+            >>> blocks = [(123, b'abc'), (456, b'xyz')]
             >>> file = SrecFile.from_blocks(blocks, startaddr=789)
             >>> len(file.records)
             5
@@ -3550,14 +3552,15 @@ class BaseFile(abc.ABC):
 
         if self._records is None:
             self.update_records()
+        assert self._records is not None
         return self._records
 
     def save(
         self,
-        out_path_or_stream: Optional[Union[AnyPath, IO]],
+        out_path_or_stream: Union[AnyPath, IO, None],
         *args,
         **kwargs,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Saves a file object into the filesystem.
 
         The :func:`open` function creates a *stream* from the filesystem,
@@ -3588,7 +3591,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import IhexFile
-            >>> file = IhexFile.from_blocks([[0xDA7A, b'abc']], startaddr=0xCAFE)
+            >>> file = IhexFile.from_blocks([(0xDA7A, b'abc')], startaddr=0xCAFE)
             >>> _ = file.save('data.hex')
         """
 
@@ -3596,7 +3599,7 @@ class BaseFile(abc.ABC):
             out_path_or_stream = sys.stdout.buffer
 
         if isinstance(out_path_or_stream, io.IOBase):
-            stream = out_path_or_stream
+            stream = _cast(IO, out_path_or_stream)
             return self.serialize(stream, *args, **kwargs)
         else:
             path = str(out_path_or_stream)
@@ -3607,7 +3610,7 @@ class BaseFile(abc.ABC):
         self,
         meta: Mapping[str, Any],
         strict: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Sets meta information.
 
         It sets the provided *kwargs* to their matching *meta* attributes, as
@@ -3635,7 +3638,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> blocks = [[123, b'abc'], [456, b'xyz'], [789, b'?!']]
+            >>> blocks = [(123, b'abc'), (456, b'xyz'), (789, b'?!')]
             >>> file = SrecFile.from_blocks(blocks)
             >>> file.get_meta()
             {'header': b'', 'maxdatalen': 16, 'startaddr': 0}
@@ -3652,7 +3655,7 @@ class BaseFile(abc.ABC):
         self.discard_records()
         return self
 
-    def serialize(self, stream: io.IOBase, *args, **kwargs) -> Self:
+    def serialize(self, stream: IO, *args, **kwargs) -> Self:  # type: ignore Self
         r"""Serializes records onto a byte stream.
 
         It executes :meth:`BaseRecord.serialize` for each of the stored
@@ -3680,7 +3683,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import IhexFile
-            >>> file = IhexFile.from_blocks([[0xDA7A, b'abc']], startaddr=0xCAFE)
+            >>> file = IhexFile.from_blocks([(0xDA7A, b'abc')], startaddr=0xCAFE)
             >>> import sys
             >>> _ = file.serialize(sys.stdout.buffer, end=b'\n')
             :03DA7A0061626383
@@ -3692,7 +3695,7 @@ class BaseFile(abc.ABC):
             record.serialize(stream, *args, **kwargs)
         return self
 
-    def shift(self, offset: int) -> Self:
+    def shift(self, offset: int) -> Self:  # type: ignore Self
         r"""Shifts data addresses by an offset.
 
         It shifts addresses of the underlying :attr:`memory` object data blocks
@@ -3717,10 +3720,10 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [456, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (456, b'xyz')])
             >>> _ = file.shift(1000)
             >>> file.memory.to_blocks()
-            [[1123, b'abc'], [1456, b'xyz']]
+            [(1123, b'abc'), (1456, b'xyz')]
         """
 
         self.memory.shift(offset)
@@ -3758,15 +3761,15 @@ class BaseFile(abc.ABC):
             >>> file = SrecFile.from_bytes(b'Hello, World!', offset=123)
             >>> parts = file.split(128, 130)
             >>> for part in parts: print(part.memory.to_blocks())
-            [[123, b'Hello']]
-            [[128, b', ']]
-            [[130, b'World!']]
+            [(123, b'Hello')]
+            [(128, b', ')]
+            [(130, b'World!')]
             >>> file.memory.to_blocks()
-            [[123, b'Hello, World!']]
+            [(123, b'Hello, World!')]
         """
 
-        pivots: List[Optional[int]] = list(addresses)
-        pivots.sort()
+        pivots: List[Union[int, None]] = list(addresses)
+        pivots.sort()  # type: ignore sort(key)
         pivots.append(None)
         previous = None
         parts: List[BaseFile] = []
@@ -3779,7 +3782,7 @@ class BaseFile(abc.ABC):
         return parts
 
     @abc.abstractmethod
-    def update_records(self) -> Self:
+    def update_records(self) -> Self:  # type: ignore Self
         r"""Applies memory and meta to records.
 
         This method processes the stored :attr:`memory` and *meta* information
@@ -3808,10 +3811,10 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import IhexFile
-            >>> blocks = [[123, b'abc']]
+            >>> blocks = [(123, b'abc')]
             >>> file = IhexFile.from_blocks(blocks, maxdatalen=16, startaddr=456)
             >>> file.memory.to_blocks()
-            [[123, b'abc']]
+            [(123, b'abc')]
             >>> file.get_meta()
             {'linear': True, 'maxdatalen': 16, 'startaddr': 456}
             >>> _ = file.update_records()
@@ -3825,7 +3828,7 @@ class BaseFile(abc.ABC):
         ...
 
     @abc.abstractmethod
-    def validate_records(self) -> Self:
+    def validate_records(self) -> Self:  # type: ignore Self
         r"""Validates records.
 
         It performs consistency checks for the underlying :attr:`records`.
@@ -3851,8 +3854,8 @@ class BaseFile(abc.ABC):
 
     def view(
         self,
-        start: Optional[int] = None,
-        endex: Optional[int] = None,
+        start: Union[int, None] = None,
+        endex: Union[int, None] = None,
     ) -> memoryview:
         r"""Memory view.
 
@@ -3879,7 +3882,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [456, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (456, b'xyz')])
             >>> bytes(file.view(start=456, endex=458))
             b'xy'
             >>> bytes(file.view())
@@ -3896,7 +3899,7 @@ class BaseFile(abc.ABC):
         address: int,
         data: Union['BaseFile', AnyBytes, int, ImmutableMemory],
         clear: bool = False,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Writes data into the file.
 
         It writes the provided `data` into the underlying :attr:`memory` object.
@@ -3932,7 +3935,7 @@ class BaseFile(abc.ABC):
             >>> _ = file.write(555, ord('?'))
             >>> _ = file.write(1000, SrecFile.from_bytes(b'xyz', offset=456))
             >>> file.memory.to_blocks()
-            [[123, b'abc'], [555, b'?'], [1456, b'xyz']]
+            [(123, b'abc'), (555, b'?'), (1456, b'xyz')]
         """
 
         if isinstance(data, BaseFile):

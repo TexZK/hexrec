@@ -43,9 +43,9 @@ Why does this file exist, and why not put this in __main__?
 from typing import Callable
 from typing import List
 from typing import Mapping
-from typing import Optional
 from typing import Sequence
 from typing import Type
+from typing import Union  # NOTE: type | operator unsupported for Python < 3.10
 from typing import cast as _cast
 
 import click
@@ -78,7 +78,7 @@ class ByteIntParamType(click.ParamType):
 
     def convert(self, value, param, ctx):
         try:
-            b = parse_int(value)
+            b = parse_int(value) or 0
             if not 0 <= b <= 255:
                 raise ValueError()
             return b
@@ -92,7 +92,7 @@ class OrderedOptionsCommand(click.Command):
 
         parser = self.make_parser(ctx)
         opts, _, order = parser.parse_args(args=list(args))
-        ordered_options = [(param, opts[param.name]) for param in order]
+        ordered_options = [(param, opts[param.name]) for param in order]  # type: ignore
         setattr(self, 'ordered_options', ordered_options)
         return super().parse_args(ctx, args)
 
@@ -143,8 +143,8 @@ DATA_FMT_CHOICE = click.Choice(list(DATA_FMT_FORMATTERS.keys()))
 # ----------------------------------------------------------------------------
 
 def guess_input_type(
-    input_path: Optional[str],
-    input_format: Optional[str] = None,
+    input_path: Union[str, None],
+    input_format: Union[str, None] = None,
 ) -> Type[BaseFile]:
 
     if input_format:
@@ -158,9 +158,9 @@ def guess_input_type(
 
 
 def guess_output_type(
-    output_path: Optional[str],
-    output_format: Optional[str] = None,
-    input_type: Optional[Type[BaseFile]] = None,
+    output_path: Union[str, None],
+    output_format: Union[str, None] = None,
+    input_type: Union[Type[BaseFile], None] = None,
 ) -> Type[BaseFile]:
 
     if output_format:
@@ -170,7 +170,7 @@ def guess_output_type(
     else:
         name = guess_format_name(output_path)
         output_type = file_types[name]
-    return output_type
+    return output_type  # type: ignore
 
 
 def print_version(ctx, _, value):
@@ -198,30 +198,30 @@ class SingleFileInOutCtxMgr:
     def __init__(
         self,
         input_path: str,
-        input_format: Optional[str],
+        input_format: Union[str, None],
         output_path: str,
-        output_format: Optional[str],
-        output_width: Optional[int],
+        output_format: Union[str, None],
+        output_width: Union[int, None],
     ):
 
         if input_path == '-':
-            input_path = None
+            input_path = None  # type: ignore None
 
         if not output_path:
             output_path = input_path
         if output_path == '-':
-            output_path = None
+            output_path = None  # type: ignore None
 
-        self.input_path: Optional[str] = input_path
-        self.input_format: Optional[str] = input_format
-        self.input_type: Optional[Type[BaseFile]] = None
-        self.input_file: Optional[BaseFile] = None
+        self.input_path: Union[str, None] = input_path
+        self.input_format: Union[str, None] = input_format
+        self.input_type: Union[Type[BaseFile], None] = None
+        self.input_file: Union[BaseFile, None] = None
 
-        self.output_path: Optional[str] = output_path
-        self.output_format: Optional[str] = output_format
-        self.output_type: Optional[Type[BaseFile]] = None
-        self.output_file: Optional[BaseFile] = None
-        self.output_width: Optional[int] = output_width
+        self.output_path: Union[str, None] = output_path
+        self.output_format: Union[str, None] = output_format
+        self.output_type: Union[Type[BaseFile], None] = None
+        self.output_file: Union[BaseFile, None] = None
+        self.output_width: Union[int, None] = output_width
 
     def __enter__(self) -> 'SingleFileInOutCtxMgr':
 
@@ -232,17 +232,21 @@ class SingleFileInOutCtxMgr:
 
         if self.output_type is self.input_type:
             self.output_file = self.input_file
+            assert self.output_file is not None
             self.output_file.apply_records()
         else:
+            assert self.input_file is not None
             self.output_file = self.output_type.convert(self.input_file)
 
         if self.output_width is not None:
+            assert self.output_file is not None
             self.output_file.maxdatalen = self.output_width
 
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
 
+        assert self.output_file is not None
         self.output_file.save(self.output_path)
 
 
@@ -251,38 +255,40 @@ class MultiFileInOutCtxMgr:
     def __init__(
         self,
         input_paths: Sequence[str],
-        input_formats: Sequence[Optional[str]],
+        input_formats: Sequence[Union[str, None]],
         output_path: str,
-        output_format: Optional[str],
-        output_width: Optional[int],
+        output_format: Union[str, None],
+        output_width: Union[int, None],
     ):
 
         input_paths = list(input_paths)
         for i, input_path in enumerate(input_paths):
             if input_path == '-':
-                input_paths[i] = None
+                input_paths[i] = None  # type: ignore None
 
         if not output_path:
             output_path = input_paths[0]
         if output_path == '-':
-            output_path = None
+            output_path = None  # type: ignore None
 
-        self.input_paths: Sequence[Optional[str]] = input_paths
-        self.input_formats: Sequence[Optional[str]] = input_formats
-        self.input_types: List[Optional[Type[BaseFile]]] = [None] * len(self.input_paths)
-        self.input_files: List[Optional[BaseFile]] = [None] * len(self.input_paths)
+        self.input_paths: Sequence[Union[str, None]] = input_paths
+        self.input_formats: Sequence[Union[str, None]] = input_formats
+        self.input_types: List[Union[Type[BaseFile], None]] = [None] * len(self.input_paths)
+        self.input_files: List[Union[BaseFile, None]] = [None] * len(self.input_paths)
 
-        self.output_path: Optional[str] = output_path
-        self.output_format: Optional[str] = output_format
-        self.output_type: Optional[Type[BaseFile]] = None
-        self.output_file: Optional[BaseFile] = None
-        self.output_width: Optional[int] = output_width
+        self.output_path: Union[str, None] = output_path
+        self.output_format: Union[str, None] = output_format
+        self.output_type: Union[Type[BaseFile], None] = None
+        self.output_file: Union[BaseFile, None] = None
+        self.output_width: Union[int, None] = output_width
 
     def __enter__(self) -> 'MultiFileInOutCtxMgr':
 
         for i in range(len(self.input_paths)):
-            self.input_types[i] = guess_input_type(self.input_paths[i], self.input_formats[i])
-            self.input_files[i] = self.input_types[i].load(self.input_paths[i])
+            input_type = guess_input_type(self.input_paths[i], self.input_formats[i])
+            assert input_type is not None
+            self.input_types[i] = input_type
+            self.input_files[i] = input_type.load(self.input_paths[i])
 
         self.output_type = guess_output_type(self.output_path, self.output_format, self.input_types[0])
         self.output_file = self.output_type()
@@ -294,6 +300,7 @@ class MultiFileInOutCtxMgr:
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
 
+        assert self.output_file is not None
         self.output_file.save(self.output_path)
 
 
@@ -342,13 +349,13 @@ def main() -> None:
 @click.argument('infile', type=FILE_PATH_IN, required=False)
 @click.argument('outfile', type=FILE_PATH_OUT, required=False)
 def align(
-    input_format: Optional[str],
-    output_format: Optional[str],
+    input_format: Union[str, None],
+    output_format: Union[str, None],
     modulo: int,
-    start: Optional[int],
-    endex: Optional[int],
-    value: Optional[int],
-    width: Optional[int],
+    start: Union[int, None],
+    endex: Union[int, None],
+    value: int,
+    width: Union[int, None],
     infile: str,
     outfile: str,
 ) -> None:
@@ -363,6 +370,7 @@ def align(
     """
 
     with SingleFileInOutCtxMgr(infile, input_format, outfile, output_format, width) as ctx:
+        assert ctx.output_file is not None
         ctx.output_file.align(modulo, start=start, endex=endex, pattern=value)
 
 
@@ -392,11 +400,11 @@ def align(
 @click.argument('infile', type=FILE_PATH_IN, required=False)
 @click.argument('outfile', type=FILE_PATH_OUT, required=False)
 def clear(
-    input_format: Optional[str],
-    output_format: Optional[str],
-    start: Optional[int],
-    endex: Optional[int],
-    width: Optional[int],
+    input_format: Union[str, None],
+    output_format: Union[str, None],
+    start: Union[int, None],
+    endex: Union[int, None],
+    width: Union[int, None],
     infile: str,
     outfile: str,
 ) -> None:
@@ -411,6 +419,7 @@ def clear(
     """
 
     with SingleFileInOutCtxMgr(infile, input_format, outfile, output_format, width) as ctx:
+        assert ctx.output_file is not None
         ctx.output_file.clear(start=start, endex=endex)
 
 
@@ -432,9 +441,9 @@ def clear(
 @click.argument('infile', type=FILE_PATH_IN, required=False)
 @click.argument('outfile', type=FILE_PATH_OUT, required=False)
 def convert(
-    input_format: Optional[str],
-    output_format: Optional[str],
-    width: Optional[int],
+    input_format: Union[str, None],
+    output_format: Union[str, None],
+    width: Union[int, None],
     infile: str,
     outfile: str,
 ) -> None:
@@ -483,12 +492,12 @@ def convert(
 @click.argument('infile', type=FILE_PATH_IN, required=False)
 @click.argument('outfile', type=FILE_PATH_OUT, required=False)
 def crop(
-    input_format: Optional[str],
-    output_format: Optional[str],
-    start: Optional[int],
-    endex: Optional[int],
-    value: Optional[int],
-    width: Optional[int],
+    input_format: Union[str, None],
+    output_format: Union[str, None],
+    start: Union[int, None],
+    endex: Union[int, None],
+    value: Union[int, None],
+    width: Union[int, None],
     infile: str,
     outfile: str,
 ) -> None:
@@ -503,6 +512,7 @@ def crop(
     """
 
     with SingleFileInOutCtxMgr(infile, input_format, outfile, output_format, width) as ctx:
+        assert ctx.output_file is not None
         ctx.output_file.crop(start=start, endex=endex)
 
         if value is not None:
@@ -535,11 +545,11 @@ def crop(
 @click.argument('infile', type=FILE_PATH_IN, required=False)
 @click.argument('outfile', type=FILE_PATH_OUT, required=False)
 def delete(
-    input_format: Optional[str],
-    output_format: Optional[str],
-    start: Optional[int],
-    endex: Optional[int],
-    width: Optional[int],
+    input_format: Union[str, None],
+    output_format: Union[str, None],
+    start: Union[int, None],
+    endex: Union[int, None],
+    width: Union[int, None],
     infile: str,
     outfile: str,
 ) -> None:
@@ -554,6 +564,7 @@ def delete(
     """
 
     with SingleFileInOutCtxMgr(infile, input_format, outfile, output_format, width) as ctx:
+        assert ctx.output_file is not None
         ctx.output_file.delete(start=start, endex=endex)
 
 
@@ -586,12 +597,12 @@ def delete(
 @click.argument('infile', type=FILE_PATH_IN, required=False)
 @click.argument('outfile', type=FILE_PATH_OUT, required=False)
 def fill(
-    input_format: Optional[str],
-    output_format: Optional[str],
+    input_format: Union[str, None],
+    output_format: Union[str, None],
     value: int,
-    start: Optional[int],
-    endex: Optional[int],
-    width: Optional[int],
+    start: Union[int, None],
+    endex: Union[int, None],
+    width: Union[int, None],
     infile: str,
     outfile: str,
 ) -> None:
@@ -606,6 +617,7 @@ def fill(
     """
 
     with SingleFileInOutCtxMgr(infile, input_format, outfile, output_format, width) as ctx:
+        assert ctx.output_file is not None
         ctx.output_file.fill(start=start, endex=endex, pattern=value)
 
 
@@ -638,12 +650,12 @@ def fill(
 @click.argument('infile', type=FILE_PATH_IN, required=False)
 @click.argument('outfile', type=FILE_PATH_OUT, required=False)
 def flood(
-    input_format: Optional[str],
-    output_format: Optional[str],
+    input_format: Union[str, None],
+    output_format: Union[str, None],
     value: int,
-    start: Optional[int],
-    endex: Optional[int],
-    width: Optional[int],
+    start: Union[int, None],
+    endex: Union[int, None],
+    width: Union[int, None],
     infile: str,
     outfile: str,
 ) -> None:
@@ -658,6 +670,7 @@ def flood(
     """
 
     with SingleFileInOutCtxMgr(infile, input_format, outfile, output_format, width) as ctx:
+        assert ctx.output_file is not None
         ctx.output_file.flood(start=start, endex=endex, pattern=value)
 
 
@@ -747,11 +760,11 @@ def hexdump(
     two_bytes_decimal: Sequence[bool],
     two_bytes_octal: Sequence[bool],
     two_bytes_hex: Sequence[bool],
-    length: Optional[int],
-    skip: Optional[int],
+    length: Union[int, None],
+    skip: Union[int, None],
     no_squeezing: bool,
     upper: bool,
-    input_format: Optional[str],
+    input_format: Union[str, None],
 ) -> None:
     r"""Display file contents in hexadecimal, decimal, octal, or ascii.
 
@@ -781,7 +794,7 @@ def hexdump(
         'two_bytes_hex': any(two_bytes_hex),
     }
     format_order = [param.name
-                    for param, value in hexdump.ordered_options
+                    for param, value in hexdump.ordered_options  # type: ignore
                     if (param.name in kwargs) and value]
 
     if input_format:
@@ -796,7 +809,7 @@ def hexdump(
         no_squeezing=no_squeezing,
         upper=upper,
         format_order=format_order,
-        **kwargs,
+        **kwargs,  # type: ignore kwargs order
     )
 
 
@@ -877,11 +890,11 @@ def hd(
     two_bytes_decimal: Sequence[bool],
     two_bytes_octal: Sequence[bool],
     two_bytes_hex: Sequence[bool],
-    length: Optional[int],
-    skip: Optional[int],
+    length: Union[int, None],
+    skip: Union[int, None],
     no_squeezing: bool,
     upper: bool,
-    input_format: Optional[str],
+    input_format: Union[str, None],
 ) -> None:
     r"""Display file contents in hexadecimal, decimal, octal, or ascii.
 
@@ -910,7 +923,7 @@ def hd(
         'two_bytes_hex': any(two_bytes_hex),
     }
     format_order = [param.name
-                    for param, value in hd.ordered_options
+                    for param, value in hd.ordered_options  # type: ignore
                     if (param.name in kwargs) and value]
     format_order.insert(0, 'canonical')
     kwargs['canonical'] = True
@@ -927,7 +940,7 @@ def hd(
         no_squeezing=no_squeezing,
         upper=upper,
         format_order=format_order,
-        **kwargs,
+        **kwargs,  # type: ignore kwargs order
     )
 
 
@@ -952,9 +965,9 @@ def hd(
 @click.argument('infiles', type=FILE_PATH_IN, nargs=-1)
 @click.argument('outfile', type=FILE_PATH_OUT)
 def merge(
-    input_format: Optional[str],
-    output_format: Optional[str],
-    width: Optional[int],
+    input_format: Union[str, None],
+    output_format: Union[str, None],
+    width: Union[int, None],
     clear_holes: bool,
     infiles: Sequence[str],
     outfile: str,
@@ -972,11 +985,13 @@ def merge(
     """
 
     if not infiles:
-        infiles = [None]
+        infiles = [None]  # type: ignore None
     input_formats = [input_format] * len(infiles)
 
     with MultiFileInOutCtxMgr(infiles, input_formats, outfile, output_format, width) as ctx:
-        ctx.output_file.merge(*ctx.input_files, clear=clear_holes)
+        assert ctx.output_file is not None
+        ctx_input_files = _cast(List[BaseFile], ctx.input_files)
+        ctx.output_file.merge(*ctx_input_files, clear=clear_holes)
 
 
 # ----------------------------------------------------------------------------
@@ -1000,10 +1015,10 @@ def merge(
 @click.argument('infile', type=FILE_PATH_IN, required=False)
 @click.argument('outfile', type=FILE_PATH_OUT, required=False)
 def shift(
-    input_format: Optional[str],
-    output_format: Optional[str],
+    input_format: Union[str, None],
+    output_format: Union[str, None],
     amount: int,
-    width: Optional[int],
+    width: Union[int, None],
     infile: str,
     outfile: str,
 ) -> None:
@@ -1018,6 +1033,7 @@ def shift(
     """
 
     with SingleFileInOutCtxMgr(infile, input_format, outfile, output_format, width) as ctx:
+        assert ctx.output_file is not None
         ctx.output_file.shift(amount)
 
 
@@ -1030,7 +1046,7 @@ def shift(
 """)
 @click.argument('infile', type=FILE_PATH_IN, required=False)
 def validate(
-    input_format: Optional[str],
+    input_format: Union[str, None],
     infile: str,
 ) -> None:
     r"""Validates a record file.
@@ -1311,25 +1327,25 @@ def xxd(
     Some parameters were changed to satisfy the POSIX-like command line parser.
     """
 
-    infile = None if infile == '-' else infile
-    outfile = None if outfile == '-' else outfile
-    output_path = outfile
+    infile_ = None if infile == '-' else infile
+    outfile_ = None if outfile == '-' else outfile
+    output_path = outfile_
     output_file = None
     input_type = None
 
     if input_format:
-        input_type = guess_input_type(infile, input_format)
-        input_file = input_type.load(infile)
-        infile = input_file.memory
+        input_type = guess_input_type(infile_, input_format)
+        input_file = input_type.load(infile_)
+        infile_ = input_file.memory
 
     if output_format:
-        output_type = guess_output_type(outfile, input_format, input_type)
+        output_type = guess_output_type(outfile_, input_format, input_type)
         output_file = output_type()
-        outfile = output_file.memory
+        outfile_ = output_file.memory
 
     xxd_core(
-        infile=infile,
-        outfile=outfile,
+        infile=infile_,
+        outfile=outfile_,  # type: ignore
         autoskip=autoskip,
         bits=bits,
         cols=cols,
@@ -1350,4 +1366,5 @@ def xxd(
     )
 
     if output_format:
+        assert output_file is not None
         output_file.save(output_path)

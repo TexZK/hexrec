@@ -34,24 +34,24 @@ import re
 from typing import IO
 from typing import Any
 from typing import Mapping
-from typing import Optional
 from typing import Sequence
 from typing import Type
 from typing import TypeVar
+from typing import Union  # NOTE: type | operator unsupported for Python < 3.10
 from typing import cast as _cast
 
 from ..base import AnyBytes
 from ..base import BaseFile
 from ..base import BaseRecord
 from ..base import BaseTag
-from ..base import TypeAlias
+from ..base import ByteString
 from ..utils import hexlify
 from ..utils import unhexlify
 
 try:
     from typing import Self
 except ImportError:  # pragma: no cover
-    Self: TypeAlias = Any  # Python < 3.11
+    Self = Any  # Python < 3.11
 __TYPING_HAS_SELF = Self is not Any
 
 
@@ -67,7 +67,7 @@ class TiTxtTag(BaseTag, enum.IntEnum):
     EOF = 2
     r"""End Of File."""
 
-    _DATA = DATA
+    _DATA = DATA  # type: ignore
 
     def is_address(self) -> bool:
         r"""Tells whether this is an address record.
@@ -126,7 +126,7 @@ if not __TYPING_HAS_SELF:  # pragma: no cover
 class TiTxtRecord(BaseRecord):
     r"""Texas Instruments TI-TXT record object."""
 
-    Tag: Type[TiTxtTag] = TiTxtTag
+    Tag: Type[TiTxtTag] = TiTxtTag  # type: ignore override
 
     LINE_REGEX = re.compile(
         b'^\\s*('
@@ -137,7 +137,7 @@ class TiTxtRecord(BaseRecord):
     )
     r"""Line parser regex."""
 
-    def compute_count(self) -> Optional[int]:
+    def compute_count(self) -> Union[int, None]:
 
         Tag = self.Tag
         tag = self.tag
@@ -152,7 +152,7 @@ class TiTxtRecord(BaseRecord):
         cls,
         address: int,
         addrlen: int = 4,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Creates an address record.
 
         Args:
@@ -182,8 +182,8 @@ class TiTxtRecord(BaseRecord):
     def create_data(
         cls,
         address: int,
-        data: AnyBytes,
-    ) -> Self:
+        data: ByteString,
+    ) -> Self:  # type: ignore Self
         r"""Creates a data record.
 
         Args:
@@ -210,7 +210,7 @@ class TiTxtRecord(BaseRecord):
         return record
 
     @classmethod
-    def create_eof(cls) -> Self:
+    def create_eof(cls) -> Self:  # type: ignore Self
         r"""Creates an End Of File record.
 
         Returns:
@@ -230,12 +230,12 @@ class TiTxtRecord(BaseRecord):
         return record
 
     @classmethod
-    def parse(
+    def parse(  # type: ignore kwargs order
         cls,
-        line: AnyBytes,
+        line: ByteString,
         address: int = 0,
         validate: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Parses a record from bytes.
 
         Args:
@@ -342,7 +342,7 @@ class TiTxtRecord(BaseRecord):
 
     def to_tokens(
         self,
-        end: AnyBytes = b'\r\n',
+        end: ByteString = b'\r\n',
     ) -> Mapping[str, bytes]:
         r"""Converts into byte string tokens.
 
@@ -391,7 +391,7 @@ class TiTxtRecord(BaseRecord):
         self,
         checksum: bool = True,
         count: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
 
         super().validate(checksum=checksum, count=count)
         Tag = self.Tag
@@ -429,15 +429,15 @@ class TiTxtFile(BaseFile):
 
     FILE_EXT: Sequence[str] = ['.txt']
 
-    Record: Type[TiTxtRecord] = TiTxtRecord
+    Record: Type[TiTxtRecord] = TiTxtRecord  # type: ignore override
 
     @classmethod
-    def parse(
+    def parse(  # type: ignore kwargs order
         cls,
         stream: IO,
         ignore_errors: bool = False,
         ignore_after_termination: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
 
         file = super().parse(stream, ignore_errors=ignore_errors,
                              ignore_after_termination=ignore_after_termination)
@@ -459,7 +459,7 @@ class TiTxtFile(BaseFile):
         self,
         align: bool = False,
         addrlen: int = 4,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Applies memory and meta to records.
 
         This method processes the stored :attr:`memory` and *meta* information
@@ -492,10 +492,10 @@ class TiTxtFile(BaseFile):
 
         Examples:
             >>> from hexrec import TiTxtFile
-            >>> blocks = [[456, b'abc']]
+            >>> blocks = [(456, b'abc')]
             >>> file = TiTxtFile.from_blocks(blocks, maxdatalen=8)
             >>> file.memory.to_blocks()
-            [[456, b'abc']]
+            [(456, b'abc')]
             >>> file.get_meta()
             {'maxdatalen': 8}
             >>> _ = file.update_records()
@@ -547,7 +547,7 @@ class TiTxtFile(BaseFile):
         self,
         data_ordering: bool = False,
         address_even: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Validates records.
 
         It performs consistency checks for the underlying :attr:`records`.

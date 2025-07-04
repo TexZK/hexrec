@@ -1,6 +1,13 @@
 Changelog
 =========
 
+0.5.0 (2025-07-06)
+------------------
+
+* Fixed typing support for Python 3.14.
+* Requiring ``bytesparse >= 1.1.0`` for updated typing support.
+
+
 0.4.4 (2025-07-04)
 ------------------
 

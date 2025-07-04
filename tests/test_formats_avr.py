@@ -1,3 +1,5 @@
+# type: ignore all for test code
+
 import io
 import os
 import sys
@@ -389,10 +391,10 @@ class TestAvrFile(BaseTestFile):
     def test___eq___false_memory(self):
         File = self.File
         file1 = File.from_bytes(b'ab', offset=(5 * 2))
-        file2 = File.from_blocks([[(6 * 2), b'ab']])
+        file2 = File.from_blocks([((6 * 2), b'ab')])
         assert file1 is not file2
         assert (file1 == file2) is False
-        file3 = File.from_blocks([[(5 * 2), b'xy']])
+        file3 = File.from_blocks([((5 * 2), b'xy')])
         assert file1 is not file3
         assert (file1 == file3) is False
         file4 = file1.copy()
@@ -424,7 +426,7 @@ class TestAvrFile(BaseTestFile):
     def test___eq___true_memory(self):
         File = self.File
         file1 = File.from_bytes(b'ab', offset=(5 * 2))
-        file2 = File.from_blocks([[(5 * 2), b'ab']])
+        file2 = File.from_blocks([((5 * 2), b'ab')])
         assert file1 is not file2
         assert (file1 == file2) is True
         file1.update_records()
@@ -444,7 +446,7 @@ class TestAvrFile(BaseTestFile):
     def test___ne___false_memory(self):
         File = self.File
         file1 = File.from_bytes(b'ab', offset=(5 * 2))
-        file2 = File.from_blocks([[(5 * 2), b'ab']])
+        file2 = File.from_blocks([((5 * 2), b'ab')])
         assert file1 is not file2
         assert (file1 != file2) is False
 
@@ -468,10 +470,10 @@ class TestAvrFile(BaseTestFile):
     def test___ne___true_memory(self):
         File = self.File
         file1 = File.from_bytes(b'ab', offset=(5 * 2))
-        file2 = File.from_blocks([[(6 * 2), b'ab']])
+        file2 = File.from_blocks([((6 * 2), b'ab')])
         assert file1 is not file2
         assert (file1 != file2) is True
-        file3 = File.from_blocks([[(5 * 2), b'xy']])
+        file3 = File.from_blocks([((5 * 2), b'xy')])
         assert file1 is not file3
         assert (file1 != file3) is True
         file4 = file1.copy()
@@ -504,7 +506,7 @@ class TestAvrFile(BaseTestFile):
         assert file._records is records
         returned = file.apply_records()
         assert returned is file
-        assert file._memory.to_blocks() == [[(5 * 2), b'ab'], [(10 * 2), b'xy']]
+        assert file._memory.to_blocks() == [((5 * 2), b'ab'), ((10 * 2), b'xy')]
         assert file._records is records
 
     def test_discard_records(self):
@@ -615,12 +617,12 @@ class TestAvrFile(BaseTestFile):
         assert file._records is records
         memory = file.memory
         assert memory is file._memory
-        assert memory.to_blocks() == [[(5 * 2), b'ab'], [(10 * 2), b'xy']]
+        assert memory.to_blocks() == [((5 * 2), b'ab'), ((10 * 2), b'xy')]
         assert file._records is records
         file._records = None
         memory = file.memory
         assert memory is file._memory
-        assert memory.to_blocks() == [[(5 * 2), b'ab'], [(10 * 2), b'xy']]
+        assert memory.to_blocks() == [((5 * 2), b'ab'), ((10 * 2), b'xy')]
         assert file._records is None
 
     def test_parse(self):
@@ -679,7 +681,7 @@ class TestAvrFile(BaseTestFile):
 
     def test_records_getter(self):
         File = self.File
-        blocks = [[(5 * 2), b'ab'], [(10 * 2), b'xy']]
+        blocks = [((5 * 2), b'ab'), ((10 * 2), b'xy')]
         memory = Memory.from_blocks(blocks)
         file = File.from_memory(memory)
         file._records = None

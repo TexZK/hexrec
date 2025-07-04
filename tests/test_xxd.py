@@ -1,3 +1,5 @@
+# type: ignore all for test code
+
 import glob
 import io
 import os

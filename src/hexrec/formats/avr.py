@@ -43,14 +43,14 @@ from ..base import AnyBytes
 from ..base import BaseFile
 from ..base import BaseRecord
 from ..base import BaseTag
-from ..base import TypeAlias
+from ..base import ByteString
 from ..utils import hexlify
 from ..utils import unhexlify
 
 try:
     from typing import Self
 except ImportError:  # pragma: no cover
-    Self: TypeAlias = Any  # Python < 3.11
+    Self = Any  # Python < 3.11
 __TYPING_HAS_SELF = Self is not Any
 
 
@@ -60,7 +60,7 @@ class AvrTag(BaseTag, enum.Enum):
     DATA = ...
     r"""Data."""
 
-    _DATA = DATA
+    _DATA = DATA  # type: ignore
 
     def is_data(self) -> bool:
 
@@ -75,7 +75,7 @@ if not __TYPING_HAS_SELF:  # pragma: no cover
 class AvrRecord(BaseRecord):
     r"""Atmel Generic record object."""
 
-    Tag: Type[AvrTag] = AvrTag
+    Tag: Type[AvrTag] = AvrTag  # type: ignore override
 
     LINE_REGEX = re.compile(
         b'^(?P<before>[ \\t]*)'
@@ -90,8 +90,8 @@ class AvrRecord(BaseRecord):
     def create_data(
         cls,
         address: int,
-        data: AnyBytes,
-    ) -> Self:
+        data: ByteString,
+    ) -> Self:  # type: ignore Self
 
         address = address.__index__()
         if not 0 <= address <= 0xFFFFFF:
@@ -107,9 +107,9 @@ class AvrRecord(BaseRecord):
     @classmethod
     def parse(
         cls,
-        line: AnyBytes,
+        line: ByteString,
         validate: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Parses a record from bytes.
 
         Args:
@@ -172,7 +172,7 @@ class AvrRecord(BaseRecord):
 
     def to_tokens(
         self,
-        end: AnyBytes = b'\r\n',
+        end: ByteString = b'\r\n',
     ) -> Mapping[str, bytes]:
 
         self.validate()
@@ -190,7 +190,7 @@ class AvrRecord(BaseRecord):
         self,
         checksum: bool = True,
         count: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
 
         super().validate(checksum=checksum, count=count)
 
@@ -222,9 +222,9 @@ class AvrFile(BaseFile):
 
     FILE_EXT: Sequence[str] = ['.rom']
 
-    Record: Type[AvrRecord] = AvrRecord
+    Record: Type[AvrRecord] = AvrRecord  # type: ignore override
 
-    def apply_records(self) -> Self:
+    def apply_records(self) -> Self:  # type: ignore Self
 
         if self._records is None:
             raise ValueError('records required')
@@ -239,7 +239,7 @@ class AvrFile(BaseFile):
         self._memory = memory
         return self
 
-    def update_records(self) -> Self:
+    def update_records(self) -> Self:  # type: ignore Self
         r"""Applies memory and meta to records.
 
         This method processes the stored :attr:`memory` and *meta* information
@@ -265,10 +265,10 @@ class AvrFile(BaseFile):
 
         Examples:
             >>> from hexrec import AvrFile
-            >>> blocks = [[124, b'abcd']]
+            >>> blocks = [(124, b'abcd')]
             >>> file = AvrFile.from_blocks(blocks)
             >>> file.memory.to_blocks()
-            [[124, b'abcd']]
+            [(124, b'abcd')]
             >>> file.get_meta()
             {'maxdatalen': 2}
             >>> _ = file.update_records()
@@ -311,7 +311,7 @@ class AvrFile(BaseFile):
     def validate_records(
         self,
         data_ordering: bool = False,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Validates records.
 
         It performs consistency checks for the underlying :attr:`records`.

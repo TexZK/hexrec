@@ -34,23 +34,23 @@ import re
 from typing import IO
 from typing import Any
 from typing import Mapping
-from typing import Optional
 from typing import Type
 from typing import TypeVar
+from typing import Union  # NOTE: type | operator unsupported for Python < 3.10
 from typing import cast as _cast
 
 from ..base import AnyBytes
 from ..base import BaseFile
 from ..base import BaseRecord
 from ..base import BaseTag
-from ..base import TypeAlias
+from ..base import ByteString
 from ..utils import hexlify
 from ..utils import unhexlify
 
 try:
     from typing import Self
 except ImportError:  # pragma: no cover
-    Self: TypeAlias = Any  # Python < 3.11
+    Self = Any  # Python < 3.11
 __TYPING_HAS_SELF = Self is not Any
 
 
@@ -66,7 +66,7 @@ class AsciiHexTag(BaseTag, enum.IntEnum):
     CHECKSUM = 2
     r"""Checksum."""
 
-    _DATA = DATA
+    _DATA = DATA  # type: ignore
 
     def is_address(self) -> bool:
         r"""Tells whether this is an address record.
@@ -125,7 +125,7 @@ if not __TYPING_HAS_SELF:  # pragma: no cover
 class AsciiHexRecord(BaseRecord):
     r"""ASCII-HEX record object."""
 
-    Tag: Type[AsciiHexTag] = AsciiHexTag
+    Tag: Type[AsciiHexTag] = AsciiHexTag  # type: ignore override
 
     LINE_REGEX = re.compile(
         b'\\s*('
@@ -139,7 +139,7 @@ class AsciiHexRecord(BaseRecord):
     DATA_EXECHARS: bytes = b" \t\v\f\r%',"
     r"""Supported execution characters."""
 
-    def compute_checksum(self) -> Optional[int]:
+    def compute_checksum(self) -> Union[int, None]:
 
         Tag = self.Tag
         tag = self.tag
@@ -149,7 +149,7 @@ class AsciiHexRecord(BaseRecord):
         else:
             return None  # not supported
 
-    def compute_count(self) -> Optional[int]:
+    def compute_count(self) -> Union[int, None]:
 
         Tag = self.Tag
         tag = self.tag
@@ -164,7 +164,7 @@ class AsciiHexRecord(BaseRecord):
         cls,
         address: int,
         addrlen: int = 8,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Creates an address record.
 
         Args:
@@ -194,7 +194,7 @@ class AsciiHexRecord(BaseRecord):
     def create_checksum(
         cls,
         checksum: int,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Creates a checksum record.
 
         Args:
@@ -221,8 +221,8 @@ class AsciiHexRecord(BaseRecord):
     def create_data(
         cls,
         address: int,
-        data: AnyBytes,
-    ) -> Self:
+        data: ByteString,
+    ) -> Self:  # type: ignore Self
         r"""Creates a data record.
 
         Args:
@@ -249,12 +249,12 @@ class AsciiHexRecord(BaseRecord):
         return record
 
     @classmethod
-    def parse(
+    def parse(  # type: ignore kwargs order
         cls,
-        line: AnyBytes,
+        line: ByteString,
         address: int = 0,
         validate: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Parses a record from bytes.
 
         Args:
@@ -327,10 +327,10 @@ class AsciiHexRecord(BaseRecord):
 
     def to_bytestr(
         self,
-        exechar: AnyBytes = b' ',
+        exechar: ByteString = b' ',
         exelast: bool = True,
-        dollarend: AnyBytes = b',',
-        end: AnyBytes = b'\r\n',
+        dollarend: ByteString = b',',
+        end: ByteString = b'\r\n',
     ) -> bytes:
         r"""Converts into a byte string.
 
@@ -371,6 +371,7 @@ class AsciiHexRecord(BaseRecord):
             valstr = (b'$A%%0%dX%s' % (count, dollarend)) % (self.address & mask)
 
         elif self.tag == AsciiHexTag.CHECKSUM:
+            assert self.checksum is not None
             valstr = b'$S%04X%s' % ((self.checksum & 0xFFFF), dollarend)
 
         elif self.data:
@@ -385,8 +386,8 @@ class AsciiHexRecord(BaseRecord):
         self,
         exechar: bytes = b' ',
         exelast: bool = True,
-        dollarend: AnyBytes = b',',
-        end: AnyBytes = b'\r\n',
+        dollarend: ByteString = b',',
+        end: ByteString = b'\r\n',
     ) -> Mapping[str, bytes]:
         r"""Converts into byte string tokens.
 
@@ -432,6 +433,7 @@ class AsciiHexRecord(BaseRecord):
             addrstr = (b'$A%%0%dX%s' % (count, dollarend)) % (self.address & mask)
 
         elif tag == tag.CHECKSUM:
+            assert self.checksum is not None
             chksstr = b'$S%04X%s' % ((self.checksum & 0xFFFF), dollarend)
 
         elif self.data:
@@ -452,7 +454,7 @@ class AsciiHexRecord(BaseRecord):
         self,
         checksum: bool = True,
         count: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
 
         super().validate(checksum=checksum, count=count)
         Tag = self.Tag
@@ -496,15 +498,15 @@ if not __TYPING_HAS_SELF:  # pragma: no cover
 class AsciiHexFile(BaseFile):
     r"""ASCII-HEX file object."""
 
-    Record: Type[AsciiHexRecord] = AsciiHexRecord
+    Record: Type[AsciiHexRecord] = AsciiHexRecord  # type: ignore override
 
     @classmethod
-    def parse(
+    def parse(  # type: ignore kwargs order
         cls,
         stream: IO,
         ignore_errors: bool = False,
         stxetx: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Parses records from a byte stream.
 
         It executes :meth:`AsciiHexRecord.parse` for each line of the incoming
@@ -550,7 +552,7 @@ class AsciiHexFile(BaseFile):
             >>> stream = io.BytesIO(buffer)
             >>> file = AsciiHexFile.parse(stream)
             >>> file.memory.to_blocks()
-            [[4660, b'abc']]
+            [(4660, b'abc')]
             >>> file.get_meta()
             {'maxdatalen': 3}
         """
@@ -642,7 +644,7 @@ class AsciiHexFile(BaseFile):
 
         Examples:
             >>> from hexrec import MosFile
-            >>> file = MosFile.from_blocks([[0xDA7A, b'abc']])
+            >>> file = MosFile.from_blocks([(0xDA7A, b'abc')])
             >>> import sys
             >>> _ = file.serialize(sys.stdout.buffer, nuls=False, xoff=False)
             ;03DA7A616263027D
@@ -666,7 +668,7 @@ class AsciiHexFile(BaseFile):
         align: bool = False,
         checksum: bool = False,
         addrlen: int = 8,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Applies memory and meta to records.
 
         This method processes the stored :attr:`memory` and *meta* information
@@ -702,10 +704,10 @@ class AsciiHexFile(BaseFile):
 
         Examples:
             >>> from hexrec import AsciiHexFile
-            >>> blocks = [[123, b'abc']]
+            >>> blocks = [(123, b'abc')]
             >>> file = AsciiHexFile.from_blocks(blocks, maxdatalen=16)
             >>> file.memory.to_blocks()
-            [[123, b'abc']]
+            [(123, b'abc')]
             >>> file.get_meta()
             {'maxdatalen': 16}
             >>> _ = file.update_records()
@@ -761,7 +763,7 @@ class AsciiHexFile(BaseFile):
         self,
         data_ordering: bool = False,
         checksum_values: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Validates records.
 
         It performs consistency checks for the underlying :attr:`records`.

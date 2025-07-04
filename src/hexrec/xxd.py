@@ -32,15 +32,15 @@ import re
 import sys
 from typing import IO
 from typing import List
-from typing import Optional
 from typing import Tuple
-from typing import Union
+from typing import Union  # NOTE: type | operator unsupported for Python < 3.10
+from typing import cast as _cast
 
 from bytesparse import Memory
 from bytesparse.base import ImmutableMemory
 from bytesparse.base import MutableMemory
 
-from .base import AnyBytes
+from .base import ByteString
 from .utils import SparseMemoryIO
 from .utils import chop
 from .utils import parse_int
@@ -104,7 +104,7 @@ CHAR_EBCDIC = (
 r"""Mapping from integer to EBCDIC characters."""
 
 
-def parse_seek(value: Optional[str]) -> Tuple[str, int]:
+def parse_seek(value: Union[str, None]) -> Tuple[str, int]:
     r"""Parses the seek option string.
 
     Argument:
@@ -124,11 +124,11 @@ def parse_seek(value: Optional[str]) -> Tuple[str, int]:
         if not m:
             raise ValueError('invalid seeking')
         ss, sv = m.groups()
-        sv = parse_int(sv)
+        sv = parse_int(sv) or 0
         return ss, sv
 
 
-def _unhexlify(line: AnyBytes) -> Union[AnyBytes, ImmutableMemory]:
+def _unhexlify(line: Union[bytes, bytearray]) -> Union[ByteString, ImmutableMemory]:
 
     line = line.translate(None, b' \t.:\r\n')
 
@@ -165,23 +165,23 @@ def _write_zeros(
 
 
 def xxd_core(
-    infile: Optional[Union[str, AnyBytes, IO, ImmutableMemory]] = None,
-    outfile: Optional[Union[str, AnyBytes, IO]] = None,
+    infile: Union[str, ByteString, IO, ImmutableMemory, None] = None,
+    outfile: Union[str, ByteString, IO, None] = None,
     autoskip: bool = False,
-    bits: Optional[int] = None,
-    cols: Optional[int] = None,
+    bits: Union[int, None] = None,
+    cols: Union[int, None] = None,
     ebcdic: bool = False,
     endian: bool = False,
-    groupsize: Optional[int] = None,
+    groupsize: Union[int, None] = None,
     include: bool = False,
-    length: Optional[int] = None,
-    linesep: Optional[bytes] = None,
-    offset: Optional[int] = None,
+    length: Union[int, None] = None,
+    linesep: Union[bytes, None] = None,
+    offset: Union[int, None] = None,
     postscript: bool = False,
     quadword: bool = False,
     revert: bool = False,
-    oseek: Optional[int] = None,
-    iseek: Optional[Union[int, str]] = None,
+    oseek: Union[int, None] = None,
+    iseek: Union[int, str, None] = None,
     upper_all: bool = False,
     upper: bool = False,
     oseek_zeroes: bool = True,
@@ -321,8 +321,8 @@ def xxd_core(
     if linesep is None:
         linesep = os.linesep.encode()
 
-    instream: Optional[IO, SparseMemoryIO] = None
-    outstream: Optional[IO, SparseMemoryIO] = None
+    instream: Union[IO, SparseMemoryIO, None] = None
+    outstream: Union[IO, SparseMemoryIO, None] = None
     outsparse = False
 
     try:
@@ -338,6 +338,7 @@ def xxd_core(
             instream = SparseMemoryIO(memory=infile)
         else:
             instream = infile
+        assert instream is not None
 
         # Output stream binding
         if outfile is None:
@@ -350,10 +351,11 @@ def xxd_core(
             outstream = SparseMemoryIO(memory=outfile)
             outsparse = True
         else:
-            outstream = outfile
+            outstream = _cast(IO, outfile)
+        assert outstream is not None
 
         # Input seeking
-        offset = parse_int(offset or 0)
+        offset = parse_int(offset or 0) or 0
 
         if iseek is not None:
             ss, sv = parse_seek(str(iseek))
@@ -388,6 +390,7 @@ def xxd_core(
                 # Plain hexadecimal input
                 for line in instream:
                     data = _unhexlify(line)
+                    data = _cast(ByteString, data)
                     outstream.write(data)
             else:
                 if cols is None:
@@ -398,8 +401,8 @@ def xxd_core(
                     if match:
                         # Interpret line contents
                         groups = match.groupdict()
-                        address = oseek or 0
-                        address += iseek or 0
+                        address = int(oseek or 0)
+                        address += int(iseek or 0)
                         address += int(groups['address'], 16)
                         data = _unhexlify(groups['data'])
                         data = data[:cols]
@@ -428,6 +431,7 @@ def xxd_core(
                     chunk = instream.read(cols)
                 else:
                     chunk = instream.read(min(cols, length - count))
+                chunk = _cast(ByteString, chunk)
 
                 if chunk:
                     table = _HEX_UPPER if upper else _HEX_LOWER
@@ -466,6 +470,7 @@ def xxd_core(
                     chunk = instream.read(cols)
                 else:
                     chunk = instream.read(min(cols, length - count))
+                chunk = _cast(ByteString, chunk)
 
                 if chunk:
                     if count:
@@ -518,6 +523,7 @@ def xxd_core(
                 chunk = instream.read(cols)
             else:
                 chunk = instream.read(min(cols, length - count))
+            chunk = _cast(ByteString, chunk)
 
             if chunk:
                 # Null line skipping
@@ -577,4 +583,6 @@ def xxd_core(
         if outstream is not None and isinstance(outfile, str):
             outstream.close()
 
+    assert outstream is not None
+    outstream = _cast(IO, outstream)
     return outstream

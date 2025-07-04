@@ -44,14 +44,14 @@ from ..base import AnyBytes
 from ..base import BaseFile
 from ..base import BaseRecord
 from ..base import BaseTag
-from ..base import TypeAlias
+from ..base import ByteString
 from ..utils import hexlify
 from ..utils import unhexlify
 
 try:
     from typing import Self
 except ImportError:  # pragma: no cover
-    Self: TypeAlias = Any  # Python < 3.11
+    Self = Any  # Python < 3.11
 __TYPING_HAS_SELF = Self is not Any
 
 
@@ -64,7 +64,7 @@ class XtekTag(BaseTag, enum.IntEnum):
     EOF = 8
     r"""End Of File."""
 
-    _DATA = DATA
+    _DATA = DATA  # type: ignore
 
     def is_data(self) -> bool:
 
@@ -103,7 +103,7 @@ if not __TYPING_HAS_SELF:  # pragma: no cover
 class XtekRecord(BaseRecord):
     r"""Tektronix Extended record object."""
 
-    Tag: Type[XtekTag] = XtekTag
+    Tag: Type[XtekTag] = XtekTag  # type: ignore override
 
     EQUALITY_KEYS: Sequence[str] = list(BaseRecord.EQUALITY_KEYS) + ['addrlen']
 
@@ -240,9 +240,9 @@ class XtekRecord(BaseRecord):
     def create_data(
         cls,
         address: int,
-        data: AnyBytes,
+        data: ByteString,
         addrlen: int = 8,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Creates a data record.
 
         This is a mandatory class method to instantiate a *data* record.
@@ -290,7 +290,7 @@ class XtekRecord(BaseRecord):
         cls,
         start: int = 0,
         addrlen: int = 8,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Creates an End Of File record.
 
         The End Of File record also carries the *start address*.
@@ -379,9 +379,9 @@ class XtekRecord(BaseRecord):
     @classmethod
     def parse(
         cls,
-        line: AnyBytes,
+        line: ByteString,
         validate: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
 
         line = memoryview(line)
         match = cls.LINE1_REGEX.match(line)
@@ -431,7 +431,7 @@ class XtekRecord(BaseRecord):
         )
         return bytestr
 
-    def to_tokens(self, end: AnyBytes = b'\r\n') -> Mapping[str, bytes]:
+    def to_tokens(self, end: ByteString = b'\r\n') -> Mapping[str, bytes]:
 
         self.validate(checksum=False, count=False)
         return {
@@ -451,7 +451,7 @@ class XtekRecord(BaseRecord):
         self,
         checksum: bool = True,
         count: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
 
         super().validate(checksum=checksum, count=count)
 
@@ -503,7 +503,7 @@ class XtekFile(BaseFile):
         'startaddr',
     ]
 
-    Record: Type[XtekRecord] = XtekRecord
+    Record: Type[XtekRecord] = XtekRecord  # type: ignore override
 
     def __init__(self):
 
@@ -511,7 +511,7 @@ class XtekFile(BaseFile):
 
         self._startaddr: int = 0
 
-    def apply_records(self) -> Self:
+    def apply_records(self) -> Self:  # type: ignore Self
 
         if not self._records:
             raise ValueError('records required')
@@ -575,7 +575,7 @@ class XtekFile(BaseFile):
         self,
         align: bool = False,
         addrlen: int = 8,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Applies memory and meta to records.
 
         This method processes the stored :attr:`memory` and *meta* information
@@ -608,10 +608,10 @@ class XtekFile(BaseFile):
 
         Examples:
             >>> from hexrec import XtekFile
-            >>> blocks = [[123, b'abc']]
+            >>> blocks = [(123, b'abc')]
             >>> file = XtekFile.from_blocks(blocks, maxdatalen=16, startaddr=456)
             >>> file.memory.to_blocks()
-            [[123, b'abc']]
+            [(123, b'abc')]
             >>> file.get_meta()
             {'maxdatalen': 16, 'startaddr': 456}
             >>> _ = file.update_records()
@@ -655,7 +655,7 @@ class XtekFile(BaseFile):
         self,
         data_ordering: bool = False,
         start_within_data: bool = False,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Validates records.
 
         It performs consistency checks for the underlying :attr:`records`.

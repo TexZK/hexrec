@@ -32,13 +32,13 @@ from typing import IO
 from typing import Callable
 from typing import List
 from typing import Mapping
-from typing import Optional
 from typing import Sequence
-from typing import Union
+from typing import Union  # NOTE: type | operator unsupported for Python < 3.10
+from typing import cast as _cast
 
 from bytesparse.base import ImmutableMemory
 
-from .base import AnyBytes
+from .base import ByteString
 from .utils import SparseMemoryIO
 
 CHAR_PRINTABLE: Sequence[bytes] = [b.to_bytes(1, 'big') for b in (
@@ -121,7 +121,7 @@ r"""Default order of display options."""
 
 def _format_default(
     address: int,
-    chunk: AnyBytes,
+    chunk: ByteString,
     width: int,
     upper: bool,
 ) -> List[bytes]:
@@ -145,7 +145,7 @@ def _format_default(
 
 def _format_one_byte_octal(
     address: int,
-    chunk: AnyBytes,
+    chunk: ByteString,
     width: int,
     upper: bool,
 ) -> List[bytes]:
@@ -165,7 +165,7 @@ def _format_one_byte_octal(
 
 def _format_one_byte_hex(
     address: int,
-    chunk: AnyBytes,
+    chunk: ByteString,
     width: int,
     upper: bool,
 ) -> List[bytes]:
@@ -185,7 +185,7 @@ def _format_one_byte_hex(
 
 def _format_one_byte_char(
     address: int,
-    chunk: AnyBytes,
+    chunk: ByteString,
     width: int,
     upper: bool,
 ) -> List[bytes]:
@@ -205,7 +205,7 @@ def _format_one_byte_char(
 
 def _format_canonical(
     address: int,
-    chunk: AnyBytes,
+    chunk: ByteString,
     width: int,
     upper: bool,
 ) -> List[bytes]:
@@ -238,7 +238,7 @@ def _format_canonical(
 
 def _format_two_bytes_decimal(
     address: int,
-    chunk: AnyBytes,
+    chunk: ByteString,
     width: int,
     upper: bool,
 ) -> List[bytes]:
@@ -261,7 +261,7 @@ def _format_two_bytes_decimal(
 
 def _format_two_bytes_octal(
     address: int,
-    chunk: AnyBytes,
+    chunk: ByteString,
     width: int,
     upper: bool,
 ) -> List[bytes]:
@@ -285,7 +285,7 @@ def _format_two_bytes_octal(
 
 def _format_two_bytes_hex(
     address: int,
-    chunk: AnyBytes,
+    chunk: ByteString,
     width: int,
     upper: bool,
 ) -> List[bytes]:
@@ -307,7 +307,7 @@ def _format_two_bytes_hex(
     return tokens
 
 
-_FormatHandler = Callable[[int, AnyBytes, int, bool], List[bytes]]
+_FormatHandler = Callable[[int, ByteString, int, bool], List[bytes]]
 
 _FORMAT_HANDLERS: Mapping[str, _FormatHandler] = {
     'default': _format_default,
@@ -334,8 +334,8 @@ _ADDRESS_FMT: Mapping[str, bytes] = {
 
 # noinspection PyShadowingBuiltins
 def hexdump_core(
-    infile: Optional[Union[str, AnyBytes, IO]] = None,
-    outfile: Optional[Union[str, AnyBytes, IO]] = None,
+    infile: Union[str, ByteString, IO, None] = None,
+    outfile: Union[str, ByteString, IO, None] = None,
     one_byte_octal: bool = False,
     one_byte_hex: bool = False,
     one_byte_char: bool = False,
@@ -343,16 +343,16 @@ def hexdump_core(
     two_bytes_decimal: bool = False,
     two_bytes_octal: bool = False,
     two_bytes_hex: bool = False,
-    color: Optional[str] = None,
-    format: Optional[str] = None,
-    format_file: Optional[str] = None,
-    length: Optional[int] = None,
-    skip: Optional[int] = None,
+    color: Union[str, None] = None,
+    format: Union[str, None] = None,
+    format_file: Union[str, None] = None,
+    length: Union[int, None] = None,
+    skip: Union[int, None] = None,
     no_squeezing: bool = False,
     upper: bool = False,
     width: int = 16,
-    linesep: Optional[AnyBytes] = None,
-    format_order: Optional[Sequence[str]] = None,
+    linesep: Union[ByteString, None] = None,
+    format_order: Union[Sequence[str], None] = None,
 ) -> IO:
     r"""Emulation of the `hexdump` utility core.
 
@@ -501,8 +501,8 @@ def hexdump_core(
         format_handlers = [_format_default]
 
     do_squeezing = not no_squeezing
-    instream: Optional[IO, SparseMemoryIO] = None
-    outstream: Optional[IO] = None
+    instream: Union[IO, SparseMemoryIO, None] = None
+    outstream: Union[IO, None] = None
     try:
         # Input stream binding
         if infile is None:
@@ -515,7 +515,8 @@ def hexdump_core(
         elif isinstance(infile, ImmutableMemory):
             instream = SparseMemoryIO(memory=infile)
         else:
-            instream = infile
+            instream = _cast(IO, infile)
+        assert instream is not None
 
         # Output stream binding
         if outfile is None:
@@ -524,7 +525,8 @@ def hexdump_core(
         elif isinstance(outfile, str):
             outstream = open(outfile, 'wb')
         else:
-            outstream = outfile
+            outstream = _cast(IO, outfile)
+        assert outstream is not None
 
         if skip:
             instream.seek(skip, io.SEEK_CUR)
@@ -540,6 +542,7 @@ def hexdump_core(
                 chunk = read(width)
             else:
                 chunk = read(min(width, length - offset))
+            chunk = _cast(ByteString, chunk)
 
             if not chunk:
                 break
@@ -575,4 +578,5 @@ def hexdump_core(
         if outstream is not None and isinstance(outfile, str):
             outstream.close()
 
+    assert outstream is not None
     return outstream

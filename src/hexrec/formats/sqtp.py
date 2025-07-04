@@ -29,13 +29,12 @@ See Also:
     `<https://developerhelp.microchip.com/xwiki/bin/view/software-tools/ipe/sqtp-file-format-specification/>`_
 """
 
-from typing import Any
 from typing import Iterable
-from typing import Optional
 from typing import Sequence
-from typing import cast as _cast
+from typing import Union  # NOTE: type | operator unsupported for Python < 3.10
 
-from ..base import AnyBytes
+from ..base import ByteOrder
+from ..base import ByteString
 from .ihex import IhexFile
 from .ihex import IhexRecord
 
@@ -44,9 +43,9 @@ def from_numbers(
     numbers: Iterable[int],
     length: int = 2,
     start: int = 0,
-    retlw: Optional[int] = None,
+    retlw: Union[int, None] = None,
     wordsize: int = 2,
-    byteorder: str = 'little',
+    byteorder: ByteOrder = 'little',
     forcedela: bool = False,
 ) -> IhexFile:
     r"""Creates a file from numbers.
@@ -196,7 +195,6 @@ def from_numbers(
         :00000001FF
     """
 
-    byteorder = _cast(Any, byteorder)
     strings = [
         int(number).to_bytes(length, byteorder)
         for number in numbers
@@ -212,9 +210,9 @@ def from_numbers(
 
 
 def from_strings(
-    strings: Sequence[AnyBytes],
+    strings: Sequence[ByteString],
     start: int = 0,
-    retlw: Optional[int] = None,
+    retlw: Union[int, None] = None,
     wordsize: int = 2,
     forcedela: bool = False,
 ) -> IhexFile:
@@ -306,6 +304,7 @@ def from_strings(
         records.append(record)
 
     for string in strings:
+        data: ByteString
         if retlw is None:
             data = string
         else:
@@ -325,7 +324,7 @@ def from_strings(
 def to_numbers(
     file: IhexFile,
     retlw: bool = False,
-    byteorder: str = 'little',
+    byteorder: ByteOrder = 'little',
 ) -> Sequence[int]:
     r"""Extracts numbers from a file.
 
@@ -466,7 +465,6 @@ def to_numbers(
         [0, 1, 2, 3, 4]
     """
 
-    byteorder = _cast(Any, byteorder)
     numbers = [
         int.from_bytes(string, byteorder)
         for string in to_strings(file, retlw=retlw)
@@ -477,7 +475,7 @@ def to_numbers(
 def to_strings(
     file: IhexFile,
     retlw: bool = False,
-) -> Sequence[AnyBytes]:
+) -> Sequence[ByteString]:
     r"""Extracts byte strings from a file.
 
     Given a *Microchip SQTP* file (as special *Intel HEX* format), it extracts

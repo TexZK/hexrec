@@ -1,3 +1,5 @@
+# type: ignore all for test code
+
 from typing import Any
 from typing import Mapping
 from typing import Type
@@ -149,7 +151,7 @@ class TestSparseMemoryIO:
         assert actual == b''
 
     def test_read_hole(self):
-        blocks = [[0, b'\xAA\xBB\xCC'], [5, b'\xEE\xFF']]
+        blocks = [(0, b'\xAA\xBB\xCC'), (5, b'\xEE\xFF')]
         stream = SparseMemoryIO(Memory.from_blocks(blocks))
         actual = stream.read()
         assert actual == [0xAA, 0xBB, 0xCC, 0x100, 0x100, 0xEE, 0xFF]
@@ -163,7 +165,7 @@ class TestSparseMemoryIO:
         memory = Memory()
         stream = SparseMemoryIO(memory)
         stream.write(b'abc')
-        assert memory.to_blocks() == [[0, b'abc']]
+        assert memory.to_blocks() == [(0, b'abc')]
 
     def test_write_empty(self):
         memory = Memory()
@@ -175,5 +177,5 @@ class TestSparseMemoryIO:
         memory = Memory()
         stream = SparseMemoryIO(memory)
         stream.write([0xAA, 0xBB, 0xCC, 0x100, 0x100, 0xEE, 0xFF])
-        expected = [[0, b'\xAA\xBB\xCC'], [5, b'\xEE\xFF']]
+        expected = [(0, b'\xAA\xBB\xCC'), (5, b'\xEE\xFF')]
         assert memory.to_blocks() == expected

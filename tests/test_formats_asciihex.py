@@ -1,3 +1,5 @@
+# type: ignore all for test code
+
 import io
 import os
 from pathlib import Path
@@ -719,8 +721,8 @@ class TestAsciiHexFile(BaseTestFile):
             AsciiHexRecord.create_data(0x1234, b'xyz'),
         ]
         blocks = [
-            [0x0000, b'abc'],
-            [0x1234, b'xyz'],
+            (0x0000, b'abc'),
+            (0x1234, b'xyz'),
         ]
         file = AsciiHexFile.from_blocks(blocks)
         file._records = None
@@ -735,8 +737,8 @@ class TestAsciiHexFile(BaseTestFile):
             AsciiHexRecord.create_data(0x1234, b'xyz'),
         ]
         blocks = [
-            [0x0000, b'abc'],
-            [0x1234, b'xyz'],
+            (0x0000, b'abc'),
+            (0x1234, b'xyz'),
         ]
         file = AsciiHexFile.from_blocks(blocks)
         file._records = None
@@ -752,8 +754,8 @@ class TestAsciiHexFile(BaseTestFile):
             AsciiHexRecord.create_checksum(sum(b'abcxyz') & 0xFFFF),
         ]
         blocks = [
-            [0x0000, b'abc'],
-            [0x1234, b'xyz'],
+            (0x0000, b'abc'),
+            (0x1234, b'xyz'),
         ]
         file = AsciiHexFile.from_blocks(blocks)
         file._records = None

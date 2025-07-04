@@ -41,12 +41,12 @@ from ..base import AnyBytes
 from ..base import BaseFile
 from ..base import BaseRecord
 from ..base import BaseTag
-from ..base import TypeAlias
+from ..base import ByteString
 
 try:
     from typing import Self
 except ImportError:  # pragma: no cover
-    Self: TypeAlias = Any  # Python < 3.11
+    Self = Any  # Python < 3.11
 __TYPING_HAS_SELF = Self is not Any
 
 
@@ -56,7 +56,7 @@ class RawTag(BaseTag, enum.Enum):
     DATA = ...
     r"""Data."""
 
-    _DATA = DATA
+    _DATA = DATA  # type: ignore
 
     def is_data(self) -> bool:
 
@@ -75,13 +75,13 @@ if not __TYPING_HAS_SELF:  # pragma: no cover
 class RawRecord(BaseRecord):
     r"""Raw binary record object."""
 
-    Tag: Type[RawTag] = RawTag
+    Tag: Type[RawTag] = RawTag  # type: ignore override
 
     @classmethod
     def create_data(
         cls,
         address: int,
-        data: AnyBytes,
+        data: ByteString,
     ) -> 'RawRecord':
 
         address = address.__index__()
@@ -92,9 +92,9 @@ class RawRecord(BaseRecord):
         return record
 
     @classmethod
-    def parse(
+    def parse(  # type: ignore kwargs order
         cls,
-        line: AnyBytes,
+        line: ByteString,
         address: int = 0,
         validate: bool = True,
     ) -> 'RawRecord':
@@ -159,7 +159,7 @@ class RawFile(BaseFile):
         '.bin', '.dat', '.eep', '.raw',
     ]
 
-    Record: Type[RawRecord] = RawRecord
+    Record: Type[RawRecord] = RawRecord  # type: ignore override
 
     @classmethod
     def _is_line_empty(cls, line: AnyBytes) -> bool:
@@ -167,7 +167,7 @@ class RawFile(BaseFile):
         return not line
 
     @classmethod
-    def parse(
+    def parse(  # type: ignore kwargs order
         cls,
         stream: IO,
         ignore_errors: bool = False,
@@ -276,10 +276,10 @@ class RawFile(BaseFile):
 
         Examples:
             >>> from hexrec import RawFile
-            >>> blocks = [[123, b'abc']]
+            >>> blocks = [(123, b'abc')]
             >>> file = RawFile.from_blocks(blocks, maxdatalen=16)
             >>> file.memory.to_blocks()
-            [[123, b'abc']]
+            [(123, b'abc')]
             >>> file.get_meta()
             {'maxdatalen': 16}
             >>> _ = file.update_records()

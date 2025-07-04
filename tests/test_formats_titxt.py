@@ -1,3 +1,5 @@
+# type: ignore all for test code
+
 import io
 import os
 from pathlib import Path
@@ -586,8 +588,8 @@ class TestTiTxtFile(BaseTestFile):
             TiTxtRecord.create_eof(),
         ]
         blocks = [
-            [0x0000, b'abc'],
-            [0x1234, b'xyz'],
+            (0x0000, b'abc'),
+            (0x1234, b'xyz'),
         ]
         file = TiTxtFile.from_blocks(blocks)
         file._records = None
@@ -603,8 +605,8 @@ class TestTiTxtFile(BaseTestFile):
             TiTxtRecord.create_eof(),
         ]
         blocks = [
-            [0x0000, b'abc'],
-            [0x1234, b'xyz'],
+            (0x0000, b'abc'),
+            (0x1234, b'xyz'),
         ]
         file = TiTxtFile.from_blocks(blocks)
         file._records = None
