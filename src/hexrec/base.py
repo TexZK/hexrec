@@ -47,8 +47,8 @@ from typing import cast as _cast
 import colorama
 from bytesparse import Memory
 from bytesparse.base import AnyBytes
-from bytesparse.base import ByteString
 from bytesparse.base import BlockSequence
+from bytesparse.base import ByteString
 from bytesparse.base import EllipsisType
 from bytesparse.base import ImmutableMemory
 from bytesparse.base import MutableMemory
