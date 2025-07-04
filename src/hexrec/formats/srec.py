@@ -45,14 +45,14 @@ from ..base import AnyBytes
 from ..base import BaseFile
 from ..base import BaseRecord
 from ..base import BaseTag
-from ..base import TypeAlias
+from ..base import ByteString
 from ..utils import hexlify
 from ..utils import unhexlify
 
 try:
     from typing import Self
 except ImportError:  # pragma: no cover
-    Self: TypeAlias = Any  # Python < 3.11
+    Self = Any  # Python < 3.11
 __TYPING_HAS_SELF = Self is not Any
 
 
@@ -94,10 +94,10 @@ class SrecTag(BaseTag, enum.IntEnum):
     START_16 = 9
     r"""16-bit start address. Terminates :attr:`DATA_16`."""
 
-    _DATA = DATA_16
+    _DATA = DATA_16  # type: ignore
 
     @classmethod
-    def fit_count_tag(cls, count: int) -> Self:
+    def fit_count_tag(cls, count: int) -> Self:  # type: ignore Self
         r"""Fits count record tag.
 
         Given the record sequence count, it fits the most compact *count* tag.
@@ -134,7 +134,7 @@ class SrecTag(BaseTag, enum.IntEnum):
         raise ValueError('count overflow')
 
     @classmethod
-    def fit_data_tag(cls, address_max: int) -> Self:
+    def fit_data_tag(cls, address_max: int) -> Self:  # type: ignore Self
         r"""Fits data record tag.
 
         Given the maximum *address* of the involved *data* records, it fits the
@@ -176,7 +176,7 @@ class SrecTag(BaseTag, enum.IntEnum):
         raise ValueError('address overflow')
 
     @classmethod
-    def fit_start_tag(cls, address: int) -> Self:
+    def fit_start_tag(cls, address: int) -> Self:  # type: ignore Self
         r"""Fits data record tag.
 
         Given the *start address*, it fits the most compact *start address* tag.
@@ -216,7 +216,7 @@ class SrecTag(BaseTag, enum.IntEnum):
             return cls.START_32
         raise ValueError('address overflow')
 
-    def get_address_max(self) -> Optional[int]:
+    def get_address_max(self) -> int:
         r"""Calculates the maximum address.
 
         It calculates the maximum *address* field for the calling tag.
@@ -242,7 +242,7 @@ class SrecTag(BaseTag, enum.IntEnum):
             mask = (1 << (mask << 3)) - 1
         return mask
 
-    def get_address_size(self) -> Optional[int]:
+    def get_address_size(self) -> int:
         r"""Calculates the maximum address size.
 
         It calculates the maximum *address* field size for the calling tag.
@@ -267,7 +267,7 @@ class SrecTag(BaseTag, enum.IntEnum):
         size = SIZES[self]
         return size
 
-    def get_data_max(self) -> Optional[int]:
+    def get_data_max(self) -> int:
         r"""Calculates the maximum data size.
 
         It calculates the maximum *data* field size for the calling tag.
@@ -429,7 +429,7 @@ if not __TYPING_HAS_SELF:  # pragma: no cover
 class SrecRecord(BaseRecord):
     r"""Motorola S-record record object."""
 
-    Tag: Type[SrecTag] = SrecTag
+    Tag: Type[SrecTag] = SrecTag  # type: ignore override
 
     LINE1_REGEX = re.compile(
         b'^(?P<before>\\s*)[Ss]'
@@ -452,6 +452,7 @@ class SrecRecord(BaseRecord):
 
     def compute_checksum(self) -> int:
 
+        assert self.count is not None
         checksum = self.count & 0xFF
         address = self.address & 0xFFFFFFFF
         while address > 0:
@@ -472,7 +473,7 @@ class SrecRecord(BaseRecord):
         cls,
         count: int,
         tag: Optional[SrecTag] = None,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Creates a record count record.
 
         This is method instantiates a *record count* record, optionally
@@ -508,6 +509,7 @@ class SrecRecord(BaseRecord):
             if not Tag.COUNT_16 <= tag <= Tag.COUNT_24:
                 raise ValueError('invalid count tag')
 
+        assert tag is not None
         if not 0 <= count <= tag.get_address_max():
             raise ValueError('count overflow')
 
@@ -518,9 +520,9 @@ class SrecRecord(BaseRecord):
     def create_data(
         cls,
         address: int,
-        data: AnyBytes,
+        data: ByteString,
         tag: Optional[SrecTag] = None,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Creates a data record.
 
         This is method instantiates a *data* record, optionally choosing the
@@ -559,6 +561,7 @@ class SrecRecord(BaseRecord):
             if not Tag.DATA_16 <= tag <= Tag.DATA_32:
                 raise ValueError('invalid data tag')
 
+        assert tag is not None
         if not 0 <= address <= tag.get_address_max():
             raise ValueError('address overflow')
 
@@ -569,7 +572,10 @@ class SrecRecord(BaseRecord):
         return record
 
     @classmethod
-    def create_header(cls, data: AnyBytes = b'') -> Self:
+    def create_header(
+        cls,
+        data: ByteString = b'',
+    ) -> Self:  # type: ignore Self
         r"""Creates a header record.
 
         Args:
@@ -604,7 +610,7 @@ class SrecRecord(BaseRecord):
         cls,
         address: int = 0,
         tag: Optional[SrecTag] = None,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Creates a start address record.
 
         This is method instantiates a *start address* record, optionally
@@ -640,6 +646,7 @@ class SrecRecord(BaseRecord):
             if not Tag.START_32 <= tag <= Tag.START_16:
                 raise ValueError('invalid start tag')
 
+        assert tag is not None
         if not 0 <= address <= tag.get_address_max():
             raise ValueError('address overflow')
 
@@ -649,9 +656,9 @@ class SrecRecord(BaseRecord):
     @classmethod
     def parse(
         cls,
-        line: AnyBytes,
+        line: ByteString,
         validate: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
 
         Tag = cls.Tag
         line = memoryview(line)
@@ -691,7 +698,10 @@ class SrecRecord(BaseRecord):
                      validate=validate)
         return record
 
-    def to_bytestr(self, end: AnyBytes = b'\r\n') -> bytes:
+    def to_bytestr(
+        self,
+        end: AnyBytes = b'\r\n',
+    ) -> bytes:
 
         self.validate(checksum=False, count=False)
         tag = _cast(SrecTag, self.tag)
@@ -709,7 +719,10 @@ class SrecRecord(BaseRecord):
         )
         return bytestr
 
-    def to_tokens(self, end: AnyBytes = b'\r\n') -> Mapping[str, bytes]:
+    def to_tokens(
+        self,
+        end: ByteString = b'\r\n',
+    ) -> Mapping[str, bytes]:
 
         self.validate(checksum=False, count=False)
         tag = _cast(SrecTag, self.tag)
@@ -731,7 +744,7 @@ class SrecRecord(BaseRecord):
         self,
         checksum: bool = True,
         count: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
 
         super().validate(checksum=checksum, count=count)
         address = self.address
@@ -791,16 +804,16 @@ class SrecFile(BaseFile):
         'startaddr',
     ]
 
-    Record: Type[SrecRecord] = SrecRecord
+    Record: Type[SrecRecord] = SrecRecord  # type: ignore override
 
     def __init__(self):
 
         super().__init__()
 
-        self._header: Optional[AnyBytes] = b''
+        self._header: Optional[ByteString] = b''
         self._startaddr: int = 0
 
-    def apply_records(self) -> Self:
+    def apply_records(self) -> Self:  # type: ignore Self
 
         if not self._records:
             raise ValueError('records required')
@@ -828,7 +841,7 @@ class SrecFile(BaseFile):
         return self
 
     @property
-    def header(self) -> Optional[AnyBytes]:
+    def header(self) -> Optional[ByteString]:
         r"""bytes: Header byte string.
 
         This property sets the file *header* byte string; ``None`` to disable.
@@ -870,7 +883,7 @@ class SrecFile(BaseFile):
         return self._header
 
     @header.setter
-    def header(self, header: Optional[AnyBytes]) -> None:
+    def header(self, header: Optional[ByteString]) -> None:
 
         if header is not None:
             size = len(header)
@@ -932,7 +945,7 @@ class SrecFile(BaseFile):
         start: bool = True,
         data_tag: Optional[SrecTag] = None,
         count_tag: Optional[SrecTag] = None,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Applies memory and meta to records.
 
         This method processes the stored :attr:`memory` and *meta* information
@@ -1031,6 +1044,7 @@ class SrecFile(BaseFile):
                 record = Record.create_count(data_record_count, tag=count_tag)
                 records.append(record)
 
+            assert data_tag is not None
             start_tag = data_tag.get_tag_match()
             address = self._startaddr if start else 0
             record = Record.create_start(address, tag=start_tag)
@@ -1054,7 +1068,7 @@ class SrecFile(BaseFile):
         count_penultimate: bool = True,
         start_last: bool = True,
         start_within_data: bool = False,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Validates records.
 
         It performs consistency checks for the underlying :attr:`records`.
@@ -1177,6 +1191,7 @@ class SrecFile(BaseFile):
                 raise ValueError('no data at start address')
 
         if data_uniform:
+            assert data_tag_sample is not None
             if start_record.tag != data_tag_sample.get_tag_match():
                 raise ValueError('start record tag not uniform')
 

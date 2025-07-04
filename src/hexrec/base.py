@@ -32,6 +32,7 @@ import sys
 from typing import IO
 from typing import Any
 from typing import List
+from typing import Literal
 from typing import Mapping
 from typing import MutableMapping
 from typing import MutableSequence
@@ -45,31 +46,22 @@ from typing import cast as _cast
 
 import colorama
 from bytesparse import Memory
+from bytesparse.base import AnyBytes
+from bytesparse.base import ByteString
 from bytesparse.base import BlockSequence
+from bytesparse.base import EllipsisType
 from bytesparse.base import ImmutableMemory
 from bytesparse.base import MutableMemory
 
 try:
-    from typing import TypeAlias
-except ImportError:  # pragma: no cover
-    TypeAlias = Any  # Python < 3.10
-
-try:
-    from typing import Literal
-    ByteOrder: TypeAlias = Literal['big', 'little']
-except ImportError:  # pragma: no cover
-    Literal: TypeAlias = str  # Python < 3.8
-    ByteOrder: TypeAlias = Literal
-
-try:
     from typing import Self
 except ImportError:  # pragma: no cover
-    Self: TypeAlias = Any  # Python < 3.11
+    Self = Any  # Python < 3.11
 __TYPING_HAS_SELF = Self is not Any
 
-AnyBytes: TypeAlias = Union[bytes, bytearray, memoryview]
-AnyPath: TypeAlias = Union[bytes, bytearray, str, os.PathLike]
-EllipsisType: TypeAlias = Type['Ellipsis']
+AnyPath = Union[bytes, bytearray, str, os.PathLike]
+
+ByteOrder = Literal['big', 'little']
 
 file_types: MutableMapping[str, Type['BaseFile']] = {}
 r"""Registered record file types.
@@ -453,7 +445,9 @@ def merge(
     in_formats += [None] * (len(in_paths_or_streams) - len(in_formats))
 
     if out_format is None and out_path_or_stream not in (None, Ellipsis):
+        out_path_or_stream = _cast(str, out_path_or_stream)
         out_format = guess_format_name(out_path_or_stream)
+    out_format = _cast(str, out_format)
     out_type = file_types[out_format]
 
     in_files = []
@@ -465,6 +459,7 @@ def merge(
     out_file.merge(*in_files)
 
     if out_path_or_stream is not Ellipsis:
+        out_path_or_stream = _cast(str, out_path_or_stream)
         out_file.save(out_path_or_stream)
 
     return in_files, out_file
@@ -693,7 +688,7 @@ class BaseRecord(abc.ABC):
     This sequence holds the *meta* keys for copying (see :meth:`copy`).
     """
 
-    Tag: Type[BaseTag] = None  # override
+    Tag: Type[BaseTag] = None  # override  # type: ignore override
     r"""Tag object type.
 
     This class attribute indicates the :class:`BaseTag` class used by this
@@ -726,7 +721,7 @@ class BaseRecord(abc.ABC):
 
         return self.to_bytestr()
 
-    def __eq__(self, other: 'BaseRecord') -> bool:
+    def __eq__(self, other: Any) -> bool:
         r"""Equality test.
 
         This method returns true if `self` is considered equal to `other`.
@@ -769,7 +764,7 @@ class BaseRecord(abc.ABC):
         self,
         tag: BaseTag,
         address: int = 0,
-        data: AnyBytes = b'',
+        data: ByteString = b'',
         count: Optional[Union[int, EllipsisType]] = Ellipsis,
         checksum: Optional[Union[int, EllipsisType]] = Ellipsis,
         before: Union[bytes, bytearray] = b'',
@@ -784,17 +779,19 @@ class BaseRecord(abc.ABC):
         self.checksum: Optional[int] = None
         self.coords: Tuple[int, int] = coords
         self.count: Optional[int] = None
-        self.data: AnyBytes = data
+        self.data: ByteString = data
         self.tag: BaseTag = tag
 
         if count is Ellipsis:
             self.update_count()
         elif count is not None:
+            count = _cast(int, count)
             self.count = count.__index__()
 
         if checksum is Ellipsis:
             self.update_checksum()
         elif checksum is not None:
+            checksum = _cast(int, checksum)
             self.checksum = checksum.__index__()
 
         if validate:
@@ -802,7 +799,7 @@ class BaseRecord(abc.ABC):
             _checksum = checksum is not None and _count
             self.validate(checksum=_checksum, count=_count)
 
-    def __ne__(self, other: 'BaseRecord') -> bool:
+    def __ne__(self, other: Any) -> bool:
         r"""Ineuality test.
 
         This method returns true if `self` is considered unequal to `other`.
@@ -959,7 +956,7 @@ class BaseRecord(abc.ABC):
 
         return None
 
-    def copy(self, validate: bool = True) -> Self:  # shallow
+    def copy(self, validate: bool = True) -> Self:  # shallow  # type: ignore Self
         r"""Shallow copy.
 
         It calls the record constructor, passing *meta* to it.
@@ -995,7 +992,7 @@ class BaseRecord(abc.ABC):
 
     @classmethod
     @abc.abstractmethod
-    def create_data(cls, address: int, data: AnyBytes) -> Self:
+    def create_data(cls, address: int, data: ByteString) -> Self:  # type: ignore Self
         r"""Creates a data record.
 
         This is a mandatory class method to instantiate a *data* record.
@@ -1092,9 +1089,9 @@ class BaseRecord(abc.ABC):
     @abc.abstractmethod
     def parse(
         cls,
-        line: AnyBytes,
+        line: ByteString,
         validate: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Parses a record from bytes.
 
         Please refer to the actual implementation provided by the record
@@ -1134,7 +1131,7 @@ class BaseRecord(abc.ABC):
         stream: Optional[IO] = None,
         color: bool = False,
         **kwargs,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Prints a record.
 
         The record is converted into tokens (eventually colorized) then joined
@@ -1182,10 +1179,11 @@ class BaseRecord(abc.ABC):
         tokens = self.to_tokens(*args, **kwargs)
         if color:
             tokens = colorize_tokens(tokens)
+        assert stream is not None
         stream.writelines(tokens.values())
         return self
 
-    def serialize(self, stream: IO, *args, **kwargs) -> Self:
+    def serialize(self, stream: IO, *args, **kwargs) -> Self:  # type: ignore Self
         r"""Serializes onto a stream.
 
         This wraps a call to :meth:`to_bytestr` and ``stream.write``.
@@ -1275,7 +1273,7 @@ class BaseRecord(abc.ABC):
         """
         ...
 
-    def update_checksum(self) -> Self:
+    def update_checksum(self) -> Self:  # type: ignore Self
         r"""Updates the checksum field.
 
         It updates the :attr:`checksum` attribute, assigning to it the value
@@ -1307,7 +1305,7 @@ class BaseRecord(abc.ABC):
         self.checksum = self.compute_checksum()
         return self
 
-    def update_count(self) -> Self:
+    def update_count(self) -> Self:  # type: ignore Self
         r"""Updates the count field.
 
         It updates the :attr:`count` attribute, assigning to it the value
@@ -1344,7 +1342,7 @@ class BaseRecord(abc.ABC):
         self,
         checksum: bool = True,
         count: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Validates consistency of attribute values.
 
         All the record attributes are checked for consistency.
@@ -1531,7 +1529,7 @@ class BaseFile(abc.ABC):
     file *format*.
     """
 
-    Record: Type[BaseRecord] = None  # override
+    Record: Type[BaseRecord] = None  # override  # type: ignore override
     r"""Record object type.
 
     This class attribute indicates the :class:`BaseRecord` class used by this
@@ -1541,7 +1539,7 @@ class BaseFile(abc.ABC):
     def __add__(
         self,
         other: Union['BaseFile', AnyBytes],
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Concatenates with another file.
 
         Equivalent to :meth:`copy` then :meth:`extend`.
@@ -1671,7 +1669,7 @@ class BaseFile(abc.ABC):
             item = bytes(item)
         return item
 
-    def __eq__(self, other: 'BaseFile') -> bool:
+    def __eq__(self, other: Any) -> bool:
         r"""Equality test.
 
         The file objects `self` and `other` are considered *equal* if the
@@ -1717,7 +1715,7 @@ class BaseFile(abc.ABC):
     def __iadd__(
         self,
         other: Union['BaseFile', AnyBytes],
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Concatenates data.
 
         Equivalent to :meth:`extend`.
@@ -1762,7 +1760,7 @@ class BaseFile(abc.ABC):
         self._memory: Optional[MutableMemory] = Memory()
         self._maxdatalen: int = self.DEFAULT_DATALEN
 
-    def __ior__(self, other: 'BaseFile') -> Self:
+    def __ior__(self, other: 'BaseFile') -> Self:  # type: ignore Self
         r"""Merges with another file.
 
         Equivalent to :meth:`merge`.
@@ -1798,7 +1796,7 @@ class BaseFile(abc.ABC):
         self.merge(other)
         return self
 
-    def __ne__(self, other: 'BaseFile') -> bool:
+    def __ne__(self, other: Any) -> bool:
         r"""Inequality test.
 
         The file objects `self` and `other` are considered *unequal* if any of
@@ -1876,7 +1874,7 @@ class BaseFile(abc.ABC):
     def __or__(
         self,
         other: Union['BaseFile', AnyBytes],
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Merges with another file.
 
         Equivalent to :meth:`copy` then :meth:`merge`.
@@ -1951,7 +1949,7 @@ class BaseFile(abc.ABC):
         self.memory[key] = value
 
     @classmethod
-    def _is_line_empty(cls, line: AnyBytes) -> bool:
+    def _is_line_empty(cls, line: Union[bytes, bytearray]) -> bool:
         r"""Empty line check.
 
         Tells whether a `line` has no meaningful content (e.g. all whitespace).
@@ -1986,7 +1984,7 @@ class BaseFile(abc.ABC):
         start: Optional[int] = None,
         endex: Optional[int] = None,
         pattern: Union[int, AnyBytes] = 0,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Pads blocks to align their boundaries.
 
         It fills memory holes of the underlying :attr:`memory` within the
@@ -2033,7 +2031,7 @@ class BaseFile(abc.ABC):
         self.discard_records()
         return self
 
-    def append(self, item: Union[AnyBytes, int]) -> Self:
+    def append(self, item: Union[AnyBytes, int]) -> Self:  # type: ignore Self
         r"""Appends a byte.
 
         It appends the `item` to the underlyng :attr:`memory`.
@@ -2068,7 +2066,7 @@ class BaseFile(abc.ABC):
         self.discard_records()
         return self
 
-    def apply_records(self) -> Self:
+    def apply_records(self) -> Self:  # type: ignore Self
         r"""Applies records to memory and meta.
 
         This method processes the stored :attr:`records`, converting *data* as
@@ -2126,7 +2124,7 @@ class BaseFile(abc.ABC):
         self,
         start: Optional[int] = None,
         endex: Optional[int] = None,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Clears data within a range.
 
         It clears the specified range of underlying :attr:`memory` object,
@@ -2171,7 +2169,7 @@ class BaseFile(abc.ABC):
         cls,
         source: 'BaseFile',
         meta: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Converts a file object to another format.
 
         It copies the :attr:`memory` and *meta* of the `source` file object,
@@ -2213,6 +2211,7 @@ class BaseFile(abc.ABC):
             target_meta = {}
 
         target_memory = source.memory.copy()
+        target_memory = _cast(MutableMemory, target_memory)
         target = cls.from_memory(memory=target_memory, **target_meta)
         return target
 
@@ -2221,7 +2220,7 @@ class BaseFile(abc.ABC):
         start: Optional[int] = None,
         endex: Optional[int] = None,
         meta: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Copies within a range.
 
         It copied data within the specified range of the file object, creating
@@ -2263,6 +2262,7 @@ class BaseFile(abc.ABC):
 
         copied_memory = self.memory.extract(start=start, endex=endex, bound=False)
         copied_meta = self.get_meta() if meta else {}
+        copied_memory = _cast(MutableMemory, copied_memory)
         copied = self.from_memory(memory=copied_memory, **copied_meta)
         return copied
 
@@ -2270,7 +2270,7 @@ class BaseFile(abc.ABC):
         self,
         start: Optional[int] = None,
         endex: Optional[int] = None,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Clears data outside a range.
 
         It clears outside the specified range of underlying :attr:`memory`
@@ -2315,7 +2315,7 @@ class BaseFile(abc.ABC):
         start: Optional[int] = None,
         endex: Optional[int] = None,
         meta: bool = False,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Cuts data within a range.
 
         It takes data within the specified range away from the file object,
@@ -2370,7 +2370,7 @@ class BaseFile(abc.ABC):
         self,
         start: Optional[int] = None,
         endex: Optional[int] = None,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Deletes data within a range.
 
         It deletes the specified range of underlying :attr:`memory` object,
@@ -2410,7 +2410,7 @@ class BaseFile(abc.ABC):
         self.discard_records()
         return self
 
-    def discard_records(self) -> Self:
+    def discard_records(self) -> Self:  # type: ignore Self
         r"""Discards underlying records.
 
         The underlying :attr:`records` object is assigned ``None``.
@@ -2443,7 +2443,7 @@ class BaseFile(abc.ABC):
             self._memory = Memory()
         return self
 
-    def discard_memory(self) -> Self:
+    def discard_memory(self) -> Self:  # type: ignore Self
         r"""Discards underlying memory.
 
         The underlying :attr:`memory` object is assigned ``None``.
@@ -2476,7 +2476,7 @@ class BaseFile(abc.ABC):
     def extend(
         self,
         other: Union['BaseFile', ImmutableMemory, AnyBytes],
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Concatenates data.
 
         It concatenates `other` to the underlyng :attr:`memory`.
@@ -2521,7 +2521,7 @@ class BaseFile(abc.ABC):
         start: Optional[int] = None,
         endex: Optional[int] = None,
         pattern: Union[int, AnyBytes] = 0,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Fills a range.
 
         It writes a `pattern` of bytes onto the underlying :attr:`memory`
@@ -2624,7 +2624,7 @@ class BaseFile(abc.ABC):
         start: Optional[int] = None,
         endex: Optional[int] = None,
         pattern: Union[int, AnyBytes] = 0,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Floods a range.
 
         It fills memory holes of the underlying :attr:`memory` within the
@@ -2670,7 +2670,7 @@ class BaseFile(abc.ABC):
         return self
 
     @classmethod
-    def from_blocks(cls, blocks: BlockSequence, **meta) -> Self:
+    def from_blocks(cls, blocks: BlockSequence, **meta) -> Self:  # type: ignore Self
         r"""Creates a file object from a memory object.
 
         The `blocks` are put into the :attr:`memory` of the created file object.
@@ -2717,7 +2717,7 @@ class BaseFile(abc.ABC):
         return file
 
     @classmethod
-    def from_bytes(cls, data: AnyBytes, offset: int = 0, **meta) -> Self:
+    def from_bytes(cls, data: ByteString, offset: int = 0, **meta) -> Self:  # type: ignore Self
         r"""Creates a file object from a byte string.
 
         The byte string makes a single *data* block, placed at some offset
@@ -2767,7 +2767,7 @@ class BaseFile(abc.ABC):
         return file
 
     @classmethod
-    def from_memory(cls, memory: Optional[MutableMemory] = None, **meta) -> Self:
+    def from_memory(cls, memory: Optional[MutableMemory] = None, **meta) -> Self:  # type: ignore Self
         r"""Creates a file object from a memory object.
 
         The `memory` is set as the :attr:`memory` of the created file object.
@@ -2829,7 +2829,7 @@ class BaseFile(abc.ABC):
         cls,
         records: MutableSequence[BaseRecord],
         maxdatalen: Optional[int] = None,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Creates a file object from records.
 
         The `records` sequence is set as the :attr:`record` attribute of the
@@ -2966,6 +2966,7 @@ class BaseFile(abc.ABC):
 
         memory = self.memory
         holes = list(memory.gaps(memory.start, memory.endex))
+        holes = _cast(List[Tuple[int, int]], holes)
         return holes
 
     def get_spans(self) -> List[Tuple[int, int]]:
@@ -3080,7 +3081,7 @@ class BaseFile(abc.ABC):
         in_path_or_stream: Optional[Union[AnyPath, IO]],
         *args,
         **kwargs,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Loads a file object from the filesystem.
 
         The :func:`open` function creates a *stream* from the filesystem,
@@ -3122,7 +3123,7 @@ class BaseFile(abc.ABC):
             in_path_or_stream = sys.stdin.buffer
 
         if isinstance(in_path_or_stream, io.IOBase):
-            stream = in_path_or_stream
+            stream = _cast(IO, in_path_or_stream)
             return cls.parse(stream, *args, **kwargs)
         else:
             path = str(in_path_or_stream)
@@ -3236,9 +3237,10 @@ class BaseFile(abc.ABC):
 
         if self._memory is None:
             self.apply_records()
+        assert self._memory is not None
         return self._memory
 
-    def merge(self, *files: 'BaseFile', clear: bool = False) -> Self:
+    def merge(self, *files: 'BaseFile', clear: bool = False) -> Self:  # type: ignore Self
         r"""Merges data onto the file.
 
         It writes the provided `files` onto *self*, in the provided order.
@@ -3284,7 +3286,7 @@ class BaseFile(abc.ABC):
         stream: Union[AnyBytes, IO],
         ignore_errors: bool = False,
         ignore_after_termination: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Parses records from a byte stream.
 
         It executes :meth:`BaseRecord.parse` for each line of the incoming
@@ -3350,6 +3352,7 @@ class BaseFile(abc.ABC):
         row = 0
 
         for line in stream:
+            line = _cast(bytes, line)
             row += 1
 
             if cls._is_line_empty(line):
@@ -3380,7 +3383,7 @@ class BaseFile(abc.ABC):
         start: Optional[int] = None,
         stop: Optional[int] = None,
         **kwargs,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Prints record content to stdout.
 
         This helper method prints each record of :attr:`records` via
@@ -3456,7 +3459,7 @@ class BaseFile(abc.ABC):
         self,
         start: Optional[int] = None,
         endex: Optional[int] = None,
-        fill: Union[int, AnyBytes] = 0,
+        fill: Union[int, bytes, bytearray] = 0,
     ) -> bytes:
         r"""Extracts a substring.
 
@@ -3550,6 +3553,7 @@ class BaseFile(abc.ABC):
 
         if self._records is None:
             self.update_records()
+        assert self._records is not None
         return self._records
 
     def save(
@@ -3557,7 +3561,7 @@ class BaseFile(abc.ABC):
         out_path_or_stream: Optional[Union[AnyPath, IO]],
         *args,
         **kwargs,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Saves a file object into the filesystem.
 
         The :func:`open` function creates a *stream* from the filesystem,
@@ -3596,7 +3600,7 @@ class BaseFile(abc.ABC):
             out_path_or_stream = sys.stdout.buffer
 
         if isinstance(out_path_or_stream, io.IOBase):
-            stream = out_path_or_stream
+            stream = _cast(IO, out_path_or_stream)
             return self.serialize(stream, *args, **kwargs)
         else:
             path = str(out_path_or_stream)
@@ -3607,7 +3611,7 @@ class BaseFile(abc.ABC):
         self,
         meta: Mapping[str, Any],
         strict: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Sets meta information.
 
         It sets the provided *kwargs* to their matching *meta* attributes, as
@@ -3652,7 +3656,7 @@ class BaseFile(abc.ABC):
         self.discard_records()
         return self
 
-    def serialize(self, stream: io.IOBase, *args, **kwargs) -> Self:
+    def serialize(self, stream: IO, *args, **kwargs) -> Self:  # type: ignore Self
         r"""Serializes records onto a byte stream.
 
         It executes :meth:`BaseRecord.serialize` for each of the stored
@@ -3692,7 +3696,7 @@ class BaseFile(abc.ABC):
             record.serialize(stream, *args, **kwargs)
         return self
 
-    def shift(self, offset: int) -> Self:
+    def shift(self, offset: int) -> Self:  # type: ignore Self
         r"""Shifts data addresses by an offset.
 
         It shifts addresses of the underlying :attr:`memory` object data blocks
@@ -3766,7 +3770,7 @@ class BaseFile(abc.ABC):
         """
 
         pivots: List[Optional[int]] = list(addresses)
-        pivots.sort()
+        pivots.sort()  # type: ignore sort(key)
         pivots.append(None)
         previous = None
         parts: List[BaseFile] = []
@@ -3779,7 +3783,7 @@ class BaseFile(abc.ABC):
         return parts
 
     @abc.abstractmethod
-    def update_records(self) -> Self:
+    def update_records(self) -> Self:  # type: ignore Self
         r"""Applies memory and meta to records.
 
         This method processes the stored :attr:`memory` and *meta* information
@@ -3825,7 +3829,7 @@ class BaseFile(abc.ABC):
         ...
 
     @abc.abstractmethod
-    def validate_records(self) -> Self:
+    def validate_records(self) -> Self:  # type: ignore Self
         r"""Validates records.
 
         It performs consistency checks for the underlying :attr:`records`.
@@ -3896,7 +3900,7 @@ class BaseFile(abc.ABC):
         address: int,
         data: Union['BaseFile', AnyBytes, int, ImmutableMemory],
         clear: bool = False,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Writes data into the file.
 
         It writes the provided `data` into the underlying :attr:`memory` object.

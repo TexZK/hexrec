@@ -45,14 +45,14 @@ from ..base import AnyBytes
 from ..base import BaseFile
 from ..base import BaseRecord
 from ..base import BaseTag
-from ..base import TypeAlias
+from ..base import ByteString
 from ..utils import hexlify
 from ..utils import unhexlify
 
 try:
     from typing import Self
 except ImportError:  # pragma: no cover
-    Self: TypeAlias = Any  # Python < 3.11
+    Self = Any  # Python < 3.11
 __TYPING_HAS_SELF = Self is not Any
 
 
@@ -77,7 +77,7 @@ class IhexTag(BaseTag, enum.IntEnum):
     START_LINEAR_ADDRESS = 5
     r"""Start Linear Address."""
 
-    _DATA = DATA
+    _DATA = DATA  # type: ignore
 
     def is_data(self) -> bool:
 
@@ -162,7 +162,7 @@ if not __TYPING_HAS_SELF:  # pragma: no cover
 class IhexRecord(BaseRecord):
     r"""Intel HEX record object."""
 
-    Tag: Type[IhexTag] = IhexTag
+    Tag: Type[IhexTag] = IhexTag  # type: ignore override
 
     LINE_REGEX = re.compile(
         b'^(?P<before>[^:]*):'
@@ -197,8 +197,8 @@ class IhexRecord(BaseRecord):
     def create_data(
         cls,
         address: int,
-        data: AnyBytes,
-    ) -> Self:
+        data: ByteString,
+    ) -> Self:  # type: ignore Self
 
         address = address.__index__()
         if not 0 <= address <= 0xFFFF:
@@ -212,7 +212,7 @@ class IhexRecord(BaseRecord):
         return record
 
     @classmethod
-    def create_end_of_file(cls) -> Self:
+    def create_end_of_file(cls) -> Self:  # type: ignore Self
         r"""Creates an End Of File record.
 
         Returns:
@@ -229,7 +229,7 @@ class IhexRecord(BaseRecord):
         return record
 
     @classmethod
-    def create_extended_linear_address(cls, extension: int) -> Self:
+    def create_extended_linear_address(cls, extension: int) -> Self:  # type: ignore Self
         r"""Creates an Extended Linear Address record.
 
         Args:
@@ -255,7 +255,7 @@ class IhexRecord(BaseRecord):
         return record
 
     @classmethod
-    def create_extended_segment_address(cls, extension: int) -> Self:
+    def create_extended_segment_address(cls, extension: int) -> Self:  # type: ignore Self
         r"""Creates an Extended Segment Address record.
 
         Args:
@@ -281,7 +281,7 @@ class IhexRecord(BaseRecord):
         return record
 
     @classmethod
-    def create_start_linear_address(cls, address: int) -> Self:
+    def create_start_linear_address(cls, address: int) -> Self:  # type: ignore Self
         r"""Creates a Start Linear Address record.
 
         Args:
@@ -307,7 +307,7 @@ class IhexRecord(BaseRecord):
         return record
 
     @classmethod
-    def create_start_segment_address(cls, address: int) -> Self:
+    def create_start_segment_address(cls, address: int) -> Self:  # type: ignore Self
         r"""Creates a Start Segment Address record.
 
         Args:
@@ -335,9 +335,9 @@ class IhexRecord(BaseRecord):
     @classmethod
     def parse(
         cls,
-        line: AnyBytes,
+        line: ByteString,
         validate: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
 
         match = cls.LINE_REGEX.match(line)
         if not match:
@@ -378,7 +378,10 @@ class IhexRecord(BaseRecord):
         )
         return bytestr
 
-    def to_tokens(self, end: AnyBytes = b'\r\n') -> Mapping[str, bytes]:
+    def to_tokens(
+        self,
+        end: ByteString = b'\r\n',
+    ) -> Mapping[str, bytes]:
 
         self.validate(checksum=False, count=False)
         return {
@@ -397,7 +400,7 @@ class IhexRecord(BaseRecord):
         self,
         checksum: bool = True,
         count: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
 
         super().validate(checksum=checksum, count=count)
 
@@ -470,7 +473,7 @@ class IhexFile(BaseFile):
         'startaddr',
     ]
 
-    Record: Type[IhexRecord] = IhexRecord
+    Record: Type[IhexRecord] = IhexRecord  # type: ignore override
 
     def __init__(self):
 
@@ -479,7 +482,7 @@ class IhexFile(BaseFile):
         self._linear: bool = True
         self._startaddr: Optional[int] = None
 
-    def apply_records(self) -> Self:
+    def apply_records(self) -> Self:  # type: ignore Self
 
         if not self._records:
             raise ValueError('records required')
@@ -625,7 +628,7 @@ class IhexFile(BaseFile):
         self,
         align: bool = False,
         start: bool = True,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Applies memory and meta to records.
 
         This method processes the stored :attr:`memory` and *meta* information
@@ -733,7 +736,7 @@ class IhexFile(BaseFile):
         start_required: bool = False,
         start_penultimate: bool = True,
         start_within_data: bool = False,
-    ) -> Self:
+    ) -> Self:  # type: ignore Self
         r"""Validates records.
 
         It performs consistency checks for the underlying :attr:`records`.
