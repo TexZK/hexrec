@@ -276,10 +276,10 @@ class RawFile(BaseFile):
 
         Examples:
             >>> from hexrec import RawFile
-            >>> blocks = [[123, b'abc']]
+            >>> blocks = [(123, b'abc')]
             >>> file = RawFile.from_blocks(blocks, maxdatalen=16)
             >>> file.memory.to_blocks()
-            [[123, b'abc']]
+            [(123, b'abc')]
             >>> file.get_meta()
             {'maxdatalen': 16}
             >>> _ = file.update_records()

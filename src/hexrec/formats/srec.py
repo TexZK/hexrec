@@ -993,10 +993,10 @@ class SrecFile(BaseFile):
 
         Examples:
             >>> from hexrec import SrecFile
-            >>> blocks = [[123, b'abc']]
+            >>> blocks = [(123, b'abc')]
             >>> file = SrecFile.from_blocks(blocks, maxdatalen=16, startaddr=456)
             >>> file.memory.to_blocks()
-            [[123, b'abc']]
+            [(123, b'abc')]
             >>> file.get_meta()
             {'header': b'', 'maxdatalen': 16, 'startaddr': 456}
             >>> _ = file.update_records()

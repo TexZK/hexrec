@@ -917,8 +917,8 @@ class TestSrecFile(BaseTestFile):
             SrecRecord.create_start(0xABCD),
         ]
         blocks = [
-            [0x1234, b'abc'],
-            [0x4321, b'xyz'],
+            (0x1234, b'abc'),
+            (0x4321, b'xyz'),
         ]
         file = SrecFile.from_records(records)
         file._memory = Memory.from_bytes(b'discarded')
@@ -1184,8 +1184,8 @@ class TestSrecFile(BaseTestFile):
             SrecRecord.create_start(0xABCD),
         ]
         blocks = [
-            [0x1234, b'abc'],
-            [0x4321, b'xyz'],
+            (0x1234, b'abc'),
+            (0x4321, b'xyz'),
         ]
         file = SrecFile.from_blocks(blocks, header=b'HDR\0', startaddr=0xABCD)
         returned = file.update_records(header=True, count=True, start=True)
@@ -1201,8 +1201,8 @@ class TestSrecFile(BaseTestFile):
             SrecRecord.create_start(0xABCD, tag=SrecTag.START_32),
         ]
         blocks = [
-            [0x1234, b'abc'],
-            [0x4321, b'xyz'],
+            (0x1234, b'abc'),
+            (0x4321, b'xyz'),
         ]
         file = SrecFile.from_blocks(blocks, header=b'HDR\0', startaddr=0xABCD)
         file.update_records(header=True, data=True, count=True, start=True,
@@ -1228,8 +1228,8 @@ class TestSrecFile(BaseTestFile):
             SrecRecord.create_start(0xABCD),
         ]
         blocks = [
-            [0x1234, b'abc'],
-            [0x4321, b'xyz'],
+            (0x1234, b'abc'),
+            (0x4321, b'xyz'),
         ]
         file = SrecFile.from_blocks(blocks, header=None, startaddr=0xABCD)
         file.update_records(header=False, count=True, start=True)
@@ -1243,8 +1243,8 @@ class TestSrecFile(BaseTestFile):
             SrecRecord.create_start(0xABCD),
         ]
         blocks = [
-            [0x1234, b'abc'],
-            [0x4321, b'xyz'],
+            (0x1234, b'abc'),
+            (0x4321, b'xyz'),
         ]
         file = SrecFile.from_blocks(blocks, header=b'HDR\0', startaddr=0xABCD)
         file.update_records(header=True, count=False, start=True)
@@ -1268,8 +1268,8 @@ class TestSrecFile(BaseTestFile):
             SrecRecord.create_start(0xABCD),
         ]
         blocks = [
-            [0x1234, b'abc'],
-            [0x4321, b'xyz'],
+            (0x1234, b'abc'),
+            (0x4321, b'xyz'),
         ]
         file = SrecFile.from_blocks(blocks, header=b'HDR\0', startaddr=0xABCD)
         file.update_records(header=False, count=True, start=True)
@@ -1284,8 +1284,8 @@ class TestSrecFile(BaseTestFile):
             SrecRecord.create_start(0x0000),
         ]
         blocks = [
-            [0x1234, b'abc'],
-            [0x4321, b'xyz'],
+            (0x1234, b'abc'),
+            (0x4321, b'xyz'),
         ]
         file = SrecFile.from_blocks(blocks, header=b'HDR\0', startaddr=0xABCD)
         file.update_records(header=True, count=True, start=False)

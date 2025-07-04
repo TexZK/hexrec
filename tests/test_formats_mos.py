@@ -409,7 +409,7 @@ class TestMosFile(BaseTestFile):
         assert file._records is records
         returned = file.apply_records()
         assert returned is file
-        assert file._memory.to_blocks() == [[0, data]]
+        assert file._memory.to_blocks() == [(0, data)]
         assert file._records is records
 
     def test_load_file(self, datapath):

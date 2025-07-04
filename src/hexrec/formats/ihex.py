@@ -545,7 +545,7 @@ class IhexFile(BaseFile):
 
         Examples:
             >>> from hexrec import IhexFile
-            >>> blocks = [[0x1234, b'abc'], [0x000F4321, b'xyz']]
+            >>> blocks = [(0x1234, b'abc'), (0x000F4321, b'xyz')]
             >>> file = IhexFile.from_blocks(blocks)
             >>> file.linear
             True
@@ -662,10 +662,10 @@ class IhexFile(BaseFile):
 
         Examples:
             >>> from hexrec import IhexFile
-            >>> blocks = [[123, b'abc']]
+            >>> blocks = [(123, b'abc')]
             >>> file = IhexFile.from_blocks(blocks, maxdatalen=16, startaddr=456)
             >>> file.memory.to_blocks()
-            [[123, b'abc']]
+            [(123, b'abc')]
             >>> file.get_meta()
             {'linear': True, 'maxdatalen': 16, 'startaddr': 456}
             >>> _ = file.update_records()

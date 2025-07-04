@@ -265,10 +265,10 @@ class AvrFile(BaseFile):
 
         Examples:
             >>> from hexrec import AvrFile
-            >>> blocks = [[124, b'abcd']]
+            >>> blocks = [(124, b'abcd')]
             >>> file = AvrFile.from_blocks(blocks)
             >>> file.memory.to_blocks()
-            [[124, b'abcd']]
+            [(124, b'abcd')]
             >>> file.get_meta()
             {'maxdatalen': 2}
             >>> _ = file.update_records()

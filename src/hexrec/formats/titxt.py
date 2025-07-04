@@ -492,10 +492,10 @@ class TiTxtFile(BaseFile):
 
         Examples:
             >>> from hexrec import TiTxtFile
-            >>> blocks = [[456, b'abc']]
+            >>> blocks = [(456, b'abc')]
             >>> file = TiTxtFile.from_blocks(blocks, maxdatalen=8)
             >>> file.memory.to_blocks()
-            [[456, b'abc']]
+            [(456, b'abc')]
             >>> file.get_meta()
             {'maxdatalen': 8}
             >>> _ = file.update_records()

@@ -1564,10 +1564,10 @@ class BaseFile(abc.ABC):
             >>> file2 = SrecFile.from_bytes(b'xyz', offset=456)
             >>> file3 = file1 + file2
             >>> file3.memory.to_blocks()
-            [[123, b'abc'], [582, b'xyz']]
+            [(123, b'abc'), (582, b'xyz')]
             >>> file4 = file3 + b'789'
             >>> file4.memory.to_blocks()
-            [[123, b'abc'], [582, b'xyz789']]
+            [(123, b'abc'), (582, b'xyz789')]
         """
 
         return self.copy().extend(other)
@@ -1622,13 +1622,13 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [456, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (456, b'xyz')])
             >>> del file[457]
             >>> file.memory.to_blocks()
-            [[123, b'abc'], [456, b'xz']]
+            [(123, b'abc'), (456, b'xz')]
             >>> del file[125:457]
             >>> file.memory.to_blocks()
-            [[123, b'abz']]
+            [(123, b'abz')]
         """
 
         del self.memory[key]
@@ -1651,7 +1651,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [456, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (456, b'xyz')])
             >>> chr(file[457])
             'y'
             >>> repr(file[333])
@@ -1746,10 +1746,10 @@ class BaseFile(abc.ABC):
             >>> file2 = SrecFile.from_bytes(b'xyz', offset=456)
             >>> file1 += file2
             >>> file1.memory.to_blocks()
-            [[123, b'abc'], [582, b'xyz']]
+            [(123, b'abc'), (582, b'xyz')]
             >>> file1 += b'789'
             >>> file1.memory.to_blocks()
-            [[123, b'abc'], [582, b'xyz789']]
+            [(123, b'abc'), (582, b'xyz789')]
         """
 
         return self.extend(other)
@@ -1787,10 +1787,10 @@ class BaseFile(abc.ABC):
             >>> file2 = SrecFile.from_bytes(b'xyz', offset=456)
             >>> file1 |= file2
             >>> file1.memory.to_blocks()
-            [[123, b'abc'], [456, b'xyz']]
+            [(123, b'abc'), (456, b'xyz')]
             >>> file1 |= b'789'
             >>> file1.memory.to_blocks()
-            [[0, b'789'], [123, b'abc'], [456, b'xyz']]
+            [(0, b'789'), (123, b'abc'), (456, b'xyz')]
         """
 
         self.merge(other)
@@ -1899,10 +1899,10 @@ class BaseFile(abc.ABC):
             >>> file2 = SrecFile.from_bytes(b'xyz', offset=456)
             >>> file3 = file1 | file2
             >>> file3.memory.to_blocks()
-            [[123, b'abc'], [456, b'xyz']]
+            [(123, b'abc'), (456, b'xyz')]
             >>> file4 = file3 | b'789'
             >>> file4.memory.to_blocks()
-            [[0, b'789'], [123, b'abc'], [456, b'xyz']]
+            [(0, b'789'), (123, b'abc'), (456, b'xyz')]
         """
 
         return self.copy().merge(other)
@@ -1934,16 +1934,16 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [456, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (456, b'xyz')])
             >>> file[124] = b'?'
             >>> file.memory.to_blocks()
-            [[123, b'a?c'], [456, b'xyz']]
+            [(123, b'a?c'), (456, b'xyz')]
             >>> file[:125] = None
             >>> file.memory.to_blocks()
-            [[125, b'c'], [456, b'xyz']]
+            [(125, b'c'), (456, b'xyz')]
             >>> file[457:458] = b'789'
             >>> file.memory.to_blocks()
-            [[125, b'c'], [456, b'x789z']]
+            [(125, b'c'), (456, b'x789z')]
         """
 
         self.memory[key] = value
@@ -2021,10 +2021,10 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [134, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (134, b'xyz')])
             >>> _ = file.align(4, pattern=b'.')
             >>> file.memory.to_blocks()
-            [[120, b'...abc..'], [132, b'..xyz...']]
+            [(120, b'...abc..'), (132, b'..xyz...')]
         """
 
         self.memory.align(modulo, start=start, endex=endex, pattern=pattern)
@@ -2059,7 +2059,7 @@ class BaseFile(abc.ABC):
             >>> _ = file.append(b'.')
             >>> _ = file.append(0)
             >>> file.memory.to_blocks()
-            [[123, b'abc.\x00']]
+            [(123, b'abc.\x00')]
         """
 
         self.memory.append(item)
@@ -2102,7 +2102,7 @@ class BaseFile(abc.ABC):
             >>> file = IhexFile.from_records(records, maxdatalen=16)
             >>> _ = file.apply_records()
             >>> file.memory.to_blocks()
-            [[123, b'abc']]
+            [(123, b'abc')]
             >>> file.get_meta()
             {'linear': True, 'maxdatalen': 16, 'startaddr': 456}
         """
@@ -2154,10 +2154,10 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [130, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (130, b'xyz')])
             >>> _ = file.clear(start=124, endex=132)
             >>> file.memory.to_blocks()
-            [[123, b'a'], [132, b'z']]
+            [(123, b'a'), (132, b'z')]
         """
 
         self.memory.clear(start=start, endex=endex)
@@ -2191,7 +2191,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import IhexFile, SrecFile
-            >>> blocks = [[123, b'abc'], [456, b'xyz']]
+            >>> blocks = [(123, b'abc'), (456, b'xyz')]
             >>> source = IhexFile.from_blocks(blocks, startaddr=789)
             >>> target = SrecFile.convert(source)
             >>> target.memory is source.memory
@@ -2252,12 +2252,12 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [130, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (130, b'xyz')])
             >>> inner = file.copy(start=124, endex=132)
             >>> inner.memory.to_blocks()
-            [[124, b'bc'], [130, b'xy']]
+            [(124, b'bc'), (130, b'xy')]
             >>> file.memory.to_blocks()
-            [[123, b'abc'], [130, b'xyz']]
+            [(123, b'abc'), (130, b'xyz')]
         """
 
         copied_memory = self.memory.extract(start=start, endex=endex, bound=False)
@@ -2300,10 +2300,10 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [130, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (130, b'xyz')])
             >>> _ = file.crop(start=124, endex=132)
             >>> file.memory.to_blocks()
-            [[124, b'bc'], [130, b'xy']]
+            [(124, b'bc'), (130, b'xy')]
         """
 
         self.memory.crop(start=start, endex=endex)
@@ -2351,12 +2351,12 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [130, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (130, b'xyz')])
             >>> inner = file.cut(start=124, endex=132)
             >>> inner.memory.to_blocks()
-            [[124, b'bc'], [130, b'xy']]
+            [(124, b'bc'), (130, b'xy')]
             >>> file.memory.to_blocks()
-            [[123, b'a'], [132, b'z']]
+            [(123, b'a'), (132, b'z')]
         """
 
         inner_memory = self.memory.cut(start=start, endex=endex, bound=False)
@@ -2400,10 +2400,10 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [130, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (130, b'xyz')])
             >>> _ = file.delete(start=124, endex=132)
             >>> file.memory.to_blocks()
-            [[123, b'az']]
+            [(123, b'az')]
         """
 
         self.memory.delete(start=start, endex=endex)
@@ -2504,10 +2504,10 @@ class BaseFile(abc.ABC):
             >>> file2 = SrecFile.from_bytes(b'xyz', offset=456)
             >>> _ = file1.extend(file2)
             >>> file1.memory.to_blocks()
-            [[123, b'abc'], [582, b'xyz']]
+            [(123, b'abc'), (582, b'xyz')]
             >>> _ = file1.extend(b'789')
             >>> file1.memory.to_blocks()
-            [[123, b'abc'], [582, b'xyz789']]
+            [(123, b'abc'), (582, b'xyz789')]
         """
 
         if isinstance(other, BaseFile):
@@ -2554,10 +2554,10 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [130, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (130, b'xyz')])
             >>> _ = file.fill(start=124, endex=132, pattern=b'.')
             >>> file.memory.to_blocks()
-            [[123, b'a........z']]
+            [(123, b'a........z')]
         """
 
         self.memory.fill(start=start, endex=endex, pattern=pattern)
@@ -2607,7 +2607,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [456, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (456, b'xyz')])
             >>> file.find(b'yz')
             457
             >>> file.find(ord('b'))
@@ -2657,12 +2657,12 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [130, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (130, b'xyz')])
             >>> file.get_holes()
             [(126, 130)]
             >>> _ = file.flood(start=124, endex=132, pattern=b'.')
             >>> file.memory.to_blocks()
-            [[123, b'abc....xyz']]
+            [(123, b'abc....xyz')]
         """
 
         self.memory.flood(start=start, endex=endex, pattern=pattern)
@@ -2704,10 +2704,10 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> blocks = [[123, b'abc'], [456, b'xyz']]
+            >>> blocks = [(123, b'abc'), (456, b'xyz')]
             >>> file = SrecFile.from_blocks(blocks, maxdatalen=8)
             >>> file.memory.to_blocks()
-            [[123, b'abc'], [456, b'xyz']]
+            [(123, b'abc'), (456, b'xyz')]
             >>> file.maxdatalen
             8
         """
@@ -2757,7 +2757,7 @@ class BaseFile(abc.ABC):
             >>> from hexrec import SrecFile
             >>> file = SrecFile.from_bytes(b'abc', offset=123, maxdatalen=8)
             >>> file.memory.to_blocks()
-            [[123, b'abc']]
+            [(123, b'abc')]
             >>> file.maxdatalen
             8
         """
@@ -2801,12 +2801,12 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from bytesparse import Memory
-            >>> blocks = [[123, b'abc'], [456, b'xyz']]
+            >>> blocks = [(123, b'abc'), (456, b'xyz')]
             >>> memory = Memory.from_blocks(blocks)
             >>> from hexrec import SrecFile
             >>> file = SrecFile.from_memory(memory, maxdatalen=8)
             >>> file.memory.to_blocks()
-            [[123, b'abc'], [456, b'xyz']]
+            [(123, b'abc'), (456, b'xyz')]
             >>> file.maxdatalen
             8
         """
@@ -2871,7 +2871,7 @@ class BaseFile(abc.ABC):
             ...            IhexRecord.create_end_of_file()]
             >>> file = IhexFile.from_records(records)
             >>> file.memory.to_blocks()
-            [[123, b'abc']]
+            [(123, b'abc')]
             >>> file.maxdatalen
             3
         """
@@ -2908,7 +2908,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [456, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (456, b'xyz')])
             >>> file.get_address_max()
             458
         """
@@ -2931,7 +2931,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [456, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (456, b'xyz')])
             >>> file.get_address_min()
             123
         """
@@ -2958,7 +2958,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> blocks = [[123, b'abc'], [456, b'xyz'], [789, b'?!']]
+            >>> blocks = [(123, b'abc'), (456, b'xyz'), (789, b'?!')]
             >>> file = SrecFile.from_blocks(blocks)
             >>> file.get_holes()
             [(126, 456), (459, 789)]
@@ -2989,7 +2989,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> blocks = [[123, b'abc'], [456, b'xyz'], [789, b'?!']]
+            >>> blocks = [(123, b'abc'), (456, b'xyz'), (789, b'?!')]
             >>> file = SrecFile.from_blocks(blocks)
             >>> file.get_spans()
             [(123, 126), (456, 459), (789, 791)]
@@ -3012,7 +3012,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> blocks = [[123, b'abc'], [456, b'xyz'], [789, b'?!']]
+            >>> blocks = [(123, b'abc'), (456, b'xyz'), (789, b'?!')]
             >>> file = SrecFile.from_blocks(blocks, header=b'HDR\0')
             >>> file.get_meta()
             {'header': b'HDR\x00', 'maxdatalen': 16, 'startaddr': 0}
@@ -3061,7 +3061,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [456, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (456, b'xyz')])
             >>> file.index(b'yz')
             457
             >>> file.index(ord('b'))
@@ -3114,7 +3114,7 @@ class BaseFile(abc.ABC):
             >>> from hexrec import IhexFile
             >>> file = IhexFile.load('data.hex')
             >>> file.memory.to_blocks()
-            [[55930, b'abc']]
+            [(55930, b'abc')]
             >>> file.get_meta()
             {'linear': True, 'maxdatalen': 3, 'startaddr': 51966}
         """
@@ -3226,13 +3226,13 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> blocks = [[123, b'abc'], [456, b'xyz']]
+            >>> blocks = [(123, b'abc'), (456, b'xyz')]
             >>> file = SrecFile.from_blocks(blocks)
             >>> file.memory.to_blocks()
-            [[123, b'abc'], [456, b'xyz']]
+            [(123, b'abc'), (456, b'xyz')]
             >>> _ = file.write(789, b'?!')
             >>> file.memory.to_blocks()
-            [[123, b'abc'], [456, b'xyz'], [789, b'?!']]
+            [(123, b'abc'), (456, b'xyz'), (789, b'?!')]
         """
 
         if self._memory is None:
@@ -3273,7 +3273,7 @@ class BaseFile(abc.ABC):
             >>> file3 = SrecFile.from_bytes(b'<<<?????>>>', offset=450)
             >>> _ = file3.merge(file1, file2)
             >>> file3.memory.to_blocks()
-            [[123, b'abc'], [450, b'<<<???xyz>>']]
+            [(123, b'abc'), (450, b'<<<???xyz>>')]
         """
 
         for file in files:
@@ -3334,12 +3334,12 @@ class BaseFile(abc.ABC):
             >>> stream = io.BytesIO(buffer)
             >>> file = IhexFile.parse(stream)
             >>> file.memory.to_blocks()
-            [[55930, b'abc']]
+            [(55930, b'abc')]
             >>> file.get_meta()
             {'linear': True, 'maxdatalen': 3, 'startaddr': 51966}
             >>> file = IhexFile.parse(buffer)
             >>> file.memory.to_blocks()
-            [[55930, b'abc']]
+            [(55930, b'abc')]
             >>> file.get_meta()
             {'linear': True, 'maxdatalen': 3, 'startaddr': 51966}
         """
@@ -3491,13 +3491,13 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [130, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (130, b'xyz')])
             >>> file.read(start=124, endex=132)
             b'bc\x00\x00\x00\x00xy'
             >>> file.read(start=124, endex=132, fill=b'.')
             b'bc....xy'
             >>> file.memory.to_blocks()
-            [[123, b'abc'], [130, b'xyz']]
+            [(123, b'abc'), (130, b'xyz')]
         """
 
         memory = self.memory.extract(start=start, endex=endex, pattern=fill)
@@ -3532,7 +3532,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> blocks = [[123, b'abc'], [456, b'xyz']]
+            >>> blocks = [(123, b'abc'), (456, b'xyz')]
             >>> file = SrecFile.from_blocks(blocks, startaddr=789)
             >>> len(file.records)
             5
@@ -3592,7 +3592,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import IhexFile
-            >>> file = IhexFile.from_blocks([[0xDA7A, b'abc']], startaddr=0xCAFE)
+            >>> file = IhexFile.from_blocks([(0xDA7A, b'abc')], startaddr=0xCAFE)
             >>> _ = file.save('data.hex')
         """
 
@@ -3639,7 +3639,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> blocks = [[123, b'abc'], [456, b'xyz'], [789, b'?!']]
+            >>> blocks = [(123, b'abc'), (456, b'xyz'), (789, b'?!')]
             >>> file = SrecFile.from_blocks(blocks)
             >>> file.get_meta()
             {'header': b'', 'maxdatalen': 16, 'startaddr': 0}
@@ -3684,7 +3684,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import IhexFile
-            >>> file = IhexFile.from_blocks([[0xDA7A, b'abc']], startaddr=0xCAFE)
+            >>> file = IhexFile.from_blocks([(0xDA7A, b'abc')], startaddr=0xCAFE)
             >>> import sys
             >>> _ = file.serialize(sys.stdout.buffer, end=b'\n')
             :03DA7A0061626383
@@ -3721,10 +3721,10 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [456, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (456, b'xyz')])
             >>> _ = file.shift(1000)
             >>> file.memory.to_blocks()
-            [[1123, b'abc'], [1456, b'xyz']]
+            [(1123, b'abc'), (1456, b'xyz')]
         """
 
         self.memory.shift(offset)
@@ -3762,11 +3762,11 @@ class BaseFile(abc.ABC):
             >>> file = SrecFile.from_bytes(b'Hello, World!', offset=123)
             >>> parts = file.split(128, 130)
             >>> for part in parts: print(part.memory.to_blocks())
-            [[123, b'Hello']]
-            [[128, b', ']]
-            [[130, b'World!']]
+            [(123, b'Hello')]
+            [(128, b', ')]
+            [(130, b'World!')]
             >>> file.memory.to_blocks()
-            [[123, b'Hello, World!']]
+            [(123, b'Hello, World!')]
         """
 
         pivots: List[Optional[int]] = list(addresses)
@@ -3812,10 +3812,10 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import IhexFile
-            >>> blocks = [[123, b'abc']]
+            >>> blocks = [(123, b'abc')]
             >>> file = IhexFile.from_blocks(blocks, maxdatalen=16, startaddr=456)
             >>> file.memory.to_blocks()
-            [[123, b'abc']]
+            [(123, b'abc')]
             >>> file.get_meta()
             {'linear': True, 'maxdatalen': 16, 'startaddr': 456}
             >>> _ = file.update_records()
@@ -3883,7 +3883,7 @@ class BaseFile(abc.ABC):
             Inherited classes for specific *formats* may require an adaptation.
 
             >>> from hexrec import SrecFile
-            >>> file = SrecFile.from_blocks([[123, b'abc'], [456, b'xyz']])
+            >>> file = SrecFile.from_blocks([(123, b'abc'), (456, b'xyz')])
             >>> bytes(file.view(start=456, endex=458))
             b'xy'
             >>> bytes(file.view())
@@ -3936,7 +3936,7 @@ class BaseFile(abc.ABC):
             >>> _ = file.write(555, ord('?'))
             >>> _ = file.write(1000, SrecFile.from_bytes(b'xyz', offset=456))
             >>> file.memory.to_blocks()
-            [[123, b'abc'], [555, b'?'], [1456, b'xyz']]
+            [(123, b'abc'), (555, b'?'), (1456, b'xyz')]
         """
 
         if isinstance(data, BaseFile):

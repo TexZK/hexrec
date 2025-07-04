@@ -552,7 +552,7 @@ class AsciiHexFile(BaseFile):
             >>> stream = io.BytesIO(buffer)
             >>> file = AsciiHexFile.parse(stream)
             >>> file.memory.to_blocks()
-            [[4660, b'abc']]
+            [(4660, b'abc')]
             >>> file.get_meta()
             {'maxdatalen': 3}
         """
@@ -644,7 +644,7 @@ class AsciiHexFile(BaseFile):
 
         Examples:
             >>> from hexrec import MosFile
-            >>> file = MosFile.from_blocks([[0xDA7A, b'abc']])
+            >>> file = MosFile.from_blocks([(0xDA7A, b'abc')])
             >>> import sys
             >>> _ = file.serialize(sys.stdout.buffer, nuls=False, xoff=False)
             ;03DA7A616263027D
@@ -704,10 +704,10 @@ class AsciiHexFile(BaseFile):
 
         Examples:
             >>> from hexrec import AsciiHexFile
-            >>> blocks = [[123, b'abc']]
+            >>> blocks = [(123, b'abc')]
             >>> file = AsciiHexFile.from_blocks(blocks, maxdatalen=16)
             >>> file.memory.to_blocks()
-            [[123, b'abc']]
+            [(123, b'abc')]
             >>> file.get_meta()
             {'maxdatalen': 16}
             >>> _ = file.update_records()
