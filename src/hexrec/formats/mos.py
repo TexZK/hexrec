@@ -37,7 +37,7 @@ from typing import Any
 from typing import Mapping
 from typing import Type
 from typing import TypeVar
-from typing import Union
+from typing import Union  # NOTE: type | operator unsupported for Python < 3.10
 from typing import cast as _cast
 
 from ..base import AnyBytes

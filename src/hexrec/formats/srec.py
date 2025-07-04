@@ -33,10 +33,10 @@ import enum
 import re
 from typing import Any
 from typing import Mapping
-from typing import Optional
 from typing import Sequence
 from typing import Type
 from typing import TypeVar
+from typing import Union  # NOTE: type | operator unsupported for Python < 3.10
 from typing import cast as _cast
 
 from bytesparse import Memory
@@ -292,7 +292,7 @@ class SrecTag(BaseTag, enum.IntEnum):
             size = 0xFE - size
         return size
 
-    def get_tag_match(self) -> Optional['SrecTag']:
+    def get_tag_match(self) -> Union['SrecTag', None]:
         r"""Calculates the matching tag.
 
         Given *data* or *start address* records, it returns the matching tag.
@@ -472,7 +472,7 @@ class SrecRecord(BaseRecord):
     def create_count(
         cls,
         count: int,
-        tag: Optional[SrecTag] = None,
+        tag: Union[SrecTag, None] = None,
     ) -> Self:  # type: ignore Self
         r"""Creates a record count record.
 
@@ -521,7 +521,7 @@ class SrecRecord(BaseRecord):
         cls,
         address: int,
         data: ByteString,
-        tag: Optional[SrecTag] = None,
+        tag: Union[SrecTag, None] = None,
     ) -> Self:  # type: ignore Self
         r"""Creates a data record.
 
@@ -609,7 +609,7 @@ class SrecRecord(BaseRecord):
     def create_start(
         cls,
         address: int = 0,
-        tag: Optional[SrecTag] = None,
+        tag: Union[SrecTag, None] = None,
     ) -> Self:  # type: ignore Self
         r"""Creates a start address record.
 
@@ -810,7 +810,7 @@ class SrecFile(BaseFile):
 
         super().__init__()
 
-        self._header: Optional[ByteString] = b''
+        self._header: Union[ByteString, None] = b''
         self._startaddr: int = 0
 
     def apply_records(self) -> Self:  # type: ignore Self
@@ -841,7 +841,7 @@ class SrecFile(BaseFile):
         return self
 
     @property
-    def header(self) -> Optional[ByteString]:
+    def header(self) -> Union[ByteString, None]:
         r"""bytes: Header byte string.
 
         This property sets the file *header* byte string; ``None`` to disable.
@@ -883,7 +883,7 @@ class SrecFile(BaseFile):
         return self._header
 
     @header.setter
-    def header(self, header: Optional[ByteString]) -> None:
+    def header(self, header: Union[ByteString, None]) -> None:
 
         if header is not None:
             size = len(header)
@@ -943,8 +943,8 @@ class SrecFile(BaseFile):
         data: bool = False,
         count: bool = True,
         start: bool = True,
-        data_tag: Optional[SrecTag] = None,
-        count_tag: Optional[SrecTag] = None,
+        data_tag: Union[SrecTag, None] = None,
+        count_tag: Union[SrecTag, None] = None,
     ) -> Self:  # type: ignore Self
         r"""Applies memory and meta to records.
 

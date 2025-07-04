@@ -31,13 +31,14 @@ import sys
 from typing import Any
 from typing import Iterator
 from typing import Mapping
-from typing import Optional
 from typing import Sequence
-from typing import Union
+from typing import Union  # NOTE: type | operator unsupported for Python < 3.10
+from typing import cast as _cast
 
 from bytesparse import MemoryIO
 from bytesparse.base import Address
 from bytesparse.base import ImmutableMemory
+from bytesparse.base import MutableMemory
 
 from .base import AnyBytes
 from .base import EllipsisType
@@ -142,7 +143,7 @@ def chop(
 
 def hexlify(
     bytestr: Union[bytes, bytearray],
-    sep: Optional[Union[bytes, bytearray]] = None,
+    sep: Union[bytes, bytearray, None] = None,
     upper: bool = True,
 ) -> bytes:
     r"""Converts raw bytes into a hexadecimal byte string.
@@ -189,7 +190,7 @@ def hexlify(
 
 def parse_int(
     value: Union[str, Any],
-) -> Optional[int]:
+) -> Union[int, None]:
     r"""Parses an integer.
 
     Args:
@@ -259,7 +260,7 @@ def parse_int(
 
 def unhexlify(
     hexstr: Union[bytes, bytearray],
-    delete: Optional[Union[bytes, bytearray, EllipsisType]] = None,
+    delete: Union[bytes, bytearray, EllipsisType, None] = None,
 ) -> bytes:
     r"""Converts a hexadecimal byte string into raw bytes.
 
@@ -292,6 +293,7 @@ def unhexlify(
     if delete:
         if delete is Ellipsis:
             delete = DEFAULT_DELETE
+        delete = _cast(bytes, delete)
         hexstr = hexstr.translate(None, delete)
 
     bytestr = binascii.unhexlify(hexstr)
@@ -325,9 +327,9 @@ class SparseMemoryIO(MemoryIO):
         :attr:`bytesparse.base.ImmutableMemory.endex`
     """
 
-    def read(
+    def read(  # type: ignore kwargs override
         self,
-        size: Optional[Address] = -1,
+        size: Union[Address, None] = -1,
         asmemview: bool = False,
     ) -> Union[bytes, memoryview, Address, Sequence[int]]:
 
@@ -335,6 +337,7 @@ class SparseMemoryIO(MemoryIO):
             raise ValueError('memory view not supported')
 
         memory = self._memory
+        assert memory is not None
         start = self._position
         if start >= memory.endex:
             return b''
@@ -364,7 +367,7 @@ class SparseMemoryIO(MemoryIO):
                         buffer[offset] = 0x100  # within
 
         self._position = start + size
-        return buffer
+        return buffer  # type: ignore
 
     def write(
         self,
@@ -374,7 +377,8 @@ class SparseMemoryIO(MemoryIO):
         if isinstance(buffer, (bytes, bytearray, memoryview, ImmutableMemory, int)):
             return super().write(buffer)
 
-        memory = self._memory
+        memory = _cast(MutableMemory, self._memory)
+        assert memory is not None
         start = self._position
         size = len(buffer)
 

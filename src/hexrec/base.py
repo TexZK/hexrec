@@ -36,12 +36,11 @@ from typing import Literal
 from typing import Mapping
 from typing import MutableMapping
 from typing import MutableSequence
-from typing import Optional
 from typing import Sequence
 from typing import Tuple
 from typing import Type
 from typing import TypeVar
-from typing import Union
+from typing import Union  # NOTE: type | operator unsupported for Python < 3.10
 from typing import cast as _cast
 
 import colorama
@@ -176,8 +175,8 @@ def colorize_tokens(
 def convert(
     in_path_or_stream: Union[str, IO],
     out_path: str,
-    in_format: Optional[str] = None,
-    out_format: Optional[str] = None,
+    in_format: Union[str, None] = None,
+    out_format: Union[str, None] = None,
 ) -> Tuple['BaseFile', 'BaseFile']:
     r"""Converts a file into another format.
 
@@ -314,9 +313,9 @@ def guess_format_type(file_path: str) -> Type['BaseFile']:
 
 
 def load(
-    in_path_or_stream: Optional[Union[str, IO]],
+    in_path_or_stream: Union[str, IO, None],
     *load_args: Any,
-    in_format: Optional[str] = None,
+    in_format: Union[str, None] = None,
     **load_kwargs: Any,
 ) -> 'BaseFile':
     r"""Loads a file.
@@ -388,9 +387,9 @@ def load(
 
 def merge(
     in_paths_or_streams: Sequence[Union[str, IO]],
-    out_path_or_stream: Optional[Union[str, IO, EllipsisType]] = Ellipsis,
-    in_formats: Optional[Sequence[Optional[str]]] = None,
-    out_format: Optional[str] = None,
+    out_path_or_stream: Union[str, IO, EllipsisType, None] = Ellipsis,
+    in_formats: Union[Sequence[Union[str, None]], None] = None,
+    out_format: Union[str, None] = None,
 ) -> Tuple[Sequence['BaseFile'], 'BaseFile']:
     r"""Merges multiple files.
 
@@ -476,7 +475,7 @@ class BaseTag:
     the *serialized* representation of a record.
     """
 
-    _DATA: Optional['BaseTag'] = None
+    _DATA: Union['BaseTag', None] = None
     r"""Alias to a common data record tag.
 
     This tag is used internally to build a generic data record.
@@ -765,8 +764,8 @@ class BaseRecord(abc.ABC):
         tag: BaseTag,
         address: int = 0,
         data: ByteString = b'',
-        count: Optional[Union[int, EllipsisType]] = Ellipsis,
-        checksum: Optional[Union[int, EllipsisType]] = Ellipsis,
+        count: Union[int, EllipsisType, None] = Ellipsis,
+        checksum: Union[int, EllipsisType, None] = Ellipsis,
         before: Union[bytes, bytearray] = b'',
         after: Union[bytes, bytearray] = b'',
         coords: Tuple[int, int] = (-1, -1),
@@ -776,9 +775,9 @@ class BaseRecord(abc.ABC):
         self.address: int = address.__index__()
         self.after: Union[bytes, bytearray] = after
         self.before: Union[bytes, bytearray] = before
-        self.checksum: Optional[int] = None
+        self.checksum: Union[int, None] = None
         self.coords: Tuple[int, int] = coords
-        self.count: Optional[int] = None
+        self.count: Union[int, None] = None
         self.data: ByteString = data
         self.tag: BaseTag = tag
 
@@ -900,7 +899,7 @@ class BaseRecord(abc.ABC):
 
         return self.to_bytestr().decode()
 
-    def compute_checksum(self) -> Optional[int]:
+    def compute_checksum(self) -> Union[int, None]:
         r"""Computes the checksum field value.
 
         It computes and returns the format-specific :attr:`checksum` value of a
@@ -928,7 +927,7 @@ class BaseRecord(abc.ABC):
 
         return None
 
-    def compute_count(self) -> Optional[int]:
+    def compute_count(self) -> Union[int, None]:
         r"""Compute the count field value.
 
         It computes and returns the format-specific :attr:`count` value of a
@@ -1128,7 +1127,7 @@ class BaseRecord(abc.ABC):
     def print(
         self,
         *args,
-        stream: Optional[IO] = None,
+        stream: Union[IO, None] = None,
         color: bool = False,
         **kwargs,
     ) -> Self:  # type: ignore Self
@@ -1756,8 +1755,8 @@ class BaseFile(abc.ABC):
 
     def __init__(self):
 
-        self._records: Optional[MutableSequence[BaseRecord]] = None
-        self._memory: Optional[MutableMemory] = Memory()
+        self._records: Union[MutableSequence[BaseRecord], None] = None
+        self._memory: Union[MutableMemory, None] = Memory()
         self._maxdatalen: int = self.DEFAULT_DATALEN
 
     def __ior__(self, other: 'BaseFile') -> Self:  # type: ignore Self
@@ -1981,8 +1980,8 @@ class BaseFile(abc.ABC):
     def align(
         self,
         modulo: int,
-        start: Optional[int] = None,
-        endex: Optional[int] = None,
+        start: Union[int, None] = None,
+        endex: Union[int, None] = None,
         pattern: Union[int, AnyBytes] = 0,
     ) -> Self:  # type: ignore Self
         r"""Pads blocks to align their boundaries.
@@ -2122,8 +2121,8 @@ class BaseFile(abc.ABC):
 
     def clear(
         self,
-        start: Optional[int] = None,
-        endex: Optional[int] = None,
+        start: Union[int, None] = None,
+        endex: Union[int, None] = None,
     ) -> Self:  # type: ignore Self
         r"""Clears data within a range.
 
@@ -2217,8 +2216,8 @@ class BaseFile(abc.ABC):
 
     def copy(
         self,
-        start: Optional[int] = None,
-        endex: Optional[int] = None,
+        start: Union[int, None] = None,
+        endex: Union[int, None] = None,
         meta: bool = True,
     ) -> Self:  # type: ignore Self
         r"""Copies within a range.
@@ -2268,8 +2267,8 @@ class BaseFile(abc.ABC):
 
     def crop(
         self,
-        start: Optional[int] = None,
-        endex: Optional[int] = None,
+        start: Union[int, None] = None,
+        endex: Union[int, None] = None,
     ) -> Self:  # type: ignore Self
         r"""Clears data outside a range.
 
@@ -2312,8 +2311,8 @@ class BaseFile(abc.ABC):
 
     def cut(
         self,
-        start: Optional[int] = None,
-        endex: Optional[int] = None,
+        start: Union[int, None] = None,
+        endex: Union[int, None] = None,
         meta: bool = False,
     ) -> Self:  # type: ignore Self
         r"""Cuts data within a range.
@@ -2368,8 +2367,8 @@ class BaseFile(abc.ABC):
 
     def delete(
         self,
-        start: Optional[int] = None,
-        endex: Optional[int] = None,
+        start: Union[int, None] = None,
+        endex: Union[int, None] = None,
     ) -> Self:  # type: ignore Self
         r"""Deletes data within a range.
 
@@ -2518,8 +2517,8 @@ class BaseFile(abc.ABC):
 
     def fill(
         self,
-        start: Optional[int] = None,
-        endex: Optional[int] = None,
+        start: Union[int, None] = None,
+        endex: Union[int, None] = None,
         pattern: Union[int, AnyBytes] = 0,
     ) -> Self:  # type: ignore Self
         r"""Fills a range.
@@ -2567,8 +2566,8 @@ class BaseFile(abc.ABC):
     def find(
         self,
         item: Union[AnyBytes, int],
-        start: Optional[int] = None,
-        endex: Optional[int] = None,
+        start: Union[int, None] = None,
+        endex: Union[int, None] = None,
     ) -> int:
         r"""Finds a substring.
 
@@ -2621,8 +2620,8 @@ class BaseFile(abc.ABC):
 
     def flood(
         self,
-        start: Optional[int] = None,
-        endex: Optional[int] = None,
+        start: Union[int, None] = None,
+        endex: Union[int, None] = None,
         pattern: Union[int, AnyBytes] = 0,
     ) -> Self:  # type: ignore Self
         r"""Floods a range.
@@ -2767,7 +2766,7 @@ class BaseFile(abc.ABC):
         return file
 
     @classmethod
-    def from_memory(cls, memory: Optional[MutableMemory] = None, **meta) -> Self:  # type: ignore Self
+    def from_memory(cls, memory: Union[MutableMemory, None] = None, **meta) -> Self:  # type: ignore Self
         r"""Creates a file object from a memory object.
 
         The `memory` is set as the :attr:`memory` of the created file object.
@@ -2828,7 +2827,7 @@ class BaseFile(abc.ABC):
     def from_records(
         cls,
         records: MutableSequence[BaseRecord],
-        maxdatalen: Optional[int] = None,
+        maxdatalen: Union[int, None] = None,
     ) -> Self:  # type: ignore Self
         r"""Creates a file object from records.
 
@@ -3024,8 +3023,8 @@ class BaseFile(abc.ABC):
     def index(
         self,
         item: Union[AnyBytes, int],
-        start: Optional[int] = None,
-        endex: Optional[int] = None,
+        start: Union[int, None] = None,
+        endex: Union[int, None] = None,
     ) -> int:
         r"""Finds a substring.
 
@@ -3078,7 +3077,7 @@ class BaseFile(abc.ABC):
     @classmethod
     def load(
         cls,
-        in_path_or_stream: Optional[Union[AnyPath, IO]],
+        in_path_or_stream: Union[AnyPath, IO, None],
         *args,
         **kwargs,
     ) -> Self:  # type: ignore Self
@@ -3378,10 +3377,10 @@ class BaseFile(abc.ABC):
     def print(
         self,
         *args,
-        stream: Optional[IO] = None,
+        stream: Union[IO, None] = None,
         color: bool = False,
-        start: Optional[int] = None,
-        stop: Optional[int] = None,
+        start: Union[int, None] = None,
+        stop: Union[int, None] = None,
         **kwargs,
     ) -> Self:  # type: ignore Self
         r"""Prints record content to stdout.
@@ -3457,8 +3456,8 @@ class BaseFile(abc.ABC):
 
     def read(
         self,
-        start: Optional[int] = None,
-        endex: Optional[int] = None,
+        start: Union[int, None] = None,
+        endex: Union[int, None] = None,
         fill: Union[int, bytes, bytearray] = 0,
     ) -> bytes:
         r"""Extracts a substring.
@@ -3558,7 +3557,7 @@ class BaseFile(abc.ABC):
 
     def save(
         self,
-        out_path_or_stream: Optional[Union[AnyPath, IO]],
+        out_path_or_stream: Union[AnyPath, IO, None],
         *args,
         **kwargs,
     ) -> Self:  # type: ignore Self
@@ -3769,7 +3768,7 @@ class BaseFile(abc.ABC):
             [(123, b'Hello, World!')]
         """
 
-        pivots: List[Optional[int]] = list(addresses)
+        pivots: List[Union[int, None]] = list(addresses)
         pivots.sort()  # type: ignore sort(key)
         pivots.append(None)
         previous = None
@@ -3855,8 +3854,8 @@ class BaseFile(abc.ABC):
 
     def view(
         self,
-        start: Optional[int] = None,
-        endex: Optional[int] = None,
+        start: Union[int, None] = None,
+        endex: Union[int, None] = None,
     ) -> memoryview:
         r"""Memory view.
 

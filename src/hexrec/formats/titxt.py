@@ -34,10 +34,10 @@ import re
 from typing import IO
 from typing import Any
 from typing import Mapping
-from typing import Optional
 from typing import Sequence
 from typing import Type
 from typing import TypeVar
+from typing import Union  # NOTE: type | operator unsupported for Python < 3.10
 from typing import cast as _cast
 
 from ..base import AnyBytes
@@ -137,7 +137,7 @@ class TiTxtRecord(BaseRecord):
     )
     r"""Line parser regex."""
 
-    def compute_count(self) -> Optional[int]:
+    def compute_count(self) -> Union[int, None]:
 
         Tag = self.Tag
         tag = self.tag

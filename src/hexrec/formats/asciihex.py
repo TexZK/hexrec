@@ -34,9 +34,9 @@ import re
 from typing import IO
 from typing import Any
 from typing import Mapping
-from typing import Optional
 from typing import Type
 from typing import TypeVar
+from typing import Union  # NOTE: type | operator unsupported for Python < 3.10
 from typing import cast as _cast
 
 from ..base import AnyBytes
@@ -139,7 +139,7 @@ class AsciiHexRecord(BaseRecord):
     DATA_EXECHARS: bytes = b" \t\v\f\r%',"
     r"""Supported execution characters."""
 
-    def compute_checksum(self) -> Optional[int]:
+    def compute_checksum(self) -> Union[int, None]:
 
         Tag = self.Tag
         tag = self.tag
@@ -149,7 +149,7 @@ class AsciiHexRecord(BaseRecord):
         else:
             return None  # not supported
 
-    def compute_count(self) -> Optional[int]:
+    def compute_count(self) -> Union[int, None]:
 
         Tag = self.Tag
         tag = self.tag

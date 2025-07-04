@@ -33,10 +33,10 @@ import enum
 import re
 from typing import Any
 from typing import Mapping
-from typing import Optional
 from typing import Sequence
 from typing import Type
 from typing import TypeVar
+from typing import Union  # NOTE: type | operator unsupported for Python < 3.10
 from typing import cast as _cast
 
 from bytesparse import Memory
@@ -480,7 +480,7 @@ class IhexFile(BaseFile):
         super().__init__()
 
         self._linear: bool = True
-        self._startaddr: Optional[int] = None
+        self._startaddr: Union[int, None] = None
 
     def apply_records(self) -> Self:  # type: ignore Self
 
@@ -575,7 +575,7 @@ class IhexFile(BaseFile):
         self._linear = linear
 
     @property
-    def startaddr(self) -> Optional[int]:
+    def startaddr(self) -> Union[int, None]:
         r"""Start address.
 
         This property sets the *start address* of the serialized record file.
@@ -613,7 +613,7 @@ class IhexFile(BaseFile):
         return self._startaddr
 
     @startaddr.setter
-    def startaddr(self, address: Optional[int]) -> None:
+    def startaddr(self, address: Union[int, None]) -> None:
 
         if address is not None:
             address = address.__index__()

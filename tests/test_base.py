@@ -5,8 +5,7 @@ import sys
 from pathlib import Path
 from typing import IO
 from typing import Any
-from typing import Optional
-from typing import Union
+from typing import Union  # NOTE: type | operator unsupported for Python < 3.10
 from typing import cast as _cast
 
 import pytest
@@ -81,7 +80,7 @@ class replace_stdin:
 
 class replace_stdout:
 
-    def __init__(self, stream: Optional[IO] = None):
+    def __init__(self, stream: Union[IO, None] = None):
         if stream is None:
             stream = io.StringIO()
         self.buffer = stream
