@@ -336,6 +336,18 @@ def xxd_core(
             instream = io.BytesIO(infile)
         elif isinstance(infile, ImmutableMemory):
             instream = SparseMemoryIO(memory=infile)
+            if iseek is None:
+                if cols is None:
+                    if postscript or include:
+                        width = 1
+                    elif bits:
+                        width = 6
+                    else:
+                        width = 16
+                else:
+                    width = cols
+                iseek = infile.start
+                iseek -= iseek % width
         else:
             instream = infile
         assert instream is not None

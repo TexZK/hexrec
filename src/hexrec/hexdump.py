@@ -460,9 +460,10 @@ def hexdump_core(
     if format_file is not None:
         raise NotImplementedError('"format_file" option is not supported')
 
-    skip = 0 if skip is None else skip.__index__()
-    if skip < 0:
-        raise ValueError('negative skip')
+    if skip is not None:
+        skip = skip.__index__()
+        if skip < 0:
+            raise ValueError('negative skip')
 
     if length is not None:
         length = length.__index__()
@@ -514,6 +515,9 @@ def hexdump_core(
             instream = io.BytesIO(infile)
         elif isinstance(infile, ImmutableMemory):
             instream = SparseMemoryIO(memory=infile)
+            if skip is None:
+                skip = infile.start
+                skip -= skip % width
         else:
             instream = _cast(IO, infile)
         assert instream is not None
@@ -530,6 +534,8 @@ def hexdump_core(
 
         if skip:
             instream.seek(skip, io.SEEK_CUR)
+        else:
+            skip = 0
 
         offset = 0
         last_chunk = None
