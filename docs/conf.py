@@ -83,5 +83,11 @@ napoleon_custom_sections = [('Method Groups', 'params_style')]
 typehints_document_rtype = False
 
 linkcheck_ignore = [
+    # These links are likely to become broken or not relevant anymore
     r'https://developerhelp.microchip.com/xwiki/bin/view/software-tools/ipe/sqtp-file-format-specification/',
+    r'https://downloads.ti.com/docs/esd/SPNU118/ti-txt-hex-format-ti-txt-option-stdz0795656.html',
+    r'https://srecord.sourceforge.net/',
+    r'https://srecord.sourceforge.net/man/man5/srec_ascii_hex.5.html',
+    r'https://srecord.sourceforge.net/man/man5/srec_atmel_generic.5.html',
+    r'https://srecord.sourceforge.net/man/man5/srec_mos_tech.5.html',
 ]
